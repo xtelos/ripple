@@ -17,7 +17,7 @@ says plainly where static analysis runs out.
 Requires Python 3.10+ and [uv](https://docs.astral.sh/uv/).
 
 ```sh
-uv tool install git+https://github.com/OWNER/ripple   # puts `ripple` on your PATH
+uv tool install git+https://github.com/xtelos/ripple   # puts `ripple` on your PATH
 ```
 
 **Claude Code**, from your project directory:
