@@ -67,6 +67,7 @@ class Resolver:
         self._types: dict[int, str | None] = {}
         self._bases: dict[str, list[str]] = {}
         self._external_bases: set[str] = set()
+        self._unresolved_bases: dict[str, str] = {}  # class id -> a base ripple could not resolve
         self.subclasses = self._direct_subclasses()
 
     # -- output ------------------------------------------------------------
@@ -238,14 +239,34 @@ class Resolver:
             cls = self.attribute_type(target.value, attr)
             if cls:
                 return self.value_of_type(cls)
-            if self.has_external_base(target.value):
-                # Not defined in the repo, and a base class comes from outside
-                # it (ast.NodeVisitor, Exception): the member is inherited from there.
-                return Target("external", f"{target.value}.{attr}")
-            return unknown(f"'{attr}' is not a method or typed attribute of {target.value}")
+            if self.assigns(target.value, attr):
+                return unknown(f"'{attr}' is not a method or typed attribute of {target.value}")
+            return self.missing_member(target.value, attr)
         if target.kind == "bound":
             return unknown("attribute of a method")
         return target  # unknown stays unknown, keeping the first reason
+
+    def assigns(self, cls: str, attr: str) -> bool:
+        """Whether a class in cls's hierarchy binds attr (in its body, or as self.attr)."""
+        return any(attr in self.scopes[k].names or attr in self.scopes[k].attr_types for k in self.mro(cls))
+
+    def missing_member(self, cls: str, attr: str) -> Target:
+        """cls.attr where no class of cls's hierarchy in the repo defines attr.
+
+        It is external only when it must come from a base outside the repo
+        (ast.NodeVisitor, Exception). If a base could not be resolved, or a
+        repo subclass defines attr (the template method pattern), the call may
+        well reach repo code, so it is reported as unresolved.
+        """
+        blocked = self.unresolved_base(cls)
+        if blocked:
+            klass, base = blocked
+            return unknown(f"'{attr}' is not defined on {cls}, and base class {base} of {klass} could not be resolved")
+        if any(attr in self.scopes[sub].names for sub in self.all_subclasses(cls)):
+            return unknown(f"'{attr}' is not defined on {cls} or its bases in the repo, but subclasses define it")
+        if self.has_external_base(cls):
+            return Target("external", f"{cls}.{attr}")
+        return unknown(f"'{attr}' is not a method or typed attribute of {cls}")
 
     def class_member(self, cls: str, name: str) -> str | None:
         """The def (method or nested class) that cls.name finds, walking bases."""
@@ -263,6 +284,10 @@ class Resolver:
             binding = self.scopes[klass].names.get(name)
             if binding is not None and binding.kind == "def":
                 return Target("symbol", binding.target)
+        blocked = self.unresolved_base(cls)
+        if blocked:
+            klass, base = blocked
+            return unknown(f"'{name}' is not defined on the bases of {cls}, and base class {base} of {klass} could not be resolved")
         return Target("external", f"super().{name}")
 
     # -- classes -----------------------------------------------------------
@@ -275,8 +300,12 @@ class Resolver:
     def base_classes(self, cls: str) -> list[str]:
         """Bases that resolve to classes in the repo.
 
-        Any other base (from the stdlib or a dependency, or one we cannot
-        resolve) is left out of the list and noted in _external_bases.
+        Any other base is left out of the list and noted: in _external_bases
+        when it comes from outside the repo (the stdlib or a dependency), in
+        _unresolved_bases when ripple cannot tell what it is (a name bound two
+        ways, the result of a call). The difference matters: a member missing
+        from the repo's classes is inherited from an external base, but it
+        could be anywhere behind an unresolved one.
         """
         if cls not in self._bases:
             self._bases[cls] = []  # guards against a class that inherits itself
@@ -284,16 +313,30 @@ class Resolver:
             parent = self.scopes[scope.parent]
             found = []
             for base in scope.bases:
-                target = self.resolve_chain(parent, base.split(".")) if base != "?" else unknown("")
+                parts = base.split(".")
+                if all(part.isidentifier() for part in parts):
+                    target = self.resolve_chain(parent, parts)
+                else:
+                    target = unknown("the base is computed")  # e.g. with_metaclass(Meta)
                 if target.kind == "symbol" and self.scopes[target.value].kind == "class":
                     found.append(target.value)
-                elif base != "object":
-                    self._external_bases.add(cls)
+                elif target.kind == "external":
+                    if base != "object":
+                        self._external_bases.add(cls)
+                else:
+                    self._unresolved_bases.setdefault(cls, base)
             self._bases[cls] = found
         return self._bases[cls]
 
     def has_external_base(self, cls: str) -> bool:
         return any(klass in self._external_bases for klass in self.mro(cls))
+
+    def unresolved_base(self, cls: str) -> tuple[str, str] | None:
+        """(class, base) for the first class in cls's hierarchy with a base ripple could not resolve."""
+        for klass in self.mro(cls):
+            if klass in self._unresolved_bases:
+                return klass, self._unresolved_bases[klass]
+        return None
 
     def mro(self, cls: str) -> list[str]:
         """Method lookup order: the class, then bases depth-first, left to right.
@@ -388,9 +431,13 @@ class Resolver:
         return self.return_type(named.value) if ref.kind == "call" else None
 
     def return_type(self, function: str) -> str | None:
-        """The class a function's return annotation names, if any."""
-        returns = self.scopes[function].returns
-        return self.type_of(TypeRef("annotation", returns, function)) if returns else None
+        """The class a function's return annotation names, if any.
+
+        Like parameter annotations, it is resolved in the scope that holds the
+        def (for a method, the class body).
+        """
+        scope = self.scopes[function]
+        return self.type_of(TypeRef("annotation", scope.returns, scope.parent)) if scope.returns else None
 
     def constructor(self, cls: str) -> str:
         """Calling a class runs the first __init__ in its bases, else the class itself."""

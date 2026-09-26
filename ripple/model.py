@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import asdict, dataclass, field
-from pathlib import PurePosixPath
 
 
 @dataclass(frozen=True)
@@ -25,10 +24,6 @@ class Symbol:
     @property
     def name(self) -> str:
         return self.id.rsplit(".", 1)[-1]
-
-    @property
-    def is_test(self) -> bool:
-        return is_test_file(self.file)
 
 
 @dataclass(frozen=True)
@@ -59,17 +54,6 @@ class Unresolved:
     reason: str
 
 
-def is_test_file(path: str) -> bool:
-    """pytest's default conventions, plus anything under a tests/ directory."""
-    p = PurePosixPath(path)
-    return (
-        p.name.startswith("test_")
-        or p.name.endswith("_test.py")
-        or p.name == "conftest.py"
-        or any(part in ("tests", "test") for part in p.parts[:-1])
-    )
-
-
 @dataclass
 class Graph:
     symbols: dict[str, Symbol] = field(default_factory=dict)
@@ -77,6 +61,7 @@ class Graph:
     unresolved: list[Unresolved] = field(default_factory=list)
     external_calls: int = 0
     parse_errors: list[str] = field(default_factory=list)
+    skipped_dirs: list[str] = field(default_factory=list)  # not indexed: virtualenvs, build output, ...
 
     def __post_init__(self) -> None:
         self._index()
@@ -110,6 +95,7 @@ class Graph:
             "unresolved": [asdict(u) for u in self.unresolved],
             "external_calls": self.external_calls,
             "parse_errors": self.parse_errors,
+            "skipped_dirs": self.skipped_dirs,
         }
 
     @classmethod
@@ -120,4 +106,5 @@ class Graph:
             unresolved=[Unresolved(**u) for u in data["unresolved"]],
             external_calls=data["external_calls"],
             parse_errors=data["parse_errors"],
+            skipped_dirs=data["skipped_dirs"],
         )

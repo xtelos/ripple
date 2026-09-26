@@ -1,9 +1,10 @@
 """Command-line entry point: the same queries as the MCP tools, for humans.
 
     ripple index <repo>
-    ripple callers|callees|impact <symbol> [--repo DIR] [--json]
+    ripple callers|callees <symbol> [--repo DIR] [--json]
+    ripple impact <symbol> [--depth N] [--limit N] [--repo DIR] [--json]
     ripple path <source> <target> [--repo DIR] [--json]
-    ripple check [--repo DIR] [--test-command CMD]
+    ripple check [TEST ...] [--repo DIR] [--test-command CMD]
     ripple serve [--repo DIR] [--test-command CMD]
 """
 
@@ -17,6 +18,8 @@ import sys
 from . import queries
 from .cache import load_graph
 from .checker import run_check
+
+MORE = "  ... and {n} more {what} not listed; raise --limit to see them"
 
 
 def _print_lookup_error(result: dict) -> None:
@@ -36,6 +39,10 @@ def format_index(repo: str, graph, cached: bool) -> str:
     ]
     if graph.parse_errors:
         lines.append("could not parse: " + ", ".join(graph.parse_errors))
+    if graph.skipped_dirs:
+        shown = ", ".join(graph.skipped_dirs[:10])
+        more = f" and {len(graph.skipped_dirs) - 10} more" if len(graph.skipped_dirs) > 10 else ""
+        lines.append(f"skipped directories (not indexed): {shown}{more}")
     return "\n".join(lines)
 
 
@@ -52,10 +59,14 @@ def format_impact(result: dict) -> str:
         lines.append(f"  {file}")
         for e in entries:
             lines.append(f"    {e['symbol']}  line {e['line']}  ({e['distance']} hop{'s' * (e['distance'] > 1)})")
+    if result["omitted_callers"]:
+        lines.append(MORE.format(n=result["omitted_callers"], what="callers"))
     lines.append(f"tests that reach it ({result['test_count']}):")
     for t in result["tests"]:
-        lines.append(f"  {t['symbol']}  {t['file']}:{t['line']}")
-    if result["truncated"]:
+        lines.append(f"  {t['node_id']}")
+    if result["omitted_tests"]:
+        lines.append(MORE.format(n=result["omitted_tests"], what="tests"))
+    if result["more_beyond_depth"]:
         lines.append("more callers exist beyond this depth; raise --depth to see them")
     if result["possible_missed_callers"]:
         lines.append(f"unresolved call sites with the same name ({result['possible_missed_total']}), check by hand:")
@@ -98,6 +109,7 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument("--json", action="store_true", help="print the raw result as JSON")
         if name == "impact":
             p.add_argument("--depth", type=int, default=5)
+            p.add_argument("--limit", type=int, default=queries.MAX_LISTED, help="most callers and tests to list")
 
     p = sub.add_parser("path", help="shortest call chain from one symbol to another")
     p.add_argument("source")
@@ -107,6 +119,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     for name, help_text in (("check", "run the test command once"), ("serve", "run the MCP server on stdio")):
         p = sub.add_parser(name, help=help_text)
+        if name == "check":
+            p.add_argument("tests", nargs="*", help="test paths or pytest node ids to run instead of the whole suite")
         p.add_argument("--repo", default=".")
         p.add_argument(
             "--test-command",
@@ -127,7 +141,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "check":
-        result = run_check(args.repo, command=args.test_command, timeout=args.timeout)
+        try:
+            result = run_check(args.repo, command=args.test_command, timeout=args.timeout, tests=args.tests)
+        except ValueError as error:
+            print(error)
+            return 2
         print(json.dumps(result, indent=2))
         return 0 if result["passed"] else 1
 
@@ -140,7 +158,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "path":
         result = queries.path(graph, args.source, args.target)
     elif args.command == "impact":
-        result = queries.impact(graph, args.symbol, depth=args.depth)
+        result = queries.impact(graph, args.symbol, depth=args.depth, limit=args.limit)
     else:
         result = getattr(queries, args.command)(graph, args.symbol)
 

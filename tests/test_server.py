@@ -25,6 +25,8 @@ def test_lists_exactly_five_tools_with_honest_annotations(client):
     for name in READ_ONLY:
         assert tools[name]["annotations"]["readOnlyHint"] is True
     assert tools["check"]["annotations"]["readOnlyHint"] is False
+    # running a test suite can do anything its tests do, so check must not claim to be harmless
+    assert tools["check"]["annotations"].get("destructiveHint", True) is True
     assert tools["impact"]["inputSchema"]["required"] == ["symbol"]
     assert set(tools["path"]["inputSchema"]["required"]) == {"source", "target"}
     for tool in tools.values():
@@ -58,5 +60,16 @@ def test_check_runs_the_configured_command(tmp_path):
         payload = json.loads(reply["result"]["content"][0]["text"])
         assert payload["passed"] is True
         assert "3 passed" in payload["summary"]
+
+        impact = c.request("tools/call", {"name": "impact", "arguments": {"symbol": "OrderService.reprice"}})
+        node_ids = [t["node_id"] for t in json.loads(impact["result"]["content"][0]["text"])["tests"]]
+        reply = c.request("tools/call", {"name": "check", "arguments": {"tests": node_ids}})
+        payload = json.loads(reply["result"]["content"][0]["text"])
+        assert payload["passed"] is True
+        assert payload["summary"].startswith("1 passed")
+
+        reply = c.request("tools/call", {"name": "check", "arguments": {"tests": ["--basetemp=."]}})
+        assert reply["result"]["isError"] is True
+        assert "not a test path or node id" in reply["result"]["content"][0]["text"]
     finally:
         assert c.close() == 0

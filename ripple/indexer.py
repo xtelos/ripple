@@ -17,9 +17,14 @@ from pathlib import Path
 
 from .model import Graph
 
-# Directories that hold dependencies, build output or tool state, never the
-# project's own source. Hidden directories (.git, .venv, ...) are skipped too.
-SKIP_DIRS = {"__pycache__", "node_modules", "venv", "env", "build", "dist", "site-packages"}
+# Directories that hold dependencies or caches, never the project's own
+# source, wherever they appear. Hidden directories (.git, .venv, .tox, ...),
+# *.egg-info and any directory holding a virtualenv (pyvenv.cfg) are skipped too.
+SKIP_ANYWHERE = {"__pycache__", "node_modules", "venv", "site-packages"}
+# Build output and a virtualenv called env, skipped only at the repo root:
+# deeper down these names can be real packages (pypa/build keeps its code in
+# src/build).
+SKIP_AT_ROOT = {"build", "dist", "env"}
 
 
 @dataclass
@@ -107,14 +112,30 @@ class Scope:
             self.names[name] = Binding("var", evidence=[None])
 
 
-def find_python_files(repo: Path) -> list[Path]:
-    found = []
+def walk_repo(repo: Path) -> tuple[list[Path], list[str]]:
+    """(the .py files to index, the directories skipped as not project source).
+
+    The skipped list is for reporting, so it leaves out hidden directories,
+    __pycache__ and *.egg-info: they never hold source and would be noise.
+    """
+    files, skipped = [], []
     for dirpath, dirnames, filenames in os.walk(repo):
-        dirnames[:] = sorted(
-            d for d in dirnames if not d.startswith(".") and d not in SKIP_DIRS and not d.endswith(".egg-info")
-        )
-        found.extend(Path(dirpath) / f for f in sorted(filenames) if f.endswith(".py"))
-    return found
+        here = Path(dirpath)
+        keep = []
+        for d in sorted(dirnames):
+            if d.startswith(".") or d == "__pycache__" or d.endswith(".egg-info"):
+                continue
+            if d in SKIP_ANYWHERE or (here == repo and d in SKIP_AT_ROOT) or (here / d / "pyvenv.cfg").exists():
+                skipped.append((here / d).relative_to(repo).as_posix())
+            else:
+                keep.append(d)
+        dirnames[:] = keep
+        files.extend(here / f for f in sorted(filenames) if f.endswith(".py"))
+    return files, sorted(skipped)
+
+
+def find_python_files(repo: Path) -> list[Path]:
+    return walk_repo(repo)[0]
 
 
 def module_name(repo: Path, path: Path) -> tuple[str, bool]:
@@ -141,6 +162,20 @@ def dotted(node: ast.AST) -> list | None:
     if isinstance(node, ast.Name):
         return [node.id] + parts[::-1]
     return None
+
+
+def base_name(node: ast.AST) -> str:
+    """How a base class is written: "pkg.Base" for pkg.Base and for pkg.Base[int].
+
+    Subscripting a generic class (Repo[int], Generic[T]) still gives you that
+    class, so the subscript is dropped. Anything else (a call such as
+    with_metaclass(...)) is kept as source text, which the resolver reports
+    as a base it cannot resolve.
+    """
+    if isinstance(node, ast.Subscript):
+        node = node.value
+    parts = dotted(node)
+    return ".".join(parts) if parts else ast.unparse(node)[:80]
 
 
 def annotation_type(node: ast.AST | None) -> str | None:
@@ -280,7 +315,10 @@ class ScopeBuilder(ast.NodeVisitor):
                 scope.bind(arg.arg, Binding("self"))
                 continue
             hint = annotation_type(arg.annotation)
-            scope.bind(arg.arg, Binding("var", evidence=[TypeRef("annotation", hint, scope.id) if hint else None]))
+            # Annotations are evaluated where the def runs (for a method, the
+            # class body), so they are resolved there, not inside the function.
+            evidence = [TypeRef("annotation", hint, self.scope.id) if hint else None]
+            scope.bind(arg.arg, Binding("var", evidence=evidence))
         for extra in (node.args.vararg, node.args.kwarg):
             if extra is not None:
                 scope.bind(extra.arg, Binding("var", evidence=[None]))
@@ -296,7 +334,7 @@ class ScopeBuilder(ast.NodeVisitor):
         for base in node.bases + [k.value for k in node.keywords]:
             self.visit(base)
         scope = self._enter(node, "class")
-        scope.bases = [".".join(dotted(b) or ["?"]) for b in node.bases]
+        scope.bases = [base_name(b) for b in node.bases]
         self.stack.append(scope)
         for stmt in node.body:
             self.visit(stmt)
@@ -496,11 +534,11 @@ class ScopeBuilder(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def collect_scopes(repo: Path) -> tuple[dict[str, Scope], list[str]]:
-    """Parse every .py file under repo. Returns (scopes by id, unparsable files)."""
+def collect_scopes(repo: Path, files: list[Path]) -> tuple[dict[str, Scope], list[str]]:
+    """Parse the given .py files. Returns (scopes by id, unparsable files)."""
     scopes: dict[str, Scope] = {}
     errors: list[str] = []
-    for path in find_python_files(repo):
+    for path in files:
         rel = path.relative_to(repo).as_posix()
         try:
             source = path.read_text(encoding="utf-8")
@@ -519,7 +557,9 @@ def build_graph(repo: str | Path) -> Graph:
     from .resolver import Resolver
 
     repo = Path(repo).resolve()
-    scopes, errors = collect_scopes(repo)
+    files, skipped = walk_repo(repo)
+    scopes, errors = collect_scopes(repo, files)
     graph = Resolver(scopes).run()
     graph.parse_errors = errors
+    graph.skipped_dirs = skipped
     return graph

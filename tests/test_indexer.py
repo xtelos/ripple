@@ -481,6 +481,27 @@ def test_ignored_directories_are_not_indexed(make_repo):
     assert {s for s in build_graph(repo).symbols} == {"app", "app.f"}
 
 
+def test_build_dist_and_env_are_skipped_only_at_the_repo_root(make_repo):
+    repo = make_repo(
+        {
+            "src/build/__init__.py": "",
+            "src/build/builder.py": "def make():\n    pass\n",
+            "pkg/env/settings.py": "def load():\n    pass\n",
+            "build/lib/copy.py": "def stale():\n    pass\n",
+            "dist/x.py": "def packed():\n    pass\n",
+            "env/lib/y.py": "def dep():\n    pass\n",
+            "sub/venv/z.py": "def dep():\n    pass\n",
+            "tools/myenv/pyvenv.cfg": "home = /usr/bin\n",
+            "tools/myenv/lib/w.py": "def dep():\n    pass\n",
+            "pkg/site-packages/v.py": "def dep():\n    pass\n",
+        }
+    )
+    g = build_graph(repo)
+    assert {s for s in g.symbols if s.endswith((".make", ".load"))} == {"build.builder.make", "pkg.env.settings.load"}
+    assert not {s for s in g.symbols if s.endswith((".stale", ".packed", ".dep"))}
+    assert g.skipped_dirs == ["build", "dist", "env", "pkg/site-packages", "sub/venv", "tools/myenv"]
+
+
 def test_src_layout_modules_drop_the_src_prefix(make_repo):
     repo = make_repo(
         {
@@ -492,3 +513,152 @@ def test_src_layout_modules_drop_the_src_prefix(make_repo):
     g = build_graph(repo)
     assert callers_of(g, "pkg.core.work") == {"tests.test_core.test_work"}
     assert g.symbols["pkg.core.work"].file == "src/pkg/core.py"
+
+
+def test_a_subscripted_base_is_the_class_it_subscripts(make_repo):
+    # Modeled on generic bases such as pydantic's _SecretBase[SecretType].
+    repo = make_repo(
+        {
+            "m.py": """\
+                from typing import Generic, TypeVar
+
+                T = TypeVar("T")
+
+                class Repo(Generic[T]):
+                    def save(self, item: T):
+                        self.describe()
+
+                    def describe(self):
+                        pass
+
+                class UserRepo(Repo[int]):
+                    def add(self, uid):
+                        self.save(uid)
+
+                    def describe(self):
+                        pass
+                """
+        }
+    )
+    g = build_graph(repo)
+    assert callers_of(g, "m.Repo.save") == {"m.UserRepo.add"}
+    # the subclass link exists, so the base's self.describe() reaches the override
+    assert callees_of(g, "m.Repo.save") == {"m.Repo.describe", "m.UserRepo.describe"}
+    assert g.unresolved == []
+
+
+def test_members_missing_behind_an_unresolvable_base_are_unresolved_not_external(make_repo):
+    repo = make_repo(
+        {
+            "m.py": """\
+                def make_base():
+                    return object
+
+                Base = make_base()
+
+                class Thing(Base):
+                    def run(self):
+                        self.work()
+                        super().setup()
+
+                class Built(make_base()):
+                    def run(self):
+                        self.work()
+                """
+        }
+    )
+    g = build_graph(repo)
+    found = {(u.caller, u.text): u.reason for u in g.unresolved}
+    assert set(found) == {("m.Thing.run", "self.work"), ("m.Thing.run", "super().setup"), ("m.Built.run", "self.work")}
+    assert "base class Base of m.Thing could not be resolved" in found[("m.Thing.run", "self.work")]
+    assert "make_base()" in found[("m.Built.run", "self.work")]
+    assert g.external_calls == 1  # only the builtin super() itself
+
+
+def test_template_method_over_an_external_base_is_not_external(make_repo):
+    # work() exists only in repo subclasses, so it cannot come from threading.Thread.
+    repo = make_repo(
+        {
+            "m.py": """\
+                import threading
+
+                class Base(threading.Thread):
+                    def run(self):
+                        self.work()
+                        self.start()
+
+                class Job(Base):
+                    def work(self):
+                        pass
+                """
+        }
+    )
+    g = build_graph(repo)
+    assert [(u.text, u.reason) for u in g.unresolved] == [
+        ("self.work", "'work' is not defined on m.Base or its bases in the repo, but subclasses define it")
+    ]
+    assert g.external_calls == 1  # self.start() really is threading.Thread's
+
+
+def test_an_untyped_attribute_the_repo_assigns_is_unresolved_not_inherited(make_repo):
+    # config and conn are defined in the repo with no known type. Neither can
+    # come from threading.Thread, and saying "not defined" would be wrong too.
+    repo = make_repo(
+        {
+            "m.py": """\
+                import threading
+
+                class Base(threading.Thread):
+                    config = make_config()
+
+                    def __init__(self, factory):
+                        self.conn = factory()
+
+                    def run(self):
+                        self.config.get()
+                        self.conn.send()
+
+                class Job(Base):
+                    config = {}
+                """
+        }
+    )
+    g = build_graph(repo)
+    assert sorted((u.text, u.reason) for u in g.unresolved) == [
+        ("factory", "the receiver's class is not known statically"),
+        ("make_config","name 'make_config' is not defined anywhere ripple can see"),
+        ("self.config.get", "'config' is not a method or typed attribute of m.Base"),
+        ("self.conn.send", "'conn' is not a method or typed attribute of m.Base"),
+    ]
+
+
+def test_method_annotations_are_resolved_in_the_class_body(make_repo):
+    # Python evaluates a method's annotations in the class body, so inside
+    # Widget, Config means the nested Widget.Config, not the module's Config.
+    repo = make_repo(
+        {
+            "m.py": """\
+                class Config:
+                    def load(self):
+                        pass
+
+                class Widget:
+                    class Config:
+                        def load(self):
+                            pass
+
+                    def setup(self, cfg: Config):
+                        cfg.load()
+
+                    def make(self) -> Config:
+                        pass
+
+                    def run(self):
+                        made = self.make()
+                        made.load()
+                """
+        }
+    )
+    g = build_graph(repo)
+    assert callers_of(g, "m.Widget.Config.load") == {"m.Widget.setup", "m.Widget.run"}
+    assert callers_of(g, "m.Config.load") == set()

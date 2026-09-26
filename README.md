@@ -44,15 +44,29 @@ Or from a terminal: `ripple index .`, then `ripple impact price_order`.
 |---|---|---|
 | `callers(symbol)` | Who calls this directly, with the file:line of each call site | yes |
 | `callees(symbol)` | What this calls, plus the calls ripple could not resolve and why | yes |
-| `impact(symbol, depth=5)` | Every transitive caller grouped by file, the tests that reach it listed separately, and same-named call sites ripple could not rule out | yes |
+| `impact(symbol, depth=5, limit=100)` | Every transitive caller grouped by file, the tests that reach it listed separately as pytest node ids, and same-named call sites ripple could not rule out | yes |
 | `path(source, target)` | The shortest call chain from one symbol to another | yes |
-| `check(tests=None)` | Runs the test command (default `python -m pytest -q`, using the repo's `.venv` if present) and returns pass/fail, the summary line and the first failures, never the full log | no, it runs code |
+| `check(tests=None)` | Runs the test command (default `python -m pytest -q`, using the repo's `.venv` if present), or just the given tests, and returns pass/fail, the summary line and the first failures, never the full log | no, it runs code |
 
 A symbol can be a full dotted path (`shop.pricing.price_order`), a suffix (`OrderService.place_order`)
 or a bare name (`price_order`). An ambiguous name returns the candidates rather than picking one.
 
 The four graph tools advertise `readOnlyHint: true`, which lets a client run them without prompting.
-`check` does not, because a test suite can do anything its tests do.
+`check` is marked destructive instead, because a test suite can do anything its tests do.
+
+`impact` lists at most `limit` callers and `limit` tests (100 by default, up to 1000 over MCP). When
+it found more, it says so: `truncated` is true and `omitted_callers` / `omitted_tests` give the
+counts (the CLI prints "... and N more callers not listed"). Each test comes with its pytest node id
+(`tests/test_x.py::test_y`, or `tests/test_x.py::TestZ::test_y` for a method), found by pytest's
+default naming rules; pass those node ids to `check` to run just those tests. Helpers in test files
+that are not tests themselves are listed with the other callers, since they may need updating.
+
+`check(tests=[...])` accepts only test file paths and node ids inside the repository. Anything that
+starts with `-` or points outside the repo is refused, so a caller cannot slip in a pytest option
+(`--basetemp=DIR` deletes `DIR`). Output is read from a temporary file and the timeout covers the
+whole run, so a test that leaves a process running in the background cannot hold up the result.
+The summary and each failure or output line `check` returns are cut to 240 characters, ending in
+`[truncated N chars]` when something was cut.
 
 Example, trimmed:
 
@@ -65,7 +79,13 @@ impact of shop.tax.tax_for (depth 5): 6 callers
     shop.service.OrderService.place_order  line 17  (2 hops)
     shop.service.OrderService.reprice  line 26  (2 hops)
 tests that reach it (3):
-  tests.test_pricing.test_percent_discount_and_tax  tests/test_pricing.py:6
+  tests/test_pricing.py::test_percent_discount_and_tax
+  ...
+
+$ ripple check tests/test_pricing.py::test_percent_discount_and_tax --repo bench/fixtures/shop
+{
+  "passed": true,
+  "summary": "1 passed in 0.01s",
   ...
 ```
 
@@ -87,8 +107,9 @@ class (edge to its `__init__`); and method calls on values whose class is known 
 call, a type annotation, a return annotation or a `self.attr` assigned in the class. When a method is
 called on `self` or a typed value, subclass overrides are linked too (class hierarchy analysis).
 
-The index is cached outside your repo (`~/.cache/ripple`, or `RIPPLE_CACHE_DIR`) and keyed on every
-file's mtime and size, so each query re-checks the files and rebuilds only when something changed.
+The index is cached outside your repo (`RIPPLE_CACHE_DIR` if set, else `$XDG_CACHE_HOME/ripple` or
+`~/.cache/ripple`) and keyed on every file's mtime and size, so each query re-checks the files and
+rebuilds only when something changed.
 On a 105-file package (pydantic) a cold index took 0.8 s and a cached load 0.02 s on my machine.
 
 ## Benchmark
@@ -135,6 +156,12 @@ Static analysis of a dynamic language misses things. ripple does not follow:
   monkeypatching, `importlib`, `exec`
 - code imported under a name that differs from its path in the repo (modules are named by their
   path from the repo root, with a leading `src/` dropped)
+- directories that hold dependencies or build output: hidden directories, `__pycache__`,
+  `node_modules`, `site-packages`, `venv` and any directory with a `pyvenv.cfg` anywhere, and `build`,
+  `dist` and `env` at the repo root only. `ripple index` lists the skipped directories, except
+  hidden ones and `__pycache__`.
+- custom pytest collection settings (`python_files`, `python_functions`, `python_classes`): test node
+  ids follow pytest's defaults
 
 Override edges can over-approximate: a subclass override is linked even if that subclass never
 reaches the call site. Method lookup walks bases depth-first, which matches Python's C3 order except
@@ -142,6 +169,10 @@ in diamond-shaped hierarchies.
 
 To keep the blind spots visible, `callees` lists every unresolved call with its reason, and `impact`
 lists unresolved call sites that use the same name as the target under `possible_missed_callers`.
+A call counts as "code outside the repo" only when it must be: a method missing from a class's repo
+bases is inherited from an external base such as `Exception`, unless a base could not be resolved
+(`class Cached(make_base())`) or a subclass defines the method, and then it is unresolved too.
+Subscripted bases such as `Repo[int]` or `Generic[T]` resolve to the class they subscript.
 
 ## Next
 

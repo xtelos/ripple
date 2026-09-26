@@ -11,10 +11,11 @@ from __future__ import annotations
 
 import difflib
 from collections import deque
+from pathlib import PurePosixPath
 
 from .model import Graph, Symbol
 
-MAX_LISTED = 100  # cap on symbols listed per section, so a hub function cannot flood the agent
+MAX_LISTED = 100  # default cap on symbols listed per section, so a hub function cannot flood the agent
 
 
 def find_symbol(graph: Graph, query: str) -> dict:
@@ -82,13 +83,39 @@ def callees(graph: Graph, query: str) -> dict:
     return {"symbol": symbol_id, "callees": listed, "unresolved": unresolved}
 
 
-def impact(graph: Graph, query: str, depth: int = 5) -> dict:
+def pytest_node_id(graph: Graph, symbol_id: str, module_by_file: dict[str, str]) -> str | None:
+    """The pytest node id that runs a test, e.g. tests/test_x.py::TestA::test_m.
+
+    None when pytest would not collect the symbol as a test. This follows
+    pytest's default rules: files named test_*.py or *_test.py, functions
+    named test* at module level, and test* methods of classes named Test*.
+    """
+    symbol = graph.symbols[symbol_id]
+    filename = PurePosixPath(symbol.file).name
+    if not (filename.startswith("test_") or filename.endswith("_test.py")):
+        return None
+    if symbol.kind not in ("function", "method") or not symbol.name.startswith("test"):
+        return None
+    module = module_by_file[symbol.file]
+    parts = symbol_id[len(module) + 1 :].split(".")
+    enclosing = module
+    for name in parts[:-1]:  # everything between the module and the test must be a Test* class
+        enclosing = f"{enclosing}.{name}"
+        if graph.symbols[enclosing].kind != "class" or not name.startswith("Test"):
+            return None
+    return "::".join([symbol.file] + parts)
+
+
+def impact(graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED) -> dict:
     """Everything that transitively calls the symbol, up to depth hops away.
 
-    Non-test code is grouped by file (what you may need to update); tests are
-    listed separately (what you should run). possible_missed_callers are
-    call sites ripple could not resolve that use the same name: static
-    analysis cannot prove they reach the symbol, but a human should look.
+    Tests that reach it are listed with their pytest node ids (what you
+    should run, and what check accepts). Every other caller, including
+    helpers in test files, is grouped by file (what you may need to update).
+    Each list holds at most limit entries; truncated and the omitted_* counts
+    say when more were found. possible_missed_callers are call sites ripple
+    could not resolve that use the same name: static analysis cannot prove
+    they reach the symbol, but a human should look.
     """
     found = find_symbol(graph, query)
     if "symbol" not in found:
@@ -105,22 +132,26 @@ def impact(graph: Graph, query: str, depth: int = 5) -> dict:
                     distance[edge.caller] = hop
                     next_frontier.add(edge.caller)
         frontier = next_frontier
-    truncated = any(
+    more_beyond_depth = any(
         edge.caller not in distance and edge.caller not in targets
         for target in frontier
         for edge in graph.callers_index.get(target, [])
     )
 
-    by_file: dict[str, list[dict]] = {}
+    module_by_file = {s.file: s.id for s in graph.symbols.values() if s.kind == "module"}
+    code: list[dict] = []
     tests: list[dict] = []
-    ordered = sorted(distance, key=lambda sid: (distance[sid], sid))
-    for sid in ordered:
+    for sid in sorted(distance, key=lambda sid: (distance[sid], sid)):
         symbol = graph.symbols[sid]
         entry = {"symbol": sid, "line": symbol.line, "distance": distance[sid]}
-        if symbol.is_test:
-            tests.append({**entry, "file": symbol.file})
-        elif sum(len(v) for v in by_file.values()) < MAX_LISTED:
-            by_file.setdefault(symbol.file, []).append(entry)
+        node_id = pytest_node_id(graph, sid, module_by_file)
+        if node_id:
+            tests.append({"node_id": node_id, **entry, "file": symbol.file})
+        else:
+            code.append({**entry, "file": symbol.file})
+    by_file: dict[str, list[dict]] = {}
+    for entry in code[:limit]:
+        by_file.setdefault(entry.pop("file"), []).append(entry)
 
     name = graph.symbols[symbol_id].name
     missed = [
@@ -128,14 +159,19 @@ def impact(graph: Graph, query: str, depth: int = 5) -> dict:
         for u in graph.unresolved
         if u.text.rsplit(".", 1)[-1] == name
     ]
+    omitted_callers, omitted_tests = max(0, len(code) - limit), max(0, len(tests) - limit)
     return {
         "symbol": symbol_id,
         "depth": depth,
         "affected": len(distance),
-        "truncated": truncated,
+        "more_beyond_depth": more_beyond_depth,
         "by_file": by_file,
-        "tests": tests[:MAX_LISTED],
+        "caller_count": len(code),
+        "tests": tests[:limit],
         "test_count": len(tests),
+        "truncated": bool(omitted_callers or omitted_tests),
+        "omitted_callers": omitted_callers,
+        "omitted_tests": omitted_tests,
         "possible_missed_callers": missed[:20],
         "possible_missed_total": len(missed),
     }
