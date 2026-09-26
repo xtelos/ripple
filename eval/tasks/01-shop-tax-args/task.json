@@ -1,0 +1,7 @@
+{
+  "id": "01-shop-tax-args",
+  "fixture": "bench/fixtures/shop",
+  "prompt": "In this repository, change the function `shop.tax.tax_for` so it takes the region first and the amount second: `tax_for(region, amount)`. Update every caller so every price comes out exactly as it does today. The test suite must pass when you are done.",
+  "min_tests": 3,
+  "why": "Control task: one caller, reached through a module import (`from . import tax`). Grep finds it easily; ripple should not be needed."
+}

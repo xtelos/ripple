@@ -1,0 +1,7 @@
+{
+  "id": "06-ledger-fee-region",
+  "fixture": "eval/fixtures/ledger",
+  "prompt": "Fees need to know the region. Change `FeeRule.fee(self, subtotal)` in billing/fees.py to `fee(self, subtotal, region)`, with `region` required, and give every subclass that overrides `fee` the same signature. `PercentFee`, and any fee rule built on it, charges no fee when the region is \"DE\"; every other rule ignores the region. Every caller must pass the region it is working with. The test suite must pass when you are done.",
+  "min_tests": 25,
+  "why": "A signature change with an override in another package (payroll.fees.CappedFee builds on PercentFee and calls super().fee), and callers in three modules across two packages, one through a typed attribute (`self.rule`)."
+}

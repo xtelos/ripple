@@ -1,0 +1,7 @@
+{
+  "id": "05-ledger-drop-amount-alias",
+  "fixture": "eval/fixtures/ledger",
+  "prompt": "Rename the function `ledger.money.parse_amount` to `parse_money`. The `ledger` package also re-exports it under the name `amount` (`ledger.amount`); remove that re-export, and change every place that used either name to use `parse_money` from `ledger.money` instead. The test suite must pass when you are done.",
+  "min_tests": 24,
+  "why": "Two modules reach it only through the package alias: `from ledger import amount` and `ledger.amount(...)`. Grep for `parse_amount` misses both, and grep for `amount` returns every variable and parameter of that name. ripple follows the re-export to the callers. min_tests allows the one test of the removed alias to go."
+}

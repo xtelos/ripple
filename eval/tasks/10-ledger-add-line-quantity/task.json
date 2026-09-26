@@ -1,0 +1,7 @@
+{
+  "id": "10-ledger-add-line-quantity",
+  "fixture": "eval/fixtures/ledger",
+  "prompt": "Change `Invoice.add_line` (in ledger/invoices.py) so that the quantity comes before the price and is required: `add_line(self, description, quantity, amount)`. Update every caller, including subclasses, so every invoice comes out exactly as it does today. Other classes' `add_line` methods are unrelated and must not change. The test suite must pass when you are done.",
+  "min_tests": 25,
+  "why": "Cart.add_line has the same name and a different signature, so grep for `add_line(` mixes the two. RecurringInvoice calls it through `self` in another package, and two callers rely on the default quantity they must now pass."
+}

@@ -1,0 +1,7 @@
+{
+  "id": "08-ledger-move-format-amount",
+  "fixture": "eval/fixtures/ledger",
+  "prompt": "Move the function `format_amount` out of ledger/money.py into a new module, ledger/formatting.py. Update every import and every call so they use the new location, and do not leave a re-export or alias of it in ledger/money.py. The test suite must pass when you are done.",
+  "min_tests": 25,
+  "why": "Callers in two packages reach it three different ways: a relative import under an alias (`format_amount as fmt`), a direct import, and a module alias (`from ledger import money as m`, then `m.format_amount`). Grep for the name finds all three, so this is mostly a control task."
+}

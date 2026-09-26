@@ -1,0 +1,7 @@
+{
+  "id": "04-ledger-rename-invoice-total",
+  "fixture": "eval/fixtures/ledger",
+  "prompt": "Rename the method `Invoice.total` (in ledger/invoices.py) to `amount_due`. Rename every override of it too, and update every call that reaches it on an invoice or a credit note. Other classes in the repository that have their own `total` method keep that name. Do not keep `total` as an alias on invoices. The test suite must pass when you are done.",
+  "min_tests": 25,
+  "why": "Four classes have a `total` method (Invoice, Cart, PayrollBatch, AgingReport), so grep for `.total(` returns every one of them. Only the receiver's type says which calls to change; ripple resolves typed receivers and the CreditNote override."
+}

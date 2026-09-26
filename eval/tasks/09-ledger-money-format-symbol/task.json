@@ -1,0 +1,7 @@
+{
+  "id": "09-ledger-money-format-symbol",
+  "fixture": "eval/fixtures/ledger",
+  "prompt": "Change `Money.format` (in ledger/money.py) to take the currency symbol as a required argument: `format(self, symbol)`, so that `Money(1250).format(\"€\")` returns \"€12.50\" and a negative amount puts the minus sign before the symbol. Update every caller to pass \"$\", so everything prints exactly what it prints today. The test suite must pass when you are done.",
+  "min_tests": 25,
+  "why": "`.format(` also matches every `str.format` call in the repo, and three of the real callers call it on the result of another call (`invoice.total().format()`), which ripple cannot type either; it lists them as possible missed callers instead."
+}

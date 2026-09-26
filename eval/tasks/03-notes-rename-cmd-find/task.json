@@ -1,0 +1,7 @@
+{
+  "id": "03-notes-rename-cmd-find",
+  "fixture": "bench/fixtures/notes",
+  "prompt": "Rename the function `notes.commands.cmd_find` to `cmd_search`. This is a pure rename: the `find` subcommand, and every other way of running a command, must behave exactly as before. Do not keep `cmd_find` as an alias. The test suite must pass when you are done.",
+  "min_tests": 4,
+  "why": "A known ripple blind spot: `run_named` builds the name at runtime (`getattr(commands, \"cmd_\" + name)`), which neither grep nor ripple can see. Included to show where the tool does not help."
+}

@@ -1,0 +1,7 @@
+{
+  "id": "07-ledger-rename-account-apply",
+  "fixture": "eval/fixtures/ledger",
+  "prompt": "Rename the method `Account.apply` (in ledger/accounts.py) to `post`. Rename every override of it too, and update every call that reaches it on an account. Other classes in the repository that have their own `apply` method keep that name. Do not keep `apply` as an alias on accounts. The test suite must pass when you are done.",
+  "min_tests": 25,
+  "why": "Three classes have an `apply` method (Account, TaxTable, PayrollBatch), and PayrollBatch.apply calls Account.apply inside its own body, so a blanket rename breaks it. The override in CreditLimitAccount must change too, and the account methods call it through `self`."
+}

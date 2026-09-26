@@ -1,0 +1,7 @@
+{
+  "id": "02-shop-rename-price-order",
+  "fixture": "bench/fixtures/shop",
+  "prompt": "Rename the function `shop.pricing.price_order` to `quote_order`. Update everything that uses it, and do not keep the old name as an alias. The test suite must pass when you are done.",
+  "min_tests": 3,
+  "why": "The service imports it under an alias (`price_order as quote`) and calls `quote(...)`, so the call sites never mention the name. The import line does, so grep still gets there."
+}
