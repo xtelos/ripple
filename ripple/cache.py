@@ -23,7 +23,7 @@ from .model import Graph
 
 # Bump when the graph format or the resolution rules change, so old caches
 # are ignored rather than served.
-CACHE_FORMAT = f"{__version__}-2"
+CACHE_FORMAT = f"{__version__}-3"
 
 
 def default_cache_dir() -> Path:

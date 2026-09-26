@@ -62,6 +62,9 @@ class Graph:
     external_calls: int = 0
     parse_errors: list[str] = field(default_factory=list)
     skipped_dirs: list[str] = field(default_factory=list)  # not indexed: virtualenvs, build output, ...
+    modules: dict[str, str] = field(default_factory=dict)  # every indexed file -> its module name
+    bases: dict[str, list[str]] = field(default_factory=dict)  # class id -> bases that are repo classes
+    external_bases: dict[str, list[str]] = field(default_factory=dict)  # class id -> bases from outside the repo
 
     def __post_init__(self) -> None:
         self._index()
@@ -78,7 +81,7 @@ class Graph:
         kinds: dict[str, int] = defaultdict(int)
         for s in self.symbols.values():
             kinds[s.kind] += 1
-        files = {s.file for s in self.symbols.values() if s.kind == "module"}
+        files = self.modules or {s.file for s in self.symbols.values() if s.kind == "module"}
         return {
             "files": len(files),
             "symbols": dict(sorted(kinds.items())),
@@ -86,7 +89,20 @@ class Graph:
             "unresolved_calls": len(self.unresolved),
             "external_calls": self.external_calls,
             "parse_errors": len(self.parse_errors),
+            "module_collisions": len(self.module_collisions()),
         }
+
+    def module_collisions(self) -> dict[str, list[str]]:
+        """{module name: files} for module names more than one file maps to.
+
+        Symbol ids start with the module name, so these files share one id
+        space: a name defined in two of them is one symbol, the last file
+        indexed wins, and its callers and callees are mixed together.
+        """
+        files: dict[str, list[str]] = defaultdict(list)
+        for file, module in self.modules.items():
+            files[module].append(file)
+        return {module: sorted(fs) for module, fs in sorted(files.items()) if len(fs) > 1}
 
     def to_dict(self) -> dict:
         return {
@@ -96,6 +112,9 @@ class Graph:
             "external_calls": self.external_calls,
             "parse_errors": self.parse_errors,
             "skipped_dirs": self.skipped_dirs,
+            "modules": self.modules,
+            "bases": self.bases,
+            "external_bases": self.external_bases,
         }
 
     @classmethod
@@ -107,4 +126,7 @@ class Graph:
             external_calls=data["external_calls"],
             parse_errors=data["parse_errors"],
             skipped_dirs=data["skipped_dirs"],
+            modules=data["modules"],
+            bases=data["bases"],
+            external_bases=data["external_bases"],
         )

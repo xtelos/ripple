@@ -83,34 +83,143 @@ def callees(graph: Graph, query: str) -> dict:
     return {"symbol": symbol_id, "callees": listed, "unresolved": unresolved}
 
 
-def pytest_node_id(graph: Graph, symbol_id: str, module_by_file: dict[str, str]) -> str | None:
-    """The pytest node id that runs a test, e.g. tests/test_x.py::TestA::test_m.
+class PytestCollection:
+    """Which symbols pytest would collect as tests, and under which node ids.
 
-    None when pytest would not collect the symbol as a test. This follows
-    pytest's default rules: files named test_*.py or *_test.py, functions
-    named test* at module level, and test* methods of classes named Test*.
+    This follows pytest's default rules. In files named test_*.py or
+    *_test.py it collects functions named test* at module level; methods
+    named test* on classes named Test* that define no __init__ or __new__
+    (nested Test* classes too); and every test* method of a
+    unittest.TestCase subclass, whatever the class is called. A class also
+    runs the test* methods it inherits, so a method defined once can be
+    collected as several tests: TestChild(TestBase) runs
+    TestChild::test_shared as well as TestBase::test_shared.
+
+    ripple sees only the repo's own classes, so a class counts as a TestCase
+    subclass when a base outside the repo is named *TestCase
+    (unittest.TestCase, unittest.IsolatedAsyncioTestCase,
+    django.test.TestCase and so on).
     """
-    symbol = graph.symbols[symbol_id]
-    filename = PurePosixPath(symbol.file).name
-    if not (filename.startswith("test_") or filename.endswith("_test.py")):
+
+    def __init__(self, graph: Graph):
+        self.graph = graph
+        self.subclasses: dict[str, list[str]] = {}
+        for cls, bases in graph.bases.items():
+            for base in bases:
+                self.subclasses.setdefault(base, []).append(cls)
+        self._mro: dict[str, list[str]] = {}
+
+    def module_of(self, symbol: Symbol) -> str:
+        """The module a symbol was defined in, looked up by its file.
+
+        Two files can map to the same module name (tests/test_x.py and
+        src/tests/test_x.py), so the module symbol alone cannot say which
+        file a symbol came from; the file can.
+        """
+        if symbol.file in self.graph.modules:
+            return self.graph.modules[symbol.file]
+        prefix = symbol.id
+        while "." in prefix:  # a graph without the file map: the longest prefix that is a module
+            prefix = prefix.rsplit(".", 1)[0]
+            if self.graph.symbols.get(prefix) and self.graph.symbols[prefix].kind == "module":
+                return prefix
+        return prefix
+
+    def mro(self, cls: str) -> list[str]:
+        """The class, then its repo bases depth-first, as the resolver orders them."""
+        if cls not in self._mro:
+            self._mro[cls] = [cls]  # guards against a class that inherits itself
+            order = [cls]
+            for base in self.graph.bases.get(cls, []):
+                order += [klass for klass in self.mro(base) if klass not in order]
+            self._mro[cls] = order
+        return self._mro[cls]
+
+    def lookup(self, cls: str, name: str) -> str | None:
+        """The id of the def that cls.name finds, walking bases."""
+        for klass in self.mro(cls):
+            if f"{klass}.{name}" in self.graph.symbols:
+                return f"{klass}.{name}"
         return None
-    if symbol.kind not in ("function", "method") or not symbol.name.startswith("test"):
-        return None
-    module = module_by_file[symbol.file]
-    parts = symbol_id[len(module) + 1 :].split(".")
-    enclosing = module
-    for name in parts[:-1]:  # everything between the module and the test must be a Test* class
-        enclosing = f"{enclosing}.{name}"
-        if graph.symbols[enclosing].kind != "class" or not name.startswith("Test"):
+
+    def is_unittest(self, cls: str) -> bool:
+        return any(
+            name.rsplit(".", 1)[-1].endswith("TestCase")
+            for klass in self.mro(cls)
+            for name in self.graph.external_bases.get(klass, [])
+        )
+
+    def is_pytest_class(self, cls: str) -> bool:
+        """A plain Test* class that pytest can instantiate."""
+        if not cls.rsplit(".", 1)[-1].startswith("Test") or self.is_unittest(cls):
+            return False
+        return not any(self.lookup(cls, dunder) for dunder in ("__init__", "__new__"))
+
+    def class_path(self, cls: str) -> list[str] | None:
+        """[file, Outer, ..., cls] if pytest collects cls, else None."""
+        symbol = self.graph.symbols[cls]
+        filename = PurePosixPath(symbol.file).name
+        if not (filename.startswith("test_") or filename.endswith("_test.py")):
             return None
-    return "::".join([symbol.file] + parts)
+        if not (self.is_pytest_class(cls) or self.is_unittest(cls)):
+            return None
+        module = self.module_of(symbol)
+        if not cls.startswith(module + "."):
+            return None
+        parts = cls[len(module) + 1 :].split(".")
+        enclosing = module
+        for name in parts[:-1]:  # pytest looks for classes inside Test* classes, not inside TestCases or functions
+            enclosing = f"{enclosing}.{name}"
+            if self.graph.symbols[enclosing].kind != "class" or not self.is_pytest_class(enclosing):
+                return None
+        return [symbol.file] + parts
+
+    def collecting_classes(self, cls: str) -> list[str]:
+        """cls and every class that inherits from it, transitively."""
+        found, stack = [], [cls]
+        while stack:
+            klass = stack.pop()
+            if klass not in found:
+                found.append(klass)
+                stack.extend(self.subclasses.get(klass, []))
+        return found
+
+    def node_ids(self, symbol_id: str) -> list[str]:
+        """The pytest node ids that run symbol_id, e.g. tests/test_x.py::TestA::test_m.
+
+        Empty when pytest would not collect it. A method inherited by other
+        test classes gets one node id per class that runs it, named after
+        that class rather than the base that defines it.
+        """
+        symbol = self.graph.symbols[symbol_id]
+        if not symbol.name.startswith("test"):
+            return []
+        if symbol.kind == "function":
+            filename = PurePosixPath(symbol.file).name
+            if not (filename.startswith("test_") or filename.endswith("_test.py")):
+                return []
+            if symbol_id != f"{self.module_of(symbol)}.{symbol.name}":
+                return []  # nested in a function, not at module level
+            return [f"{symbol.file}::{symbol.name}"]
+        if symbol.kind != "method":
+            return []
+        owner = symbol_id.rsplit(".", 1)[0]
+        ids = []
+        for cls in self.collecting_classes(owner):
+            if self.lookup(cls, symbol.name) != symbol_id:
+                continue  # cls overrides it, or finds another definition first
+            where = self.class_path(cls)
+            if where:
+                ids.append("::".join(where + [symbol.name]))
+        return sorted(ids)
 
 
 def impact(graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED) -> dict:
     """Everything that transitively calls the symbol, up to depth hops away.
 
     Tests that reach it are listed with their pytest node ids (what you
-    should run, and what check accepts). Every other caller, including
+    should run, and what check accepts); a test method that several test
+    classes inherit is listed once per class. Every other caller, including
     helpers in test files, is grouped by file (what you may need to update).
     Each list holds at most limit entries; truncated and the omitted_* counts
     say when more were found. possible_missed_callers are call sites ripple
@@ -138,16 +247,16 @@ def impact(graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED) ->
         for edge in graph.callers_index.get(target, [])
     )
 
-    module_by_file = {s.file: s.id for s in graph.symbols.values() if s.kind == "module"}
+    collection = PytestCollection(graph)
     code: list[dict] = []
     tests: list[dict] = []
     for sid in sorted(distance, key=lambda sid: (distance[sid], sid)):
         symbol = graph.symbols[sid]
         entry = {"symbol": sid, "line": symbol.line, "distance": distance[sid]}
-        node_id = pytest_node_id(graph, sid, module_by_file)
-        if node_id:
-            tests.append({"node_id": node_id, **entry, "file": symbol.file})
-        else:
+        node_ids = collection.node_ids(sid)
+        for node_id in node_ids:
+            tests.append({"node_id": node_id, **entry, "file": node_id.split("::")[0]})
+        if not node_ids:
             code.append({**entry, "file": symbol.file})
     by_file: dict[str, list[dict]] = {}
     for entry in code[:limit]:

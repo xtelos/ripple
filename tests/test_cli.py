@@ -22,6 +22,15 @@ def test_index_reports_skipped_directories(make_repo, capsys):
     assert "skipped directories (not indexed): build" in capsys.readouterr().out
 
 
+def test_index_warns_when_two_files_share_a_module_name(make_repo, capsys):
+    repo = make_repo({"tests/test_dup.py": "def test_one():\n    pass\n", "src/tests/test_dup.py": "def test_two():\n    pass\n"})
+    assert main(["index", str(repo)]) == 0
+    out = capsys.readouterr().out
+    assert ": 2 files," in out
+    assert "warning: files share a module name, so their symbols share ids:" in out
+    assert "  tests.test_dup: src/tests/test_dup.py, tests/test_dup.py" in out
+
+
 def test_impact_text_output(capsys):
     assert main(["impact", "tax_for", "--repo", SHOP]) == 0
     out = capsys.readouterr().out

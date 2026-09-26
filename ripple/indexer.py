@@ -562,4 +562,9 @@ def build_graph(repo: str | Path) -> Graph:
     graph = Resolver(scopes).run()
     graph.parse_errors = errors
     graph.skipped_dirs = skipped
+    unparsed = set(errors)
+    for path in files:
+        rel = path.relative_to(repo).as_posix()
+        if rel not in unparsed:
+            graph.modules[rel] = module_name(repo, path)[0]
     return graph

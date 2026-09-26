@@ -66,7 +66,7 @@ class Resolver:
         self._mro_cache: dict[str, list[str]] = {}
         self._types: dict[int, str | None] = {}
         self._bases: dict[str, list[str]] = {}
-        self._external_bases: set[str] = set()
+        self._external_bases: dict[str, list[str]] = {}  # class id -> dotted names of bases outside the repo
         self._unresolved_bases: dict[str, str] = {}  # class id -> a base ripple could not resolve
         self.subclasses = self._direct_subclasses()
 
@@ -87,7 +87,16 @@ class Resolver:
                 else:
                     for callee, kind in self.edge_targets(outcome, call):
                         edges.append(Edge(scope.id, callee, scope.file, call.line, kind))
-        return Graph(symbols, edges, unresolved, external)
+        classes = [s.id for s in self.scopes.values() if s.kind == "class"]
+        bases = {cls: self.base_classes(cls) for cls in classes}
+        return Graph(
+            symbols,
+            edges,
+            unresolved,
+            external,
+            bases={cls: found for cls, found in bases.items() if found},
+            external_bases={cls: self._external_bases[cls] for cls in classes if cls in self._external_bases},
+        )
 
     def edge_targets(self, target: Target, call: RawCall) -> list[tuple[str, str]]:
         """Turn a resolved callee into (symbol id, edge kind) pairs."""
@@ -322,7 +331,7 @@ class Resolver:
                     found.append(target.value)
                 elif target.kind == "external":
                     if base != "object":
-                        self._external_bases.add(cls)
+                        self._external_bases.setdefault(cls, []).append(target.value)
                 else:
                     self._unresolved_bases.setdefault(cls, base)
             self._bases[cls] = found

@@ -43,6 +43,11 @@ def format_index(repo: str, graph, cached: bool) -> str:
         shown = ", ".join(graph.skipped_dirs[:10])
         more = f" and {len(graph.skipped_dirs) - 10} more" if len(graph.skipped_dirs) > 10 else ""
         lines.append(f"skipped directories (not indexed): {shown}{more}")
+    collisions = graph.module_collisions()
+    if collisions:
+        lines.append("warning: files share a module name, so their symbols share ids:")
+        for module, files in collisions.items():
+            lines.append(f"  {module}: {', '.join(files)}")
     return "\n".join(lines)
 
 

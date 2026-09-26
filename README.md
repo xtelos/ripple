@@ -58,12 +58,16 @@ The four graph tools advertise `readOnlyHint: true`, which lets a client run the
 it found more, it says so: `truncated` is true and `omitted_callers` / `omitted_tests` give the
 counts (the CLI prints "... and N more callers not listed"). Each test comes with its pytest node id
 (`tests/test_x.py::test_y`, or `tests/test_x.py::TestZ::test_y` for a method), found by pytest's
-default naming rules; pass those node ids to `check` to run just those tests. Helpers in test files
-that are not tests themselves are listed with the other callers, since they may need updating.
+default collection rules: `test*` functions at module level in `test_*.py` and `*_test.py` files,
+`test*` methods of `Test*` classes that have no `__init__`, and every `test*` method of a
+`unittest.TestCase` subclass whatever its name. A class runs the test methods it inherits, so a
+method defined on a base is listed once for each class that runs it, under that class's node id
+(`TestChild::test_shared`). Pass those node ids to `check` to run just those tests. Helpers in test
+files that are not tests themselves are listed with the other callers, since they may need updating.
 
 `check(tests=[...])` accepts only test file paths and node ids inside the repository. Anything that
-starts with `-` or points outside the repo is refused, so a caller cannot slip in a pytest option
-(`--basetemp=DIR` deletes `DIR`). Output is read from a temporary file and the timeout covers the
+starts with `-` or `@` (pytest reads options from an `@file`) or points outside the repo is refused,
+so a caller cannot slip in a pytest option (`--basetemp=DIR` deletes `DIR`). Output is read from a temporary file and the timeout covers the
 whole run, so a test that leaves a process running in the background cannot hold up the result.
 The summary and each failure or output line `check` returns are cut to 240 characters, ending in
 `[truncated N chars]` when something was cut.
@@ -155,13 +159,18 @@ Static analysis of a dynamic language misses things. ripple does not follow:
 - calls on the result of a call (`make().run()`), property access, `__call__`, metaclasses,
   monkeypatching, `importlib`, `exec`
 - code imported under a name that differs from its path in the repo (modules are named by their
-  path from the repo root, with a leading `src/` dropped)
+  path from the repo root, with a leading `src/` dropped). Two files that get the same name
+  (`tests/test_x.py` and `src/tests/test_x.py`) share one set of symbol ids, so a name defined in
+  both is one symbol; `ripple index` warns when that happens and names the files.
 - directories that hold dependencies or build output: hidden directories, `__pycache__`,
   `node_modules`, `site-packages`, `venv` and any directory with a `pyvenv.cfg` anywhere, and `build`,
   `dist` and `env` at the repo root only. `ripple index` lists the skipped directories, except
   hidden ones and `__pycache__`.
 - custom pytest collection settings (`python_files`, `python_functions`, `python_classes`): test node
-  ids follow pytest's defaults
+  ids follow pytest's defaults. ripple sees only the repo's own classes, so a class counts as a
+  `unittest.TestCase` subclass when it has a base from outside the repo whose name ends in `TestCase`
+  (`unittest.TestCase`, `django.test.TestCase`), and an `__init__` inherited from outside the repo
+  is not seen.
 
 Override edges can over-approximate: a subclass override is linked even if that subclass never
 reaches the call site. Method lookup walks bases depth-first, which matches Python's C3 order except

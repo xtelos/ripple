@@ -206,3 +206,155 @@ def test_impact_lists_calls_behind_an_unresolvable_base_as_possible_missed(make_
     assert result["affected"] == 0
     assert [m["caller"] for m in result["possible_missed_callers"]] == ["m.Cached.flush"]
     assert [u["call"] for u in callees(g, "Cached.flush")["unresolved"]] == ["self.save"]
+
+
+MOMUS_SHAPE = {
+    "conftest.py": "import os, sys\nsys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))\n",
+    "src/app/__init__.py": "",
+    "src/app/core.py": "def target():\n    return 1\n",
+    "tests/unit/test_core.py": """\
+        import unittest
+        import pytest
+        from app.core import target
+
+        def helper():
+            return target()
+
+        def test_plain():
+            assert helper() == 1
+
+        @pytest.mark.parametrize("x", [1, 2])
+        def test_param(x):
+            assert target() == 1
+
+        class TestOuter:
+            def test_m(self):
+                assert target() == 1
+            class TestInner:
+                def test_n(self):
+                    assert target() == 1
+
+        class CoreTests(unittest.TestCase):
+            def test_unittest_style(self):
+                self.assertEqual(target(), 1)
+
+        class TestBase:
+            def test_shared(self):
+                assert target() == 1
+
+        class TestChild(TestBase):
+            pass
+        """,
+}
+
+
+def test_impact_lists_unittest_and_inherited_tests_the_way_pytest_collects_them(make_repo):
+    import subprocess
+    import sys
+
+    from ripple.checker import run_check
+
+    repo = make_repo(MOMUS_SHAPE)
+    result = impact(build_graph(repo), "app.core.target")
+    node_ids = [t["node_id"] for t in result["tests"]]
+    assert sorted(node_ids) == [
+        "tests/unit/test_core.py::CoreTests::test_unittest_style",
+        "tests/unit/test_core.py::TestBase::test_shared",
+        "tests/unit/test_core.py::TestChild::test_shared",
+        "tests/unit/test_core.py::TestOuter::TestInner::test_n",
+        "tests/unit/test_core.py::TestOuter::test_m",
+        "tests/unit/test_core.py::test_param",
+        "tests/unit/test_core.py::test_plain",
+    ]
+    assert {e["symbol"] for e in result["by_file"]["tests/unit/test_core.py"]} == {"tests.unit.test_core.helper"}
+    pytest_cmd = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider"]
+    collected = subprocess.run(pytest_cmd + ["--collect-only", "-q"], cwd=repo, capture_output=True, text=True)
+    assert "tests/unit/test_core.py: 8" in collected.stdout
+    checked = run_check(repo, command=pytest_cmd, tests=node_ids)
+    assert checked["passed"] is True
+    assert checked["summary"].startswith("8 passed")
+
+
+def test_impact_follows_test_classes_through_their_bases(make_repo):
+    repo = make_repo(
+        {
+            "core.py": "def work():\n    pass\n",
+            "tests/mixins.py": """\
+                from core import work
+
+                class SharedChecks:
+                    def test_from_mixin(self):
+                        work()
+                """,
+            "tests/test_bases.py": """\
+                from unittest import TestCase
+                from core import work
+                from tests.mixins import SharedChecks
+
+                class Base(TestCase):
+                    def test_base(self):
+                        work()
+
+                class Derived(Base):
+                    pass
+
+                class Overrides(Base):
+                    def test_base(self):
+                        pass
+
+                class TestWithMixin(SharedChecks):
+                    pass
+
+                class MixedIntoCase(SharedChecks, TestCase):
+                    pass
+
+                class TestHasInit:
+                    def __init__(self):
+                        pass
+
+                    def test_never_collected(self):
+                        work()
+
+                class TestInheritsInit(TestHasInit):
+                    pass
+
+                class Helper(TestCase):
+                    def check_it(self):
+                        work()
+                """,
+        }
+    )
+    result = impact(build_graph(repo), "core.work")
+    assert sorted(t["node_id"] for t in result["tests"]) == [
+        "tests/test_bases.py::Base::test_base",
+        "tests/test_bases.py::Derived::test_base",
+        "tests/test_bases.py::MixedIntoCase::test_from_mixin",
+        "tests/test_bases.py::TestWithMixin::test_from_mixin",
+    ]
+    # an inherited method is one caller, listed once per class pytest collects it from
+    assert {t["symbol"] for t in result["tests"]} == {
+        "tests.test_bases.Base.test_base",
+        "tests.mixins.SharedChecks.test_from_mixin",
+    }
+    assert {e["symbol"] for e in result["by_file"]["tests/test_bases.py"]} == {
+        "tests.test_bases.TestHasInit.test_never_collected",
+        "tests.test_bases.Helper.check_it",
+    }
+    assert "tests/mixins.py" not in result["by_file"]
+
+
+def test_impact_survives_two_files_with_the_same_module_name(make_repo):
+    repo = make_repo(
+        {
+            "core.py": "def target():\n    return 1\n",
+            "tests/test_dup.py": "from core import target\n\ndef test_one():\n    target()\n",
+            "src/tests/test_dup.py": "from core import target\n\ndef test_two():\n    target()\n",
+        }
+    )
+    graph = build_graph(repo)
+    result = impact(graph, "core.target")
+    assert sorted(t["node_id"] for t in result["tests"]) == [
+        "src/tests/test_dup.py::test_two",
+        "tests/test_dup.py::test_one",
+    ]
+    assert graph.module_collisions() == {"tests.test_dup": ["src/tests/test_dup.py", "tests/test_dup.py"]}

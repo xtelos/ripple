@@ -51,6 +51,23 @@ def test_tests_must_be_paths_or_node_ids_inside_the_repo(make_repo, tmp_path_fac
     assert (victim / "precious.txt").read_text() == "keep me"
 
 
+@pytest.mark.parametrize("arg", ["@tests/opts.txt", "@tests/../tests/opts.txt", "@{victim}/opts.txt"])
+def test_tests_refuse_pytest_argument_files(make_repo, tmp_path_factory, arg):
+    # pytest reads options from any argument that starts with @, so it is an option in disguise.
+    victim = tmp_path_factory.mktemp("victim")
+    (victim / "precious.txt").write_text("keep me")
+    (victim / "opts.txt").write_text(f"--basetemp={victim}\n")
+    repo = make_repo(
+        {
+            "tests/test_uses_tmp.py": "def test_tmp(tmp_path):\n    assert tmp_path.exists()\n",
+            "tests/opts.txt": f"--basetemp={victim}\ntests/test_uses_tmp.py\n",
+        }
+    )
+    with pytest.raises(ValueError):
+        run_check(repo, command=PYTEST, tests=[arg.format(victim=victim)])
+    assert (victim / "precious.txt").read_text() == "keep me"
+
+
 def _kill_pid_in(path):
     if path.exists() and path.read_text().strip():
         try:

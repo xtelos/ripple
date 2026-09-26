@@ -44,10 +44,12 @@ def check_tests(repo: Path, tests: list[str]) -> None:
 
     The entries are appended to the test command, so an option would change
     what the command does: --basetemp=DIR, for one, makes pytest delete DIR.
-    A path outside the repo would run code nobody pointed ripple at.
+    An argument starting with @ is one too: pytest reads options from the
+    file it names. A path outside the repo would run code nobody pointed
+    ripple at.
     """
     for test in tests:
-        if not isinstance(test, str) or not test or test.startswith("-"):
+        if not isinstance(test, str) or not test or test.startswith(("-", "@")):
             raise ValueError(f"not a test path or node id: {test!r}")
         path = (repo / test.split("::")[0]).resolve()
         if not path.is_relative_to(repo) or not path.exists():
