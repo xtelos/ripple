@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ripple-mcp"
+version = "0.1.0"
+description = "An MCP server that tells a coding agent what breaks before it edits Python code."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Dylan Fodor" }]
+requires-python = ">=3.10"
+dependencies = ["mcp>=2.2,<3"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+ripple = "ripple.cli:main"
+
+[tool.setuptools]
+packages = ["ripple"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
