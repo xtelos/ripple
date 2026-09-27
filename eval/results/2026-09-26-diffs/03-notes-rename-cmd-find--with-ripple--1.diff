@@ -1,0 +1,33 @@
+--- a/notes/cli.py
++++ b/notes/cli.py
+@@ -3,7 +3,6 @@
+ import argparse
+ import sys
+ 
+-from notes import commands
+ from notes.commands import COMMANDS
+ from notes.store import NoteStore
+ 
+@@ -31,7 +30,7 @@
+ 
+ def run_named(name, store, args):
+     """Scripting entry point: run a command by name without argv parsing."""
+-    fn = getattr(commands, "cmd_" + name)
++    fn = COMMANDS[name]
+     return fn(store, args)
+ 
+ 
+--- a/notes/commands.py
++++ b/notes/commands.py
+@@ -15,9 +15,9 @@
+         print(short(title))
+ 
+ 
+-def cmd_find(store, args):
++def cmd_search(store, args):
+     for title in store.search(slugify(args.needle)):
+         print(title)
+ 
+ 
+-COMMANDS = {"add": cmd_add, "list": cmd_list, "find": cmd_find}
++COMMANDS = {"add": cmd_add, "list": cmd_list, "find": cmd_search}

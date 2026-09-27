@@ -1,0 +1,19 @@
+--- a/shop/pricing.py
++++ b/shop/pricing.py
+@@ -9,5 +9,5 @@
+     gross = order.gross_total()
+     best = best_discount(discounts, gross)
+     net = best.apply(gross) if best else gross
+-    owed = tax.tax_for(net, region)
++    owed = tax.tax_for(region, net)
+     return {"gross": gross, "net": net, "tax": owed, "total": net + owed}
+--- a/shop/tax.py
++++ b/shop/tax.py
+@@ -3,6 +3,6 @@
+ RATES = {"CA": 0.0725, "NY": 0.04}
+ 
+ 
+-def tax_for(amount, region):
++def tax_for(region, amount):
+     rate = RATES.get(region, 0.0)
+     return round(amount * rate)

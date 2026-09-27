@@ -1,0 +1,89 @@
+--- a/ledger/formatting.py
++++ b/ledger/formatting.py
+@@ -0,0 +1,10 @@
++"""Text formatting for money."""
++
++from __future__ import annotations
++
++from .money import Money
++
++
++def format_amount(money: Money, width: int = 0) -> str:
++    """Right-aligned for report columns."""
++    return money.format().rjust(width)
+--- a/ledger/invoices.py
++++ b/ledger/invoices.py
+@@ -2,8 +2,8 @@
+ 
+ from __future__ import annotations
+ 
++from .formatting import format_amount
+ from .money import Money
+-from .money import format_amount as fmt
+ from .tax import TaxTable
+ 
+ TAXES = TaxTable()
+@@ -33,8 +33,8 @@
+     def render(self) -> str:
+         rows = [f"Invoice {self.number}"]
+         for description, amount, quantity in self.lines:
+-            rows.append(f"  {description:<20} x{quantity:<3}{fmt(amount.scale(quantity), 12)}")
+-        rows.append(f"  {'total':<24}{fmt(self.total(), 12)}")
++            rows.append(f"  {description:<20} x{quantity:<3}{format_amount(amount.scale(quantity), 12)}")
++        rows.append(f"  {'total':<24}{format_amount(self.total(), 12)}")
+         return "\n".join(rows)
+ 
+ 
+--- a/ledger/money.py
++++ b/ledger/money.py
+@@ -35,8 +35,3 @@
+     dollars, _, cents = cleaned.lstrip("-").partition(".")
+     value = int(dollars or 0) * 100 + int((cents + "00")[:2])
+     return Money(-value if negative else value)
+-
+-
+-def format_amount(money: Money, width: int = 0) -> str:
+-    """Right-aligned for report columns."""
+-    return money.format().rjust(width)
+--- a/reports/aging.py
++++ b/reports/aging.py
+@@ -2,7 +2,8 @@
+ 
+ from __future__ import annotations
+ 
+-from ledger.money import Money, format_amount
++from ledger.formatting import format_amount
++from ledger.money import Money
+ from ledger.store import InvoiceStore
+ 
+ 
+--- a/reports/statement.py
++++ b/reports/statement.py
+@@ -3,8 +3,8 @@
+ from __future__ import annotations
+ 
+ import ledger
+-from ledger import money as m
+ from ledger.accounts import Account
++from ledger.formatting import format_amount
+ 
+ 
+ def statement(account: Account) -> str:
+@@ -12,6 +12,6 @@
+     running = ledger.amount("0")
+     for entry in account.entries:
+         running = running + entry.amount
+-        lines.append(f"{entry.memo:<24}{m.format_amount(entry.amount, 12)}{m.format_amount(running, 12)}")
++        lines.append(f"{entry.memo:<24}{format_amount(entry.amount, 12)}{format_amount(running, 12)}")
+     lines.append(f"Balance due: {account.balance().format()}")
+     return "\n".join(lines)
+--- a/tests/test_money.py
++++ b/tests/test_money.py
+@@ -1,5 +1,6 @@
+ from ledger import amount
+-from ledger.money import Money, format_amount, parse_amount
++from ledger.formatting import format_amount
++from ledger.money import Money, parse_amount
+ 
+ 
+ def test_parse_amount_handles_symbols_commas_and_signs():

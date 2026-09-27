@@ -176,7 +176,23 @@ It calls the `claude` CLI on whatever account it is logged in to, so it never ru
 
 ### Results
 
-Results will be added after the first full run.
+First full run, 2026-09-26, Claude Sonnet 5, 60 runs (`eval/results/2026-09-26.json`):
+
+| Mode | Success | Median input tokens | Median output tokens | Median turns | Median wall time |
+|---|---:|---:|---:|---:|---:|
+| with ripple | 30/30 | 145,461 | 3,372 | 19.5 | 25.2 s |
+| without | 30/30 | 129,108 | 3,211 | 15.0 | 22.9 s |
+
+**ripple did not help on these tasks.** Both modes solved every task every time, so there is no
+difference in success to measure, and with ripple the agent spent about 13% more input tokens and
+four or five more turns, mostly on loading and calling the tools (78 ripple calls across the 30
+runs).
+
+The likely reason is the tasks, not the tool: the fixtures are a few hundred lines, small enough
+that the agent can grep and read everything it needs, which puts both modes at the ceiling. The
+cases where a call graph should matter (a large unfamiliar codebase, callers the agent never opens)
+are exactly the ones this first task set does not have. The next version of the eval needs tasks
+over bigger, real repositories, where the without-ripple agent has a real chance to miss a caller.
 
 ## Known limits
 

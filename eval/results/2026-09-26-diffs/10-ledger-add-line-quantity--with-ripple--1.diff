@@ -1,0 +1,84 @@
+--- a/billing/checkout.py
++++ b/billing/checkout.py
+@@ -20,11 +20,11 @@
+ ) -> Invoice:
+     invoice = Invoice(number, region)
+     for sku, quantity in cart.lines:
+-        invoice.add_line(sku, CATALOG[sku], quantity)
++        invoice.add_line(sku, quantity, CATALOG[sku])
+     if rule is not None:
+         fee = rule.fee(invoice.subtotal())
+         if fee.cents:
+-            invoice.add_line("processing fee", fee)
++            invoice.add_line("processing fee", 1, fee)
+     account.apply(Entry(f"invoice {number}", invoice.total()))
+     store.save(invoice)
+     return invoice
+--- a/billing/recurring.py
++++ b/billing/recurring.py
+@@ -14,10 +14,10 @@
+         self.plan = plan
+         self.seats = seats
+         label, price = PLANS[plan]
+-        self.add_line(label, parse_amount(price), seats)
++        self.add_line(label, seats, parse_amount(price))
+ 
+     def add_setup_fee(self, price: str) -> None:
+-        self.add_line("one-time setup", parse_amount(price))
++        self.add_line("one-time setup", 1, parse_amount(price))
+ 
+     def renew(self, number: str) -> RecurringInvoice:
+         return RecurringInvoice(number, self.plan, self.seats, self.region)
+--- a/ledger/invoices.py
++++ b/ledger/invoices.py
+@@ -15,7 +15,7 @@
+         self.region = region
+         self.lines: list[tuple[str, Money, int]] = []
+ 
+-    def add_line(self, description: str, amount: Money, quantity: int = 1) -> None:
++    def add_line(self, description: str, quantity: int, amount: Money) -> None:
+         self.lines.append((description, amount, quantity))
+ 
+     def subtotal(self) -> Money:
+--- a/tests/test_billing.py
++++ b/tests/test_billing.py
+@@ -53,12 +53,12 @@
+     store = InvoiceStore()
+     for number in ("I1", "I2"):
+         invoice = Invoice(number)
+-        invoice.add_line("widget", Money(1250), 2)
++        invoice.add_line("widget", 2, Money(1250))
+         store.save(invoice)
+     assert reminders(store, {"I2"}) == ["I1: $26.81 is due"]
+ 
+ 
+ def test_refund_note():
+     note = CreditNote("C1")
+-    note.add_line("widget", Money(1250), 2)
++    note.add_line("widget", 2, Money(1250))
+     assert refund_note(note) == "C1: we owe you $26.81"
+--- a/tests/test_invoices.py
++++ b/tests/test_invoices.py
+@@ -4,7 +4,7 @@
+ 
+ def widgets(cls=Invoice, number="I1", region="CA"):
+     invoice = cls(number, region)
+-    invoice.add_line("widget", Money(1250), 2)
++    invoice.add_line("widget", 2, Money(1250))
+     return invoice
+ 
+ 
+--- a/tests/test_reports.py
++++ b/tests/test_reports.py
+@@ -7,9 +7,9 @@
+ def two_invoices():
+     store = InvoiceStore()
+     first = Invoice("I1")
+-    first.add_line("widget", Money(1250), 2)
++    first.add_line("widget", 2, Money(1250))
+     second = Invoice("I2", "NY")
+-    second.add_line("gadget", Money(4999))
++    second.add_line("gadget", 1, Money(4999))
+     store.save(first)
+     store.save(second)
+     return store

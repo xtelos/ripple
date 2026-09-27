@@ -1,0 +1,54 @@
+--- a/shop/pricing.py
++++ b/shop/pricing.py
+@@ -5,7 +5,7 @@
+ from .models import Order
+ 
+ 
+-def price_order(order: Order, discounts: list, region: str) -> dict:
++def quote_order(order: Order, discounts: list, region: str) -> dict:
+     gross = order.gross_total()
+     best = best_discount(discounts, gross)
+     net = best.apply(gross) if best else gross
+--- a/shop/service.py
++++ b/shop/service.py
+@@ -2,7 +2,7 @@
+ 
+ import shop.discounts as disc
+ from shop.models import Order
+-from shop.pricing import price_order as quote
++from shop.pricing import quote_order
+ from shop.repository import OrderRepository
+ 
+ 
+@@ -19,13 +19,13 @@
+         for sku, price, qty in items:
+             order.add_item(sku, price, qty)
+         discounts = self._lookup_codes(codes)
+-        totals = quote(order, discounts, region)
++        totals = quote_order(order, discounts, region)
+         order_id = self.repo.save(order)
+         return order_id, totals
+ 
+     def reprice(self, order_id, region):
+         order = self.repo.get(order_id)
+-        return quote(order, [], region)
++        return quote_order(order, [], region)
+ 
+     def _lookup_codes(self, codes):
+         return [self.codes[c] for c in codes if c in self.codes]
+--- a/tests/test_pricing.py
++++ b/tests/test_pricing.py
+@@ -1,11 +1,11 @@
+ from shop.discounts import PercentOff
+ from shop.models import Order
+-from shop.pricing import price_order
++from shop.pricing import quote_order
+ 
+ 
+ def test_percent_discount_and_tax():
+     order = Order("c1")
+     order.add_item("A", 1000)
+-    totals = price_order(order, [PercentOff("P10", 10)], "NY")
++    totals = quote_order(order, [PercentOff("P10", 10)], "NY")
+     assert totals["net"] == 900
+     assert totals["tax"] == 36

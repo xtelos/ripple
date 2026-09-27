@@ -1,0 +1,111 @@
+--- a/billing/recurring.py
++++ b/billing/recurring.py
+@@ -3,7 +3,7 @@
+ from __future__ import annotations
+ 
+ from ledger.invoices import Invoice
+-from ledger.money import parse_amount
++from ledger.money import parse_money
+ 
+ PLANS = {"basic": ("Basic plan", "9.99"), "pro": ("Pro plan", "29.00")}
+ 
+@@ -14,10 +14,10 @@
+         self.plan = plan
+         self.seats = seats
+         label, price = PLANS[plan]
+-        self.add_line(label, parse_amount(price), seats)
++        self.add_line(label, parse_money(price), seats)
+ 
+     def add_setup_fee(self, price: str) -> None:
+-        self.add_line("one-time setup", parse_amount(price))
++        self.add_line("one-time setup", parse_money(price))
+ 
+     def renew(self, number: str) -> RecurringInvoice:
+         return RecurringInvoice(number, self.plan, self.seats, self.region)
+--- a/ledger/__init__.py
++++ b/ledger/__init__.py
+@@ -2,6 +2,5 @@
+ 
+ from .invoices import CreditNote, Invoice
+ from .money import Money
+-from .money import parse_amount as amount
+ 
+-__all__ = ["CreditNote", "Invoice", "Money", "amount"]
++__all__ = ["CreditNote", "Invoice", "Money"]
+--- a/ledger/money.py
++++ b/ledger/money.py
+@@ -28,7 +28,7 @@
+         return f"{sign}${dollars:,}.{cents:02d}"
+ 
+ 
+-def parse_amount(text: str) -> Money:
++def parse_money(text: str) -> Money:
+     """'12.50', '$1,200' or '-3.5' as Money."""
+     cleaned = text.strip().replace("$", "").replace(",", "")
+     negative = cleaned.startswith("-")
+--- a/payroll/batch.py
++++ b/payroll/batch.py
+@@ -5,9 +5,8 @@
+ from datetime import date
+ 
+ from billing.fees import FeeRule
+-from ledger import amount
+ from ledger.accounts import Account, Entry
+-from ledger.money import Money
++from ledger.money import Money, parse_money
+ 
+ 
+ class PayrollBatch:
+@@ -18,7 +17,7 @@
+         self.payments: list[tuple[str, Money]] = []
+ 
+     def add(self, employee: str, pay: str) -> None:
+-        self.payments.append((employee, amount(pay)))
++        self.payments.append((employee, parse_money(pay)))
+ 
+     def total(self) -> Money:
+         total = Money(0)
+--- a/reports/statement.py
++++ b/reports/statement.py
+@@ -2,14 +2,14 @@
+ 
+ from __future__ import annotations
+ 
+-import ledger
+ from ledger import money as m
+ from ledger.accounts import Account
++from ledger.money import parse_money
+ 
+ 
+ def statement(account: Account) -> str:
+     lines = [f"Statement for {account.customer}"]
+-    running = ledger.amount("0")
++    running = parse_money("0")
+     for entry in account.entries:
+         running = running + entry.amount
+         lines.append(f"{entry.memo:<24}{m.format_amount(entry.amount, 12)}{m.format_amount(running, 12)}")
+--- a/tests/test_money.py
++++ b/tests/test_money.py
+@@ -1,15 +1,14 @@
+-from ledger import amount
+-from ledger.money import Money, format_amount, parse_amount
++from ledger.money import Money, format_amount, parse_money
+ 
+ 
+-def test_parse_amount_handles_symbols_commas_and_signs():
+-    assert parse_amount("12.50") == Money(1250)
+-    assert parse_amount("$1,200") == Money(120000)
+-    assert parse_amount("-3.5") == Money(-350)
++def test_parse_money_handles_symbols_commas_and_signs():
++    assert parse_money("12.50") == Money(1250)
++    assert parse_money("$1,200") == Money(120000)
++    assert parse_money("-3.5") == Money(-350)
+ 
+ 
+-def test_the_package_alias_parses_too():
+-    assert amount("7") == Money(700)
++def test_parse_money_handles_whole_numbers():
++    assert parse_money("7") == Money(700)
+ 
+ 
+ def test_format():

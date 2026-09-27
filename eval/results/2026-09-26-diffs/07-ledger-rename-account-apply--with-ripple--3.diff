@@ -1,0 +1,68 @@
+--- a/billing/checkout.py
++++ b/billing/checkout.py
+@@ -25,6 +25,6 @@
+         fee = rule.fee(invoice.subtotal())
+         if fee.cents:
+             invoice.add_line("processing fee", fee)
+-    account.apply(Entry(f"invoice {number}", invoice.total()))
++    account.post(Entry(f"invoice {number}", invoice.total()))
+     store.save(invoice)
+     return invoice
+--- a/ledger/accounts.py
++++ b/ledger/accounts.py
+@@ -18,7 +18,7 @@
+         self.customer = customer
+         self.entries: list[Entry] = []
+ 
+-    def apply(self, entry: Entry) -> Money:
++    def post(self, entry: Entry) -> Money:
+         """Post an entry and return the new balance."""
+         self.entries.append(entry)
+         return self.balance()
+@@ -30,10 +30,10 @@
+         return total
+ 
+     def charge(self, memo: str, money: Money) -> Money:
+-        return self.apply(Entry(memo, money))
++        return self.post(Entry(memo, money))
+ 
+     def pay(self, memo: str, money: Money) -> Money:
+-        return self.apply(Entry(memo, -money))
++        return self.post(Entry(memo, -money))
+ 
+ 
+ class CreditLimitAccount(Account):
+@@ -43,7 +43,7 @@
+         super().__init__(customer)
+         self.limit = limit
+ 
+-    def apply(self, entry: Entry) -> Money:
++    def post(self, entry: Entry) -> Money:
+         if (self.balance() + entry.amount).cents > self.limit.cents:
+             raise ValueError("{} would go over the credit limit".format(self.customer))
+-        return super().apply(entry)
++        return super().post(entry)
+--- a/payroll/batch.py
++++ b/payroll/batch.py
+@@ -33,8 +33,8 @@
+         """Post every payment, then the processing fee; return the new balance."""
+         balance = account.balance()
+         for employee, pay in self.payments:
+-            balance = account.apply(Entry("pay {} {}".format(employee, self.period.isoformat()), pay))
++            balance = account.post(Entry("pay {} {}".format(employee, self.period.isoformat()), pay))
+         fee = self.processing_fee()
+         if fee.cents:
+-            balance = account.apply(Entry("payroll fee", fee))
++            balance = account.post(Entry("payroll fee", fee))
+         return balance
+--- a/tests/test_accounts.py
++++ b/tests/test_accounts.py
+@@ -12,7 +12,7 @@
+ 
+ def test_apply_returns_the_new_balance():
+     account = Account("ada")
+-    assert account.apply(Entry("opening", Money(250))) == Money(250)
++    assert account.post(Entry("opening", Money(250))) == Money(250)
+ 
+ 
+ def test_credit_limit_refuses_an_entry_over_the_limit():

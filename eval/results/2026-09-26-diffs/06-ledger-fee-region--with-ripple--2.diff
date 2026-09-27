@@ -1,0 +1,73 @@
+--- a/billing/checkout.py
++++ b/billing/checkout.py
+@@ -22,7 +22,7 @@
+     for sku, quantity in cart.lines:
+         invoice.add_line(sku, CATALOG[sku], quantity)
+     if rule is not None:
+-        fee = rule.fee(invoice.subtotal())
++        fee = rule.fee(invoice.subtotal(), region)
+         if fee.cents:
+             invoice.add_line("processing fee", fee)
+     account.apply(Entry(f"invoice {number}", invoice.total()))
+--- a/billing/fees.py
++++ b/billing/fees.py
+@@ -8,7 +8,7 @@
+ class FeeRule:
+     """No fee. Subclasses charge one."""
+ 
+-    def fee(self, subtotal: Money) -> Money:
++    def fee(self, subtotal: Money, region: str) -> Money:
+         return Money(0)
+ 
+ 
+@@ -16,7 +16,7 @@
+     def __init__(self, cents: int):
+         self.cents = cents
+ 
+-    def fee(self, subtotal: Money) -> Money:
++    def fee(self, subtotal: Money, region: str) -> Money:
+         return Money(self.cents) if subtotal.cents else Money(0)
+ 
+ 
+@@ -24,5 +24,7 @@
+     def __init__(self, percent: float):
+         self.percent = percent
+ 
+-    def fee(self, subtotal: Money) -> Money:
++    def fee(self, subtotal: Money, region: str) -> Money:
++        if region == "DE":
++            return Money(0)
+         return subtotal.scale(self.percent / 100)
+--- a/billing/quotes.py
++++ b/billing/quotes.py
+@@ -11,7 +11,7 @@
+ 
+ def quote(cart: Cart, region: str, rule: FeeRule, taxes: TaxTable) -> dict:
+     subtotal = cart.total()
+-    fee = rule.fee(subtotal)
++    fee = rule.fee(subtotal, region)
+     tax = taxes.apply(subtotal + fee, region)
+     return {"subtotal": subtotal, "fee": fee, "tax": tax, "total": subtotal + fee + tax}
+ 
+--- a/payroll/batch.py
++++ b/payroll/batch.py
+@@ -27,7 +27,7 @@
+         return total
+ 
+     def processing_fee(self) -> Money:
+-        return self.rule.fee(self.total())
++        return self.rule.fee(self.total(), self.region)
+ 
+     def apply(self, account: Account) -> Money:
+         """Post every payment, then the processing fee; return the new balance."""
+--- a/payroll/fees.py
++++ b/payroll/fees.py
+@@ -11,6 +11,6 @@
+         super().__init__(percent)
+         self.cap = Money(cap_cents)
+ 
+-    def fee(self, subtotal: Money) -> Money:
+-        charged = super().fee(subtotal)
++    def fee(self, subtotal: Money, region: str) -> Money:
++        charged = super().fee(subtotal, region)
+         return charged if charged.cents <= self.cap.cents else self.cap

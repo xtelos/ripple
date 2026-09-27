@@ -1,0 +1,61 @@
+--- a/billing/dunning.py
++++ b/billing/dunning.py
+@@ -11,10 +11,10 @@
+         if number in paid:
+             continue
+         invoice = store.load(number)
+-        notes.append(f"{number}: {invoice.total().format()} is due")
++        notes.append(f"{number}: {invoice.total().format('$')} is due")
+     return notes
+ 
+ 
+ def refund_note(invoice) -> str:
+     """invoice is a CreditNote, so its total is negative."""
+-    return f"{invoice.number}: we owe you {(-invoice.total()).format()}"
++    return f"{invoice.number}: we owe you {(-invoice.total()).format('$')}"
+--- a/ledger/money.py
++++ b/ledger/money.py
+@@ -22,10 +22,10 @@
+     def scale(self, factor: float) -> Money:
+         return Money(round(self.cents * factor))
+ 
+-    def format(self) -> str:
++    def format(self, symbol: str) -> str:
+         sign = "-" if self.cents < 0 else ""
+-        dollars, cents = divmod(abs(self.cents), 100)
+-        return f"{sign}${dollars:,}.{cents:02d}"
++        units, cents = divmod(abs(self.cents), 100)
++        return f"{sign}{symbol}{units:,}.{cents:02d}"
+ 
+ 
+ def parse_amount(text: str) -> Money:
+@@ -39,4 +39,4 @@
+ 
+ def format_amount(money: Money, width: int = 0) -> str:
+     """Right-aligned for report columns."""
+-    return money.format().rjust(width)
++    return money.format("$").rjust(width)
+--- a/reports/statement.py
++++ b/reports/statement.py
+@@ -13,5 +13,5 @@
+     for entry in account.entries:
+         running = running + entry.amount
+         lines.append(f"{entry.memo:<24}{m.format_amount(entry.amount, 12)}{m.format_amount(running, 12)}")
+-    lines.append(f"Balance due: {account.balance().format()}")
++    lines.append(f"Balance due: {account.balance().format('$')}")
+     return "\n".join(lines)
+--- a/tests/test_money.py
++++ b/tests/test_money.py
+@@ -13,8 +13,10 @@
+ 
+ 
+ def test_format():
+-    assert Money(123456).format() == "$1,234.56"
+-    assert Money(-5).format() == "-$0.05"
++    assert Money(123456).format("$") == "$1,234.56"
++    assert Money(-5).format("$") == "-$0.05"
++    assert Money(1250).format("€") == "€12.50"
++    assert Money(-1250).format("€") == "-€12.50"
+ 
+ 
+ def test_format_amount_right_aligns():
