@@ -2,7 +2,9 @@
 
 A run the agent never got to finish because the subscription refused it
 (rate limit) is marked aborted and left out of every number here, so a
-partial batch reports only the runs that actually happened.
+partial batch reports only the runs that actually happened. A with-ripple
+run whose ripple server never connected is marked invalid and left out the
+same way, since it ran without ripple; both are reported as counts.
 """
 
 from __future__ import annotations
@@ -26,7 +28,9 @@ def _median(values: list) -> float | None:
 
 
 def summarize(runs: list[dict]) -> dict:
-    counted = [r for r in runs if not r.get("aborted")]
+    aborted = [r for r in runs if r.get("aborted")]
+    invalid = [r for r in runs if r.get("invalid") and not r.get("aborted")]
+    counted = [r for r in runs if not r.get("aborted") and not r.get("invalid")]
     modes = {}
     for mode in MODES:
         mine = [r for r in counted if r["mode"] == mode]
@@ -50,7 +54,7 @@ def summarize(runs: list[dict]) -> dict:
         cell = tasks.setdefault(r["task"], {}).setdefault(r["mode"], {"runs": 0, "successes": 0})
         cell["runs"] += 1
         cell["successes"] += 1 if r["success"] else 0
-    return {"modes": modes, "tasks": dict(sorted(tasks.items())), "aborted": len(runs) - len(counted)}
+    return {"modes": modes, "tasks": dict(sorted(tasks.items())), "aborted": len(aborted), "invalid": len(invalid)}
 
 
 def _num(value, digits: int = 0) -> str:
@@ -76,4 +80,6 @@ def table(summary: dict) -> str:
         lines.append(f"| {task} | {row[0]} | {row[1]} |")
     if summary["aborted"]:
         lines += ["", f"{summary['aborted']} run(s) aborted by a rate limit are not counted."]
+    if summary.get("invalid"):
+        lines += ["", f"{summary['invalid']} run(s) marked invalid (ripple server not connected) are not counted."]
     return "\n".join(lines)

@@ -22,6 +22,7 @@ import filecmp
 import json
 import os
 import re
+import secrets
 import shutil
 import signal
 import subprocess
@@ -122,6 +123,7 @@ def parse_stream(text: str) -> dict:
         elif event.get("type") == "result":
             result = event
     parsed = {
+        "got_init": bool(init),
         "model": init.get("model"),
         "mcp_servers": init.get("mcp_servers", []),
         "mcp_tools": sorted(t for t in init.get("tools", []) if t.startswith("mcp__")),
@@ -176,8 +178,34 @@ def diff_trees(before: Path, after: Path) -> tuple[list[str], str]:
     return changed, "".join(chunks)
 
 
+def make_root() -> Path:
+    """The batch's temp directory. Claude Code shows the agent its working
+    directory, so no path it can see names ripple, the task or the mode."""
+    return Path(tempfile.mkdtemp())
+
+
+def new_run_dir(root: Path) -> Path:
+    """A fresh, neutrally named directory for one run. The task, mode and
+    repeat it belongs to live only in the run's record."""
+    return Path(tempfile.mkdtemp(prefix="run-", dir=root))
+
+
+def invalid_reason(parsed: dict, mode: str) -> str | None:
+    """Why a run cannot count for its mode, or None. A with-ripple run whose
+    init event shows the ripple MCP server anything but connected had no
+    ripple tools, so it would be a second control run under the wrong label.
+    A run with no init event at all is left alone: it failed before either
+    mode could differ, and it counts as a failure like any other."""
+    if mode != "with-ripple" or not parsed.get("got_init"):
+        return None
+    status = next((s.get("status") for s in parsed.get("mcp_servers") or [] if s.get("name") == "ripple"), None)
+    if status == "connected":
+        return None
+    return f"ripple MCP server {status or 'missing'}"
+
+
 def run_one(task: Task, mode: str, repeat: int, root: Path, bin_dir: Path, args) -> dict:
-    run_dir = root / f"{task.id}--{mode}--{repeat}"
+    run_dir = new_run_dir(root)
     repo = copy_fixture(task, run_dir / "repo")
     cache_dir = run_dir / "cache"
     mcp_file = run_dir / "mcp.json"
@@ -208,6 +236,7 @@ def run_one(task: Task, mode: str, repeat: int, root: Path, bin_dir: Path, args)
         "task": task.id,
         "mode": mode,
         "repeat": repeat,
+        "run_dir": run_dir.name,
         "wall_s": wall,
         "timed_out": timed_out,
         "exit_code": proc.returncode,
@@ -219,6 +248,9 @@ def run_one(task: Task, mode: str, repeat: int, root: Path, bin_dir: Path, args)
     record.update(check_task(task, repo))
     if not parsed["got_result"]:
         record["stderr_tail"] = stderr
+    reason = invalid_reason(parsed, mode)
+    if reason:
+        record["invalid"] = reason
     return record
 
 
@@ -231,14 +263,35 @@ def git_head() -> str:
         return "unknown"
 
 
+def result_paths(out: Path) -> list[Path]:
+    """Everything one batch writes: the JSON, the table and the diffs dir."""
+    return [out, out.with_suffix(".md"), diff_dir(out)]
+
+
+def diff_dir(out: Path) -> Path:
+    return out.with_name(out.stem + "-diffs")
+
+
+def default_out(results_dir: Path, now: dt.datetime | None = None, make_id=None) -> Path:
+    """<date>-<time>-<id>.json, with a short random id, and never a name any
+    earlier batch has used, so a batch can never overwrite another's results
+    or mix its diffs into another's diffs dir."""
+    now = now or dt.datetime.now()
+    make_id = make_id or (lambda: secrets.token_hex(3))
+    while True:
+        out = results_dir / f"{now:%Y-%m-%d-%H%M%S}-{make_id()}.json"
+        if not any(p.exists() for p in result_paths(out)):
+            return out
+
+
 def save(out: Path, meta: dict, runs: list[dict]) -> None:
     """Results JSON (without the diffs), the diffs beside it, and the summary table."""
     ordered = sorted(runs, key=lambda r: (r["task"], r["mode"], r["repeat"]))
-    diff_dir = out.with_name(out.stem + "-diffs")
+    diffs = diff_dir(out)
     for r in ordered:
         if r.get("diff"):
-            diff_dir.mkdir(parents=True, exist_ok=True)
-            (diff_dir / f"{r['task']}--{r['mode']}--{r['repeat']}.diff").write_text(r["diff"])
+            diffs.mkdir(parents=True, exist_ok=True)
+            (diffs / f"{r['task']}--{r['mode']}--{r['repeat']}.diff").write_text(r["diff"])
     slim = [{k: v for k, v in r.items() if k != "diff"} for r in ordered]
     summary = summarize(slim)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -254,7 +307,11 @@ def main(argv=None) -> int:
     parser.add_argument("--jobs", type=int, default=1, help="runs in parallel")
     parser.add_argument("--timeout", type=float, default=600, help="seconds per agent run")
     parser.add_argument("--model", default="sonnet")
-    parser.add_argument("--out", type=Path, help=f"default: {RESULTS_DIR.relative_to(REPO_ROOT)}/<date>.json")
+    parser.add_argument(
+        "--out",
+        type=Path,
+        help=f"default: {RESULTS_DIR.relative_to(REPO_ROOT)}/<date>-<time>-<id>.json; never overwritten",
+    )
     parser.add_argument("--keep", action="store_true", help="keep the temp directories")
     args = parser.parse_args(argv)
 
@@ -262,7 +319,9 @@ def main(argv=None) -> int:
     modes = args.modes.split(",")
     if any(m not in MODES for m in modes):
         parser.error(f"modes must be among {', '.join(MODES)}")
-    out = args.out or RESULTS_DIR / f"{dt.date.today().isoformat()}.json"
+    if args.out and any(p.exists() for p in result_paths(args.out)):
+        parser.error(f"{args.out} (or its .md or -diffs) already exists; pick a new --out")
+    out = args.out or default_out(RESULTS_DIR)
     version = subprocess.run(["claude", "--version"], capture_output=True, text=True).stdout.strip()
     meta = {
         "started": dt.datetime.now().isoformat(timespec="seconds"),
@@ -277,7 +336,7 @@ def main(argv=None) -> int:
     # Repeat-major order, both modes of a task back to back, so a batch cut
     # short by a rate limit still holds matched pairs.
     plan = [(t, m, r) for r in range(1, args.repeats + 1) for t in tasks for m in modes]
-    root = Path(tempfile.mkdtemp(prefix="ripple-eval-"))
+    root = make_root()
     bin_dir = root / "bin"
     write_python_shims(bin_dir)
     runs: list[dict] = []
@@ -293,7 +352,12 @@ def main(argv=None) -> int:
             if record.get("aborted"):
                 stop.set()
             save(out, {**meta, "stopped_early": stop.is_set()}, runs)
-            status = "ABORTED (rate limit)" if record.get("aborted") else ("ok" if record["success"] else "FAIL")
+            if record.get("aborted"):
+                status = "ABORTED (rate limit)"
+            elif record.get("invalid"):
+                status = f"INVALID ({record['invalid']}), not counted"
+            else:
+                status = "ok" if record["success"] else "FAIL"
             print(
                 f"[{len(runs)}/{len(plan)}] {task.id} {mode} #{repeat}: {status} "
                 f"turns={record.get('num_turns')} ripple_calls={record.get('ripple_calls')} wall={record['wall_s']}s",
@@ -311,6 +375,9 @@ def main(argv=None) -> int:
     print()
     print(table(summarize(runs)))
     print(f"\nresults: {out}")
+    invalid = sum(1 for r in runs if r.get("invalid") and not r.get("aborted"))
+    if invalid:
+        print(f"WARNING: {invalid} with-ripple run(s) had no connected ripple server and are not counted")
     if stop.is_set():
         print(f"stopped early: rate limited after {len(runs)} of {len(plan)} runs")
     return 0

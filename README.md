@@ -159,18 +159,24 @@ ripple MCP server and once without, three times each.
   re-export alias, an override in another package, a `getattr` lookup that neither grep nor ripple
   can see. Seven run over `eval/fixtures/ledger`, a small invoicing app written for the eval, and
   three reuse the benchmark fixtures. Each task's `why` field says what makes it hard.
-- **Grading.** An edit counts as a success when the fixture's own tests pass without any of them
-  deleted, and a hidden test the agent never sees passes too. The hidden test checks that the change
-  was made and that every caller still works. `tests/test_eval.py` shows each check fails on the
-  untouched fixture and passes on a reference solution, and CI runs it.
+- **Grading.** An edit counts as a success when the fixture's own tests pass and still number at
+  least the task's minimum (`min_tests`), and a hidden test the agent never sees passes too. The
+  hidden test checks that the change was made and that every caller still works.
+  `tests/test_eval.py` shows each check fails on the untouched fixture and passes on a reference
+  solution, and CI runs it.
 - **Same conditions.** Both modes get the same prompt, model, tools and permissions (edit files,
   run pytest). The MCP server is the only difference. Each run starts from a fresh copy under
-  `/tmp` and leaves out the user's own settings, hooks and auto-memory.
+  `/tmp`, in a directory whose name says nothing about the task or mode, and leaves out the user's
+  own settings, hooks and auto-memory. A with-ripple run whose ripple server fails to connect is
+  marked invalid and left out of the numbers.
 
 ```sh
 .venv/bin/python -m eval.run                   # 10 tasks x 2 modes x 3 repeats, into eval/results/
-.venv/bin/python -m eval.run --tasks 04-ledger-rename-invoice-total --repeats 1
+.venv/bin/python -m eval.run --tasks 04-ledger-rename-invoice-total --repeats 1 --out /tmp/smoke.json
 ```
+
+Each batch writes `eval/results/<date>-<time>-<id>.json` (unless `--out` says otherwise), a `.md`
+table and a `-diffs/` directory beside it, and refuses to overwrite an earlier batch's files.
 
 It calls the `claude` CLI on whatever account it is logged in to, so it never runs in CI.
 
@@ -193,6 +199,10 @@ that the agent can grep and read everything it needs, which puts both modes at t
 cases where a call graph should matter (a large unfamiliar codebase, callers the agent never opens)
 are exactly the ones this first task set does not have. The next version of the eval needs tasks
 over bigger, real repositories, where the without-ripple agent has a real chance to miss a caller.
+
+In this run each arm's working directory name included its condition label (such as
+`--with-ripple--`), which the agent can see; that is fixed now, and the result is unlikely to depend
+on it since both arms scored 30/30.
 
 ## Known limits
 

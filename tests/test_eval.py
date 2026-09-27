@@ -14,7 +14,20 @@ import pytest
 from eval.check import count_passed, check_task
 from eval.loader import apply_solution, copy_fixture, load_task, load_tasks
 from eval.report import input_tokens, summarize, table
-from eval.run import agent_command, child_env, diff_trees, is_rate_limited, mcp_config, parse_stream
+import eval.run as run_mod
+from eval.run import (
+    agent_command,
+    child_env,
+    default_out,
+    diff_trees,
+    invalid_reason,
+    is_rate_limited,
+    make_root,
+    mcp_config,
+    new_run_dir,
+    parse_stream,
+    save,
+)
 
 TASKS = load_tasks()
 
@@ -171,3 +184,78 @@ def test_summarize_and_table():
     assert "| with-ripple | 2 | 1/2 (50%) | 200 |" in text
     assert "| t2 | - | 0/1 |" in text
     assert "1 run(s) aborted" in text
+
+
+def test_agent_cwd_does_not_name_its_condition():
+    """Claude Code shows the agent its cwd, so the path must not say which arm it is in."""
+    root = make_root()
+    try:
+        cwds = [new_run_dir(root) / "repo" for _ in ("with-ripple", "without")]
+        for cwd in cwds:
+            text = str(cwd.relative_to(root.parent)).lower()
+            assert "with-ripple" not in text and "without" not in text
+            assert "ripple" not in text
+        assert cwds[0] != cwds[1]
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def test_default_out_is_timestamped_and_never_reuses_a_name(tmp_path):
+    import datetime as dt
+
+    now = dt.datetime(2026, 9, 26, 20, 15, 7)
+    ids = iter(["aaaaaa", "aaaaaa", "bbbbbb"])
+    first = default_out(tmp_path, now, make_id=lambda: next(ids))
+    assert first.name == "2026-09-26-201507-aaaaaa.json"
+    first.write_text("{}")
+    second = default_out(tmp_path, now, make_id=lambda: next(ids))
+    assert second.name == "2026-09-26-201507-bbbbbb.json"
+
+
+def test_save_writes_diffs_under_a_dir_named_for_the_output(tmp_path):
+    record = {"task": "t1", "mode": "without", "repeat": 1, "success": True, "diff": "+x\n"}
+    out = tmp_path / "2026-09-26-201507-aaaaaa.json"
+    save(out, {}, [record])
+    assert (tmp_path / "2026-09-26-201507-aaaaaa-diffs" / "t1--without--1.diff").read_text() == "+x\n"
+
+
+def test_main_refuses_to_overwrite_an_existing_results_file(tmp_path, monkeypatch):
+    def no_agent(*a, **k):
+        raise RuntimeError("must not reach the claude CLI")
+
+    monkeypatch.setattr(run_mod.subprocess, "run", no_agent)
+    monkeypatch.setattr(run_mod, "run_one", no_agent)
+    out = tmp_path / "done.json"
+    out.write_text('{"kept": true}')
+    with pytest.raises(SystemExit):
+        run_mod.main(["--tasks", TASKS[0].id, "--repeats", "1", "--out", str(out)])
+    assert out.read_text() == '{"kept": true}'
+
+
+def init_stream(status):
+    servers = [{"name": "ripple", "status": status}] if status else []
+    tools = ["Bash", "mcp__ripple__impact"] if status == "connected" else ["Bash"]
+    init = {"type": "system", "subtype": "init", "model": "claude-x", "mcp_servers": servers, "tools": tools}
+    result = {"type": "result", "subtype": "success", "num_turns": 2, "usage": {"input_tokens": 1}}
+    return json.dumps(init) + "\n" + json.dumps(result) + "\n"
+
+
+def test_a_with_ripple_run_whose_server_failed_is_invalid():
+    assert invalid_reason(parse_stream(init_stream("connected")), "with-ripple") is None
+    assert invalid_reason(parse_stream(init_stream("failed")), "with-ripple") == "ripple MCP server failed"
+    assert invalid_reason(parse_stream(init_stream(None)), "with-ripple") == "ripple MCP server missing"
+    assert invalid_reason(parse_stream(init_stream(None)), "without") is None
+    assert invalid_reason(parse_stream(""), "with-ripple") is None  # no init: an ordinary failure
+
+
+def test_invalid_runs_are_left_out_of_the_summary_and_counted():
+    runs = [
+        run("t1", "with-ripple", True, 4, 100),
+        {**run("t1", "with-ripple", False, 9, 900), "invalid": "ripple MCP server failed"},
+        run("t1", "without", True, 6, 200),
+    ]
+    summary = summarize(runs)
+    assert summary["modes"]["with-ripple"]["runs"] == 1
+    assert summary["modes"]["with-ripple"]["success_rate"] == 1.0
+    assert summary["invalid"] == 1
+    assert "1 run(s) marked invalid" in table(summary)
