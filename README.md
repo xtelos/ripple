@@ -148,6 +148,36 @@ How to read this honestly:
   directly, so it reports a test that calls `hello()` as a caller of `hello`. At runtime the test
   calls the decorator's wrapper, which calls `hello`.
 
+## Agent eval
+
+The benchmark checks that ripple's answers are right. The eval checks whether a coding agent does
+better with them: ten refactoring tasks, each run by Claude Code in headless mode, once with a
+ripple MCP server and once without, three times each.
+
+- **The tasks** (`eval/tasks/`) are renames and signature changes where grep is noisy or
+  incomplete: a method named `total` on four classes, a function reached only through a package
+  re-export alias, an override in another package, a `getattr` lookup that neither grep nor ripple
+  can see. Seven run over `eval/fixtures/ledger`, a small invoicing app written for the eval, and
+  three reuse the benchmark fixtures. Each task's `why` field says what makes it hard.
+- **Grading.** An edit counts as a success when the fixture's own tests pass without any of them
+  deleted, and a hidden test the agent never sees passes too. The hidden test checks that the change
+  was made and that every caller still works. `tests/test_eval.py` shows each check fails on the
+  untouched fixture and passes on a reference solution, and CI runs it.
+- **Same conditions.** Both modes get the same prompt, model, tools and permissions (edit files,
+  run pytest). The MCP server is the only difference. Each run starts from a fresh copy under
+  `/tmp` and leaves out the user's own settings, hooks and auto-memory.
+
+```sh
+.venv/bin/python -m eval.run                   # 10 tasks x 2 modes x 3 repeats, into eval/results/
+.venv/bin/python -m eval.run --tasks 04-ledger-rename-invoice-total --repeats 1
+```
+
+It calls the `claude` CLI on whatever account it is logged in to, so it never runs in CI.
+
+### Results
+
+Results will be added after the first full run.
+
 ## Known limits
 
 Static analysis of a dynamic language misses things. ripple does not follow:
@@ -186,9 +216,6 @@ Subscripted bases such as `Repo[int]` or `Generic[T]` resolve to the class they 
 ## Next
 
 - **TypeScript**, the other language agents spend most of their time in.
-- **An agent A/B eval**: the same coding tasks with and without ripple, measuring broken tests and
-  wrong edits. This benchmark measures whether ripple's answers are right; it does not yet measure
-  whether an agent does better with them.
 
 ## Development
 

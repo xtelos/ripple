@@ -95,6 +95,7 @@ def test_child_env_drops_the_api_key_and_session_variables(tmp_path):
     env = child_env({"PATH": "/usr/bin", "ANTHROPIC_API_KEY": "x", "CLAUDECODE": "1", "HOME": "/h"}, tmp_path, tmp_path)
     assert "ANTHROPIC_API_KEY" not in env and "CLAUDECODE" not in env
     assert env["PATH"].startswith(str(tmp_path)) and env["HOME"] == "/h"
+    assert env["CLAUDE_CODE_DISABLE_AUTO_MEMORY"] == "1"
 
 
 STREAM = "\n".join(

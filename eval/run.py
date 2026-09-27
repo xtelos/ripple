@@ -82,10 +82,13 @@ def agent_command(prompt: str, mode: str, mcp_file: Path, model: str) -> list[st
 def child_env(base: dict, bin_dir: Path, cache_dir: Path) -> dict:
     """The agent's environment: ours, minus anything that ties it to this
     session (CLAUDE*), minus an API key so it can only use the CLI login,
-    with python and pytest on PATH."""
+    with python and pytest on PATH, and with auto-memory off. Auto-memory
+    lives in the user's ~/.claude, outside --setting-sources, and a first
+    smoke run showed it creating a memory directory there for each temp repo."""
     env = {k: v for k, v in base.items() if not k.startswith("CLAUDE") and k != "ANTHROPIC_API_KEY"}
     env["PATH"] = f"{bin_dir}{os.pathsep}{base.get('PATH', '')}"
     env["RIPPLE_CACHE_DIR"] = str(cache_dir)
+    env["CLAUDE_CODE_DISABLE_AUTO_MEMORY"] = "1"
     return env
 
 
