@@ -100,6 +100,11 @@ class RawCall:
     line: int
     kind: str = "call"
     special: str = ""
+    # A callee that goes through the result of a call: ["make", "()", "run"] for make().run().
+    # Names and attributes are as in chain, "()" is a call. chain is None when this is set.
+    path: list | None = None
+    # Why a computed callee (chain and path both None) is computed: one of the COMPUTED_* texts.
+    why: str = ""
 
 
 @dataclass
@@ -118,6 +123,11 @@ class Scope:
     # functions only: the return annotation, and whether it is a @property
     returns: str | None = None
     return_annotated: bool = False  # written, though it may not name one class (list[int] | dict)
+    returns_ambiguous: bool = False  # two defs of the name that return different classes
+    overloaded: bool = False
+    return_sigs: set = field(default_factory=set)  # the class each annotated def of the name returns
+    plain_defs: int = 0  # defs of the name other than property setters and deleters
+    bare_defs: int = 0  # of those, the ones with no return annotation (an @overload's implementation excepted)
     is_property: bool = False
     # classes only
     bases: list = field(default_factory=list)
@@ -207,6 +217,30 @@ def dotted(node: ast.AST) -> list | None:
     if isinstance(node, ast.Name):
         return [node.id] + parts[::-1]
     return None
+
+
+COMPUTED_SUBSCRIPT = "the callee is looked up by subscript (a dict, list or registry)"
+COMPUTED_OTHER = "the callee is computed at runtime (a lambda, a conditional expression or similar)"
+
+
+def call_path(node: ast.AST) -> list | None:
+    """["make", "()", "run"] for make().run, None unless the expression is a name followed by
+    attributes and calls only, with at least one call."""
+    parts = []
+    while True:
+        if isinstance(node, ast.Attribute):
+            parts.append(node.attr)
+            node = node.value
+        elif isinstance(node, ast.Call):
+            parts.append("()")
+            node = node.func
+        elif isinstance(node, ast.Name):
+            parts.append(node.id)
+            break
+        else:
+            return None
+    parts.reverse()
+    return parts if "()" in parts else None
 
 
 def base_name(node: ast.AST) -> str:
@@ -351,7 +385,26 @@ class ScopeBuilder(ast.NodeVisitor):
         scope = self._enter(node, "method" if is_method else "function")
         decorators = {(dotted(d) or [""])[-1] for d in node.decorator_list}
         # "or": a property setter reuses the getter's scope and must not reset these.
-        scope.returns = scope.returns or annotation_type(node.returns)
+        hint = annotation_type(node.returns)
+        accessor = any(
+            len(chain) == 2 and chain[1] in ("setter", "getter", "deleter")
+            for chain in (dotted(d) or [] for d in node.decorator_list)
+        )
+        if "overload" in decorators:
+            scope.overloaded = True
+        if node.returns is not None and not accessor:
+            scope.return_sigs.add(hint)
+        # Defs of one name that return different classes (@overload, a def in each branch of an if):
+        # which one runs depends on the arguments or the platform. A def with no annotation among
+        # several, in whatever order, may be the one that runs, except after @overload defs, where it is
+        # just their implementation.
+        if not accessor:
+            scope.plain_defs += 1
+            if node.returns is None and not scope.overloaded:
+                scope.bare_defs += 1
+        if len(scope.return_sigs) > 1 or (scope.plain_defs > 1 and scope.bare_defs):
+            scope.returns_ambiguous = True
+        scope.returns = scope.returns or hint
         scope.return_annotated = scope.return_annotated or node.returns is not None
         scope.is_property = scope.is_property or bool(decorators & {"property", "cached_property"})
         params = node.args.posonlyargs + node.args.args
@@ -582,7 +635,14 @@ class ScopeBuilder(ast.NodeVisitor):
             self.scope.calls.append(RawCall(None, text, node.lineno, special="builtin"))
         else:
             chain = dotted(func)
-            self.scope.calls.append(RawCall(chain, text, node.lineno, special="" if chain else "computed"))
+            path = None if chain else call_path(func)
+            if chain:
+                self.scope.calls.append(RawCall(chain, text, node.lineno))
+            elif path:
+                self.scope.calls.append(RawCall(None, text, node.lineno, path=path))
+            else:
+                why = COMPUTED_SUBSCRIPT if isinstance(func, ast.Subscript) else COMPUTED_OTHER
+                self.scope.calls.append(RawCall(None, text, node.lineno, special="computed", why=why))
         self.generic_visit(node)
 
 

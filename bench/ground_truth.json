@@ -136,6 +136,22 @@
     {"id": "K4", "fixture": "warehouse", "kind": "missed", "symbol": "warehouse.receivers.Journal.wait", "group": "missed callers",
      "note": "wait on a self attribute built from threading.Event is the standard library's",
      "candidates": ["warehouse.receivers.Gate.open"],
-     "expected": []}
+     "expected": []},
+
+    {"id": "C1", "fixture": "warehouse", "kind": "callers", "symbol": "warehouse.chains.Picker.run", "group": "typed receivers",
+     "note": "called on the result of a function with a return annotation, and on a freshly built instance",
+     "expected": ["warehouse.chains.pick_one", "warehouse.chains.pick_two"]},
+    {"id": "C2", "fixture": "warehouse", "kind": "callers", "symbol": "warehouse.chains.Dispatcher.place", "group": "typed receivers",
+     "note": "called on a function result, on a chain Dispatcher().current(), and on a classmethod's annotated result",
+     "expected": ["warehouse.chains.place_via_registry", "warehouse.chains.chained", "warehouse.chains.from_classmethod"]},
+    {"id": "C3", "fixture": "warehouse", "kind": "callers", "symbol": "warehouse.chains.Dispatcher.current", "group": "typed receivers",
+     "note": "the receiver is Dispatcher(), a constructor call",
+     "expected": ["warehouse.chains.chained"]},
+    {"id": "C4", "fixture": "warehouse", "kind": "callers", "symbol": "warehouse.chains.Scanner.scan", "group": "dynamic",
+     "note": "the receiver is the result of a function with no return annotation, which ripple will not infer",
+     "expected": ["warehouse.chains.pick_three"]},
+    {"id": "C5", "fixture": "warehouse", "kind": "impact", "symbol": "warehouse.chains.Dispatcher.place", "depth": 2, "group": "impact",
+     "note": "every chain starts at a call on a call result",
+     "expected": ["warehouse.chains.place_via_registry", "warehouse.chains.chained", "warehouse.chains.from_classmethod", "tests.test_chains.test_dispatchers"]}
   ]
 }

@@ -30,7 +30,7 @@ import warnings
 from collections import Counter
 from dataclasses import dataclass, replace
 
-from .indexer import Binding, RawCall, Scope, TypeRef
+from .indexer import COMPUTED_OTHER, Binding, RawCall, Scope, TypeRef
 from .model import Edge, Graph, Symbol, Unresolved
 
 BUILTIN_NAMES = set(dir(builtins))
@@ -64,6 +64,8 @@ SAFE_STDLIB_MODULES = frozenset(
         "uuid", "weakref", "xml.etree.ElementTree", "zipfile",
     }
 )  # fmt: skip
+# type(x)(...) and super(...) are not instances of themselves: they reach the class of x and its bases.
+NOT_BUILT_AS_INSTANCE = {"builtins.type", "builtins.super"}
 # Names that may be satisfied by a class that never inherits from them (protocols, ABCs).
 NOMINAL_ONLY_EXCLUDED = ("typing.", "typing_extensions.", "collections.abc.", "abc.")
 
@@ -195,8 +197,10 @@ class Resolver:
             return unknown("applies the function a decorator factory returned")
         elif call.special == "builtin":
             return external(call.text, EXT_BUILTIN_VALUE)
+        elif call.path:
+            target = self.resolve_path(scope, call.path)
         elif call.chain is None:
-            return unknown("the callee is computed at runtime (subscript, call result or similar)")
+            return unknown(call.why or COMPUTED_OTHER)
         else:
             target = self.resolve_chain(scope, call.chain)
         if target.kind in ("instance", "foreign"):
@@ -221,6 +225,40 @@ class Resolver:
         for attr in chain[1:]:
             target = self.member(target, attr)
         return target
+
+    def resolve_path(self, scope: Scope, path: list) -> Target:
+        """Resolve an expression that goes through call results, like make().run or Foo().a.b()."""
+        first = path.index("()")
+        target = self.resolve_chain(scope, path[:first]) if first else unknown(COMPUTED_OTHER)
+        for step in path[first:]:
+            target = self.call_result(target) if step == "()" else self.member(target, step)
+        return target
+
+    def call_result(self, target: Target) -> Target:
+        """What calling target gives: an instance of the class it builds, or of the class its
+        return annotation names. Anything else is unknown, never a guess."""
+        if target.kind in ("symbol", "bound"):
+            if self.scopes[target.value].kind == "class":
+                instance = Target("instance", target.value)
+                # Foo() is exactly a Foo when nothing can make it a subclass: no override edges then.
+                return replace(instance, exact=True) if self.builds_itself(target.value) else instance
+            cls = self.return_type(target.value)
+            if cls:
+                return self.value_of_type(cls)
+            if self.scopes[target.value].return_annotated:
+                return unknown("the callee is the result of a call whose return annotation does not name a class ripple can follow")
+            return unknown("the callee is the result of a call to a function with no return annotation")
+        if target.kind == "external":
+            if target.reason == EXT_BUILTIN and target.value in BUILTIN_TYPES and target.value not in NOT_BUILT_AS_INSTANCE:
+                return external(target.value, EXT_BUILTIN_VALUE)
+            if target.reason == EXT_IMPORT and self.stdlib_class(target.value):
+                return Target("foreign", target.value, exact=True)
+            return unknown("the callee is the result of a call into code outside the repo, not proven to build a class")
+        if target.kind in ("instance", "foreign"):
+            return unknown("calls an instance (its __call__ is not followed)")
+        if target.kind == "module":
+            return unknown("calls a module")
+        return target  # unknown stays unknown, keeping the first reason
 
     def lookup(self, scope: Scope, name: str) -> tuple[Scope, Binding] | None:
         """Python's name lookup: local, enclosing functions, module.
@@ -738,6 +776,8 @@ class Resolver:
         def (for a method, the class body).
         """
         scope = self.scopes[function]
+        if scope.returns_ambiguous:
+            return None
         return self.type_of(TypeRef("annotation", scope.returns, scope.parent)) if scope.returns else None
 
     def constructor(self, cls: str) -> str:
