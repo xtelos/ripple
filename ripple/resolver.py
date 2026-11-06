@@ -149,8 +149,10 @@ def external(value: str, reason: str) -> Target:
 
 
 class Resolver:
-    def __init__(self, scopes: dict[str, Scope], mentions=None):
+    def __init__(self, scopes: dict[str, Scope], mentions=None, unparsed: list[str] | None = None):
         self.scopes = scopes
+        # files that could not be parsed: they have no scope, and may do anything to a table or a partial
+        self._unparsed = list(unparsed or [])
         # module Scope -> Mentions (what a module could change unseen), asked only to prove a table or a partial
         self._mentions_of = mentions
         self.modules = {s.id for s in scopes.values() if s.kind == "module"}
@@ -174,6 +176,7 @@ class Resolver:
         self._rebound_names: set[str] | None = None  # names some module sets as an attribute, see Scope.rebinds
         self._risky: dict[str, tuple[str, int]] | None = None  # name -> (file, line) of the first non-reading mention
         self._unreadable: str | None = None  # a module that could not be read again, so its mentions are unknown
+        self._store_reason: str | None | bool = False  # see store_problem (False: not asked yet)
         self._aliases: dict[str, set[str]] = {}
         self._alias_pairs: list[tuple[str, str]] | None = None
         self._tables: dict[tuple[str, str], str | None] = {}
@@ -611,8 +614,10 @@ class Resolver:
             return next(target for target in found if target.kind == "unknown")
         if any(target != found[0] for target in found):
             return unknown("a name assigned different functions")
-        if where.kind == "module" and not self.module_name_stable(where, name):
-            return unknown(f"a module-level name that other code may rebind ('{name}')")
+        if where.kind == "module":
+            problem = self.rebind_problem(where, name)
+            if problem:
+                return unknown(f"a module-level name that other code may rebind ('{name}'): {problem}")
         return found[0]
 
     def held_by(self, ref: TypeRef) -> Target | None:
@@ -769,6 +774,24 @@ class Resolver:
     def _table_unsafe(self, module: Scope, name: str) -> str | None:
         if name in module.rebound:
             return f"{name} is assigned more than once"
+        if self._unparsed:
+            return f"{name} may be changed: {self._unparsed[0]} could not be parsed, so what it does to {name} is not known"
+        problem = self.store_problem()  # before the scan below, which parses every module
+        if problem:
+            return f"{name} may be changed: {problem}"
+        self.scan_mentions()
+        if self._unreadable:
+            return f"{name} may be changed: {self._unreadable} could not be read again to check"
+        names = self.aliases_of(name)
+        for word in sorted(names):
+            if word in self._risky:
+                file, line = self._risky[word]
+                return f"{name} may be changed or handed on: '{word}' is used other than to read it, at {file}:{line}"
+        problem = self.rebind_problem(module, name)
+        return f"{name} may be rebound: {problem}" if problem else None
+
+    def scan_mentions(self) -> None:
+        """Read every module's Mentions (once): what is used other than to read. Only a table needs this."""
         if self._risky is None:
             self._risky = {}
             for other in self.scopes.values():
@@ -778,21 +801,24 @@ class Resolver:
                         self._unreadable = other.file
                     for word, line in mentions.risky.items():
                         self._risky.setdefault(word, (other.file, line))
-        if self._unreadable:
-            return f"{name} may be changed: {self._unreadable} could not be read again to check"
-        names = self.aliases_of(name)
-        for word in sorted(names):
-            if word in self._risky:
-                file, line = self._risky[word]
-                return f"{name} may be changed or handed on: '{word}' is used other than to read it, at {file}:{line}"
-        if not self.module_name_stable(module, name):
-            return f"{name} may be rebound: its module uses globals(), exec or a star import, or another module assigns the name"
-        return None
+
+    def store_problem(self) -> str | None:
+        """Why some code in the repo may store a value under a name in any module, or None when no file
+        has a store token (see indexer.STORE_TOKENS). One answer for the whole repo, asked once: ripple
+        does not try to tell which module a `setattr` lands on, because it cannot do that soundly."""
+        if self._store_reason is False:
+            asked = getattr(self._mentions_of, "store_token", None)
+            if asked is None:
+                self._store_reason = "ripple cannot read the repo's files again to check what they store"
+            else:
+                found = asked([s.file for s in self.scopes.values() if s.kind == "module"])
+                self._store_reason = f"{found[0]} at {found[1]}:{found[2]} may store a value on any module" if found else None
+        return self._store_reason
 
     def mentions(self, module: Scope):
         """What the module could change unseen (read from its file the first time it is asked)."""
         if self._mentions_of is None:
-            return Mentions(dynamic=True, readable=False)
+            return Mentions(readable=False)
         return self._mentions_of(module)
 
     def aliases_of(self, name: str) -> set[str]:
@@ -812,21 +838,26 @@ class Resolver:
             self._aliases[name] = names
         return self._aliases[name]
 
-    def module_name_stable(self, module: Scope, name: str) -> bool:
-        """Whether nothing in the repo can rebind a module's name without the module's own
-        assignments showing it: no attribute store or setattr of that name anywhere, no
-        globals()/exec in the module, and no star import that could define it."""
+    def rebind_problem(self, module: Scope, name: str) -> str | None:
+        """Why something in the repo may rebind a module's name without the module's own assignments
+        showing it, or None when nothing can: no attribute or item store of that name anywhere, no star
+        import that could define it, and no store token in the repo (see store_problem)."""
+        if self._unparsed:
+            return f"{self._unparsed[0]} could not be parsed, so what it does to {name} is not known"
+        problem = self.store_problem()
+        if problem:
+            return problem
         if self._rebound_names is None:
             self._rebound_names = {n for s in self.scopes.values() if s.kind == "module" for n in s.rebinds}
-        if self.mentions(module).dynamic or name in self._rebound_names:
-            return False
+        if name in self._rebound_names:
+            return "another module assigns the name"
         for star in module.star_imports:
             if star not in self.modules:
-                return False
+                return "its module has a star import that could define it"
             found = self.module_member(star, name, 1)
             if found.kind != "unknown" or "cycle" in found.reason:
-                return False
-        return True
+                return "its module has a star import that could define it"
+        return None
 
     def constructed(self, evidence: list) -> bool:
         """Whether every piece of evidence is a call of a class: the value is exactly that class."""

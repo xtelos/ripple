@@ -12,9 +12,13 @@ from __future__ import annotations
 
 import ast
 import gc
+import io
 import os
+import re
 import sys
 import threading
+import tokenize
+import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -161,8 +165,9 @@ class Scope:
     # modules only
     is_package: bool = False
     star_imports: list = field(default_factory=list)
-    # Names this module sets or deletes as an attribute of something (`mod.NAME = x`, setattr(mod, "NAME", x),
-    # globals()["NAME"] = x), which can rebind a name another module defines.
+    # Names this module sets or deletes as an attribute or an item of something (`mod.NAME = x`,
+    # `d["NAME"] = x`), which can rebind a name another module defines. setattr and the like are not here:
+    # they are store tokens, see STORE_TOKENS.
     rebinds: set = field(default_factory=set)
     tables: dict = field(default_factory=dict)  # NAME = {...} / [...] / (...): Table
     aliases: list = field(default_factory=list)  # what it imports under a new name, as (name, asname)
@@ -336,7 +341,6 @@ def table_get(node: ast.AST):
 # Methods that read a dict or list without changing it. Anything else called on a table
 # (update, append, pop, setdefault, sort, ...) may change it.
 READ_METHODS = {"get", "items", "values", "keys", "copy", "count", "index"}
-DYNAMIC_NAMES = {"globals", "vars", "locals", "exec", "eval"}
 STRING_LOOKUPS = {"getattr", "setattr", "delattr", "hasattr"}
 
 
@@ -357,10 +361,9 @@ def _reads(node: ast.AST) -> list:
 
 @dataclass
 class Mentions:
-    """How a module could change a name unseen: what the resolver asks of it when a table or a
-    partial needs to be proven, and not before (see Rescanner).
+    """How a module could change a table unseen: what the resolver asks of it when a table needs to be
+    proven, and not before (see Rescanner).
 
-    dynamic: globals(), vars(), exec, eval or __dict__ appear, so the module's names can change.
     risky: each name (or attribute) the module mentions other than to read a table, with the line of
     the first such mention. A name (or attribute) that is only subscripted for reading, iterated, read
     with get/items/values/..., or tested with `in` cannot change what it names. Every other mention
@@ -371,7 +374,6 @@ class Mentions:
     readable is False when the module could not be read again.
     """
 
-    dynamic: bool = False
     risky: dict = field(default_factory=dict)
     readable: bool = True
 
@@ -388,21 +390,12 @@ def scan_module(tree: ast.AST) -> Mentions:
         if isinstance(node, ast.Name):
             if id(node) not in ok:
                 risky.setdefault(node.id, node.lineno)
-            if node.id in DYNAMIC_NAMES:
-                found.dynamic = True
         elif isinstance(node, ast.Attribute):
             if id(node) not in ok:
                 risky.setdefault(node.attr, node.lineno)
-            if node.attr == "__dict__":
-                found.dynamic = True
         elif isinstance(node, ast.Subscript):
             if isinstance(node.ctx, ast.Load):
                 ok.add(id(node.value))
-            if isinstance(node.slice, ast.Constant) and isinstance(node.slice.value, str) and (
-                (isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name) and node.value.func.id in DYNAMIC_NAMES)
-                or (isinstance(node.value, ast.Attribute) and node.value.attr == "__dict__")
-            ):
-                risky.setdefault(node.slice.value, node.lineno)
         elif isinstance(node, (ast.For, ast.AsyncFor, ast.comprehension)):
             ok.update(_reads(node.iter))
         elif isinstance(node, ast.Call):
@@ -426,16 +419,80 @@ def scan_module(tree: ast.AST) -> Mentions:
     return found
 
 
-class Rescanner:
-    """Reads a module's Mentions from its file, once, the first time the resolver asks.
+# A table or a partial is followed only when no file of the repo has any of these words. They are how code
+# stores a value under a name in a module without writing `module.NAME = value` (which Scope.rebinds sees):
+# setattr and its dunders, the module's dict and the frames' (vars, globals, locals, __dict__, __globals__,
+# f_globals, f_locals), running or importing code by name (exec, eval, __import__, importlib), mock.patch
+# and pytest's monkeypatch, and the builtins (builtins, __builtins__, which hold every one of these under
+# another name). sys.modules is the same kind of word and is matched on its own (see _SYS_MODULES).
+# Any spelling counts, because this is a match of the word, not of the shape of a call: an alias, an
+# attribute of self, a continuation line, a string, a comment. A file with the word that cannot touch a
+# given module is not excepted either: another module can hand it that module.
+STORE_TOKENS = (
+    "setattr", "delattr", "__setattr__", "__delattr__", "__dict__", "vars", "globals", "locals", "exec", "eval",
+    "__import__", "importlib", "patch", "monkeypatch", "__builtins__", "builtins", "__globals__", "f_globals", "f_locals",
+)  # fmt: skip
+_SYS_MODULES = (
+    r"\.[\s\\]*modules\b"  # sys.modules, s.modules, importlib.sys.modules
+    r"|[\"']modules[\"']"  # getattr(sys, "modules")
+    r"|\bfrom\s+sys\s+import\s*\*"
+    r"|\bfrom\s+sys\s+import\b(?:[^\n\\()#]|\\\r?\n)*\bmodules\b"  # from sys import argv, modules as m
+    r"|\bfrom\s+sys\s+import\s*\([^)]*\bmodules\b"
+)
+_STORE_TOKEN = re.compile(r"\b(?P<word>" + "|".join(STORE_TOKENS) + r")\b|(?P<modules>" + _SYS_MODULES + ")")
 
-    Only a table or a functools.partial that the resolver has to prove needs them, and most
-    repositories never ask, so the indexing pass does not pay for the walk.
+
+def find_store_token(data: bytes) -> tuple[str, int] | None:
+    """The first store token in a module's text (see STORE_TOKENS) as (what it is, its line), or None.
+
+    The text is what Python reads, not the bytes: the module's own encoding (a BOM, a coding cookie,
+    utf-7), and the letters an identifier is normalized to (`ｓｅｔａｔｔｒ` is `setattr`). A file that
+    cannot be decoded has no text to look in and counts as having one.
+    """
+    if data.isascii() and b"coding" not in data:
+        views = [data.decode("ascii")]
+    else:
+        try:
+            text = data.decode(tokenize.detect_encoding(io.BytesIO(data).readline)[0])
+        except (SyntaxError, LookupError, UnicodeDecodeError, ValueError):
+            return "text ripple cannot decode", 1
+        views = [text]
+        if not text.isascii():
+            views.append(unicodedata.normalize("NFKC", text))
+        if b"coding" in data:
+            views.append(data.decode("latin-1"))  # what the bytes say, whatever the cookie claims
+    for view in views:
+        found = _STORE_TOKEN.search(view)
+        if found:
+            return repr(found.group("word")) if found.group("word") else "sys.modules", view.count("\n", 0, found.start()) + 1
+    return None
+
+
+class Rescanner:
+    """Reads what the resolver asks of a module's file, once, the first time it asks.
+
+    Only a table or a functools.partial that the resolver has to prove needs this, and most
+    repositories never ask, so the indexing pass does not pay for it.
     """
 
     def __init__(self, repo: Path):
         self.repo = repo
         self.cache: dict[str, Mentions] = {}
+        self.token: tuple[str, str, int] | None | bool = False  # False: not asked yet
+
+    def store_token(self, files: list[str]) -> tuple[str, str, int] | None:
+        """(what, file, line) of the first store token in any of the files, or None. An unreadable file counts."""
+        if self.token is False:
+            self.token = None
+            for file in files:
+                try:
+                    found = find_store_token((self.repo / file).read_bytes())
+                except OSError:
+                    found = ("a file that could not be read again", 1)
+                if found:
+                    self.token = (found[0], file, found[1])
+                    break
+        return self.token
 
     def __call__(self, module: Scope) -> Mentions:
         found = self.cache.get(module.id)
@@ -443,7 +500,7 @@ class Rescanner:
             try:
                 found = scan_module(ast.parse((self.repo / module.file).read_bytes(), module.file))
             except (SyntaxError, UnicodeDecodeError, ValueError, OSError, RecursionError, MemoryError):
-                found = Mentions(dynamic=True, readable=False)
+                found = Mentions(readable=False)
             self.cache[module.id] = found
         return found
 
@@ -600,7 +657,17 @@ class ScopeBuilder(ast.NodeVisitor):
             parent.id,
         )
         self.scopes[scope.id] = scope
-        parent.bind(node.name, Binding("def", scope.id))
+        self._binding_scope(node.name).bind(node.name, Binding("def", scope.id))
+        return scope
+
+    def _binding_scope(self, name: str) -> Scope:
+        """The scope a statement that binds name binds it in: the module for a name declared
+        `global`, the enclosing function for one declared `nonlocal`, else the current scope."""
+        scope = self.scope
+        if name in scope.globals:
+            return self.stack[0]
+        if name in scope.nonlocals:
+            return self._nonlocal_scope(name)
         return scope
 
     def _decorators(self, node) -> list:
@@ -625,8 +692,6 @@ class ScopeBuilder(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node) -> None:
         self._decorators(node)
-        for param in getattr(node, "type_params", ()):
-            self._rescan_for_setattr(param)
         for default in node.args.defaults + [d for d in node.args.kw_defaults if d is not None]:
             self.visit(default)
         args = node.args
@@ -702,8 +767,6 @@ class ScopeBuilder(ast.NodeVisitor):
 
     def visit_ClassDef(self, node) -> None:
         decorators = self._decorators(node)
-        for param in getattr(node, "type_params", ()):
-            self._rescan_for_setattr(param)
         for base in node.bases + [k.value for k in node.keywords]:
             self.visit(base)
         scope = self._enter(node, "class")
@@ -720,10 +783,10 @@ class ScopeBuilder(ast.NodeVisitor):
     def visit_Import(self, node) -> None:
         for alias in node.names:
             if alias.asname:
-                self.scope.bind(alias.asname, Binding("import", alias.name))
+                self._binding_scope(alias.asname).bind(alias.asname, Binding("import", alias.name))
             else:
                 head = alias.name.split(".")[0]
-                self.scope.bind(head, Binding("import", head))
+                self._binding_scope(head).bind(head, Binding("import", head))
 
     def visit_ImportFrom(self, node) -> None:
         base = self._absolute(node.module, node.level)
@@ -731,7 +794,8 @@ class ScopeBuilder(ast.NodeVisitor):
             if alias.name == "*":
                 self.stack[0].star_imports.append(base)
             else:
-                self.scope.bind(alias.asname or alias.name, Binding("from", base, alias.name))
+                bound = alias.asname or alias.name
+                self._binding_scope(bound).bind(bound, Binding("from", base, alias.name))
                 if alias.asname and alias.asname != alias.name:
                     self.stack[0].aliases.append((alias.name, alias.asname))
 
@@ -791,12 +855,8 @@ class ScopeBuilder(ast.NodeVisitor):
             # Each element keeps the reason it was given (a loop variable stays one), else it is unpacked.
             inner = evidence if evidence and all(ref.kind == "unknown" for ref in evidence) else [unknown_ref(UNPACKED)]
             for elt in target.elts:
-                if not isinstance(elt, ast.Name):
-                    self._rescan_for_setattr(elt)  # the visitor does not enter a tuple target's elements
                 self._bind_target(elt, inner)
         elif isinstance(target, ast.Starred):
-            if not isinstance(target.value, ast.Name):
-                self._rescan_for_setattr(target.value)
             self._bind_target(target.value, [unknown_ref(UNPACKED)])
         elif isinstance(target, ast.Attribute):
             self.stack[0].rebinds.add(target.attr)
@@ -822,22 +882,6 @@ class ScopeBuilder(ast.NodeVisitor):
         for target in node.targets:
             self._note_deleted(target)
         self.generic_visit(node)
-
-    def _rescan_for_setattr(self, node: ast.AST | None) -> None:
-        """setattr(m, "NAME", x) written where the walk does not go (inside a tuple target's
-        subscript, a local variable's annotation, a type parameter's bound)."""
-        if node is not None:
-            for inner in ast.walk(node):
-                if isinstance(inner, ast.Call):
-                    self._note_setattr(inner)
-
-    def _note_setattr(self, node: ast.Call) -> None:
-        """setattr(m, "NAME", x) and delattr(m, "NAME") can rebind a module's NAME."""
-        func = node.func
-        if isinstance(func, ast.Name) and func.id in ("setattr", "delattr") and len(node.args) > 1:
-            name = node.args[1]
-            if isinstance(name, ast.Constant) and isinstance(name.value, str):
-                self.stack[0].rebinds.add(name.value)
 
     def _record_self_attribute(self, target: ast.Attribute, evidence: list) -> None:
         """self.x = value inside a method: remember x's type on the class."""
@@ -870,8 +914,6 @@ class ScopeBuilder(ast.NodeVisitor):
             self.visit(node.value)
         if self.scope.kind in ("module", "class"):  # a local variable's annotation is never evaluated
             self._visit_annotation(node.annotation)
-        else:
-            self._rescan_for_setattr(node.annotation)
         hint = annotation_type(node.annotation)
         evidence = [TypeRef("annotation", hint, self.scope.id) if hint else unknown_ref(ANNOTATION_NO_CLASS)]
         self._note_table(node.target, node.value)
@@ -936,7 +978,7 @@ class ScopeBuilder(ast.NodeVisitor):
 
     def visit_ExceptHandler(self, node) -> None:
         if node.name:
-            self.scope.bind(node.name, Binding("var", evidence=[unknown_ref(CAUGHT)]))
+            self._binding_scope(node.name).bind(node.name, Binding("var", evidence=[unknown_ref(CAUGHT)]))
         self.generic_visit(node)
 
     def visit_comprehension(self, node) -> None:
@@ -949,16 +991,16 @@ class ScopeBuilder(ast.NodeVisitor):
     def visit_MatchAs(self, node) -> None:
         # case Point() as p / case [x, *rest] / case {"k": v, **extra}
         if node.name:
-            self.scope.bind(node.name, Binding("var", evidence=[unknown_ref(PATTERN)]))
+            self._binding_scope(node.name).bind(node.name, Binding("var", evidence=[unknown_ref(PATTERN)]))
         self.generic_visit(node)
 
     def visit_MatchStar(self, node) -> None:
         if node.name:
-            self.scope.bind(node.name, Binding("var", evidence=[unknown_ref(PATTERN)]))
+            self._binding_scope(node.name).bind(node.name, Binding("var", evidence=[unknown_ref(PATTERN)]))
 
     def visit_MatchMapping(self, node) -> None:
         if node.rest:
-            self.scope.bind(node.rest, Binding("var", evidence=[unknown_ref(PATTERN)]))
+            self._binding_scope(node.rest).bind(node.rest, Binding("var", evidence=[unknown_ref(PATTERN)]))
         self.generic_visit(node)
 
     def visit_Lambda(self, node) -> None:
@@ -991,7 +1033,6 @@ class ScopeBuilder(ast.NodeVisitor):
 
     def visit_Call(self, node) -> None:
         func = node.func
-        self._note_setattr(node)
         chain = dotted(func)
         text = ".".join(chain)[:80] if chain else ast.unparse(func)[:80]  # a name or a.b.c unparses to itself
         kind = "annotation" if self.in_annotation else "call"
@@ -1134,7 +1175,7 @@ def _build_graph(repo: Path) -> Graph:
     repo = Path(repo).resolve()
     files, skipped = walk_repo(repo)
     scopes, errors = collect_scopes(repo, files)
-    graph = Resolver(scopes, Rescanner(repo)).run()
+    graph = Resolver(scopes, Rescanner(repo), errors).run()
     graph.parse_errors = errors
     graph.skipped_dirs = skipped
     unparsed = set(errors)
