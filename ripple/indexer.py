@@ -125,13 +125,32 @@ def walk_repo(repo: Path) -> tuple[list[Path], list[str]]:
         for d in sorted(dirnames):
             if d.startswith(".") or d == "__pycache__" or d.endswith(".egg-info"):
                 continue
-            if d in SKIP_ANYWHERE or (here == repo and d in SKIP_AT_ROOT) or (here / d / "pyvenv.cfg").exists():
+            if d in SKIP_ANYWHERE or (here == repo and d in SKIP_AT_ROOT) or _holds_venv_or_is_locked(here / d):
                 skipped.append((here / d).relative_to(repo).as_posix())
             else:
                 keep.append(d)
         dirnames[:] = keep
-        files.extend(here / f for f in sorted(filenames) if f.endswith(".py"))
+        # isfile follows symlinks, so a dangling or looping link, a named pipe
+        # (reading one blocks forever) and a directory called x.py are all left out.
+        files.extend(here / f for f in sorted(filenames) if f.endswith(".py") and _may_be_file(here / f))
     return files, sorted(skipped)
+
+
+def _holds_venv_or_is_locked(directory: Path) -> bool:
+    """Whether the directory is a virtualenv, or one that cannot be entered (listable, not searchable)."""
+    try:
+        return (directory / "pyvenv.cfg").exists()
+    except OSError:
+        return True
+
+
+def _may_be_file(path: Path) -> bool:
+    """False for what is certainly not a file we can read. A path whose type cannot be
+    determined counts as a file, so that reading it fails and is reported with the unparsable ones."""
+    try:
+        return path.is_file()
+    except OSError:
+        return True
 
 
 def find_python_files(repo: Path) -> list[Path]:
@@ -541,13 +560,15 @@ def collect_scopes(repo: Path, files: list[Path]) -> tuple[dict[str, Scope], lis
     for path in files:
         rel = path.relative_to(repo).as_posix()
         try:
-            source = path.read_text(encoding="utf-8")
+            # Bytes, not text: the parser then applies PEP 263 itself (a BOM, a
+            # "coding: latin-1" cookie) the way the interpreter would.
+            source = path.read_bytes()
             tree = ast.parse(source, rel)
-        except (SyntaxError, UnicodeDecodeError, ValueError):
+        except (SyntaxError, UnicodeDecodeError, ValueError, OSError):
             errors.append(rel)
             continue
         module, is_package = module_name(repo, path)
-        builder = ScopeBuilder(module, rel, is_package, tree, source.count("\n") + 1)
+        builder = ScopeBuilder(module, rel, is_package, tree, source.count(b"\n") + 1)
         scopes.update(builder.scopes)
     return scopes, errors
 

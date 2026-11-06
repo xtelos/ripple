@@ -37,7 +37,10 @@ def fingerprint(repo: Path) -> dict[str, list[int]]:
     """{relative path: [mtime_ns, size]} for every file the indexer would read."""
     result = {}
     for path in find_python_files(repo):
-        stat = path.stat()
+        try:
+            stat = path.stat()
+        except OSError:
+            continue  # deleted since the walk, or a link that stopped resolving
         result[path.relative_to(repo).as_posix()] = [stat.st_mtime_ns, stat.st_size]
     return result
 
