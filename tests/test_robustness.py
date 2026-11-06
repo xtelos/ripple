@@ -5,12 +5,18 @@ One such file must cost that file, never the whole index."""
 import os
 import subprocess
 import sys
+import threading
 
 import pytest
 from conftest import callers_of
 
+from ripple import indexer
 from ripple.cache import fingerprint, load_graph
 from ripple.indexer import build_graph
+
+# Before 3.12 the recursion limit is not raised (see indexer.RAISE_LIMIT), so code
+# nested this deep costs its file there instead of being indexed.
+needs_raised_limit = pytest.mark.skipif(not indexer.RAISE_LIMIT, reason="the recursion limit is not raised before 3.12")
 
 GOOD = "def target():\n    return 1\n\ndef user():\n    return target()\n"
 
@@ -115,3 +121,73 @@ def test_bytes_that_are_not_python_cost_only_their_file(make_repo):
     graph = build_graph(repo)
     assert sorted(graph.parse_errors) == ["badutf8.py", "nul.py"]
     assert callers_of(graph, "good.target") == {"good.user"}
+
+
+# Generated code nests far deeper than the interpreter's default recursion limit
+# of 1000 allows a recursive visitor to follow: one branch per enum member, a
+# table built with "+", a long builder chain.
+
+
+@needs_raised_limit
+def test_long_elif_chain_is_indexed(make_repo):
+    branches = "".join(f"    elif x == {i}:\n        return target()\n" for i in range(1, 1500))
+    repo = make_repo({"good.py": GOOD, "gen.py": "from good import target\n\ndef f(x):\n    if x == 0:\n        return 0\n" + branches})
+    graph = build_graph(repo)
+    assert graph.parse_errors == []
+    assert callers_of(graph, "good.target") == {"good.user", "gen.f"}
+
+
+@needs_raised_limit
+def test_long_binop_chain_is_indexed(make_repo):
+    repo = make_repo({"good.py": GOOD, "gen.py": "from good import target\n\ndef f():\n    return " + " + ".join(["target()"] * 3000) + "\n"})
+    graph = build_graph(repo)
+    assert graph.parse_errors == []
+    assert callers_of(graph, "good.target") == {"good.user", "gen.f"}
+
+
+@needs_raised_limit
+def test_long_attribute_chain_is_indexed(make_repo):
+    repo = make_repo({"good.py": GOOD, "gen.py": "import good\n\ndef f(a):\n    a" + ".b" * 3000 + "()\n    return good.target()\n"})
+    graph = build_graph(repo)
+    assert graph.parse_errors == []
+    assert callers_of(graph, "good.target") == {"good.user", "gen.f"}
+
+
+def test_long_chain_of_copied_variables_does_not_crash_the_resolver(make_repo):
+    copies = "".join(f"v{i} = v{i - 1}\n" for i in range(1, 3000))
+    repo = make_repo({"good.py": GOOD, "gen.py": "v0 = 1\n" + copies + "\ndef f():\n    return v2999.bit_length()\n"})
+    graph = build_graph(repo)
+    assert callers_of(graph, "good.target") == {"good.user"}
+
+
+def test_nesting_beyond_any_limit_costs_only_that_file_or_call(make_repo):
+    repo = make_repo({"good.py": GOOD, "huge.py": "x = " + " + ".join(["1"] * 400_000) + "\n"})
+    graph = build_graph(repo)
+    assert callers_of(graph, "good.target") == {"good.user"}
+
+
+def test_index_leaves_the_recursion_limit_alone(make_repo):
+    repo = make_repo({"good.py": GOOD})
+    before = sys.getrecursionlimit()
+    build_graph(repo)
+    assert sys.getrecursionlimit() == before
+
+
+def test_the_recursion_limit_is_raised_only_by_the_big_stack_thread(monkeypatch):
+    # The limit is process-wide and only the worker has a big stack, so on an
+    # interpreter where deep Python recursion uses the C stack (3.10), raising it from
+    # the caller would let another thread's runaway recursion overflow its small stack.
+    callers = []
+    real = sys.setrecursionlimit
+    monkeypatch.setattr(sys, "setrecursionlimit", lambda n: (callers.append(threading.get_ident()), real(n))[1])
+    monkeypatch.setattr(indexer, "RAISE_LIMIT", True)
+    inside = indexer.run_deep(sys.getrecursionlimit)
+    assert inside >= indexer.DEEP_RECURSION_LIMIT
+    assert callers and threading.get_ident() not in callers
+
+
+def test_where_raising_the_limit_is_unsafe_the_worker_runs_on_the_default(monkeypatch):
+    monkeypatch.setattr(indexer, "RAISE_LIMIT", False)
+    before = sys.getrecursionlimit()
+    assert indexer.run_deep(sys.getrecursionlimit) == before
+    assert sys.getrecursionlimit() == before
