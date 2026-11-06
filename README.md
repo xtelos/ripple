@@ -255,6 +255,19 @@ bases is inherited from an external base such as `Exception`, unless a base coul
 (`class Cached(make_base())`) or a subclass defines the method, and then it is unresolved too.
 Subscripted bases such as `Repo[int]` or `Generic[T]` resolve to the class they subscript.
 
+A method called on a value of a class from outside the repo is outside the repo too, and `impact` no
+longer lists it as a possible missed caller, but only when ripple can prove the receiver's class:
+a builtin value; a plain class of the standard library (`deque()`, `Path(...)`, `x: threading.Event`,
+`self.ready = threading.Event()`, checked by asking the interpreter about a short list of modules that
+are safe to import); or a class some class in the repo inherits from, since only a class can be a base.
+It stays unresolved when a repo subclass overrides that method and the value is not built in place
+(an annotation `buf: deque` may hold the `LoudDeque` that overrides `extend`), when the name is not
+proven a class (`session = requests.Session()` where nothing in the repo inherits from `Session`, or an
+annotation such as `Any`, a protocol or an ABC), and one attribute further (`local.chal.get()`: what is
+stored on an object from outside the repo may be a repo object). An unresolved receiver says why in its
+reason (an unannotated parameter, a loop variable, the result of a call to a function without a return
+annotation, ...), and `ripple index --reasons` counts unresolved calls and calls outside the repo by cause.
+
 ## Next
 
 - **TypeScript**, the other language agents spend most of their time in.

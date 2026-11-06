@@ -6,6 +6,12 @@
 Precision: of the symbols ripple reported, how many are right.
 Recall: of the symbols that are right, how many ripple reported.
 Both are micro-averaged: every expected or reported symbol counts once.
+
+A "missed" query scores impact's possible_missed_callers instead: the callers
+ripple lists as unable to rule out. Precision there is the share of them that
+really call the symbol (a listed caller that never does is a false alarm).
+That is a different question from the resolution rows, so the group is
+reported on its own line and left out of the overall figure.
 """
 
 from __future__ import annotations
@@ -21,7 +27,8 @@ from ripple.queries import callees, callers, impact
 HERE = Path(__file__).resolve().parent
 TRUTH = HERE / "ground_truth.json"
 BASELINE = HERE / "baseline.json"
-GROUP_ORDER = ["imports", "methods", "typed receivers", "callees", "decorators", "dynamic", "impact"]
+GROUP_ORDER = ["imports", "methods", "typed receivers", "callees", "decorators", "dynamic", "impact", "missed callers"]
+NOT_IN_OVERALL = {"missed callers"}
 
 
 def predict(graph, query) -> set[str]:
@@ -31,6 +38,8 @@ def predict(graph, query) -> set[str]:
     if query["kind"] == "callees":
         result = callees(graph, query["symbol"])
         return {c["symbol"] for c in result.get("callees", [])}
+    if query["kind"] == "missed":
+        return {m["caller"] for m in impact(graph, query["symbol"]).get("possible_missed_callers", [])}
     result = impact(graph, query["symbol"], depth=query["depth"])
     found = {t["symbol"] for t in result.get("tests", [])}
     for entries in result.get("by_file", {}).values():
@@ -59,8 +68,10 @@ def score() -> dict:
             }
         )
     groups = {}
-    for name in GROUP_ORDER + ["overall"]:
-        members = [r for r in rows if name == "overall" or r["group"] == name]
+    for name in [g for g in GROUP_ORDER if g not in NOT_IN_OVERALL] + ["overall"] + sorted(NOT_IN_OVERALL):
+        members = [
+            r for r in rows if (r["group"] not in NOT_IN_OVERALL if name == "overall" else r["group"] == name)
+        ]
         tp = sum(r["tp"] for r in members)
         fp = sum(len(r["fp"]) for r in members)
         fn = sum(len(r["fn"]) for r in members)
@@ -79,13 +90,15 @@ def fmt(value: float | None) -> str:
 
 def report(result: dict) -> str:
     lines = [
-        f"ripple benchmark: {result['groups']['overall']['queries']} queries over 3 fixture repos",
+        f"ripple benchmark: {len(result['rows'])} queries over {len({r['fixture'] for r in result['rows']})} fixture repos",
         "",
         f"{'group':<16} {'queries':>7} {'exact':>6} {'precision':>10} {'recall':>7}",
     ]
     for name, g in result["groups"].items():
         if name == "overall":
             lines.append("-" * 50)
+        if name == min(NOT_IN_OVERALL):
+            lines.append("scored apart from overall:")
         lines.append(f"{name:<16} {g['queries']:>7} {g['exact']:>6} {fmt(g['precision']):>10} {fmt(g['recall']):>7}")
     lines += ["", "Queries ripple did not answer exactly:"]
     for r in result["rows"]:

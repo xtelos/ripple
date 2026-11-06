@@ -22,5 +22,5 @@ def test_every_query_names_a_symbol_that_exists():
     for q in truth:
         graph = graphs.setdefault(q["fixture"], build_graph(BASELINE.parent / "fixtures" / q["fixture"]))
         assert find_symbol(graph, q["symbol"]).get("symbol") == q["symbol"], q["id"]
-        for expected in q["expected"]:
+        for expected in q["expected"] + q.get("candidates", []):
             assert expected in graph.symbols, (q["id"], expected)

@@ -35,14 +35,36 @@ class TypeRef:
 
     kind is "annotation" (expr is a type written in the source), "call"
     (expr is the thing that was called; it only counts if it is a class),
-    "name" (the value was copied from another variable, named by expr) or
-    "builtin" (a literal; expr is the builtin type name, e.g. "list").
+    "name" (the value was copied from another variable, named by expr),
+    "builtin" (a literal; expr is the builtin type name, e.g. "list") or
+    "unknown" (an assignment that proves nothing; expr says why, in words that
+    finish "the receiver is ...", so the unresolved calls can be counted by cause).
     scope is the id of the scope the expression should be resolved in.
     """
 
     kind: str
     expr: str
     scope: str
+
+
+# Why a value's class is unknown, as the unresolved calls report it.
+UNANNOTATED = "the receiver is an unannotated parameter"
+ANNOTATION_NO_CLASS = "the receiver is annotated with something that does not name one class"
+VARIADIC = "the receiver is *args or **kwargs"
+LOOP_VARIABLE = "the receiver is a loop variable"
+WITH_TARGET = "the receiver is bound by a with statement"
+CAUGHT = "the receiver is a caught exception"
+COMPREHENSION_VARIABLE = "the receiver is a comprehension variable"
+UNPACKED = "the receiver is unpacked from a tuple, list or star target"
+PATTERN = "the receiver is bound by a match pattern"
+LAMBDA_PARAMETER = "the receiver is a lambda parameter"
+ASSIGNED_UNTYPED = "the receiver is a local assigned from an expression ripple cannot type"
+ASSIGNED_COMPUTED_CALL = "the receiver is assigned the result of a call whose callee is computed"
+REBOUND = "the receiver is a name bound more than one way (an import, a def and an assignment, say)"
+
+
+def unknown_ref(reason: str) -> TypeRef:
+    return TypeRef("unknown", reason, "")
 
 
 @dataclass
@@ -95,6 +117,7 @@ class Scope:
     nonlocals: set = field(default_factory=set)
     # functions only: the return annotation, and whether it is a @property
     returns: str | None = None
+    return_annotated: bool = False  # written, though it may not name one class (list[int] | dict)
     is_property: bool = False
     # classes only
     bases: list = field(default_factory=list)
@@ -112,7 +135,7 @@ class Scope:
         elif old.kind == "var" and binding.kind == "var":
             old.evidence.extend(binding.evidence)
         elif (old.kind, old.target, old.name) != (binding.kind, binding.target, binding.name):
-            self.names[name] = Binding("var", evidence=[None])
+            self.names[name] = Binding("var", evidence=[unknown_ref(REBOUND)])
 
 
 def walk_repo(repo: Path) -> tuple[list[Path], list[str]]:
@@ -329,6 +352,7 @@ class ScopeBuilder(ast.NodeVisitor):
         decorators = {(dotted(d) or [""])[-1] for d in node.decorator_list}
         # "or": a property setter reuses the getter's scope and must not reset these.
         scope.returns = scope.returns or annotation_type(node.returns)
+        scope.return_annotated = scope.return_annotated or node.returns is not None
         scope.is_property = scope.is_property or bool(decorators & {"property", "cached_property"})
         params = node.args.posonlyargs + node.args.args
         static = "staticmethod" in decorators
@@ -339,11 +363,14 @@ class ScopeBuilder(ast.NodeVisitor):
             hint = annotation_type(arg.annotation)
             # Annotations are evaluated where the def runs (for a method, the
             # class body), so they are resolved there, not inside the function.
-            evidence = [TypeRef("annotation", hint, self.scope.id) if hint else None]
+            if hint:
+                evidence = [TypeRef("annotation", hint, self.scope.id)]
+            else:
+                evidence = [unknown_ref(UNANNOTATED if arg.annotation is None else ANNOTATION_NO_CLASS)]
             scope.bind(arg.arg, Binding("var", evidence=evidence))
         for extra in (node.args.vararg, node.args.kwarg):
             if extra is not None:
-                scope.bind(extra.arg, Binding("var", evidence=[None]))
+                scope.bind(extra.arg, Binding("var", evidence=[unknown_ref(VARIADIC)]))
         self.stack.append(scope)
         for stmt in node.body:
             self.visit(stmt)
@@ -406,7 +433,7 @@ class ScopeBuilder(ast.NodeVisitor):
             return [TypeRef("builtin", literal_type(value), here)]
         if isinstance(value, ast.Call):
             chain = dotted(value.func)
-            return [TypeRef("call", ".".join(chain), here) if chain else None]
+            return [TypeRef("call", ".".join(chain), here) if chain else unknown_ref(ASSIGNED_COMPUTED_CALL)]
         if isinstance(value, ast.Name):
             return [TypeRef("name", value.id, here)]
         if isinstance(value, ast.BoolOp) and isinstance(value.op, ast.Or):
@@ -414,8 +441,8 @@ class ScopeBuilder(ast.NodeVisitor):
             for operand in value.values:
                 if not _is_none(operand):
                     refs.extend(self._evidence(operand))
-            return refs or [None]
-        return [None]
+            return refs or [unknown_ref(ASSIGNED_UNTYPED)]
+        return [unknown_ref(ASSIGNED_UNTYPED)]
 
     def _bind_target(self, target: ast.AST, evidence: list) -> None:
         if isinstance(target, ast.Name):
@@ -428,10 +455,12 @@ class ScopeBuilder(ast.NodeVisitor):
             else:
                 self.scope.bind(target.id, Binding("var", evidence=list(evidence)))
         elif isinstance(target, (ast.Tuple, ast.List)):
+            # Each element keeps the reason it was given (a loop variable stays one), else it is unpacked.
+            inner = evidence if evidence and all(ref.kind == "unknown" for ref in evidence) else [unknown_ref(UNPACKED)]
             for elt in target.elts:
-                self._bind_target(elt, [None])
+                self._bind_target(elt, inner)
         elif isinstance(target, ast.Starred):
-            self._bind_target(target.value, [None])
+            self._bind_target(target.value, [unknown_ref(UNPACKED)])
         elif isinstance(target, ast.Attribute):
             self._record_self_attribute(target, evidence)
 
@@ -457,7 +486,7 @@ class ScopeBuilder(ast.NodeVisitor):
         if node.value is not None:
             self.visit(node.value)
         hint = annotation_type(node.annotation)
-        evidence = [TypeRef("annotation", hint, self.scope.id) if hint else None]
+        evidence = [TypeRef("annotation", hint, self.scope.id) if hint else unknown_ref(ANNOTATION_NO_CLASS)]
         if self.scope.kind == "class" and isinstance(node.target, ast.Name):
             self.scope.attr_types.setdefault(node.target.id, []).extend(evidence)
         self._bind_target(node.target, evidence)
@@ -480,46 +509,46 @@ class ScopeBuilder(ast.NodeVisitor):
         self._bind_target(node.target, self._evidence(node.value))
 
     def visit_For(self, node) -> None:
-        self._bind_target(node.target, [None])
+        self._bind_target(node.target, [unknown_ref(LOOP_VARIABLE)])
         self.generic_visit(node)
 
     visit_AsyncFor = visit_For
 
     def visit_withitem(self, node) -> None:
         if node.optional_vars is not None:
-            self._bind_target(node.optional_vars, [None])
+            self._bind_target(node.optional_vars, [unknown_ref(WITH_TARGET)])
         self.generic_visit(node)
 
     def visit_ExceptHandler(self, node) -> None:
         if node.name:
-            self.scope.bind(node.name, Binding("var", evidence=[None]))
+            self.scope.bind(node.name, Binding("var", evidence=[unknown_ref(CAUGHT)]))
         self.generic_visit(node)
 
     def visit_comprehension(self, node) -> None:
         # Comprehension variables live in their own scope at runtime; binding
         # them here as untyped values keeps them from being mistaken for
         # module-level names of the same spelling.
-        self._bind_target(node.target, [None])
+        self._bind_target(node.target, [unknown_ref(COMPREHENSION_VARIABLE)])
         self.generic_visit(node)
 
     def visit_MatchAs(self, node) -> None:
         # case Point() as p / case [x, *rest] / case {"k": v, **extra}
         if node.name:
-            self.scope.bind(node.name, Binding("var", evidence=[None]))
+            self.scope.bind(node.name, Binding("var", evidence=[unknown_ref(PATTERN)]))
         self.generic_visit(node)
 
     def visit_MatchStar(self, node) -> None:
         if node.name:
-            self.scope.bind(node.name, Binding("var", evidence=[None]))
+            self.scope.bind(node.name, Binding("var", evidence=[unknown_ref(PATTERN)]))
 
     def visit_MatchMapping(self, node) -> None:
         if node.rest:
-            self.scope.bind(node.rest, Binding("var", evidence=[None]))
+            self.scope.bind(node.rest, Binding("var", evidence=[unknown_ref(PATTERN)]))
         self.generic_visit(node)
 
     def visit_Lambda(self, node) -> None:
         for arg in node.args.posonlyargs + node.args.args + node.args.kwonlyargs:
-            self.scope.bind(arg.arg, Binding("var", evidence=[None]))
+            self.scope.bind(arg.arg, Binding("var", evidence=[unknown_ref(LAMBDA_PARAMETER)]))
         self.generic_visit(node)
 
     def visit_Global(self, node) -> None:

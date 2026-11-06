@@ -625,7 +625,7 @@ def test_an_untyped_attribute_the_repo_assigns_is_unresolved_not_inherited(make_
     )
     g = build_graph(repo)
     assert sorted((u.text, u.reason) for u in g.unresolved) == [
-        ("factory", "the receiver's class is not known statically"),
+        ("factory", "the receiver is an unannotated parameter"),
         ("make_config","name 'make_config' is not defined anywhere ripple can see"),
         ("self.config.get", "'config' is not a method or typed attribute of m.Base"),
         ("self.conn.send", "'conn' is not a method or typed attribute of m.Base"),

@@ -1,6 +1,6 @@
 """Command-line entry point: the same queries as the MCP tools, for humans.
 
-    ripple index <repo>
+    ripple index <repo> [--reasons]
     ripple callers|callees <symbol> [--repo DIR] [--json]
     ripple impact <symbol> [--depth N] [--limit N] [--repo DIR] [--json]
     ripple path <source> <target> [--repo DIR] [--json]
@@ -14,6 +14,7 @@ import argparse
 import json
 import os
 import sys
+from collections import Counter
 
 from . import queries
 from .cache import load_graph
@@ -28,7 +29,17 @@ def _print_lookup_error(result: dict) -> None:
         print(f"  {name}")
 
 
-def format_index(repo: str, graph, cached: bool) -> str:
+def format_reasons(graph) -> list[str]:
+    """Unresolved calls and calls outside the repo, each counted by cause (most common first)."""
+    lines = ["unresolved calls by reason:"]
+    unresolved = Counter(u.reason for u in graph.unresolved)
+    lines += [f"  {n:6d}  {reason}" for reason, n in unresolved.most_common()]
+    lines.append("calls outside the repo by reason:")
+    lines += [f"  {n:6d}  {reason}" for reason, n in sorted(graph.external_reasons.items(), key=lambda kv: -kv[1])]
+    return lines
+
+
+def format_index(repo: str, graph, cached: bool, reasons: bool = False) -> str:
     stats = graph.stats()
     kinds = ", ".join(f"{n} {k}" for k, n in stats["symbols"].items())
     lines = [
@@ -48,6 +59,8 @@ def format_index(repo: str, graph, cached: bool) -> str:
         lines.append("warning: files share a module name, so their symbols share ids:")
         for module, files in collisions.items():
             lines.append(f"  {module}: {', '.join(files)}")
+    if reasons:
+        lines += format_reasons(graph)
     return "\n".join(lines)
 
 
@@ -102,6 +115,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("index", help="index a repository and print what was found")
     p.add_argument("repo", nargs="?", default=".")
+    p.add_argument("--reasons", action="store_true", help="also count unresolved calls and calls outside the repo by cause")
 
     for name, help_text in (
         ("callers", "who calls this symbol"),
@@ -156,7 +170,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "index":
         graph, cached = load_graph(args.repo)
-        print(format_index(args.repo, graph, cached))
+        print(format_index(args.repo, graph, cached, args.reasons))
         return 0
 
     graph, _ = load_graph(args.repo)
