@@ -30,7 +30,7 @@ import warnings
 from collections import Counter
 from dataclasses import dataclass, replace
 
-from .indexer import ASSIGNED_UNTYPED, COMPUTED_OTHER, LOOP_VARIABLE, Binding, RawCall, Scope, Table, TypeRef
+from .indexer import ASSIGNED_UNTYPED, COMPUTED_OTHER, LOOP_VARIABLE, Binding, Mentions, RawCall, Scope, Table, TypeRef
 from .model import Edge, Graph, Symbol, Unresolved
 
 BUILTIN_NAMES = set(dir(builtins))
@@ -139,8 +139,10 @@ def external(value: str, reason: str) -> Target:
 
 
 class Resolver:
-    def __init__(self, scopes: dict[str, Scope]):
+    def __init__(self, scopes: dict[str, Scope], mentions=None):
         self.scopes = scopes
+        # module Scope -> Mentions (what a module could change unseen), asked only to prove a table or a partial
+        self._mentions_of = mentions
         self.modules = {s.id for s in scopes.values() if s.kind == "module"}
         self._mro_cache: dict[str, list[str]] = {}
         self._types: dict[int, str | None] = {}
@@ -161,6 +163,7 @@ class Resolver:
         self._function_values: dict[int, Target | None] = {}
         self._rebound_names: set[str] | None = None  # names some module sets as an attribute, see Scope.rebinds
         self._risky: dict[str, tuple[str, int]] | None = None  # name -> (file, line) of the first non-reading mention
+        self._unreadable: str | None = None  # a module that could not be read again, so its mentions are unknown
         self._aliases: dict[str, set[str]] = {}
         self._alias_pairs: list[tuple[str, str]] | None = None
         self._tables: dict[tuple[str, str], str | None] = {}
@@ -630,7 +633,7 @@ class Resolver:
     # -- tables ----------------------------------------------------------------
     #
     # A module-level dict, list or tuple literal that holds plain function names, assigned once and
-    # never changed or handed on by any code in the repo (Scope.risky, matched on the name as text
+    # never changed or handed on by any code in the repo (Mentions.risky, matched on the name as text
     # in every module), is a fixed table: TABLE["k"](x) calls what the literal puts under "k", and
     # `for f in TABLE: f(x)` calls each of its entries. The slightest use ripple does not know is a
     # read (passed to a call, aliased, returned, added to, deleted from) leaves the call unresolved,
@@ -759,8 +762,13 @@ class Resolver:
             self._risky = {}
             for other in self.scopes.values():
                 if other.kind == "module":
-                    for word, line in other.risky.items():
+                    mentions = self.mentions(other)
+                    if not mentions.readable and self._unreadable is None:
+                        self._unreadable = other.file
+                    for word, line in mentions.risky.items():
                         self._risky.setdefault(word, (other.file, line))
+        if self._unreadable:
+            return f"{name} may be changed: {self._unreadable} could not be read again to check"
         names = self.aliases_of(name)
         for word in sorted(names):
             if word in self._risky:
@@ -769,6 +777,12 @@ class Resolver:
         if not self.module_name_stable(module, name):
             return f"{name} may be rebound: its module uses globals(), exec or a star import, or another module assigns the name"
         return None
+
+    def mentions(self, module: Scope):
+        """What the module could change unseen (read from its file the first time it is asked)."""
+        if self._mentions_of is None:
+            return Mentions(dynamic=True, readable=False)
+        return self._mentions_of(module)
 
     def aliases_of(self, name: str) -> set[str]:
         """The name and every name it is imported under (`from m import T as U`), through any chain."""
@@ -793,7 +807,7 @@ class Resolver:
         globals()/exec in the module, and no star import that could define it."""
         if self._rebound_names is None:
             self._rebound_names = {n for s in self.scopes.values() if s.kind == "module" for n in s.rebinds}
-        if module.dynamic or name in self._rebound_names:
+        if self.mentions(module).dynamic or name in self._rebound_names:
             return False
         for star in module.star_imports:
             if star not in self.modules:

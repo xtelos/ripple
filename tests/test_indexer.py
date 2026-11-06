@@ -1,6 +1,26 @@
+import gc
+
 from conftest import callees_of, callers_of
 
 from ripple.indexer import build_graph
+
+
+def test_the_garbage_collector_is_off_while_indexing_and_back_as_it_was(make_repo):
+    repo = make_repo({"m.py": "def f():\n    pass\n"})
+    seen = []
+    import ripple.indexer as indexer
+
+    original = indexer._build_graph
+    indexer._build_graph = lambda path: (seen.append(gc.isenabled()), original(path))[1]
+    try:
+        for before in (True, False):
+            (gc.enable if before else gc.disable)()
+            build_graph(repo)
+            assert gc.isenabled() is before
+    finally:
+        indexer._build_graph = original
+        gc.enable()
+    assert seen == [False, False]
 
 
 def test_symbols_have_kind_file_and_line(make_repo):
