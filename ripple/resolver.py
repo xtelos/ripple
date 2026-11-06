@@ -30,7 +30,7 @@ import warnings
 from collections import Counter
 from dataclasses import dataclass, replace
 
-from .indexer import COMPUTED_OTHER, Binding, RawCall, Scope, TypeRef
+from .indexer import ASSIGNED_UNTYPED, COMPUTED_OTHER, LOOP_VARIABLE, Binding, RawCall, Scope, Table, TypeRef
 from .model import Edge, Graph, Symbol, Unresolved
 
 BUILTIN_NAMES = set(dir(builtins))
@@ -89,6 +89,8 @@ class Target:
     exact marks a variable whose every assignment is a constructor call of one
     class (field = Field()), not merely a class the value could be (a parameter
     annotated Field, self, a self.attr): it cannot be a subclass, so no overrides.
+      each      a call that reaches one of several defs, whichever the loop variable holds
+                (members are their ids, receiver is unused)
       external  something outside the repo: stdlib, a dependency, a builtin
                 (reason says which kind, for counting)
       unknown   cannot be determined statically (reason says why)
@@ -99,6 +101,7 @@ class Target:
     receiver: str = ""
     reason: str = ""
     exact: bool = False
+    members: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -157,6 +160,10 @@ class Resolver:
         self._subclass_defines: dict[tuple[str, str], bool] = {}
         self._function_values: dict[int, Target | None] = {}
         self._rebound_names: set[str] | None = None  # names some module sets as an attribute, see Scope.rebinds
+        self._risky: dict[str, tuple[str, int]] | None = None  # name -> (file, line) of the first non-reading mention
+        self._aliases: dict[str, set[str]] = {}
+        self._alias_pairs: list[tuple[str, str]] | None = None
+        self._tables: dict[tuple[str, str], str | None] = {}
         self._external_base_index: dict[str, list[str]] | None = None  # dotted name of an external base -> repo classes with such a base
         self._base_proven: set[str] | None = None  # dotted names a repo class inherits from, so they are classes
         # Resolving a base (`class X(self.Attr)`) can look a member up before every
@@ -197,7 +204,7 @@ class Resolver:
                     unresolved.append(Unresolved(scope.id, scope.file, call.line, call.text, outcome.reason))
                 else:
                     if call.kind == "call":
-                        direct_users.add(outcome.value)
+                        direct_users.update(outcome.members or (outcome.value,))
                     for callee, kind, via in self.edge_targets(outcome, call):
                         edges.append(Edge(scope.id, callee, scope.file, call.line, kind, via))
         for scope, call, (shape, wrapped) in wrapper_calls:
@@ -242,6 +249,8 @@ class Resolver:
 
     def _edge_targets(self, target: Target, call: RawCall) -> list[tuple[str, str]]:
         default = call.kind if call.kind in ("decorator", "annotation") else "call"
+        if target.kind == "each":
+            return [(member, default) for member in target.members]
         if self.scopes[target.value].kind == "class":
             return [(self.constructor(target.value), "constructor")]
         if target.kind == "symbol":
@@ -453,6 +462,8 @@ class Resolver:
             return unknown("applies the function a decorator factory returned, which is not a def inside the factory")
         elif call.special == "builtin":
             return external(call.text, EXT_BUILTIN_VALUE)
+        elif call.special == "table":
+            target = self.table_call(scope, call)
         elif call.path:
             target = self.resolve_path(scope, call.path)
         elif call.chain is None:
@@ -561,33 +572,43 @@ class Resolver:
     #
     # `with_tax = partial(apply_tax, 10)` then `with_tax(x)` runs apply_tax. That is proven when
     # partial is functools.partial, every assignment to the name is such a call, and they all name
-    # the same def of the repo (a function or a method, not a class). Anything else is unresolved.
+    # the same def of the repo (a function or a method, not a class). `handler = TABLE["k"]` is
+    # proven the same way when TABLE is a table no code changes (see the tables section below).
+    # Anything else is unresolved, with the reason.
 
     def function_held(self, where: Scope, binding: Binding, name: str) -> Target | None:
-        """What the variable holds when it is a partial of one def, unknown (with the reason it is
-        not proven) when it is a partial of something else, None when it is not about partials."""
-        if not name or not any(ref.kind == "call" and ref.arg for ref in binding.evidence):
+        """The def a variable holds, unknown (with the reason it is not proven) when it holds a
+        partial or a table entry that is not proven, None when it is not about either."""
+        if not name or not any((ref.kind == "call" and ref.arg) or ref.kind == "item" for ref in binding.evidence):
             return None
         key = id(binding.evidence)
         if key not in self._function_values:
             self._function_values[key] = unknown("a functools.partial that refers to itself")  # in progress: a cycle
-            self._function_values[key] = self._partial_value(where, binding, name)
+            self._function_values[key] = self._held_value(where, binding, name)
         return self._function_values[key]
 
-    def _partial_value(self, where: Scope, binding: Binding, name: str) -> Target | None:
-        partials = [ref for ref in binding.evidence if self.is_partial(ref)]
-        if not partials:
+    def _held_value(self, where: Scope, binding: Binding, name: str) -> Target | None:
+        found = [self.held_by(ref) for ref in binding.evidence]
+        if all(target is None for target in found):
             return None
-        if len(partials) != len(binding.evidence):
-            return unknown("a name assigned a functools.partial and other values")
-        found = [self.partial_of(ref) for ref in partials]
+        if any(target is None for target in found):
+            return unknown("a name assigned a function held in a partial or a table, and other values")
         if any(target.kind == "unknown" for target in found):
             return next(target for target in found if target.kind == "unknown")
         if any(target != found[0] for target in found):
-            return unknown("a name assigned partials of different functions")
+            return unknown("a name assigned different functions")
         if where.kind == "module" and not self.module_name_stable(where, name):
             return unknown(f"a module-level name that other code may rebind ('{name}')")
         return found[0]
+
+    def held_by(self, ref: TypeRef) -> Target | None:
+        """The def this one assignment holds, unknown if it holds one that is not proven, None if it
+        holds something else."""
+        if ref.kind == "item":
+            return self.item_of(ref)
+        if self.is_partial(ref):
+            return self.partial_of(ref)
+        return None
 
     def is_partial(self, ref: TypeRef) -> bool:
         if ref.kind != "call":
@@ -605,6 +626,166 @@ class Resolver:
         if wrapped.kind == "unknown":
             return unknown(f"a functools.partial of '{ref.arg}', which ripple cannot resolve")
         return unknown(f"a functools.partial of '{ref.arg}', which is not one function or method of the repo")
+
+    # -- tables ----------------------------------------------------------------
+    #
+    # A module-level dict, list or tuple literal that holds plain function names, assigned once and
+    # never changed or handed on by any code in the repo (Scope.risky, matched on the name as text
+    # in every module), is a fixed table: TABLE["k"](x) calls what the literal puts under "k", and
+    # `for f in TABLE: f(x)` calls each of its entries. The slightest use ripple does not know is a
+    # read (passed to a call, aliased, returned, added to, deleted from) leaves the call unresolved,
+    # and the reason names the use.
+
+    def table_call(self, scope: Scope, call: RawCall) -> Target:
+        home = self.table_home(scope, call.table)
+        if home is None:  # not a table ripple can read: the call is what it was before
+            if call.form != "item":
+                return self.resolve_chain(scope, call.chain)
+            return self.resolve_path(scope, call.path) if call.path else unknown(call.why)
+        module, name = home
+        problem = self.table_unsafe(module, name)
+        if problem:
+            return unknown(problem)
+        table = module.tables[name]
+        if call.form == "item":
+            return self.table_entry(module, name, table, call.key[0])
+        found = self.lookup(scope, call.var)
+        loop_only = (
+            found is not None
+            and found[0] is scope
+            and call.var not in scope.globals
+            and call.var not in scope.nonlocals
+            and found[1].kind == "var"
+            and len(found[1].evidence) == 1
+            and found[1].evidence[0].kind == "unknown"
+            and found[1].evidence[0].expr == LOOP_VARIABLE
+        )
+        if not loop_only:
+            return unknown(f"'{call.var}' is assigned somewhere else besides the loop over {name}")
+        if call.form == "iter" and table.kind == "dict":
+            return unknown(f"a loop over the dict {name} gives its keys, not the functions in it")
+        if call.form in ("values", "items") and table.kind == "seq":
+            return unknown(f"{name} is a list or tuple, which has no .{call.form}()")
+        entries = list(table.entries.values()) if table.kind == "dict" else table.entries
+        members = []
+        for entry in entries:
+            target = self.table_function(module, name, entry)
+            if target.kind == "unknown":
+                return target
+            if target.value not in members:
+                members.append(target.value)
+        if not members:
+            return unknown(f"{name} is empty")
+        return Target("symbol", members[0]) if len(members) == 1 else Target("each", members=tuple(members))
+
+    def item_of(self, ref: TypeRef) -> Target | None:
+        """The def `x = TABLE[key]` holds: None when TABLE is not a table ripple can read."""
+        home = self.table_home(self.scopes[ref.scope], ref.expr.split("."))
+        if home is None:
+            return None
+        module, name = home
+        problem = self.table_unsafe(module, name)
+        if problem:
+            return unknown(problem)
+        return self.table_entry(module, name, module.tables[name], ref.key[0])
+
+    def table_entry(self, module: Scope, name: str, table: Table, key) -> Target:
+        """What TABLE[key] is, when the literal puts one plain function there."""
+        if table.kind == "dict":
+            if key not in table.entries:
+                return unknown(f"{name} has no key {key!r}")
+            entry = table.entries[key]
+        else:
+            if type(key) is not int or not -len(table.entries) <= key < len(table.entries):
+                return unknown(f"{name} has no index {key!r}")
+            entry = table.entries[key]
+        return self.table_function(module, name, entry)
+
+    def table_function(self, module: Scope, name: str, entry: list | None) -> Target:
+        if not entry:
+            return unknown(f"{name} holds something other than a plain function name")
+        found = self.resolve_chain(module, entry)
+        if found.kind == "symbol" and self.scopes[found.value].kind in ("function", "method"):
+            return found
+        return unknown(f"{name} holds '{'.'.join(entry)}', which is not one function or method of the repo")
+
+    def table_home(self, scope: Scope, chain: list) -> tuple[Scope, str] | None:
+        """The module and name of the table literal a dotted name refers to, or None."""
+        found = self.lookup(scope, chain[0])
+        if found is None:
+            return None
+        where, binding = found
+        if len(chain) == 1:
+            if binding.kind == "var":
+                return (where, chain[0]) if where.kind == "module" and chain[0] in where.tables else None
+            if binding.kind == "from":
+                return self.table_in(binding.target, binding.name, 0)
+            return None
+        if binding.kind == "import":
+            head = self.resolve_dotted(".".join([binding.target] + chain[1:-1]))
+        elif binding.kind == "from":
+            head = self.module_member(binding.target, binding.name)
+            for attr in chain[1:-1]:
+                head = self.member(head, attr)
+        else:
+            return None
+        return self.table_in(head.value, chain[-1], 0) if head.kind == "module" else None
+
+    def table_in(self, module: str, name: str, depth: int) -> tuple[Scope, str] | None:
+        """The table `name` is in a module, following `from x import name` re-exports."""
+        if module not in self.modules or depth > MAX_IMPORT_HOPS:
+            return None
+        scope = self.scopes[module]
+        binding = scope.names.get(name)
+        if binding is None:
+            return None
+        if binding.kind == "var":
+            return (scope, name) if name in scope.tables else None
+        if binding.kind == "from":
+            return self.table_in(binding.target, binding.name, depth + 1)
+        return None
+
+    def table_unsafe(self, module: Scope, name: str) -> str | None:
+        """Why this table might change (the reason an unresolved call gives), or None when no code can."""
+        key = (module.id, name)
+        if key not in self._tables:
+            self._tables[key] = self._table_unsafe(module, name)
+        return self._tables[key]
+
+    def _table_unsafe(self, module: Scope, name: str) -> str | None:
+        if name in module.rebound:
+            return f"{name} is assigned more than once"
+        if self._risky is None:
+            self._risky = {}
+            for other in self.scopes.values():
+                if other.kind == "module":
+                    for word, line in other.risky.items():
+                        self._risky.setdefault(word, (other.file, line))
+        names = self.aliases_of(name)
+        for word in sorted(names):
+            if word in self._risky:
+                file, line = self._risky[word]
+                return f"{name} may be changed or handed on: '{word}' is used other than to read it, at {file}:{line}"
+        if not self.module_name_stable(module, name):
+            return f"{name} may be rebound: its module uses globals(), exec or a star import, or another module assigns the name"
+        return None
+
+    def aliases_of(self, name: str) -> set[str]:
+        """The name and every name it is imported under (`from m import T as U`), through any chain."""
+        if name not in self._aliases:
+            if self._alias_pairs is None:
+                self._alias_pairs = [pair for scope in self.scopes.values() if scope.kind == "module" for pair in scope.aliases]
+            pairs = self._alias_pairs
+            names = {name}
+            grew = True
+            while grew:
+                grew = False
+                for original, alias in pairs:
+                    if original in names and alias not in names:
+                        names.add(alias)
+                        grew = True
+            self._aliases[name] = names
+        return self._aliases[name]
 
     def module_name_stable(self, module: Scope, name: str) -> bool:
         """Whether nothing in the repo can rebind a module's name without the module's own
@@ -1049,6 +1230,8 @@ class Resolver:
         """Why one piece of evidence (annotation, call or copy) gives no class."""
         if ref.kind == "name":
             return "the receiver is copied from a variable whose class is not known"
+        if ref.kind == "item":
+            return ASSIGNED_UNTYPED
         named = self.resolve_chain(self.scopes[ref.scope], ref.expr.split("."))
         if ref.kind == "annotation":
             if named.kind == "external":
@@ -1073,7 +1256,7 @@ class Resolver:
         builtins.* type, an "external:" class, or None when it proves nothing."""
         if ref.kind == "builtin":
             return f"builtins.{ref.expr}"
-        if ref.kind == "unknown":
+        if ref.kind in ("unknown", "item"):
             return None
         scope = self.scopes[ref.scope]
         if ref.kind == "name":
