@@ -35,7 +35,8 @@ class Edge:
     method that self.method() or a typed receiver may dispatch to),
     "decorator" (a decorator applied when the def statement runs) or
     "annotation" (a call written inside an annotation, made by the scope that
-    holds the annotated def or class).
+    holds the annotated def or class) or "wrapped" (a decorator's wrapper
+    calling the function the decorator was given).
     """
 
     caller: str

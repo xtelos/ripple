@@ -92,7 +92,9 @@ class RawCall:
     when the callee is computed (a subscript, the result of another call).
     special marks "super" (chain is the part after super()), "computed",
     "builtin" (a method on a literal such as "-".join) or "decorator_result"
-    (applying what a decorator factory returned).
+    (applying what a decorator factory returned). kind "decorator" and
+    "annotation" say where the call is written; decorates is the id of the
+    function a decorator call decorates.
     """
 
     chain: list | None
@@ -105,6 +107,7 @@ class RawCall:
     path: list | None = None
     # Why a computed callee (chain and path both None) is computed: one of the COMPUTED_* texts.
     why: str = ""
+    decorates: str = ""
 
 
 @dataclass
@@ -129,6 +132,15 @@ class Scope:
     plain_defs: int = 0  # defs of the name other than property setters and deleters
     bare_defs: int = 0  # of those, the ones with no return annotation (an @overload's implementation excepted)
     is_property: bool = False
+    # functions only, for reading what a decorator does (see Resolver.decorator_shape)
+    defs: int = 0  # how many def statements share this id (a redefinition folds into the first)
+    params: list = field(default_factory=list)  # positional parameter names, in order
+    rebound: set = field(default_factory=set)  # names bound again after their first binding (a parameter, say)
+    return_names: list = field(default_factory=list)  # per return statement: the name returned, "" if not a bare name
+    return_calls: list = field(default_factory=list)  # per return statement: the dotted callee if it returns a call, else None
+    ends_with_return: bool = False  # the last statement is a return or a raise, so no path falls off the end
+    is_generator: bool = False
+    is_async: bool = False
     # classes only
     bases: list = field(default_factory=list)
     redirects_construction: bool = False  # metaclass=... (or **kwargs): calling the class may run other code
@@ -140,6 +152,8 @@ class Scope:
     def bind(self, name: str, binding: Binding) -> None:
         """Record a binding. A name bound two different ways becomes unknown."""
         old = self.names.get(name)
+        if old is not None:
+            self.rebound.add(name)
         if old is None:
             self.names[name] = binding
         elif old.kind == "var" and binding.kind == "var":
@@ -366,17 +380,21 @@ class ScopeBuilder(ast.NodeVisitor):
 
     def _decorators(self, node) -> None:
         """A decorator is called by the enclosing scope when the def runs."""
+        # Only a function can be read as wrapped (the resolver follows what the stack returns).
+        target = f"{self.scope.id}.{node.name}" if not isinstance(node, ast.ClassDef) else ""
         for dec in node.decorator_list:
             self.visit(dec)  # records calls inside it, e.g. route("/x")
             text = ast.unparse(dec)[:80]
             chain = dotted(dec) or []
             if len(chain) == 2 and chain[1] in ("setter", "getter", "deleter"):
                 # @value.setter is a method of the builtin property object.
-                self.scope.calls.append(RawCall(None, text, dec.lineno, "decorator", "builtin"))
+                self.scope.calls.append(RawCall(None, text, dec.lineno, "decorator", "builtin", decorates=target))
             elif isinstance(dec, ast.Call):
-                self.scope.calls.append(RawCall(dotted(dec.func), text, dec.lineno, "decorator", "decorator_result"))
+                self.scope.calls.append(
+                    RawCall(dotted(dec.func), text, dec.lineno, "decorator", "decorator_result", decorates=target)
+                )
             else:
-                self.scope.calls.append(RawCall(dotted(dec), text, dec.lineno, "decorator"))
+                self.scope.calls.append(RawCall(dotted(dec), text, dec.lineno, "decorator", decorates=target))
 
     def visit_FunctionDef(self, node) -> None:
         self._decorators(node)
@@ -413,6 +431,11 @@ class ScopeBuilder(ast.NodeVisitor):
         scope.return_annotated = scope.return_annotated or node.returns is not None
         scope.is_property = scope.is_property or bool(decorators & {"property", "cached_property"})
         params = node.args.posonlyargs + node.args.args
+        scope.defs += 1
+        if scope.defs == 1:
+            scope.params = [p.arg for p in params]
+            scope.is_async = isinstance(node, ast.AsyncFunctionDef)
+            scope.ends_with_return = bool(node.body) and isinstance(node.body[-1], (ast.Return, ast.Raise))
         static = "staticmethod" in decorators
         for i, arg in enumerate(params + node.args.kwonlyargs):
             if i == 0 and is_method and not static and params:
@@ -435,6 +458,18 @@ class ScopeBuilder(ast.NodeVisitor):
         self.stack.pop()
 
     visit_AsyncFunctionDef = visit_FunctionDef
+
+    def visit_Return(self, node) -> None:
+        if self.scope.kind in ("function", "method"):
+            self.scope.return_names.append(node.value.id if isinstance(node.value, ast.Name) else "")
+            self.scope.return_calls.append(dotted(node.value.func) if isinstance(node.value, ast.Call) else None)
+        self.generic_visit(node)
+
+    def visit_Yield(self, node) -> None:
+        self.scope.is_generator = True
+        self.generic_visit(node)
+
+    visit_YieldFrom = visit_Yield
 
     def visit_ClassDef(self, node) -> None:
         self._decorators(node)

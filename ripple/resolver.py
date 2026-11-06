@@ -50,6 +50,10 @@ EXT_INHERITED = "a method inherited from a base class outside the repo"
 EXT_SUPER = "super() into a base class outside the repo"
 EXT_INSTANCE = "a method of an instance of a class outside the repo"
 
+# A decorated function's call gives what its decorators return, which ripple cannot tell is what the def returned.
+DECORATED_RESULT = "the callee is the result of a call to a decorated function, and its decorator may change what it returns"
+DECORATED_RESULT_RECEIVER = "the receiver is the result of a call to a decorated function, and its decorator may change what it returns"
+
 # Standard library modules ripple may import to ask whether a name is a class.
 # Importing runs the module, so this is a list of ones that are safe and quiet
 # to import (not `this`, `antigravity`, `idlelib`, `tkinter`), never "any stdlib name".
@@ -97,6 +101,32 @@ class Target:
     exact: bool = False
 
 
+@dataclass(frozen=True)
+class Shape:
+    """What a decorator function does to the function it is given.
+
+    kind "identity" returns its argument unchanged. kind "wrapper" returns the def
+    nested in it (wrapper, an id), which calls the parameter named param.
+    """
+
+    kind: str
+    function: str
+    wrapper: str = ""
+    param: str = ""
+
+
+# Decorators from outside the repo that give a call the value the def returned (a call of what they
+# return gives that value), so the def's return annotation still says what a call gives.
+RESULT_KEEPING = frozenset(
+    {
+        "builtins.property", "builtins.staticmethod", "builtins.classmethod",
+        "functools.cached_property", "functools.cache", "functools.lru_cache",
+        "abc.abstractmethod", "typing.overload", "typing.final", "typing.override",
+        "typing_extensions.overload", "typing_extensions.final", "typing_extensions.override",
+    }
+)  # fmt: skip
+
+
 def unknown(reason: str) -> Target:
     return Target("unknown", reason=reason)
 
@@ -117,6 +147,11 @@ class Resolver:
         self._unresolved_bases: dict[str, str] = {}  # class id -> a base ripple could not resolve
         self.subclasses: dict[str, list[str]] = {}
         self._all_subclasses: dict[str, list[str]] = {}
+        self._decorations: dict[str, list[tuple[Scope, RawCall]]] | None = None
+        self._shapes: dict[str, Shape | None] = {}
+        self._wrapping: dict[str, tuple[list[tuple[Shape, str]], str | None]] = {}
+        self._wrappers: dict[str, tuple[Shape, list[str]]] | None = None
+        self._keeps_result: dict[str, bool] = {}
         self._stdlib_classes: dict[str, bool] = {}
         self._stdlib_objects: dict[str, object] = {}
         self._subclass_defines: dict[tuple[str, str], bool] = {}
@@ -140,8 +175,15 @@ class Resolver:
             s.id: Symbol(s.id, s.kind, s.file, s.line, s.end_line) for s in self.scopes.values()
         }
         edges, unresolved, external_count = [], [], 0
+        wrappers = self.wrappers()
+        direct_users: set[str] = set()  # callees of an ordinary call, to spot a decorator also called as D(f)
+        wrapper_calls = []
         for scope in self.scopes.values():
+            wrapper = wrappers.get(scope.id)
             for call in scope.calls:
+                if wrapper and self.calls_what_it_wraps(scope, call, wrapper[0]):
+                    wrapper_calls.append((scope, call, wrapper))
+                    continue
                 try:
                     outcome = self.resolve_call(scope, call)
                 except RecursionError:  # a chain of definitions deeper than the raised limit
@@ -152,8 +194,16 @@ class Resolver:
                 elif outcome.kind == "unknown":
                     unresolved.append(Unresolved(scope.id, scope.file, call.line, call.text, outcome.reason))
                 else:
+                    if call.kind == "call":
+                        direct_users.add(outcome.value)
                     for callee, kind in self.edge_targets(outcome, call):
                         edges.append(Edge(scope.id, callee, scope.file, call.line, kind))
+        for scope, call, (shape, wrapped) in wrapper_calls:
+            for function in wrapped:
+                edges.append(Edge(scope.id, function, scope.file, call.line, "wrapped"))
+            if shape.function in direct_users:
+                reason = f"'{shape.param}' may also be a function passed straight to {shape.function}(...), not only one it decorates"
+                unresolved.append(Unresolved(scope.id, scope.file, call.line, call.text, reason))
         classes = [s.id for s in self.scopes.values() if s.kind == "class"]
         bases = {cls: self.base_classes(cls) for cls in classes}
         return Graph(
@@ -166,8 +216,22 @@ class Resolver:
             external_reasons=dict(sorted(self.external_reasons.items())),
         )
 
+    def calls_what_it_wraps(self, scope: Scope, call: RawCall, shape: Shape) -> bool:
+        """Whether this call, inside a wrapper, is the call of the decorator's parameter: fn(...)."""
+        if call.chain != [shape.param] or call.special or call.kind != "call":
+            return False
+        found = self.lookup(scope, shape.param)
+        return found is not None and found[0].id == shape.function
+
     def edge_targets(self, target: Target, call: RawCall) -> list[tuple[str, str]]:
-        """Turn a resolved callee into (symbol id, edge kind) pairs."""
+        """Turn a resolved callee into (symbol id, edge kind) pairs.
+
+        A name bound to a decorated function is bound to what the decorators returned, so a
+        call by that name reaches the top wrapper, not the function (see wrapping).
+        """
+        return [(self.redirect(callee), kind) for callee, kind in self._edge_targets(target, call)]
+
+    def _edge_targets(self, target: Target, call: RawCall) -> list[tuple[str, str]]:
         default = call.kind if call.kind in ("decorator", "annotation") else "call"
         if self.scopes[target.value].kind == "class":
             return [(self.constructor(target.value), "constructor")]
@@ -185,16 +249,196 @@ class Resolver:
                 found.append((method.target, "override"))
         return found
 
+    # -- decorators ---------------------------------------------------------
+    #
+    # `@timed def hello()` binds the name hello to whatever timed returns. When timed
+    # is a repo function that defines a wrapper and returns exactly that wrapper
+    # (`def timed(fn): def wrapper(*a): return fn(*a); return wrapper`), the name is bound
+    # to the wrapper, a call to hello reaches the wrapper, and the wrapper calls hello's
+    # body. When timed returns its argument (`def register(fn): ...; return fn`) the
+    # binding is unchanged. Anything else (a decorator from outside the repo, one that
+    # returns different things on different paths, one built by a call) is not read, and
+    # a decorated function is then treated as called directly, as before.
+
+    def decorations(self) -> dict[str, list[tuple[Scope, RawCall]]]:
+        """{decorated function id: its decorator calls, top to bottom, each with the scope that writes it}."""
+        if self._decorations is None:
+            found: dict[str, list[tuple[Scope, RawCall]]] = {}
+            for scope in self.scopes.values():
+                for call in scope.calls:
+                    if call.decorates:
+                        found.setdefault(call.decorates, []).append((scope, call))
+            self._decorations = found
+        return self._decorations
+
+    def plain_function(self, function: str, kinds: tuple = ("function",)) -> Scope | None:
+        """The scope of a def written once and not decorated, whose body can be read as it stands."""
+        scope = self.scopes.get(function)
+        if scope is None or scope.kind not in kinds or scope.defs != 1 or function in self.decorations():
+            return None
+        return scope
+
+    def returned_def(self, function: Scope) -> str | None:
+        """The def nested in function that every path returns, when that is all it returns."""
+        if function.is_generator or function.is_async or not function.ends_with_return:
+            return None
+        names = set(function.return_names)
+        binding = function.names.get(names.pop()) if len(names) == 1 else None
+        if binding is None or binding.kind != "def":
+            return None
+        nested = self.scopes[binding.target]
+        return binding.target if nested.parent == function.id and nested.kind == "function" and nested.defs == 1 else None
+
+    def decorator_shape(self, function: str) -> Shape | None:
+        """What a decorator function does to the function it is given, if it can be read."""
+        if function not in self._shapes:
+            self._shapes[function] = self._read_decorator(function)
+        return self._shapes[function]
+
+    def _read_decorator(self, function: str) -> Shape | None:
+        scope = self.plain_function(function)
+        if scope is None or not scope.params or scope.params[0] in scope.rebound:
+            return None
+        param = scope.params[0]
+        if (
+            scope.ends_with_return
+            and not scope.is_generator
+            and not scope.is_async
+            and set(scope.return_names) == {param}
+        ):
+            return Shape("identity", function)
+        wrapper = self.returned_def(scope)
+        if wrapper is None or not self.plain_wrapper(wrapper):
+            return None
+        return Shape("wrapper", function, wrapper, param)
+
+    def plain_wrapper(self, wrapper: str) -> bool:
+        """Whether the wrapper is what the decorator returns: undecorated, or only given functools.wraps."""
+        for scope, call in self.decorations().get(wrapper, []):
+            if call.special != "decorator_result" or not call.chain:
+                return False
+            target = self.resolve_chain(scope, call.chain)
+            if target.kind != "external" or target.value != "functools.wraps":
+                return False
+        return True
+
+    def factory_result(self, factory: Target) -> str | None:
+        """The decorator a factory returns (route("/x") gives register), when it returns a def written inside it."""
+        if factory.kind not in ("symbol", "bound"):
+            return None
+        if factory.kind == "bound" and not factory.exact:
+            name = factory.value.rsplit(".", 1)[-1]
+            if any(name in self.scopes[sub].names for sub in self.all_subclasses(factory.receiver)):
+                return None  # a subclass may return another decorator
+        function = self.plain_function(factory.value, ("function", "method"))
+        return self.returned_def(function) if function else None
+
+    def applied_decorator(self, scope: Scope, call: RawCall) -> Shape | None:
+        """What one decorator line does, or None when it cannot be read."""
+        if call.chain is None or call.special not in ("", "decorator_result"):
+            return None
+        target = self.resolve_chain(scope, call.chain)
+        if call.special == "decorator_result":
+            inner = self.factory_result(target)
+            return self.decorator_shape(inner) if inner else None
+        return self.decorator_shape(target.value) if target.kind == "symbol" else None
+
+    def wrapping(self, function: str) -> tuple[list[tuple[Shape, str]], str | None]:
+        """How a function's decorator stack wraps it: [(shape, what that wrapper calls)] from the
+        bottom up, and what the function's name is bound to (None when a decorator cannot be read)."""
+        if function not in self._wrapping:
+            pairs: list[tuple[Shape, str]] = []
+            bound: str | None = function
+            # A def written twice (in each branch of an if, or one after the other) is one symbol here,
+            # and which def a call finds depends on the branch taken: a decoration on one of them says
+            # nothing about the name, and the same on both is not applied twice.
+            conditional = self.scopes[function].defs > 1
+            for scope, call in reversed(self.decorations().get(function, [])):
+                if conditional:
+                    bound = None
+                    break
+                shape = self.applied_decorator(scope, call)
+                if shape is None:
+                    bound = None
+                    break
+                if shape.kind == "wrapper":
+                    pairs.append((shape, bound))
+                    bound = shape.wrapper
+            self._wrapping[function] = (pairs, bound)
+        return self._wrapping[function]
+
+    def keeps_result(self, function: str) -> bool:
+        """Whether calling the function's name gives what its def returns, so its return annotation
+        says what a call gives. True for an undecorated def. For a decorated one, only when every
+        decorator is proven to hand the value back: one that returns its argument, a wrapper whose every
+        return is a call of the function it wraps, or a standard decorator that does (RESULT_KEEPING)."""
+        if function not in self.decorations():
+            return True
+        if function not in self._keeps_result:
+            scope = self.scopes[function]
+            conditional = scope.plain_defs > 1 and not scope.overloaded  # see wrapping
+            self._keeps_result[function] = not conditional and all(
+                self.decoration_keeps_result(scope, call) for scope, call in self.decorations()[function]
+            )
+        return self._keeps_result[function]
+
+    def decoration_keeps_result(self, scope: Scope, call: RawCall) -> bool:
+        if call.special == "builtin":  # @x.setter, @x.getter, @x.deleter: the property still gives what the getter returns
+            return True
+        if call.chain is None or call.special not in ("", "decorator_result"):
+            return False
+        named = self.resolve_chain(scope, call.chain)
+        if named.kind == "external":
+            return named.value in RESULT_KEEPING
+        shape = self.applied_decorator(scope, call)
+        if shape is None:
+            return False
+        if shape.kind == "identity":
+            return True
+        wrapper = self.scopes[shape.wrapper]
+        return (
+            not wrapper.is_async
+            and not wrapper.is_generator
+            and wrapper.ends_with_return
+            and bool(wrapper.return_calls)
+            and all(callee == [shape.param] for callee in wrapper.return_calls)
+            # fn is the decorator's parameter, seen through the wrapper's closure: no binding of any kind
+            # (a local, a def, a loop or with target, an import) in the wrapper itself makes it something else.
+            and shape.param not in wrapper.names
+            and shape.param not in wrapper.nonlocals
+        )
+
+    def redirect(self, function: str) -> str:
+        """The def a call by the function's name reaches: the top wrapper of its decorators, else itself."""
+        if function not in self.decorations():
+            return function
+        return self.wrapping(function)[1] or function
+
+    def wrappers(self) -> dict[str, tuple[Shape, list[str]]]:
+        """{wrapper id: (its decorator, every function it is given by decorator syntax)}."""
+        if self._wrappers is None:
+            found: dict[str, tuple[Shape, set[str]]] = {}
+            for function in self.decorations():
+                for shape, wrapped in self.wrapping(function)[0]:
+                    found.setdefault(shape.wrapper, (shape, set()))[1].add(wrapped)
+            self._wrappers = {w: (shape, sorted(wrapped)) for w, (shape, wrapped) in found.items()}
+        return self._wrappers
+
     # -- calls -------------------------------------------------------------
 
     def resolve_call(self, scope: Scope, call: RawCall) -> Target:
         if call.special == "super":
             target = self.super_member(scope, call.chain[0])
         elif call.special == "decorator_result":
-            factory = self.resolve_chain(scope, call.chain) if call.chain else unknown("")
+            factory = self.resolve_chain(scope, call.chain) if call.chain else unknown("its callee is computed")
             if factory.kind == "external":
                 return factory
-            return unknown("applies the function a decorator factory returned")
+            if factory.kind == "unknown":
+                return unknown(f"applies the function a decorator factory returned, and the factory is unresolved ({factory.reason})")
+            inner = self.factory_result(factory)
+            if inner:
+                return Target("symbol", inner)
+            return unknown("applies the function a decorator factory returned, which is not a def inside the factory")
         elif call.special == "builtin":
             return external(call.text, EXT_BUILTIN_VALUE)
         elif call.path:
@@ -245,6 +489,8 @@ class Resolver:
             cls = self.return_type(target.value)
             if cls:
                 return self.value_of_type(cls)
+            if not self.keeps_result(target.value):
+                return unknown(DECORATED_RESULT)
             if self.scopes[target.value].return_annotated:
                 return unknown("the callee is the result of a call whose return annotation does not name a class ripple can follow")
             return unknown("the callee is the result of a call to a function with no return annotation")
@@ -504,9 +750,11 @@ class Resolver:
         if target.kind == "instance":
             method = self.class_member(target.value, attr)
             if method is not None and self.scopes[method].is_property:
-                return self.value_of_type(self.return_type(method)) if self.return_type(method) else unknown(
-                    f"property {method} has no return annotation naming a class"
-                )
+                if self.return_type(method):
+                    return self.value_of_type(self.return_type(method))
+                if not self.keeps_result(method):
+                    return unknown(f"property {method} has a decorator that may change what it gives, so its annotation is not trusted")
+                return unknown(f"property {method} has no return annotation naming a class")
             if method is not None:
                 return Target("bound", method, receiver=target.value, exact=target.exact)
             cls = self.attribute_type(target.value, attr)
@@ -731,6 +979,8 @@ class Resolver:
         if named.kind == "external":
             return "the receiver is the result of a call into code outside the repo, not proven to build a class"
         if named.kind in ("symbol", "bound"):
+            if not self.keeps_result(named.value):
+                return DECORATED_RESULT_RECEIVER
             if not self.scopes[named.value].return_annotated:
                 return "the receiver is the result of a call to a function with no return annotation"
             return "the receiver is the result of a call whose return annotation does not name a class ripple can follow"
@@ -776,7 +1026,7 @@ class Resolver:
         def (for a method, the class body).
         """
         scope = self.scopes[function]
-        if scope.returns_ambiguous:
+        if scope.returns_ambiguous or not self.keeps_result(function):
             return None
         return self.type_of(TypeRef("annotation", scope.returns, scope.parent)) if scope.returns else None
 

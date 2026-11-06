@@ -119,6 +119,29 @@ class attribute, a parameter or a return annotation), which are edges of kind `a
 `from __future__ import annotations` such an expression runs later, when pydantic or
 `typing.get_type_hints` evaluates it, but it is still a call written in that scope.
 
+**Decorators.** `@timed def hello()` binds the name `hello` to whatever `timed` returns. When `timed` is
+a repo function that defines a wrapper and returns exactly that wrapper (`def timed(fn): def wrapper(*a):
+return fn(*a); return wrapper`, with or without `functools.wraps`), a call to `hello` is a call of
+`wrapper`, and `wrapper` calls every function decorated with it (edges of kind `wrapped`). A decorator
+that returns its argument (`def register(fn): ...; return fn`) leaves the name alone, a factory such as
+`@route("/x")` is read as the def it returns, and a stack is read from the bottom up. What ripple does
+not read, it treats as before, the decorated function called directly: a decorator from outside the repo
+(`lru_cache`, `property`, a framework's `route`), one that returns different things on different paths
+(`if not enabled: return fn`), one that is itself decorated (flask's `setupmethod`), a generator or async
+decorator, one that rebinds its parameter, a wrapper that has a decorator other than `functools.wraps`,
+a call of the wrapped function made from a function nested in the wrapper, a decorator applied by hand
+(`f = timed(f)`), a class decorator, and a function defined more than once (a def in each branch of an
+`if`, decorated on one or on both): which def a call finds depends on the branch taken, so the call stays
+a direct call of the function and no wrapper is added.
+
+A call of a decorated function is typed by its def's return annotation (`compute(1).wait()` with
+`def compute(x) -> Result`) only when every decorator is proven to hand the value back: one that returns its
+argument, a wrapper whose every return is `return fn(...)` (not `result = fn(...); return result`, and not an
+async or generator wrapper), or `property`, `staticmethod`, `classmethod`, `functools.cache`, `lru_cache`,
+`cached_property`, `abstractmethod`, `overload`. Any other decorator, a repo one ripple cannot read or a
+dependency's (`retry`, `validate_call`), leaves the result unknown and the call unresolved, with the reason. A decorator also called as `timed(g)` keeps its wrapped call
+unresolved as well, since the wrapper may be given `g` too.
+
 The index is cached outside your repo (`RIPPLE_CACHE_DIR` if set, else `$XDG_CACHE_HOME/ripple` or
 `~/.cache/ripple`) and keyed on every file's mtime and size, so each query re-checks the files and
 rebuilds only when something changed.
@@ -221,7 +244,8 @@ Static analysis of a dynamic language misses things. ripple does not follow:
 - method calls on values of unknown type: unannotated parameters, loop variables, results of
   functions without a return annotation (reported as unresolved, with the reason)
 - `getattr`, dict or registry dispatch, callbacks passed as arguments, `functools.partial`
-- decorator wrappers (the decorated function is treated as called directly)
+- decorators ripple cannot read, see "Decorators" below: for those the decorated function is treated as
+  called directly
 - `__call__`, metaclasses, monkeypatching, `importlib`, `exec`, and a call on the result of a function
   with no return annotation naming a class (`make().run()` is followed when `make` has a return
   annotation or is a class; ripple does not read `return Foo()` to infer one, and an `@overload`ed function
