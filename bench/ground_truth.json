@@ -159,6 +159,25 @@
      "expected": ["warehouse.schema", "warehouse.schema.Line"]},
     {"id": "D2", "fixture": "warehouse", "kind": "callers", "symbol": "warehouse.schema.stamp", "group": "definition-time calls",
      "note": "a class attribute's value, a default argument and a decorator argument, each run by the scope that holds the definition",
-     "expected": ["warehouse.schema", "warehouse.schema.Line"]}
+     "expected": ["warehouse.schema", "warehouse.schema.Line"]},
+
+    {"id": "G1", "fixture": "warehouse", "kind": "callers", "symbol": "warehouse.guards.ship", "group": "decorators",
+     "note": "ship is bound to a stack of two wrappers; only the inner wrapper calls it, and the tests and run_ship call the outer one",
+     "expected": ["warehouse.guards.audited.inner"]},
+    {"id": "G2", "fixture": "warehouse", "kind": "callers", "symbol": "warehouse.guards.audited.inner", "group": "decorators",
+     "note": "called by the outer wrapper (it wraps ship) and by whoever calls the decorated method Dock.unload",
+     "expected": ["warehouse.guards.counted.decorate.counter", "warehouse.guards.run_unload"]},
+    {"id": "G3", "fixture": "warehouse", "kind": "callers", "symbol": "warehouse.guards.counted.decorate.counter", "group": "decorators",
+     "note": "a call to ship by name, from a function and from a test, reaches the top of the stack",
+     "expected": ["warehouse.guards.run_ship", "tests.test_guards.test_ship_direct"]},
+    {"id": "G4", "fixture": "warehouse", "kind": "callers", "symbol": "warehouse.guards.Dock.unload", "group": "decorators",
+     "note": "a decorated method: the instance's attribute is the wrapper, which calls the method",
+     "expected": ["warehouse.guards.audited.inner"]},
+    {"id": "G5", "fixture": "warehouse", "kind": "callers", "symbol": "warehouse.guards.counted.decorate", "group": "decorators",
+     "note": "the function a decorator factory returns is applied by the module",
+     "expected": ["warehouse.guards"]},
+    {"id": "G6", "fixture": "warehouse", "kind": "impact", "symbol": "warehouse.guards.ship", "depth": 4, "group": "impact",
+     "note": "the chain runs through both wrappers, and the inner one is shared with Dock.unload's callers",
+     "expected": ["warehouse.guards.audited.inner", "warehouse.guards.counted.decorate.counter", "warehouse.guards.run_unload", "warehouse.guards.run_ship", "tests.test_guards.test_ship_direct", "tests.test_guards.test_unload", "tests.test_guards.test_ship"]}
   ]
 }
