@@ -114,7 +114,9 @@ called on `self` or a typed value, subclass overrides are linked too (class hier
 The index is cached outside your repo (`RIPPLE_CACHE_DIR` if set, else `$XDG_CACHE_HOME/ripple` or
 `~/.cache/ripple`) and keyed on every file's mtime and size, so each query re-checks the files and
 rebuilds only when something changed.
-On a 105-file package (pydantic) a cold index took 0.8 s and a cached load 0.02 s on my machine.
+On my machine (a WSL2 laptop, timings vary by about 30% run to run) click, 91 files, takes 0.6 s cold and
+0.03 s from the cache; pydantic's repository, 3,156 files with its core's tests and docs, 6 to 8 s and
+0.5 s; Django, 2,941 files and about 47,000 symbols, 13 to 17 s and 1 to 2 s, peaking at 290 MB.
 
 ## Benchmark
 
@@ -214,8 +216,18 @@ Static analysis of a dynamic language misses things. ripple does not follow:
 - decorator wrappers (the decorated function is treated as called directly)
 - calls on the result of a call (`make().run()`), property access, `__call__`, metaclasses,
   monkeypatching, `importlib`, `exec`
+- calls written inside an annotation (`x: Annotated[int, Field(gt=0)]`): they are not recorded, so
+  `Field` has no caller there. Pydantic has about 1,300 of them
+- syntax the Python running ripple cannot parse (`except*` before 3.11, `type X = ...` and `def f[T]()`
+  before 3.12): that file is listed as unparsable and left out. So are files with invalid bytes or a
+  null byte, and files nested so deeply that the parser itself gives up (hundreds of thousands of terms).
+  Generated code nested far deeper than ordinary code (an `elif` chain of 1,500 branches) is indexed on
+  Python 3.12 and later, where ripple raises the recursion limit while it indexes. Before 3.12 it leaves
+  the limit alone, because another thread recursing without bound would then crash the process, so a file
+  nested deeper than the default limit allows is listed as unparsable
 - code imported under a name that differs from its path in the repo (modules are named by their
-  path from the repo root, with a leading `src/` dropped). Two files that get the same name
+  path from the repo root, with a leading `src/` dropped; pydantic's `pydantic_core` lives under
+  `pydantic-core/python/`, so about 8,000 calls into it count as outside the repo). Two files that get the same name
   (`tests/test_x.py` and `src/tests/test_x.py`) share one set of symbol ids, so a name defined in
   both is one symbol; `ripple index` warns when that happens and names the files.
 - directories that hold dependencies or build output: hidden directories, `__pycache__`,
@@ -229,7 +241,11 @@ Static analysis of a dynamic language misses things. ripple does not follow:
   is not seen.
 
 Override edges can over-approximate: a subclass override is linked even if that subclass never
-reaches the call site. Method lookup walks bases depth-first, which matches Python's C3 order except
+reaches the call site. The exception is a variable whose every assignment is a call of one class
+named directly (`field = Field()`, not `self.Field()`, which a subclass may redefine). It is exactly that
+class, so no override is linked, but only when ripple can prove the call builds it: no class in its
+repo hierarchy defines `__new__` or declares a metaclass (either can return a subclass, as anyio's
+`Event.__new__` does), and every base resolves. Otherwise override edges stay. Method lookup walks bases depth-first, which matches Python's C3 order except
 in diamond-shaped hierarchies.
 
 To keep the blind spots visible, `callees` lists every unresolved call with its reason, and `impact`
