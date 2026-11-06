@@ -128,6 +128,44 @@ def test_bytes_that_are_not_python_cost_only_their_file(make_repo):
 # table built with "+", a long builder chain.
 
 
+MODERN_SYNTAX = {
+    "match_stmt.py": (
+        (3, 10),
+        "from good import target\n\ndef f(x):\n    match x:\n        case [a, *rest]:\n            return target()\n"
+        "        case {'k': v, **kw}:\n            return v\n        case Point(x=1) as p:\n            return p\n",
+    ),
+    "walrus.py": (
+        (3, 8),
+        "from good import target\n\ndef f(xs):\n    if (n := len(xs)) > 1:\n        return target()\n"
+        "    return [y for x in xs if (y := x)]\n",
+    ),
+    "except_star.py": (
+        (3, 11),
+        "from good import target\n\ndef f():\n    try:\n        pass\n    except* ValueError as e:\n        target()\n",
+    ),
+    "pep695.py": (
+        (3, 12),
+        "from good import target\n\nclass Box[T]:\n    def get(self) -> T:\n        return target()\n\n"
+        "def ident[T](x: T) -> T:\n    return target()\n\ntype Alias[K] = dict[K, int]\n",
+    ),
+    "fstring.py": (
+        (3, 8),
+        "from good import target\n\ndef f(x):\n    return f\"{target()!r:>{10}} {f'{x}'}\"\n",
+    ),
+}
+
+
+@pytest.mark.parametrize("name", MODERN_SYNTAX)
+def test_modern_syntax_is_indexed(make_repo, name):
+    minimum, source = MODERN_SYNTAX[name]
+    if sys.version_info < minimum:
+        pytest.skip(f"needs Python {minimum[0]}.{minimum[1]}")
+    repo = make_repo({"good.py": GOOD, name: source})
+    graph = build_graph(repo)
+    assert graph.parse_errors == []
+    assert any(c.startswith(name.removesuffix(".py") + ".") for c in callers_of(graph, "good.target"))
+
+
 @needs_raised_limit
 def test_long_elif_chain_is_indexed(make_repo):
     branches = "".join(f"    elif x == {i}:\n        return target()\n" for i in range(1, 1500))
