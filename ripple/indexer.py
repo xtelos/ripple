@@ -98,6 +98,7 @@ class Scope:
     is_property: bool = False
     # classes only
     bases: list = field(default_factory=list)
+    redirects_construction: bool = False  # metaclass=... (or **kwargs): calling the class may run other code
     attr_types: dict = field(default_factory=dict)
     # modules only
     is_package: bool = False
@@ -356,6 +357,7 @@ class ScopeBuilder(ast.NodeVisitor):
             self.visit(base)
         scope = self._enter(node, "class")
         scope.bases = [base_name(b) for b in node.bases]
+        scope.redirects_construction = any(k.arg in ("metaclass", None) for k in node.keywords)
         self.stack.append(scope)
         for stmt in node.body:
             self.visit(stmt)

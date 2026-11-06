@@ -8,7 +8,7 @@ import sys
 import threading
 
 import pytest
-from conftest import callers_of
+from conftest import callees_of, callers_of
 
 from ripple import indexer
 from ripple.cache import fingerprint, load_graph
@@ -282,3 +282,161 @@ def test_very_deep_class_chain_indexes_quickly(make_repo):
     graph = build_graph(repo)
     assert callers_of(graph, "deep.C0.m") == {"deep.f"}
     assert time.perf_counter() - start < 3  # about 9 s while the method resolution order was rebuilt with list scans
+
+
+def test_overrides_are_not_linked_when_the_exact_class_is_known(make_repo):
+    # `field = Field()` makes field exactly a Field, so Sub.run cannot run; a
+    # parameter annotated Field, self, or a self.field a subclass of Holder
+    # may reassign could be a subclass.
+    repo = make_repo(
+        {
+            "fields.py": """\
+                class Field:
+                    def run(self):
+                        pass
+
+                class Sub(Field):
+                    def run(self):
+                        pass
+
+                def built():
+                    field = Field()
+                    field.run()
+
+                class Holder:
+                    def __init__(self):
+                        self.field = Field()
+
+                    def go(self):
+                        self.field.run()
+
+                def annotated(field: Field):
+                    field.run()
+                """
+        }
+    )
+    graph = build_graph(repo)
+    assert callees_of(graph, "fields.built") == {"fields.Field", "fields.Field.run"}  # Field has no __init__
+    assert callees_of(graph, "fields.Holder.go") == {"fields.Field.run", "fields.Sub.run"}
+    assert callees_of(graph, "fields.annotated") == {"fields.Field.run", "fields.Sub.run"}
+
+
+def test_a_class_whose_constructor_can_return_a_subclass_is_not_exact(make_repo):
+    # anyio's Event.__new__ returns a backend subclass: `Event().wait()` runs an
+    # override. __new__ (own or inherited), a metaclass (own or inherited) each
+    # break the proof that `x = C()` is exactly a C.
+    repo = make_repo(
+        {
+            "shapes.py": """\
+                class Event:
+                    def __new__(cls):
+                        return object.__new__(RealEvent)
+
+                    def wait(self):
+                        raise NotImplementedError
+
+                class Derived(Event):
+                    pass
+
+                class RealEvent(Derived):
+                    def wait(self):
+                        pass
+
+                class Meta(type):
+                    def __call__(cls):
+                        return object.__new__(Fast)
+
+                class Slow(metaclass=Meta):
+                    def go(self):
+                        pass
+
+                class Child(Slow):
+                    pass
+
+                class Fast(Child):
+                    def go(self):
+                        pass
+
+                def own_new():
+                    event = Event()
+                    event.wait()
+
+                def inherited_new():
+                    event = Derived()
+                    event.wait()
+
+                def own_metaclass():
+                    thing = Slow()
+                    thing.go()
+
+                def inherited_metaclass():
+                    thing = Child()
+                    thing.go()
+                """
+        }
+    )
+    graph = build_graph(repo)
+    assert "shapes.RealEvent.wait" in callees_of(graph, "shapes.own_new")
+    assert "shapes.RealEvent.wait" in callees_of(graph, "shapes.inherited_new")
+    assert "shapes.Fast.go" in callees_of(graph, "shapes.own_metaclass")
+    assert "shapes.Fast.go" in callees_of(graph, "shapes.inherited_metaclass")
+
+
+def test_a_class_with_an_unresolvable_base_is_not_exact(make_repo):
+    repo = make_repo(
+        {
+            "m.py": """\
+                def factory():
+                    return object
+
+                class Odd(factory()):
+                    def go(self):
+                        pass
+
+                class Sub(Odd):
+                    def go(self):
+                        pass
+
+                def use():
+                    odd = Odd()
+                    odd.go()
+                """
+        }
+    )
+    assert "m.Sub.go" in callees_of(build_graph(repo), "m.use")
+
+
+def test_a_class_reached_through_self_is_not_exact(make_repo):
+    # self may be a subclass that redefines the nested class.
+    repo = make_repo(
+        {
+            "m.py": """\
+                class Base:
+                    class Widget:
+                        def run(self):
+                            pass
+
+                    def make(self):
+                        w = self.Widget()
+                        w.run()
+
+                    @classmethod
+                    def build(cls):
+                        w = cls.Widget()
+                        w.run()
+
+                class Sub(Base):
+                    class Widget(Base.Widget):
+                        def run(self):
+                            pass
+
+                def static():
+                    w = Base.Widget()
+                    w.run()
+                """
+        }
+    )
+    graph = build_graph(repo)
+    assert "m.Sub.Widget.run" in callees_of(graph, "m.Base.make")
+    assert "m.Sub.Widget.run" in callees_of(graph, "m.Base.build")
+    assert callees_of(graph, "m.static") == {"m.Base.Widget", "m.Base.Widget.run"}
