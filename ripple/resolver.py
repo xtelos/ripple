@@ -79,7 +79,10 @@ class Resolver:
         edges, unresolved, external = [], [], 0
         for scope in self.scopes.values():
             for call in scope.calls:
-                outcome = self.resolve_call(scope, call)
+                try:
+                    outcome = self.resolve_call(scope, call)
+                except RecursionError:  # a chain of definitions deeper than the raised limit
+                    outcome = unknown("too deeply nested to follow")
                 if outcome.kind == "external":
                     external += 1
                 elif outcome.kind == "unknown":

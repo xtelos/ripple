@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import ast
 import os
+import sys
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -564,17 +566,71 @@ def collect_scopes(repo: Path, files: list[Path]) -> tuple[dict[str, Scope], lis
             # "coding: latin-1" cookie) the way the interpreter would.
             source = path.read_bytes()
             tree = ast.parse(source, rel)
-        except (SyntaxError, UnicodeDecodeError, ValueError, OSError):
+            module, is_package = module_name(repo, path)
+            builder = ScopeBuilder(module, rel, is_package, tree, source.count(b"\n") + 1)
+        except (SyntaxError, UnicodeDecodeError, ValueError, OSError, RecursionError, MemoryError):
+            # Nested deeper than even build_graph's raised limit allows: only this file is lost.
             errors.append(rel)
             continue
-        module, is_package = module_name(repo, path)
-        builder = ScopeBuilder(module, rel, is_package, tree, source.count(b"\n") + 1)
         scopes.update(builder.scopes)
     return scopes, errors
 
 
+# Generated code (one elif per enum member, a table written as a + b + c ..., a
+# long builder chain) nests deeper than the 1000 frames Python allows by default,
+# and every recursive pass over it (the visitor here, the resolver's type
+# lookups) would crash. build_graph runs on a thread with a large stack and a
+# higher limit instead; the limit is put back afterwards.
+#
+# The limit is process-wide while only that thread has the big stack. Before 3.12 a
+# Python call uses the C stack, so another thread that recursed without bound would
+# overflow its small stack and kill the process instead of raising RecursionError.
+# There the limit is left alone, and code nested deeper than it costs its file.
+DEEP_RECURSION_LIMIT = 100_000
+DEEP_STACK_BYTES = 512 * 1024 * 1024
+RAISE_LIMIT = sys.version_info >= (3, 12)
+_deep_lock = threading.Lock()
+
+
+def run_deep(function, *args):
+    """Call function(*args) with room for very deep recursion, and return its result."""
+    outcome: dict = {}
+
+    def target() -> None:
+        old_limit = sys.getrecursionlimit()
+        try:
+            if RAISE_LIMIT:  # only from here, so the window is the work itself
+                sys.setrecursionlimit(max(old_limit, DEEP_RECURSION_LIMIT))
+            outcome["value"] = function(*args)
+        except BaseException as error:  # handed back to the caller's thread
+            outcome["error"] = error
+        finally:
+            sys.setrecursionlimit(old_limit)
+
+    with _deep_lock:  # the recursion limit and thread stack size are process-wide
+        old_stack = threading.stack_size()
+        try:
+            threading.stack_size(DEEP_STACK_BYTES)
+            worker = threading.Thread(target=target, daemon=True)
+            worker.start()
+        except (ValueError, RuntimeError):  # no such stack here: run with the default limits
+            worker = None
+        finally:
+            threading.stack_size(old_stack)
+        if worker is None:
+            return function(*args)
+        worker.join()
+    if "error" in outcome:
+        raise outcome["error"]
+    return outcome["value"]
+
+
 def build_graph(repo: str | Path) -> Graph:
     """Index a repository from scratch. Most callers want cache.load_graph."""
+    return run_deep(_build_graph, Path(repo))
+
+
+def _build_graph(repo: Path) -> Graph:
     from .resolver import Resolver
 
     repo = Path(repo).resolve()
