@@ -154,8 +154,10 @@ caller `via_wrapper`. So a signature change finds every call site to edit.
 call, and they all name the same function or method of the repo (a bound method such as `self.k.step` also
 reaches the overrides of that method). It stays unresolved, with the reason, for a partial of a class, of a
 parameter or of anything ripple cannot resolve, a name assigned partials of different functions or also
-assigned anything else, and a module-level name another module assigns to (`m.T = ...`, `setattr(m, "T", ...)`),
-or whose module uses `globals()`, `exec` or a star import that could define it.
+assigned anything else, and a module-level name another module assigns to (`m.T = ...`, `m["T"] = ...`), a name
+some function declares `global` and then rebinds (by assignment, `def`, `class`, `import` or `except ... as`),
+or whose module has a star import that could define it. Stores written as calls are covered by one blunt rule
+(see "Tables and partials, and the store words" below).
 
 **Dispatch tables.** A module-level dict, list or tuple literal of plain function names is a fixed table when
 no code in the repo can change it, and then `TABLE["k"](x)`, `TABLE.get("k")(x)`, `TABLE[1](x)`, a local
@@ -164,15 +166,28 @@ the entries they reach: the one under that key, or every entry for a loop. rippl
 it" by reading every module for any use of the name that is not a read: a subscript store, `update`, `pop`,
 `append` or any other method that is not `get`/`items`/`values`/`keys`/`copy`, `del`, an augmented assignment,
 passing the table to a call (`len(T)` included), aliasing it, returning it, storing it, `global T`, a second
-assignment, `getattr(m, "T")`, `globals()["T"]`. Names are matched as text in every module, so an import
+assignment, `getattr(m, "T")`. Names are matched as text in every module, so an import
 alias (`from m import T as U`, through any chain), `m.T` and a star import are all covered, and so is an
 unrelated variable that happens to share the name (the call then stays unresolved, never guessed). A module
-that uses `globals()`, `exec` or `__dict__`, or has a star import that could define the name, is not trusted.
-The unresolved call says which use spoiled the proof and where (`T may be changed or handed on: 'T' is used
+that has a star import that could define the name is not trusted either, nor is any table while a store word
+appears in the repo (see below). The unresolved call says which use spoiled the proof and where (`T may be changed or handed on: 'T' is used
 other than to read it, at m.py:60`). An entry that is not a plain name of a function or method, a missing
 key, a variable key, a loop over a dict's keys, and a loop variable that is assigned anywhere else in its
 function (two loops that reuse a variable name count), called after the loop, in the loop's `else`, in a
 nested function, lambda or generator expression, all stay unresolved.
+
+**Tables and partials, and the store words.** Code can replace a module's table or partial without writing
+`module.T = ...`: `setattr(m, name, v)` in a loop over overrides, `mock.patch`, `vars(m)[k] = v`, `exec`. ripple
+does not try to recognise the shapes of those stores (every shape it learned had another spelling). It
+looks for the words instead: `setattr`, `delattr`, `__setattr__`, `__delattr__`, `__dict__`, `vars`, `globals`,
+`locals`, `__globals__`, `f_globals`, `f_locals`, `exec`, `eval`, `__import__`, `importlib`, `patch`, `monkeypatch`,
+`builtins`, `__builtins__` and `sys.modules`. If any file of the repo has one of them, as a name, an attribute,
+or in a string or a comment, in any spelling (an alias, `self.module`, a line continuation, a look-alike Unicode
+letter, a file in another encoding), no table or partial of the repo is followed, and the unresolved call
+names the word and where it is. That disables tables and partials in any repo that uses those words anywhere,
+a test file that only calls `monkeypatch` or `patch` included (so most repos with a test suite that patches),
+and a file the word is in is not excepted because it does not import the module: another module can hand it one. Not covered: a word spelled by computing a string at run
+time (`getattr(object, "__set" + "attr__")`), `gc.get_referrers`, `ctypes`.
 
 The index is cached outside your repo (`RIPPLE_CACHE_DIR` if set, else `$XDG_CACHE_HOME/ripple` or
 `~/.cache/ripple`) and keyed on every file's mtime and size, so each query re-checks the files and
@@ -289,6 +304,11 @@ Static analysis of a dynamic language misses things. ripple does not follow:
   is not followed. What ripple does is stop calling a value built from such a class exactly that class,
   so its subclass overrides stay linked (see the exact-class rule below). It does not add an edge to the
   class the decorator builds, which it cannot see. See "Decorators" above for the full list
+- calls ripple leaves unresolved on purpose, where it could have guessed:
+  - every table and partial while any file of the repo has a store word (`setattr`, `patch`, `monkeypatch`,
+    `vars`, `exec`, `importlib`, `sys.modules` and the rest of the list in "Tables and partials, and the store words"),
+    or while the repo has a file
+    ripple cannot parse
 - `__call__`, metaclasses, monkeypatching, `importlib`, `exec`, and a call on the result of a function
   with no return annotation naming a class (`make().run()` is followed when `make` has a return
   annotation or is a class; ripple does not read `return Foo()` to infer one, and an `@overload`ed function
@@ -300,6 +320,8 @@ Static analysis of a dynamic language misses things. ripple does not follow:
 - syntax the Python running ripple cannot parse (`except*` before 3.11, `type X = ...` and `def f[T]()`
   before 3.12): that file is listed as unparsable and left out. So are files with invalid bytes or a
   null byte, and files nested so deeply that the parser itself gives up (hundreds of thousands of terms).
+  Such a file may rebind a table or a partial where ripple cannot see it, so while the repo has any, no
+  table or partial is followed, and the unresolved call names the file
   Generated code nested far deeper than ordinary code (an `elif` chain of 1,500 branches) is indexed on
   Python 3.12 and later, where ripple raises the recursion limit while it indexes. Before 3.12 it leaves
   the limit alone, because another thread recursing without bound would then crash the process, so a file
