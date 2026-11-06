@@ -193,6 +193,56 @@ def test_where_raising_the_limit_is_unsafe_the_worker_runs_on_the_default(monkey
     assert sys.getrecursionlimit() == before
 
 
+def test_package_that_imports_its_own_submodule_resolves_it(make_repo):
+    # alembic/__init__.py says `from . import op`, and callers say `from alembic import op`.
+    repo = make_repo(
+        {
+            "pkg/__init__.py": "from . import util\n",
+            "pkg/util.py": "def helper():\n    pass\n",
+            "app.py": "from pkg import util\nfrom pkg import util as u\n\ndef f():\n    util.helper()\n\ndef g():\n    u.helper()\n",
+        }
+    )
+    graph = build_graph(repo)
+    assert callers_of(graph, "pkg.util.helper") == {"app.f", "app.g"}
+    assert not [u for u in graph.unresolved if "cycle" in u.reason]
+
+
+def test_a_star_import_that_already_bound_the_name_beats_the_submodule(make_repo):
+    # `from . import util` returns the attribute pkg.util when one is already set, and
+    # imports the submodule only when it is missing: here helpers' function wins.
+    repo = make_repo(
+        {
+            "pkg/__init__.py": "from .helpers import *\nfrom . import util\n",
+            "pkg/helpers.py": "def util():\n    pass\n",
+            "pkg/util.py": "def helper():\n    pass\n",
+            "app.py": "from pkg import util\n\ndef f():\n    util()\n\ndef g():\n    util.helper()\n",
+        }
+    )
+    graph = build_graph(repo)
+    assert callers_of(graph, "pkg.helpers.util") == {"app.f"}
+    assert callers_of(graph, "pkg.util.helper") == set()
+
+
+def test_a_star_import_that_does_not_define_the_name_leaves_the_submodule(make_repo):
+    repo = make_repo(
+        {
+            "pkg/__init__.py": "from .helpers import *\nfrom . import util\n",
+            "pkg/helpers.py": "def other():\n    pass\n",
+            "pkg/util.py": "def helper():\n    pass\n",
+            "app.py": "from pkg import util\n\ndef g():\n    util.helper()\n",
+        }
+    )
+    assert callers_of(build_graph(repo), "pkg.util.helper") == {"app.g"}
+
+
+def test_package_importing_a_name_that_is_not_a_submodule_is_not_called_a_cycle(make_repo):
+    repo = make_repo(
+        {"pkg/__init__.py": "from . import nothing_here\n", "app.py": "from pkg import nothing_here\n\ndef f():\n    nothing_here.go()\n"}
+    )
+    graph = build_graph(repo)
+    assert [u.reason for u in graph.unresolved] == ["'nothing_here' is not defined in module pkg"]
+
+
 # A hub class (Django's Model, a framework base) has hundreds of subclasses, and
 # every call through it asks for all of them.
 

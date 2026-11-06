@@ -219,14 +219,19 @@ class Resolver:
             return Target("module", full) if full in self.modules else Target("external", full)
         scope = self.scopes[module]
         binding = scope.names.get(name)
-        if binding is not None:
+        # `from . import util` in pkg/__init__.py binds util to "member util of
+        # pkg", which is the question being asked: it names the submodule, not a loop.
+        if binding is not None and (binding.kind, binding.target, binding.name) != ("from", module, name):
             return self.binding_target(scope, binding, depth)
-        if full in self.modules:
-            return Target("module", full)
         for star in scope.star_imports:
+            if star not in self.modules and full in self.modules:
+                # A module outside the repo may bind the name, and then it is not the submodule.
+                return unknown(f"'{name}' may come from the star import of {star} in {module}")
             found = self.module_member(star, name, depth + 1)
-            if found.kind != "unknown":
+            if found.kind != "unknown" and not (found.kind == "module" and found.value == full):
                 return found
+        if full in self.modules:  # the attribute is missing, so the import machinery loads the submodule
+            return Target("module", full)
         return unknown(f"'{name}' is not defined in module {module}")
 
     # -- attributes --------------------------------------------------------
