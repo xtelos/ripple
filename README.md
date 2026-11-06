@@ -281,8 +281,14 @@ Static analysis of a dynamic language misses things. ripple does not follow:
 - `getattr`, registries that are added to, a dict or list looked up by a variable key or whose contents are not
   plain function names, callbacks passed as arguments, a `functools.partial` that is not bound to one name
   (passed on, stored in an attribute, or built by a call)
-- decorators ripple cannot read, see "Decorators" below: for those the decorated function is treated as
-  called directly
+- decorators ripple cannot read: for those the decorated function is treated as called directly, so a
+  call of it is not shown as a call of the wrapper. That covers a decorator from outside the repo
+  (`lru_cache`, a framework's `route`), a decorator that is itself decorated, a generator or async
+  decorator, and a function wrapped by hand (`f = timed(f)`). A class decorator is never read: the class
+  keeps its name, and a decorator that may return something else than the class (a subclass, a wrapper)
+  is not followed. What ripple does is stop calling a value built from such a class exactly that class,
+  so its subclass overrides stay linked (see the exact-class rule below). It does not add an edge to the
+  class the decorator builds, which it cannot see. See "Decorators" above for the full list
 - `__call__`, metaclasses, monkeypatching, `importlib`, `exec`, and a call on the result of a function
   with no return annotation naming a class (`make().run()` is followed when `make` has a return
   annotation or is a class; ripple does not read `return Foo()` to infer one, and an `@overload`ed function
@@ -318,7 +324,16 @@ reaches the call site. The exception is a variable whose every assignment is a c
 named directly (`field = Field()`, not `self.Field()`, which a subclass may redefine). It is exactly that
 class, so no override is linked, but only when ripple can prove the call builds it: no class in its
 repo hierarchy defines `__new__` or declares a metaclass (either can return a subclass, as anyio's
-`Event.__new__` does), and every base resolves. Otherwise override edges stay. Method lookup walks bases depth-first, which matches Python's C3 order except
+`Event.__new__` does), every base resolves, and every decorator on the class and on its bases hands the
+same class back. A class decorator binds the name to whatever it returns, so one that is a repo function
+or class, or that ripple cannot resolve, may return a subclass: the class is not exact. Outside the repo
+only a short list is trusted: `dataclasses.dataclass` (bare or called), `attr.s`, `attr.attrs`,
+`attr.attributes`, `attr.define`, `attr.mutable`, `attr.frozen`, `attr.dataclass` and `attrs.define`,
+`attrs.mutable`, `attrs.frozen` (bare or called, imported from `attr` or `attrs`), and, written without a
+call, `functools.total_ordering`, `typing.final` and `typing.runtime_checkable`. Any other decorator
+from outside the repo (`six.add_metaclass`, `pytest.mark.x`) leaves the class not exact. A repo
+decorator that only returns its argument is not told apart from one that returns a subclass, so it costs
+the class its exactness too. Otherwise override edges stay. Method lookup walks bases depth-first, which matches Python's C3 order except
 in diamond-shaped hierarchies.
 
 To keep the blind spots visible, `callees` lists every unresolved call with its reason, and `impact`

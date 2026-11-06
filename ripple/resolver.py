@@ -118,6 +118,14 @@ class Shape:
     param: str = ""
 
 
+# Class decorators from outside the repo that return the class they are given (dataclass, attrs and
+# typing.final may build a new class object of the same name and bases, never a subclass or a wrapper).
+# Called or not: @dataclass, @dataclass(frozen=True). The attrs names are those of attr and attrs.
+SAME_CLASS_DECORATORS = frozenset(
+    {"dataclasses.dataclass"}
+    | {f"attr.{name}" for name in ("s", "attrs", "attributes", "define", "mutable", "frozen", "dataclass")}
+    | {f"attrs.{name}" for name in ("define", "mutable", "frozen")}
+)
 # Decorators from outside the repo that give a call the value the def returned (a call of what they
 # return gives that value), so the def's return annotation still says what a call gives.
 RESULT_KEEPING = frozenset(
@@ -128,6 +136,8 @@ RESULT_KEEPING = frozenset(
         "typing_extensions.overload", "typing_extensions.final", "typing_extensions.override",
     }
 )  # fmt: skip
+# Only written without a call.
+SAME_CLASS_PLAIN_DECORATORS = frozenset({"functools.total_ordering", "typing.final", "typing.runtime_checkable"})
 
 
 def unknown(reason: str) -> Target:
@@ -167,6 +177,7 @@ class Resolver:
         self._aliases: dict[str, set[str]] = {}
         self._alias_pairs: list[tuple[str, str]] | None = None
         self._tables: dict[tuple[str, str], str | None] = {}
+        self._replaced: dict[str, bool] = {}  # class id -> whether a decorator may have replaced it
         self._external_base_index: dict[str, list[str]] | None = None  # dotted name of an external base -> repo classes with such a base
         self._base_proven: set[str] | None = None  # dotted names a repo class inherits from, so they are classes
         # Resolving a base (`class X(self.Attr)`) can look a member up before every
@@ -835,13 +846,42 @@ class Resolver:
         A __new__ or a metaclass can return an instance of another class, usually a
         subclass (anyio's Event.__new__ picks a backend's), so any in the hierarchy
         spoils the proof, and so does a base ripple could not resolve: it may define one.
-        Bases outside the repo are trusted not to.
+        Bases outside the repo are trusted not to. A class decorator returns what the name is
+        bound to afterwards, so one that may replace the class (see class_replaced) spoils the
+        proof too, on the class and on every base: `class Foo(Base)` subclasses what Base became.
         """
         if self.unresolved_base(cls):
             return False
         return not any(
-            "__new__" in self.scopes[klass].names or self.scopes[klass].redirects_construction for klass in self.mro(cls)
+            "__new__" in self.scopes[klass].names
+            or self.scopes[klass].redirects_construction
+            or self.class_replaced(klass)
+            for klass in self.mro(cls)
         )
+
+    def class_replaced(self, cls: str) -> bool:
+        """Whether a decorator on the class may bind its name to something else than the class.
+
+        Only a decorator from outside the repo that is known to return the class it is given
+        (SAME_CLASS_DECORATORS) is trusted. A decorator that is a repo function or class may
+        return a subclass or a wrapper, and so may one ripple cannot resolve.
+        """
+        if cls not in self._replaced:
+            self._replaced[cls] = True  # in progress: a decorator that depends on the class itself is not trusted
+            scope = self.scopes[cls]
+            self._replaced[cls] = any(not self.keeps_class(scope, call) for call in scope.decorators)
+        return self._replaced[cls]
+
+    def keeps_class(self, scope: Scope, call: RawCall) -> bool:
+        """Whether this decorator line hands the class back as it was."""
+        if call.special not in ("", "decorator_result") or not call.chain:
+            return False
+        named = self.resolve_chain(self.scopes[scope.parent], call.chain)
+        if named.kind != "external" or named.reason != EXT_IMPORT:
+            return False
+        if call.special == "decorator_result":
+            return named.value in SAME_CLASS_DECORATORS
+        return named.value in SAME_CLASS_DECORATORS or named.value in SAME_CLASS_PLAIN_DECORATORS
 
     def value_of_type(self, cls: str | None) -> Target:
         """A value whose class is cls: a repo class, a builtin such as dict, a class from

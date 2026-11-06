@@ -156,6 +156,7 @@ class Scope:
     # classes only
     bases: list = field(default_factory=list)
     redirects_construction: bool = False  # metaclass=... (or **kwargs): calling the class may run other code
+    decorators: list = field(default_factory=list)  # the decorator RawCalls written on it, top to bottom
     attr_types: dict = field(default_factory=dict)
     # modules only
     is_package: bool = False
@@ -602,8 +603,9 @@ class ScopeBuilder(ast.NodeVisitor):
         parent.bind(node.name, Binding("def", scope.id))
         return scope
 
-    def _decorators(self, node) -> None:
-        """A decorator is called by the enclosing scope when the def runs."""
+    def _decorators(self, node) -> list:
+        """A decorator is called by the enclosing scope when the def runs. Returns the calls recorded."""
+        recorded = []
         # Only a function can be read as wrapped (the resolver follows what the stack returns).
         target = f"{self.scope.id}.{node.name}" if not isinstance(node, ast.ClassDef) else ""
         for dec in node.decorator_list:
@@ -612,13 +614,14 @@ class ScopeBuilder(ast.NodeVisitor):
             text = ".".join(chain)[:80] if chain else ast.unparse(dec)[:80]  # a name or a.b.c unparses to itself
             if len(chain) == 2 and chain[1] in ("setter", "getter", "deleter"):
                 # @value.setter is a method of the builtin property object.
-                self.scope.calls.append(RawCall(None, text, dec.lineno, "decorator", "builtin", decorates=target))
+                call = RawCall(None, text, dec.lineno, "decorator", "builtin", decorates=target)
             elif isinstance(dec, ast.Call):
-                self.scope.calls.append(
-                    RawCall(dotted(dec.func), text, dec.lineno, "decorator", "decorator_result", decorates=target)
-                )
+                call = RawCall(dotted(dec.func), text, dec.lineno, "decorator", "decorator_result", decorates=target)
             else:
-                self.scope.calls.append(RawCall(dotted(dec), text, dec.lineno, "decorator", decorates=target))
+                call = RawCall(dotted(dec), text, dec.lineno, "decorator", decorates=target)
+            self.scope.calls.append(call)
+            recorded.append(call)
+        return recorded
 
     def visit_FunctionDef(self, node) -> None:
         self._decorators(node)
@@ -698,12 +701,13 @@ class ScopeBuilder(ast.NodeVisitor):
     visit_YieldFrom = visit_Yield
 
     def visit_ClassDef(self, node) -> None:
-        self._decorators(node)
+        decorators = self._decorators(node)
         for param in getattr(node, "type_params", ()):
             self._rescan_for_setattr(param)
         for base in node.bases + [k.value for k in node.keywords]:
             self.visit(base)
         scope = self._enter(node, "class")
+        scope.decorators.extend(decorators)
         scope.bases = [base_name(b) for b in node.bases]
         scope.redirects_construction = any(k.arg in ("metaclass", None) for k in node.keywords)
         self.stack.append(scope)
