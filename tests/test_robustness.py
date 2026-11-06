@@ -191,3 +191,44 @@ def test_where_raising_the_limit_is_unsafe_the_worker_runs_on_the_default(monkey
     before = sys.getrecursionlimit()
     assert indexer.run_deep(sys.getrecursionlimit) == before
     assert sys.getrecursionlimit() == before
+
+
+# A hub class (Django's Model, a framework base) has hundreds of subclasses, and
+# every call through it asks for all of them.
+
+
+class _CountingDict(dict):
+    gets = 0
+
+    def get(self, key, default=None):
+        _CountingDict.gets += 1
+        return super().get(key, default)
+
+
+def test_subclass_closure_is_computed_once_per_class_not_once_per_call(make_repo, monkeypatch):
+    from ripple.resolver import Resolver
+
+    original = Resolver._direct_subclasses
+    monkeypatch.setattr(Resolver, "_direct_subclasses", lambda self: _CountingDict(original(self)))
+    subclasses = "".join(f"class Sub{i}(Base):\n    def hook(self):\n        pass\n" for i in range(200))
+    calls = "".join("    b.hook()\n" for _ in range(400))
+    source = "class Base:\n    def hook(self):\n        pass\n\n" + subclasses + "\ndef run(b: Base):\n" + calls
+    repo = make_repo({"hub.py": source})
+    _CountingDict.gets = 0
+    graph = build_graph(repo)
+    # one edge to Base.hook and one override edge per subclass, for each call
+    assert len([e for e in graph.edges if e.caller == "hub.run"]) == 400 * 201
+    assert _CountingDict.gets < 5_000  # 400 calls x 200 subclasses = 80,000 without the memo
+
+
+@needs_raised_limit
+def test_very_deep_class_chain_indexes_quickly(make_repo):
+    import time
+
+    chain = "".join(f"class C{i}(C{i - 1}):\n    pass\n" for i in range(1, 2000))
+    source = "class C0:\n    def m(self):\n        pass\n\n" + chain + "\ndef f(c: C1999):\n    c.m()\n"
+    repo = make_repo({"deep.py": source})
+    start = time.perf_counter()
+    graph = build_graph(repo)
+    assert callers_of(graph, "deep.C0.m") == {"deep.f"}
+    assert time.perf_counter() - start < 3  # about 9 s while the method resolution order was rebuilt with list scans
