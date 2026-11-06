@@ -49,6 +49,8 @@ def predict(graph, query) -> set[str]:
     if query["kind"] == "callees":
         result = callees(graph, query["symbol"])
         return {c["symbol"] for c in result.get("callees", [])}
+    if query["kind"] == "through_wrapper":
+        return {c["symbol"] for c in callers(graph, query["symbol"]).get("through_wrapper", [])}
     if query["kind"] == "missed":
         return {m["caller"] for m in impact(graph, query["symbol"]).get("possible_missed_callers", [])}
     result = impact(graph, query["symbol"], depth=query["depth"])

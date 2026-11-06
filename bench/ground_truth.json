@@ -75,7 +75,8 @@
      "note": "constructor calls",
      "expected": ["notes.cli.run", "tests.test_cli.test_find_by_name"]},
     {"id": "N11", "fixture": "notes", "kind": "impact", "symbol": "notes.helpers.slugify", "depth": 6, "group": "impact",
-     "note": "half the chains pass through the dispatch table",
+     "note": "half the chains pass through the dispatch table; main reaches it through a command picked by argv, which the entry-point test runs as `list`",
+     "unexercised": ["notes.cli.main", "notes.__main__", "tests.test_cli.test_module_entry_point"],
      "expected": ["notes.helpers.note_filename", "notes.commands.cmd_find", "notes.store.NoteStore.add", "notes.commands.cmd_add", "notes.cli.run", "notes.cli.run_named", "notes.cli.main", "notes.__main__", "tests.test_cli.test_slugify", "tests.test_cli.test_add_then_list", "tests.test_cli.test_find_by_name", "tests.test_cli.test_module_entry_point"]},
     {"id": "N12", "fixture": "notes", "kind": "callees", "symbol": "notes.cli.run", "group": "callees",
      "note": "direct call, constructor, and a dispatch-table call",
@@ -176,8 +177,12 @@
     {"id": "G5", "fixture": "warehouse", "kind": "callers", "symbol": "warehouse.guards.counted.decorate", "group": "decorators",
      "note": "the function a decorator factory returns is applied by the module",
      "expected": ["warehouse.guards"]},
+    {"id": "G7", "fixture": "warehouse", "kind": "through_wrapper", "symbol": "warehouse.guards.ship", "group": "decorators",
+     "note": "the lines that write ship(...) run it through the two wrappers, so a signature change must edit them; run_ship and the direct test call it, test_ship and run_unload do not",
+     "wrappers": ["warehouse.guards.audited.inner", "warehouse.guards.counted.decorate.counter"],
+     "expected": ["warehouse.guards.run_ship", "tests.test_guards.test_ship_direct"]},
     {"id": "G6", "fixture": "warehouse", "kind": "impact", "symbol": "warehouse.guards.ship", "depth": 4, "group": "impact",
-     "note": "the chain runs through both wrappers, and the inner one is shared with Dock.unload's callers",
-     "expected": ["warehouse.guards.audited.inner", "warehouse.guards.counted.decorate.counter", "warehouse.guards.run_unload", "warehouse.guards.run_ship", "tests.test_guards.test_ship_direct", "tests.test_guards.test_unload", "tests.test_guards.test_ship"]}
+     "note": "the chain runs through both wrappers. The inner one is shared with Dock.unload, but it wraps ship in one decoration and Dock.unload in another, so run_unload never reaches ship",
+     "expected": ["warehouse.guards.audited.inner", "warehouse.guards.counted.decorate.counter", "warehouse.guards.run_ship", "tests.test_guards.test_ship_direct", "tests.test_guards.test_ship"]}
   ]
 }

@@ -150,7 +150,7 @@ class Resolver:
         self._decorations: dict[str, list[tuple[Scope, RawCall]]] | None = None
         self._shapes: dict[str, Shape | None] = {}
         self._wrapping: dict[str, tuple[list[tuple[Shape, str]], str | None]] = {}
-        self._wrappers: dict[str, tuple[Shape, list[str]]] | None = None
+        self._wrappers: dict[str, tuple[Shape, list[tuple[str, str]]]] | None = None
         self._keeps_result: dict[str, bool] = {}
         self._stdlib_classes: dict[str, bool] = {}
         self._stdlib_objects: dict[str, object] = {}
@@ -196,11 +196,11 @@ class Resolver:
                 else:
                     if call.kind == "call":
                         direct_users.add(outcome.value)
-                    for callee, kind in self.edge_targets(outcome, call):
-                        edges.append(Edge(scope.id, callee, scope.file, call.line, kind))
+                    for callee, kind, via in self.edge_targets(outcome, call):
+                        edges.append(Edge(scope.id, callee, scope.file, call.line, kind, via))
         for scope, call, (shape, wrapped) in wrapper_calls:
-            for function in wrapped:
-                edges.append(Edge(scope.id, function, scope.file, call.line, "wrapped"))
+            for function, decorated in wrapped:
+                edges.append(Edge(scope.id, function, scope.file, call.line, "wrapped", decorated))
             if shape.function in direct_users:
                 reason = f"'{shape.param}' may also be a function passed straight to {shape.function}(...), not only one it decorates"
                 unresolved.append(Unresolved(scope.id, scope.file, call.line, call.text, reason))
@@ -223,13 +223,20 @@ class Resolver:
         found = self.lookup(scope, shape.param)
         return found is not None and found[0].id == shape.function
 
-    def edge_targets(self, target: Target, call: RawCall) -> list[tuple[str, str]]:
-        """Turn a resolved callee into (symbol id, edge kind) pairs.
+    def edge_targets(self, target: Target, call: RawCall) -> list[tuple[str, str, str]]:
+        """Turn a resolved callee into (symbol id, edge kind, via) triples.
 
         A name bound to a decorated function is bound to what the decorators returned, so a
-        call by that name reaches the top wrapper, not the function (see wrapping).
+        call by that name reaches the top wrapper, not the function (see wrapping). The wrapper
+        body is shared by every function its decorator is applied to, so the edge says which
+        function the name belonged to (via): what comes in through it goes on to that function
+        only. via is empty for any other edge.
         """
-        return [(self.redirect(callee), kind) for callee, kind in self._edge_targets(target, call)]
+        found = []
+        for callee, kind in self._edge_targets(target, call):
+            top = self.redirect(callee)
+            found.append((top, kind, callee if top != callee else ""))
+        return found
 
     def _edge_targets(self, target: Target, call: RawCall) -> list[tuple[str, str]]:
         default = call.kind if call.kind in ("decorator", "annotation") else "call"
@@ -414,13 +421,16 @@ class Resolver:
             return function
         return self.wrapping(function)[1] or function
 
-    def wrappers(self) -> dict[str, tuple[Shape, list[str]]]:
-        """{wrapper id: (its decorator, every function it is given by decorator syntax)}."""
+    def wrappers(self) -> dict[str, tuple[Shape, list[tuple[str, str]]]]:
+        """{wrapper id: (its decorator, every (def it is given, decorated function whose stack that is))}.
+
+        The def it is given is the decorated function itself, or the wrapper below it in a stack.
+        """
         if self._wrappers is None:
-            found: dict[str, tuple[Shape, set[str]]] = {}
+            found: dict[str, tuple[Shape, set[tuple[str, str]]]] = {}
             for function in self.decorations():
                 for shape, wrapped in self.wrapping(function)[0]:
-                    found.setdefault(shape.wrapper, (shape, set()))[1].add(wrapped)
+                    found.setdefault(shape.wrapper, (shape, set()))[1].add((wrapped, function))
             self._wrappers = {w: (shape, sorted(wrapped)) for w, (shape, wrapped) in found.items()}
         return self._wrappers
 
