@@ -69,6 +69,7 @@ class Resolver:
         self._external_bases: dict[str, list[str]] = {}  # class id -> dotted names of bases outside the repo
         self._unresolved_bases: dict[str, str] = {}  # class id -> a base ripple could not resolve
         self.subclasses = self._direct_subclasses()
+        self._all_subclasses: dict[str, list[str]] = {}
 
     # -- output ------------------------------------------------------------
 
@@ -359,12 +360,11 @@ class Resolver:
         """
         if cls not in self._mro_cache:
             self._mro_cache[cls] = [cls]  # guards against a class that inherits itself
-            order = [cls]
+            order = {cls: None}  # a dict keeps insertion order and tests membership in O(1)
             for base in self.base_classes(cls):
                 for klass in self.mro(base):
-                    if klass not in order:
-                        order.append(klass)
-            self._mro_cache[cls] = order
+                    order.setdefault(klass)
+            self._mro_cache[cls] = list(order)
         return self._mro_cache[cls]
 
     def _direct_subclasses(self) -> dict[str, list[str]]:
@@ -376,13 +376,21 @@ class Resolver:
         return children
 
     def all_subclasses(self, cls: str) -> list[str]:
-        seen, todo = [], list(self.subclasses.get(cls, []))
-        while todo:
-            sub = todo.pop()
-            if sub not in seen:
-                seen.append(sub)
-                todo.extend(self.subclasses.get(sub, []))
-        return seen
+        """Every class that inherits from cls, transitively. Callers must not modify the list.
+
+        Asked once per call site through cls, and a base such as Django's Model has
+        hundreds of subclasses, so each class's answer is worked out once.
+        """
+        found = self._all_subclasses.get(cls)
+        if found is None:
+            seen, todo = {}, list(self.subclasses.get(cls, []))
+            while todo:
+                sub = todo.pop()
+                if sub not in seen:
+                    seen[sub] = None
+                    todo.extend(self.subclasses.get(sub, []))
+            found = self._all_subclasses[cls] = list(seen)
+        return found
 
     # -- types -------------------------------------------------------------
 
