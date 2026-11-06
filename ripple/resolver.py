@@ -72,8 +72,16 @@ class Resolver:
         self._bases: dict[str, list[str]] = {}
         self._external_bases: dict[str, list[str]] = {}  # class id -> dotted names of bases outside the repo
         self._unresolved_bases: dict[str, str] = {}  # class id -> a base ripple could not resolve
-        self.subclasses = self._direct_subclasses()
+        self.subclasses: dict[str, list[str]] = {}
         self._all_subclasses: dict[str, list[str]] = {}
+        # Resolving a base (`class X(self.Attr)`) can look a member up before every
+        # class has its bases, so until the hierarchy exists a member that is missing
+        # is unknown, and nothing computed meanwhile is kept.
+        self._building = True
+        self.subclasses = self._direct_subclasses()
+        self._building = False
+        self._mro_cache.clear()
+        self._types.clear()
 
     # -- output ------------------------------------------------------------
 
@@ -316,6 +324,8 @@ class Resolver:
         if blocked:
             klass, base = blocked
             return unknown(f"'{attr}' is not defined on {cls}, and base class {base} of {klass} could not be resolved")
+        if self._building:
+            return unknown(f"'{attr}' is not defined on {cls}, and its subclasses are not known yet")
         if any(attr in self.scopes[sub].names for sub in self.all_subclasses(cls)):
             return unknown(f"'{attr}' is not defined on {cls} or its bases in the repo, but subclasses define it")
         if self.has_external_base(cls):
@@ -342,6 +352,10 @@ class Resolver:
         if blocked:
             klass, base = blocked
             return unknown(f"'{name}' is not defined on the bases of {cls}, and base class {base} of {klass} could not be resolved")
+        if not hasattr(object, name) and not self.has_external_base(cls):
+            # Nothing the class inherits defines it and object does not either, so
+            # it is a mixin counting on a sibling class in the concrete MRO.
+            return unknown(f"super().{name}: no base of {cls} defines it, so it may reach a sibling class in a subclass's MRO")
         return Target("external", f"super().{name}")
 
     # -- classes -----------------------------------------------------------

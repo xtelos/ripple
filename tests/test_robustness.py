@@ -284,6 +284,33 @@ def test_very_deep_class_chain_indexes_quickly(make_repo):
     assert time.perf_counter() - start < 3  # about 9 s while the method resolution order was rebuilt with list scans
 
 
+def test_super_in_a_mixin_is_unresolved_not_outside_the_repo(make_repo):
+    # A mixin's super().render() reaches whichever class comes next in the MRO of the
+    # concrete class (Page here): not provably code outside the repo, unlike super().__init__().
+    repo = make_repo(
+        {
+            "views.py": """\
+                class Base:
+                    def render(self):
+                        pass
+
+                class Mixin:
+                    def __init__(self):
+                        super().__init__()
+
+                    def render(self):
+                        return super().render()
+
+                class Page(Mixin, Base):
+                    pass
+                """
+        }
+    )
+    graph = build_graph(repo)
+    assert [(u.caller, u.text) for u in graph.unresolved] == [("views.Mixin.render", "super().render")]
+    # and super().__init__() stays outside the repo: object defines __init__
+
+
 def test_overrides_are_not_linked_when_the_exact_class_is_known(make_repo):
     # `field = Field()` makes field exactly a Field, so Sub.run cannot run; a
     # parameter annotated Field, self, or a self.field a subclass of Holder
@@ -440,3 +467,35 @@ def test_a_class_reached_through_self_is_not_exact(make_repo):
     assert "m.Sub.Widget.run" in callees_of(graph, "m.Base.make")
     assert "m.Sub.Widget.run" in callees_of(graph, "m.Base.build")
     assert callees_of(graph, "m.static") == {"m.Base.Widget", "m.Base.Widget.run"}
+
+
+def test_a_base_that_is_an_instance_attribute_does_not_crash_the_index(make_repo):
+    # jsonschema's tests say `class OhNo(self.Validator):` inside a method. Resolving
+    # that base asks about subclasses before the hierarchy exists.
+    repo = make_repo(
+        {
+            "m.py": """\
+                class Base:
+                    def run(self):
+                        pass
+
+                    def make(self):
+                        class OhNo(self.Missing):
+                            pass
+
+                        odd = OhNo()
+                        odd.anything()
+
+                class Sub(Base):
+                    def run(self):
+                        pass
+
+                def use(b: Base):
+                    b.run()
+                """
+        }
+    )
+    graph = build_graph(repo)
+    assert callees_of(graph, "m.use") == {"m.Base.run", "m.Sub.run"}
+    reasons = {u.text: u.reason for u in graph.unresolved}
+    assert "base class self.Missing of m.Base.make.OhNo could not be resolved" in reasons["odd.anything"]
