@@ -155,6 +155,8 @@ class Resolver:
         self._stdlib_classes: dict[str, bool] = {}
         self._stdlib_objects: dict[str, object] = {}
         self._subclass_defines: dict[tuple[str, str], bool] = {}
+        self._function_values: dict[int, Target | None] = {}
+        self._rebound_names: set[str] | None = None  # names some module sets as an attribute, see Scope.rebinds
         self._external_base_index: dict[str, list[str]] | None = None  # dotted name of an external base -> repo classes with such a base
         self._base_proven: set[str] | None = None  # dotted names a repo class inherits from, so they are classes
         # Resolving a base (`class X(self.Attr)`) can look a member up before every
@@ -475,7 +477,7 @@ class Resolver:
             # import a.b binds a; resolve the whole a.b.c path at once so
             # namespace packages (no __init__.py) still work.
             return self.resolve_dotted(".".join([binding.target] + chain[1:]))
-        target = self.binding_target(where, binding)
+        target = self.binding_target(where, binding, name=chain[0])
         for attr in chain[1:]:
             target = self.member(target, attr)
         return target
@@ -534,7 +536,7 @@ class Resolver:
             current = self.scopes.get(current.parent) if current.parent else None
         return None
 
-    def binding_target(self, where: Scope, binding: Binding, depth: int = 0) -> Target:
+    def binding_target(self, where: Scope, binding: Binding, depth: int = 0, name: str = "") -> Target:
         if binding.kind == "def":
             return Target("symbol", binding.target)
         if binding.kind == "import":
@@ -544,6 +546,9 @@ class Resolver:
         if binding.kind == "self":
             cls = self.enclosing_class(where)
             return Target("instance", cls) if cls else unknown("self outside a class")
+        held = self.function_held(where, binding, name)
+        if held is not None:
+            return held
         cls = self.var_type(binding)
         if cls is None:
             return unknown(self.why_unknown(binding.evidence))
@@ -551,6 +556,71 @@ class Resolver:
         if value.kind in ("instance", "foreign") and self.constructed(binding.evidence):
             value = replace(value, exact=True)
         return value
+
+    # -- functions held in names ---------------------------------------------
+    #
+    # `with_tax = partial(apply_tax, 10)` then `with_tax(x)` runs apply_tax. That is proven when
+    # partial is functools.partial, every assignment to the name is such a call, and they all name
+    # the same def of the repo (a function or a method, not a class). Anything else is unresolved.
+
+    def function_held(self, where: Scope, binding: Binding, name: str) -> Target | None:
+        """What the variable holds when it is a partial of one def, unknown (with the reason it is
+        not proven) when it is a partial of something else, None when it is not about partials."""
+        if not name or not any(ref.kind == "call" and ref.arg for ref in binding.evidence):
+            return None
+        key = id(binding.evidence)
+        if key not in self._function_values:
+            self._function_values[key] = unknown("a functools.partial that refers to itself")  # in progress: a cycle
+            self._function_values[key] = self._partial_value(where, binding, name)
+        return self._function_values[key]
+
+    def _partial_value(self, where: Scope, binding: Binding, name: str) -> Target | None:
+        partials = [ref for ref in binding.evidence if self.is_partial(ref)]
+        if not partials:
+            return None
+        if len(partials) != len(binding.evidence):
+            return unknown("a name assigned a functools.partial and other values")
+        found = [self.partial_of(ref) for ref in partials]
+        if any(target.kind == "unknown" for target in found):
+            return next(target for target in found if target.kind == "unknown")
+        if any(target != found[0] for target in found):
+            return unknown("a name assigned partials of different functions")
+        if where.kind == "module" and not self.module_name_stable(where, name):
+            return unknown(f"a module-level name that other code may rebind ('{name}')")
+        return found[0]
+
+    def is_partial(self, ref: TypeRef) -> bool:
+        if ref.kind != "call":
+            return False
+        named = self.resolve_chain(self.scopes[ref.scope], ref.expr.split("."))
+        return named.kind == "external" and named.reason == EXT_IMPORT and named.value == "functools.partial"
+
+    def partial_of(self, ref: TypeRef) -> Target:
+        """The def partial(f, ...) wraps, or unknown."""
+        if not ref.arg:
+            return unknown("a functools.partial whose function is not a plain name")
+        wrapped = self.resolve_chain(self.scopes[ref.scope], ref.arg.split("."))
+        if wrapped.kind in ("symbol", "bound") and self.scopes[wrapped.value].kind in ("function", "method"):
+            return wrapped
+        if wrapped.kind == "unknown":
+            return unknown(f"a functools.partial of '{ref.arg}', which ripple cannot resolve")
+        return unknown(f"a functools.partial of '{ref.arg}', which is not one function or method of the repo")
+
+    def module_name_stable(self, module: Scope, name: str) -> bool:
+        """Whether nothing in the repo can rebind a module's name without the module's own
+        assignments showing it: no attribute store or setattr of that name anywhere, no
+        globals()/exec in the module, and no star import that could define it."""
+        if self._rebound_names is None:
+            self._rebound_names = {n for s in self.scopes.values() if s.kind == "module" for n in s.rebinds}
+        if module.dynamic or name in self._rebound_names:
+            return False
+        for star in module.star_imports:
+            if star not in self.modules:
+                return False
+            found = self.module_member(star, name, 1)
+            if found.kind != "unknown" or "cycle" in found.reason:
+                return False
+        return True
 
     def constructed(self, evidence: list) -> bool:
         """Whether every piece of evidence is a call of a class: the value is exactly that class."""
@@ -721,7 +791,7 @@ class Resolver:
         # `from . import util` in pkg/__init__.py binds util to "member util of
         # pkg", which is the question being asked: it names the submodule, not a loop.
         if binding is not None and (binding.kind, binding.target, binding.name) != ("from", module, name):
-            return self.binding_target(scope, binding, depth)
+            return self.binding_target(scope, binding, depth, name)
         for star in scope.star_imports:
             if star not in self.modules and full in self.modules:
                 # A module outside the repo may bind the name, and then it is not the submodule.

@@ -183,6 +183,25 @@
      "expected": ["warehouse.guards.run_ship", "tests.test_guards.test_ship_direct"]},
     {"id": "G6", "fixture": "warehouse", "kind": "impact", "symbol": "warehouse.guards.ship", "depth": 4, "group": "impact",
      "note": "the chain runs through both wrappers. The inner one is shared with Dock.unload, but it wraps ship in one decoration and Dock.unload in another, so run_unload never reaches ship",
-     "expected": ["warehouse.guards.audited.inner", "warehouse.guards.counted.decorate.counter", "warehouse.guards.run_ship", "tests.test_guards.test_ship_direct", "tests.test_guards.test_ship"]}
+     "expected": ["warehouse.guards.audited.inner", "warehouse.guards.counted.decorate.counter", "warehouse.guards.run_ship", "tests.test_guards.test_ship_direct", "tests.test_guards.test_ship"]},
+
+    {"id": "P1", "fixture": "warehouse", "kind": "callers", "symbol": "warehouse.dispatch.apply_tax", "group": "dynamic",
+     "note": "called through a functools.partial bound to a local name, and to a module-level name",
+     "expected": ["warehouse.dispatch.priced", "warehouse.dispatch.taxed"]},
+    {"id": "P2", "fixture": "warehouse", "kind": "callers", "symbol": "warehouse.dispatch.apply_discount", "group": "dynamic",
+     "note": "HANDLERS['discount'](...): a constant key into a dict no code changes",
+     "expected": ["warehouse.dispatch.run_discount"]},
+    {"id": "P3", "fixture": "warehouse", "kind": "callers", "symbol": "warehouse.dispatch.audit", "group": "dynamic",
+     "note": "a local assigned HANDLERS['audit'], then called",
+     "expected": ["warehouse.dispatch.run_audit"]},
+    {"id": "P4", "fixture": "warehouse", "kind": "callers", "symbol": "warehouse.dispatch.step_two", "group": "dynamic",
+     "note": "for step in STEPS: step(...) over a tuple no code changes",
+     "expected": ["warehouse.dispatch.run_steps"]},
+    {"id": "P5", "fixture": "warehouse", "kind": "callers", "symbol": "warehouse.dispatch.step_one", "group": "dynamic",
+     "note": "the loop over STEPS, and REGISTRY['a'](...), a table that is added to after it is built, so the source does not fix what a key finds",
+     "expected": ["warehouse.dispatch.run_steps", "warehouse.dispatch.run_registry"]},
+    {"id": "P6", "fixture": "warehouse", "kind": "impact", "symbol": "warehouse.dispatch.apply_tax", "depth": 2, "group": "impact",
+     "note": "both callers reach it through a partial",
+     "expected": ["warehouse.dispatch.priced", "warehouse.dispatch.taxed", "tests.test_dispatch.test_partials"]}
   ]
 }
