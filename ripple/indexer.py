@@ -334,6 +334,7 @@ class ScopeBuilder(ast.NodeVisitor):
         root = Scope(module, "module", module, file, 1, max(line_count, 1), None, is_package=is_package)
         self.scopes[module] = root
         self.stack = [root]
+        self.in_annotation = 0
         for stmt in tree.body:
             self.visit(stmt)
 
@@ -381,6 +382,10 @@ class ScopeBuilder(ast.NodeVisitor):
         self._decorators(node)
         for default in node.args.defaults + [d for d in node.args.kw_defaults if d is not None]:
             self.visit(default)
+        args = node.args
+        for arg in args.posonlyargs + args.args + args.kwonlyargs + [a for a in (args.vararg, args.kwarg) if a]:
+            self._visit_annotation(arg.annotation)
+        self._visit_annotation(node.returns)
         is_method = self.scope.kind == "class"
         scope = self._enter(node, "method" if is_method else "function")
         decorators = {(dotted(d) or [""])[-1] for d in node.decorator_list}
@@ -538,6 +543,8 @@ class ScopeBuilder(ast.NodeVisitor):
     def visit_AnnAssign(self, node) -> None:
         if node.value is not None:
             self.visit(node.value)
+        if self.scope.kind in ("module", "class"):  # a local variable's annotation is never evaluated
+            self._visit_annotation(node.annotation)
         hint = annotation_type(node.annotation)
         evidence = [TypeRef("annotation", hint, self.scope.id) if hint else unknown_ref(ANNOTATION_NO_CLASS)]
         if self.scope.kind == "class" and isinstance(node.target, ast.Name):
@@ -623,27 +630,41 @@ class ScopeBuilder(ast.NodeVisitor):
     def visit_Call(self, node) -> None:
         func = node.func
         text = ast.unparse(func)[:80]
+        kind = "annotation" if self.in_annotation else "call"
         if (
             isinstance(func, ast.Attribute)
             and isinstance(func.value, ast.Call)
             and isinstance(func.value.func, ast.Name)
             and func.value.func.id == "super"
         ):
-            self.scope.calls.append(RawCall([func.attr], text, node.lineno, special="super"))
+            self.scope.calls.append(RawCall([func.attr], text, node.lineno, kind, special="super"))
         elif isinstance(func, ast.Attribute) and literal_type(func.value):
             # "-".join(parts), f"{x}".upper(): a method on a builtin literal.
-            self.scope.calls.append(RawCall(None, text, node.lineno, special="builtin"))
+            self.scope.calls.append(RawCall(None, text, node.lineno, kind, special="builtin"))
         else:
             chain = dotted(func)
             path = None if chain else call_path(func)
             if chain:
-                self.scope.calls.append(RawCall(chain, text, node.lineno))
+                self.scope.calls.append(RawCall(chain, text, node.lineno, kind))
             elif path:
-                self.scope.calls.append(RawCall(None, text, node.lineno, path=path))
+                self.scope.calls.append(RawCall(None, text, node.lineno, kind, path=path))
             else:
                 why = COMPUTED_SUBSCRIPT if isinstance(func, ast.Subscript) else COMPUTED_OTHER
-                self.scope.calls.append(RawCall(None, text, node.lineno, special="computed", why=why))
+                self.scope.calls.append(RawCall(None, text, node.lineno, kind, special="computed", why=why))
         self.generic_visit(node)
+
+    def _visit_annotation(self, node: ast.AST | None) -> None:
+        """Record the calls inside an annotation (Annotated[int, Field(gt=0)]) as calls of this scope.
+
+        Python evaluates annotations where the def or class statement runs, so the scope that
+        holds the definition is the caller. A string annotation is not parsed, and with
+        `from __future__ import annotations` the expression runs later, when something
+        (pydantic, typing.get_type_hints) evaluates it; the call is still written in this scope.
+        """
+        if node is not None:
+            self.in_annotation += 1
+            self.visit(node)
+            self.in_annotation -= 1
 
 
 def collect_scopes(repo: Path, files: list[Path]) -> tuple[dict[str, Scope], list[str]]:

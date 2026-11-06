@@ -152,6 +152,13 @@
      "expected": ["warehouse.chains.pick_three"]},
     {"id": "C5", "fixture": "warehouse", "kind": "impact", "symbol": "warehouse.chains.Dispatcher.place", "depth": 2, "group": "impact",
      "note": "every chain starts at a call on a call result",
-     "expected": ["warehouse.chains.place_via_registry", "warehouse.chains.chained", "warehouse.chains.from_classmethod", "tests.test_chains.test_dispatchers"]}
+     "expected": ["warehouse.chains.place_via_registry", "warehouse.chains.chained", "warehouse.chains.from_classmethod", "tests.test_chains.test_dispatchers"]},
+
+    {"id": "D1", "fixture": "warehouse", "kind": "callers", "symbol": "warehouse.schema.Rule.__init__", "group": "definition-time calls",
+     "note": "Rule(...) inside Annotated[...] on a class attribute, a method's parameter and return, and a module function's parameter and return; not the local variable's annotation, which is never evaluated",
+     "expected": ["warehouse.schema", "warehouse.schema.Line"]},
+    {"id": "D2", "fixture": "warehouse", "kind": "callers", "symbol": "warehouse.schema.stamp", "group": "definition-time calls",
+     "note": "a class attribute's value, a default argument and a decorator argument, each run by the scope that holds the definition",
+     "expected": ["warehouse.schema", "warehouse.schema.Line"]}
   ]
 }
