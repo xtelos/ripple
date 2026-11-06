@@ -113,6 +113,12 @@ value that is itself a call result (`Foo().run()`, `make().run()` where `make` i
 `Foo().current().place()`). When a method is called on `self` or a typed value, subclass overrides are
 linked too (class hierarchy analysis), except on a value that is exactly `Foo()`.
 
+A call written where a definition is made belongs to the scope that holds the definition: default
+arguments and decorator arguments, and calls inside annotations (`qty: Annotated[int, Field(gt=0)]` on a
+class attribute, a parameter or a return annotation), which are edges of kind `annotation`. With
+`from __future__ import annotations` such an expression runs later, when pydantic or
+`typing.get_type_hints` evaluates it, but it is still a call written in that scope.
+
 The index is cached outside your repo (`RIPPLE_CACHE_DIR` if set, else `$XDG_CACHE_HOME/ripple` or
 `~/.cache/ripple`) and keyed on every file's mtime and size, so each query re-checks the files and
 rebuilds only when something changed.
@@ -221,8 +227,9 @@ Static analysis of a dynamic language misses things. ripple does not follow:
   annotation or is a class; ripple does not read `return Foo()` to infer one, and an `@overload`ed function
   or two defs of one name that annotate differently, or only one of which is annotated, in either order
   (a def in each branch of an `if sys.platform`), give no type)
-- calls written inside an annotation (`x: Annotated[int, Field(gt=0)]`): they are not recorded, so
-  `Field` has no caller there. Pydantic has about 1,300 of them
+- calls written inside a string annotation (`x: "Annotated[int, Field(gt=0)]"`): the string is not
+  parsed. Calls in an ordinary annotation are recorded (see above); the annotation of a local variable in a
+  function never runs, so it is left out
 - syntax the Python running ripple cannot parse (`except*` before 3.11, `type X = ...` and `def f[T]()`
   before 3.12): that file is listed as unparsable and left out. So are files with invalid bytes or a
   null byte, and files nested so deeply that the parser itself gives up (hundreds of thousands of terms).

@@ -27,8 +27,19 @@ from ripple.queries import callees, callers, impact
 HERE = Path(__file__).resolve().parent
 TRUTH = HERE / "ground_truth.json"
 BASELINE = HERE / "baseline.json"
-GROUP_ORDER = ["imports", "methods", "typed receivers", "callees", "decorators", "dynamic", "impact", "missed callers"]
+GROUP_ORDER = [
+    "imports",
+    "methods",
+    "typed receivers",
+    "callees",
+    "decorators",
+    "dynamic",
+    "definition-time calls",
+    "impact",
+    "missed callers",
+]
 NOT_IN_OVERALL = {"missed callers"}
+WIDTH = max(len(name) for name in GROUP_ORDER)
 
 
 def predict(graph, query) -> set[str]:
@@ -92,14 +103,14 @@ def report(result: dict) -> str:
     lines = [
         f"ripple benchmark: {len(result['rows'])} queries over {len({r['fixture'] for r in result['rows']})} fixture repos",
         "",
-        f"{'group':<16} {'queries':>7} {'exact':>6} {'precision':>10} {'recall':>7}",
+        f"{'group':<{WIDTH}} {'queries':>7} {'exact':>6} {'precision':>10} {'recall':>7}",
     ]
     for name, g in result["groups"].items():
         if name == "overall":
-            lines.append("-" * 50)
+            lines.append("-" * (WIDTH + 35))
         if name == min(NOT_IN_OVERALL):
             lines.append("scored apart from overall:")
-        lines.append(f"{name:<16} {g['queries']:>7} {g['exact']:>6} {fmt(g['precision']):>10} {fmt(g['recall']):>7}")
+        lines.append(f"{name:<{WIDTH}} {g['queries']:>7} {g['exact']:>6} {fmt(g['precision']):>10} {fmt(g['recall']):>7}")
     lines += ["", "Queries ripple did not answer exactly:"]
     for r in result["rows"]:
         if r["fp"] or r["fn"]:

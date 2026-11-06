@@ -168,7 +168,7 @@ class Resolver:
 
     def edge_targets(self, target: Target, call: RawCall) -> list[tuple[str, str]]:
         """Turn a resolved callee into (symbol id, edge kind) pairs."""
-        default = "decorator" if call.kind == "decorator" else "call"
+        default = call.kind if call.kind in ("decorator", "annotation") else "call"
         if self.scopes[target.value].kind == "class":
             return [(self.constructor(target.value), "constructor")]
         if target.kind == "symbol":

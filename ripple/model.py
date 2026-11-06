@@ -32,8 +32,10 @@ class Edge:
 
     kind says how it was proven: "call" (a name or attribute that resolves to
     one definition), "constructor" (calling a class), "override" (a subclass
-    method that self.method() or a typed receiver may dispatch to), or
-    "decorator" (a decorator applied when the def statement runs).
+    method that self.method() or a typed receiver may dispatch to),
+    "decorator" (a decorator applied when the def statement runs) or
+    "annotation" (a call written inside an annotation, made by the scope that
+    holds the annotated def or class).
     """
 
     caller: str
