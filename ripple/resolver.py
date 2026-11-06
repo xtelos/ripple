@@ -24,6 +24,10 @@ of them. This is class hierarchy analysis, a standard static technique.
 from __future__ import annotations
 
 import builtins
+import importlib
+import sys
+import warnings
+from collections import Counter
 from dataclasses import dataclass, replace
 
 from .indexer import Binding, RawCall, Scope, TypeRef
@@ -34,6 +38,35 @@ BUILTIN_NAMES = set(dir(builtins))
 BUILTIN_TYPES = {f"builtins.{n}" for n in BUILTIN_NAMES if isinstance(getattr(builtins, n), type)}
 MAX_IMPORT_HOPS = 8
 
+# A type stored as "external:threading.Event" is a class that lives outside the
+# repo: the standard library, or a dependency the repo subclasses.
+EXTERNAL = "external:"
+
+# Why a call counts as reaching code outside the repo (Graph.external_reasons).
+EXT_BUILTIN = "a builtin function or type"
+EXT_IMPORT = "a name imported from outside the repo"
+EXT_BUILTIN_VALUE = "a method of a builtin value (str, list, dict, ...)"
+EXT_INHERITED = "a method inherited from a base class outside the repo"
+EXT_SUPER = "super() into a base class outside the repo"
+EXT_INSTANCE = "a method of an instance of a class outside the repo"
+
+# Standard library modules ripple may import to ask whether a name is a class.
+# Importing runs the module, so this is a list of ones that are safe and quiet
+# to import (not `this`, `antigravity`, `idlelib`, `tkinter`), never "any stdlib name".
+SAFE_STDLIB_MODULES = frozenset(
+    {
+        "argparse", "array", "bisect", "calendar", "collections", "concurrent.futures", "configparser",
+        "contextlib", "copy", "csv", "datetime", "decimal", "difflib", "email.message", "enum", "fractions",
+        "functools", "gzip", "hashlib", "heapq", "hmac", "html.parser", "http.client", "http.cookies",
+        "io", "ipaddress", "itertools", "json", "logging", "logging.handlers", "pathlib", "pprint", "queue",
+        "random", "re", "sched", "secrets", "shlex", "shutil", "socket", "sqlite3", "statistics", "string",
+        "struct", "subprocess", "tarfile", "tempfile", "textwrap", "threading", "time", "types", "urllib.parse",
+        "uuid", "weakref", "xml.etree.ElementTree", "zipfile",
+    }
+)  # fmt: skip
+# Names that may be satisfied by a class that never inherits from them (protocols, ABCs).
+NOMINAL_ONLY_EXCLUDED = ("typing.", "typing_extensions.", "collections.abc.", "abc.")
+
 
 @dataclass(frozen=True)
 class Target:
@@ -43,12 +76,15 @@ class Target:
       symbol    a function, method or class in the repo (value is its id)
       module    a module in the repo (value is its dotted name)
       instance  a value whose class is known (value is the class id)
+      foreign   a value whose class is known and lives outside the repo (value
+                is its dotted name, e.g. threading.Event)
       bound     a method looked up on an instance (value is the method id,
                 receiver is the instance's class, used to find overrides)
     exact marks a variable whose every assignment is a constructor call of one
     class (field = Field()), not merely a class the value could be (a parameter
     annotated Field, self, a self.attr): it cannot be a subclass, so no overrides.
       external  something outside the repo: stdlib, a dependency, a builtin
+                (reason says which kind, for counting)
       unknown   cannot be determined statically (reason says why)
     """
 
@@ -63,17 +99,27 @@ def unknown(reason: str) -> Target:
     return Target("unknown", reason=reason)
 
 
+def external(value: str, reason: str) -> Target:
+    return Target("external", value, reason=reason)
+
+
 class Resolver:
     def __init__(self, scopes: dict[str, Scope]):
         self.scopes = scopes
         self.modules = {s.id for s in scopes.values() if s.kind == "module"}
         self._mro_cache: dict[str, list[str]] = {}
         self._types: dict[int, str | None] = {}
+        self._reasons: dict[int, str] = {}
         self._bases: dict[str, list[str]] = {}
         self._external_bases: dict[str, list[str]] = {}  # class id -> dotted names of bases outside the repo
         self._unresolved_bases: dict[str, str] = {}  # class id -> a base ripple could not resolve
         self.subclasses: dict[str, list[str]] = {}
         self._all_subclasses: dict[str, list[str]] = {}
+        self._stdlib_classes: dict[str, bool] = {}
+        self._stdlib_objects: dict[str, object] = {}
+        self._subclass_defines: dict[tuple[str, str], bool] = {}
+        self._external_base_index: dict[str, list[str]] | None = None  # dotted name of an external base -> repo classes with such a base
+        self._base_proven: set[str] | None = None  # dotted names a repo class inherits from, so they are classes
         # Resolving a base (`class X(self.Attr)`) can look a member up before every
         # class has its bases, so until the hierarchy exists a member that is missing
         # is unknown, and nothing computed meanwhile is kept.
@@ -82,6 +128,8 @@ class Resolver:
         self._building = False
         self._mro_cache.clear()
         self._types.clear()
+        self._reasons.clear()
+        self.external_reasons: Counter = Counter()
 
     # -- output ------------------------------------------------------------
 
@@ -89,7 +137,7 @@ class Resolver:
         symbols = {
             s.id: Symbol(s.id, s.kind, s.file, s.line, s.end_line) for s in self.scopes.values()
         }
-        edges, unresolved, external = [], [], 0
+        edges, unresolved, external_count = [], [], 0
         for scope in self.scopes.values():
             for call in scope.calls:
                 try:
@@ -97,7 +145,8 @@ class Resolver:
                 except RecursionError:  # a chain of definitions deeper than the raised limit
                     outcome = unknown("too deeply nested to follow")
                 if outcome.kind == "external":
-                    external += 1
+                    external_count += 1
+                    self.external_reasons[outcome.reason or EXT_IMPORT] += 1
                 elif outcome.kind == "unknown":
                     unresolved.append(Unresolved(scope.id, scope.file, call.line, call.text, outcome.reason))
                 else:
@@ -109,9 +158,10 @@ class Resolver:
             symbols,
             edges,
             unresolved,
-            external,
+            external_count,
             bases={cls: found for cls, found in bases.items() if found},
             external_bases={cls: self._external_bases[cls] for cls in classes if cls in self._external_bases},
+            external_reasons=dict(sorted(self.external_reasons.items())),
         )
 
     def edge_targets(self, target: Target, call: RawCall) -> list[tuple[str, str]]:
@@ -144,12 +194,12 @@ class Resolver:
                 return factory
             return unknown("applies the function a decorator factory returned")
         elif call.special == "builtin":
-            return Target("external", call.text)
+            return external(call.text, EXT_BUILTIN_VALUE)
         elif call.chain is None:
             return unknown("the callee is computed at runtime (subscript, call result or similar)")
         else:
             target = self.resolve_chain(scope, call.chain)
-        if target.kind == "instance":
+        if target.kind in ("instance", "foreign"):
             return unknown("calls an instance (its __call__ is not followed)")
         if target.kind == "module":
             return unknown("calls a module")
@@ -160,7 +210,7 @@ class Resolver:
         found = self.lookup(scope, chain[0])
         if found is None:
             if chain[0] in BUILTIN_NAMES:
-                return Target("external", "builtins." + ".".join(chain))
+                return external("builtins." + ".".join(chain), EXT_BUILTIN)
             return unknown(f"name '{chain[0]}' is not defined anywhere ripple can see")
         where, binding = found
         if binding.kind == "import":
@@ -200,21 +250,24 @@ class Resolver:
         if binding.kind == "self":
             cls = self.enclosing_class(where)
             return Target("instance", cls) if cls else unknown("self outside a class")
-        value = self.value_of_type(self.var_type(binding))
-        if value.kind == "instance" and self.constructed(binding.evidence):
+        cls = self.var_type(binding)
+        if cls is None:
+            return unknown(self.why_unknown(binding.evidence))
+        value = self.value_of_type(cls)
+        if value.kind in ("instance", "foreign") and self.constructed(binding.evidence):
             value = replace(value, exact=True)
         return value
 
     def constructed(self, evidence: list) -> bool:
         """Whether every piece of evidence is a call of a class: the value is exactly that class."""
-        return bool(evidence) and all(
-            ref is not None and ref.kind == "call" and self.names_class(ref) for ref in evidence
-        )
+        return bool(evidence) and all(ref.kind == "call" and self.names_class(ref) for ref in evidence)
 
     def names_class(self, ref: TypeRef) -> bool:
         """Whether ref calls a class named statically (never through self or cls, which may be a
         subclass that redefines it) and calling it provably builds exactly that class."""
         named = self.resolve_chain(self.scopes[ref.scope], ref.expr.split("."))
+        if named.kind == "external":
+            return self.stdlib_class(named.value)  # nothing in the standard library builds a repo subclass
         return named.kind == "symbol" and self.scopes[named.value].kind == "class" and self.builds_itself(named.value)
 
     def builds_itself(self, cls: str) -> bool:
@@ -232,12 +285,121 @@ class Resolver:
         )
 
     def value_of_type(self, cls: str | None) -> Target:
-        """A value whose class is cls: a repo class, a builtin such as dict, or unknown."""
+        """A value whose class is cls: a repo class, a builtin such as dict, a class from
+        outside the repo, or unknown."""
         if cls is None:
             return unknown("the receiver's class is not known statically")
         if cls in BUILTIN_TYPES:
-            return Target("external", cls)
+            return external(cls, EXT_BUILTIN_VALUE)
+        if cls.startswith(EXTERNAL):
+            return Target("foreign", cls[len(EXTERNAL) :])
         return Target("instance", cls)
+
+    # -- classes outside the repo ------------------------------------------
+
+    def stdlib_class(self, dotted: str) -> bool:
+        """Whether a dotted name is a plain class of the standard library.
+
+        Asked of the interpreter ripple runs on, for modules on SAFE_STDLIB_MODULES only.
+        "Plain" means its metaclass is `type`: an ABC or an Enum can be satisfied by classes
+        that never inherit from them, and a function (threading.Lock before 3.13) builds
+        whatever it likes. A name that cannot be asked about is not proven a class.
+        """
+        found = self._stdlib_classes.get(dotted)
+        if found is None:
+            found = self._stdlib_classes[dotted] = type(self.stdlib_object(dotted)) is type
+        return found
+
+    def stdlib_object(self, dotted: str):
+        """What a dotted name is in the standard library (None when it cannot be asked about)."""
+        if dotted not in self._stdlib_objects:
+            self._stdlib_objects[dotted] = self._ask_stdlib(dotted)
+        return self._stdlib_objects[dotted]
+
+    @staticmethod
+    def _ask_stdlib(dotted: str):
+        parts = dotted.split(".")
+        for i in range(len(parts) - 1, 0, -1):
+            module = ".".join(parts[:i])
+            if module in SAFE_STDLIB_MODULES:
+                try:
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore")
+                        obj = importlib.import_module(module)
+                        for attr in parts[i:]:
+                            obj = getattr(obj, attr)
+                except Exception:  # an import or attribute error: not proven
+                    return None
+                return obj
+        return None
+
+    def outside_class(self, dotted: str) -> bool:
+        """Whether a name from outside the repo is provably a class: a plain standard
+        library class, or one a repo class lists as a base (only classes can be bases).
+        Protocols and ABCs stay out, since a class that never inherits may stand in for them."""
+        if self.stdlib_class(dotted):
+            return True
+        if self._building:  # the hierarchy is still being worked out: nothing is proven yet
+            return False
+        if self._base_proven is None:
+            self._base_proven = {name for names in self._external_bases.values() for name in names}
+        return dotted in self._base_proven and not dotted.startswith(NOMINAL_ONLY_EXCLUDED)
+
+    def subclass_defines(self, dotted: str, attr: str) -> bool:
+        """Whether a repo class that may inherit from the outside class defines attr itself or in
+        a subclass, so the value (typed as the outside class) could be one of its instances.
+
+        A repo class may sit anywhere below the outside class, through classes ripple never reads
+        (logging.Handler -> StreamHandler -> JsonHandler), so its external bases are compared with
+        the outside class by name and by what the interpreter says (may_inherit), never by the
+        last word of the name, and a class whose bases ripple could not resolve is never ruled out.
+        """
+        key = (dotted, attr)
+        found = self._subclass_defines.get(key)
+        if found is None:
+            if self._external_base_index is None:
+                index: dict[str, list[str]] = {}
+                for cls, names in self._external_bases.items():
+                    for name in names:
+                        index.setdefault(name, []).append(cls)
+                self._external_base_index = index
+            candidates = list(self._unresolved_bases)
+            for base, classes in self._external_base_index.items():
+                if self.may_inherit(base, dotted):
+                    candidates.extend(classes)
+            found = False
+            for cls in candidates:
+                for klass in [cls, *self.all_subclasses(cls)]:
+                    scope = self.scopes[klass]
+                    if attr in scope.names or attr in scope.attr_types:
+                        found = True
+                        break
+                if found:
+                    break
+            self._subclass_defines[key] = found
+        return found
+
+    def may_inherit(self, base: str, above: str) -> bool:
+        """Whether a class named base (outside the repo) may be, or inherit from, the class named above.
+
+        Both in the standard library and on the list ripple may import: the interpreter answers.
+        A standard library class never inherits from a dependency's. Anything else (a dependency's
+        class, a standard library module not on the list) may sit anywhere in a hierarchy, so
+        it is not ruled out.
+        """
+        if base == above:
+            return True
+        below, over = self.stdlib_object(base), self.stdlib_object(above)
+        if isinstance(below, type) and isinstance(over, type):
+            try:
+                return issubclass(below, over)
+            except TypeError:
+                return True
+        return not (self.in_stdlib(base) and not self.in_stdlib(above))
+
+    @staticmethod
+    def in_stdlib(dotted: str) -> bool:
+        return dotted.split(".")[0] in sys.stdlib_module_names
 
     # -- modules -----------------------------------------------------------
 
@@ -251,7 +413,7 @@ class Resolver:
                 for attr in parts[i:]:
                     target = self.member(target, attr)
                 return target
-        return Target("external", path)
+        return external(path, EXT_IMPORT)
 
     def module_member(self, module: str, name: str, depth: int = 0) -> Target:
         """What `from module import name` gives you, following re-exports."""
@@ -259,7 +421,7 @@ class Resolver:
         if depth > MAX_IMPORT_HOPS:
             return unknown(f"import cycle while resolving {full}")
         if module not in self.modules:
-            return Target("module", full) if full in self.modules else Target("external", full)
+            return Target("module", full) if full in self.modules else external(full, EXT_IMPORT)
         scope = self.scopes[module]
         binding = scope.names.get(name)
         # `from . import util` in pkg/__init__.py binds util to "member util of
@@ -283,7 +445,19 @@ class Resolver:
         if target.kind == "module":
             return self.module_member(target.value, attr)
         if target.kind == "external":
-            return Target("external", f"{target.value}.{attr}")
+            if target.reason == EXT_INSTANCE:
+                # x.a.b() with x from outside the repo: x.a is whatever was stored on x, which may be
+                # a repo object (threading.local holds anything), so only x.a() itself is outside.
+                return unknown("an attribute of an object from outside the repo may hold anything")
+            return external(f"{target.value}.{attr}", target.reason)
+        if target.kind == "foreign":
+            if self._building:
+                return unknown(f"'{attr}' on {target.value}: the repo's subclasses of it are not known yet")
+            if not target.exact and self.subclass_defines(target.value, attr):
+                return unknown(
+                    f"'{attr}' may be overridden by a repo subclass of {target.value}, which the value could be"
+                )
+            return external(f"{target.value}.{attr}", EXT_INSTANCE)
         if target.kind == "symbol":
             if self.scopes[target.value].kind != "class":
                 return unknown("attribute of a function")
@@ -329,7 +503,7 @@ class Resolver:
         if any(attr in self.scopes[sub].names for sub in self.all_subclasses(cls)):
             return unknown(f"'{attr}' is not defined on {cls} or its bases in the repo, but subclasses define it")
         if self.has_external_base(cls):
-            return Target("external", f"{cls}.{attr}")
+            return external(f"{cls}.{attr}", EXT_INHERITED)
         return unknown(f"'{attr}' is not a method or typed attribute of {cls}")
 
     def class_member(self, cls: str, name: str) -> str | None:
@@ -356,7 +530,7 @@ class Resolver:
             # Nothing the class inherits defines it and object does not either, so
             # it is a mixin counting on a sibling class in the concrete MRO.
             return unknown(f"super().{name}: no base of {cls} defines it, so it may reach a sibling class in a subclass's MRO")
-        return Target("external", f"super().{name}")
+        return external(f"super().{name}", EXT_SUPER)
 
     # -- classes -----------------------------------------------------------
 
@@ -473,18 +647,66 @@ class Resolver:
             return self._types[key]
         self._types[key] = None  # in progress: a cycle back here sees "unknown"
         result = None
-        if evidence and None not in evidence:
+        if evidence and all(ref.kind != "unknown" for ref in evidence):
             classes = {self.type_of(ref) for ref in evidence}
             if len(classes) == 1:
                 result = classes.pop()
         self._types[key] = result
         return result
 
+    def why_unknown(self, evidence: list) -> str:
+        """The first reason a variable's class is not known, in words that finish "the receiver is ...".
+
+        Memoized like agreed_type, and for the same reason: `x = y` and `y = x` ask about each other.
+        """
+        key = id(evidence)
+        if key in self._reasons:
+            return self._reasons[key]
+        self._reasons[key] = result = "the receiver's class is not known statically"
+        classes = set()
+        for ref in evidence:
+            if ref.kind == "unknown":
+                result = ref.expr
+                break
+            cls = self.type_of(ref)
+            if cls is None:
+                result = self.why_not_a_class(ref)
+                break
+            classes.add(cls)
+        else:
+            if len(classes) > 1:
+                result = "the receiver is assigned values of different classes"
+        self._reasons[key] = result
+        return result
+
+    def why_not_a_class(self, ref: TypeRef) -> str:
+        """Why one piece of evidence (annotation, call or copy) gives no class."""
+        if ref.kind == "name":
+            return "the receiver is copied from a variable whose class is not known"
+        named = self.resolve_chain(self.scopes[ref.scope], ref.expr.split("."))
+        if ref.kind == "annotation":
+            if named.kind == "external":
+                return "the receiver is annotated with a name from outside the repo that ripple cannot prove is a class"
+            if named.kind == "unknown":
+                return "the receiver is annotated with a name ripple cannot resolve"
+            return "the receiver is annotated with something that is not a class"
+        if named.kind == "external":
+            return "the receiver is the result of a call into code outside the repo, not proven to build a class"
+        if named.kind in ("symbol", "bound"):
+            if not self.scopes[named.value].return_annotated:
+                return "the receiver is the result of a call to a function with no return annotation"
+            return "the receiver is the result of a call whose return annotation does not name a class ripple can follow"
+        if named.kind == "unknown":
+            return "the receiver is the result of a call ripple cannot resolve"
+        return "the receiver is the result of calling something that is not a function or class"
+
     def type_of(self, ref: TypeRef) -> str | None:
         """The class one piece of evidence points at: a repo class id, a
-        builtins.* type, or None when it proves nothing."""
+        builtins.* type, an "external:" class, or None when it proves nothing."""
         if ref.kind == "builtin":
             return f"builtins.{ref.expr}"
+        if ref.kind == "unknown":
+            return None
         scope = self.scopes[ref.scope]
         if ref.kind == "name":
             found = self.lookup(scope, ref.expr)
@@ -493,12 +715,16 @@ class Resolver:
             target = self.binding_target(found[0], found[1])
             if target.kind == "instance" or (target.kind == "external" and target.value in BUILTIN_TYPES):
                 return target.value
+            if target.kind == "foreign":
+                return EXTERNAL + target.value
             return None
         # "annotation" or "call": the expression must name a class, or (for a
         # call) a repo function whose return annotation names one.
         named = self.resolve_chain(scope, ref.expr.split("."))
-        if named.kind == "external" and named.value in BUILTIN_TYPES:
-            return named.value
+        if named.kind == "external":
+            if named.value in BUILTIN_TYPES:
+                return named.value
+            return EXTERNAL + named.value if self.outside_class(named.value) else None
         if named.kind not in ("symbol", "bound"):
             return None
         if self.scopes[named.value].kind == "class":

@@ -44,6 +44,10 @@ def observed(query, edges):
         return {a for a, b in edges if b == symbol}
     if query["kind"] == "callees":
         return {b for a, b in edges if a == symbol}
+    if query["kind"] == "missed":
+        # Of the functions the truth lists as having a same-named call site ripple cannot
+        # prove, the ones that really reach the symbol.
+        return {a for a, b in edges if b == symbol and a in query["candidates"]}
     seen, frontier = set(), {symbol}
     for _ in range(query["depth"]):
         frontier = {a for a, b in edges if b in frontier} - seen - {symbol}

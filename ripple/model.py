@@ -65,6 +65,7 @@ class Graph:
     modules: dict[str, str] = field(default_factory=dict)  # every indexed file -> its module name
     bases: dict[str, list[str]] = field(default_factory=dict)  # class id -> bases that are repo classes
     external_bases: dict[str, list[str]] = field(default_factory=dict)  # class id -> bases from outside the repo
+    external_reasons: dict[str, int] = field(default_factory=dict)  # why calls count as outside the repo -> how many
 
     def __post_init__(self) -> None:
         self._index()
@@ -88,6 +89,7 @@ class Graph:
             "edges": len(self.edges),
             "unresolved_calls": len(self.unresolved),
             "external_calls": self.external_calls,
+            "external_reasons": dict(self.external_reasons),
             "parse_errors": len(self.parse_errors),
             "module_collisions": len(self.module_collisions()),
         }
@@ -115,6 +117,7 @@ class Graph:
             "modules": self.modules,
             "bases": self.bases,
             "external_bases": self.external_bases,
+            "external_reasons": self.external_reasons,
         }
 
     @classmethod
@@ -129,4 +132,5 @@ class Graph:
             modules=data["modules"],
             bases=data["bases"],
             external_bases=data["external_bases"],
+            external_reasons=data.get("external_reasons", {}),
         )

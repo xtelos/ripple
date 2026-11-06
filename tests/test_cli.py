@@ -16,6 +16,16 @@ def test_index_prints_stats(capsys):
     assert "unresolved calls" in out
 
 
+def test_index_counts_calls_by_reason_on_request(make_repo, capsys):
+    repo = make_repo({"m.py": "import threading\n\ndef f(x, e: threading.Event):\n    x.go()\n    e.set()\n"})
+    assert main(["index", str(repo)]) == 0
+    assert "by reason" not in capsys.readouterr().out
+    assert main(["index", str(repo), "--reasons"]) == 0
+    out = capsys.readouterr().out
+    assert "1  the receiver is an unannotated parameter" in out
+    assert "1  a method of an instance of a class outside the repo" in out
+
+
 def test_index_reports_skipped_directories(make_repo, capsys):
     repo = make_repo({"app.py": "def f():\n    pass\n", "build/lib/app.py": "def f():\n    pass\n"})
     assert main(["index", str(repo)]) == 0

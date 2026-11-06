@@ -119,6 +119,23 @@
      "expected": ["webapp.views.View.handle", "webapp.router.dispatch"]},
     {"id": "W13", "fixture": "webapp", "kind": "callers", "symbol": "webapp.router.dispatch", "group": "imports",
      "note": "from-import",
-     "expected": ["webapp.app.handle_request"]}
+     "expected": ["webapp.app.handle_request"]},
+
+    {"id": "K1", "fixture": "warehouse", "kind": "missed", "symbol": "warehouse.receivers.Journal.append", "group": "missed callers",
+     "note": "three functions call .append on something ripple cannot prove is a Journal: a deque built in place, a parameter annotated deque, and an unannotated parameter that really is a Journal",
+     "candidates": ["warehouse.receivers.recent", "warehouse.receivers.trim", "warehouse.receivers.drain"],
+     "expected": ["warehouse.receivers.drain"]},
+    {"id": "K2", "fixture": "warehouse", "kind": "missed", "symbol": "warehouse.receivers.LoudDeque.extend", "group": "missed callers",
+     "note": "a deque built in place is exactly a deque; a parameter annotated deque may be the LoudDeque that overrides extend",
+     "candidates": ["warehouse.receivers.recent", "warehouse.receivers.trim"],
+     "expected": ["warehouse.receivers.trim"]},
+    {"id": "K3", "fixture": "warehouse", "kind": "missed", "symbol": "warehouse.receivers.Journal.read_text", "group": "missed callers",
+     "note": "read_text on a pathlib.Path is the standard library's, not the Journal's",
+     "candidates": ["warehouse.receivers.load"],
+     "expected": []},
+    {"id": "K4", "fixture": "warehouse", "kind": "missed", "symbol": "warehouse.receivers.Journal.wait", "group": "missed callers",
+     "note": "wait on a self attribute built from threading.Event is the standard library's",
+     "candidates": ["warehouse.receivers.Gate.open"],
+     "expected": []}
   ]
 }
