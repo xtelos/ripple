@@ -283,6 +283,28 @@ def test_an_empty_table_loop_is_not_followed(make_repo):
     assert reasons(g, "m.use")
 
 
+# A module's dict can be reached without writing the table's name (d = m.__dict__; d["T"] = ...),
+# so a store or delete of the key as a string anywhere in the repo makes the table unsafe.
+KEY_STORES = {
+    "assignment": "def tweak(d):\n    d['T'] = 1\n",
+    "augmented assignment": "def tweak(d):\n    d['T'] += 1\n",
+    "del": "def tweak(d):\n    del d['T']\n",
+    "del in a tuple": "def tweak(d):\n    del (d['T'], d['U'])\n",
+    "tuple target": "def tweak(d):\n    d['T'], z = 1, 2\n",
+    "starred target": "def tweak(d):\n    *d['T'], z = [1, 2]\n",
+    "loop target": "def tweak(d):\n    for d['T'] in []:\n        pass\n",
+    "with target": "def tweak(d):\n    with open('x') as d['T']:\n        pass\n",
+}
+
+
+@pytest.mark.parametrize("how", sorted(KEY_STORES))
+def test_a_string_key_stored_or_deleted_anywhere_makes_a_table_unsafe(make_repo, how):
+    src = 'T = {"a": f}\n\ndef use(x):\n    return T["a"](x)\n'
+    g = repo_graph(make_repo, src, **{"n.py": KEY_STORES[how]})
+    assert callers_of(g, "m.f") == set(), how
+    assert any("another module assigns the name" in reason for reason in reasons(g, "m.use")), how
+
+
 def test_a_name_that_is_not_a_table_keeps_its_old_reason(make_repo):
     src = "def use(d, x):\n    for fn in d:\n        fn(x)\n    d['a'](x)\n    d.get('a')(x)\n    y = d['a']\n    y.go()\n"
     g = repo_graph(make_repo, src)

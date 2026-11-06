@@ -11,6 +11,7 @@ Keeping the two apart means each piece can be read, and tested, on its own.
 from __future__ import annotations
 
 import ast
+import gc
 import os
 import sys
 import threading
@@ -163,11 +164,7 @@ class Scope:
     # globals()["NAME"] = x), which can rebind a name another module defines.
     rebinds: set = field(default_factory=set)
     tables: dict = field(default_factory=dict)  # NAME = {...} / [...] / (...): Table
-    # Names this module mentions other than to read a table, each with the line of the first mention,
-    # and what it imports under a new name, as (name, asname).
-    risky: dict = field(default_factory=dict)
-    aliases: list = field(default_factory=list)
-    dynamic: bool = False  # globals(), vars(), exec, eval or __dict__ appear: the module's names can change unseen
+    aliases: list = field(default_factory=list)  # what it imports under a new name, as (name, asname)
 
     def bind(self, name: str, binding: Binding) -> None:
         """Record a binding. A name bound two different ways becomes unknown."""
@@ -357,39 +354,49 @@ def _reads(node: ast.AST) -> list:
     return []
 
 
-def scan_module(tree: ast.AST, module: Scope) -> None:
-    """Record how this module could rebind or change a name defined elsewhere, or its own names unseen.
+@dataclass
+class Mentions:
+    """How a module could change a name unseen: what the resolver asks of it when a table or a
+    partial needs to be proven, and not before (see Rescanner).
 
-    rebinds and dynamic say a module-level name may be rebound (see Resolver.module_name_stable).
-    risky is for tables: a name (or attribute) that is only subscripted for reading, iterated, read
+    dynamic: globals(), vars(), exec, eval or __dict__ appear, so the module's names can change.
+    risky: each name (or attribute) the module mentions other than to read a table, with the line of
+    the first such mention. A name (or attribute) that is only subscripted for reading, iterated, read
     with get/items/values/..., or tested with `in` cannot change what it names. Every other mention
     (assigned, deleted, passed on, aliased, returned, called with append or update, declared global)
-    goes in module.risky, so a table whose name is in no module's risky set (following
-    `from m import T as U`) is not changed by any code in the repo. Names are matched as text on
-    purpose: that holds through any alias, import form or module.
+    is risky, so a table whose name is in no module's risky set (following `from m import T as U`)
+    is not changed by any code in the repo. Names are matched as text on purpose: that holds through
+    any alias, import form or module.
+    readable is False when the module could not be read again.
+    """
+
+    dynamic: bool = False
+    risky: dict = field(default_factory=dict)
+    readable: bool = True
+
+
+def scan_module(tree: ast.AST) -> Mentions:
+    """The Mentions of one parsed module.
 
     One pass: ast.walk visits a parent before its children, so a parent can clear its children.
     """
+    found = Mentions()
     ok: set = set()
-    risky = module.risky
+    risky = found.risky
     for node in ast.walk(tree):
         if isinstance(node, ast.Name):
             if id(node) not in ok:
                 risky.setdefault(node.id, node.lineno)
             if node.id in DYNAMIC_NAMES:
-                module.dynamic = True
+                found.dynamic = True
         elif isinstance(node, ast.Attribute):
             if id(node) not in ok:
                 risky.setdefault(node.attr, node.lineno)
-            if isinstance(node.ctx, (ast.Store, ast.Del)):
-                module.rebinds.add(node.attr)
             if node.attr == "__dict__":
-                module.dynamic = True
+                found.dynamic = True
         elif isinstance(node, ast.Subscript):
             if isinstance(node.ctx, ast.Load):
                 ok.add(id(node.value))
-            elif isinstance(node.slice, ast.Constant) and isinstance(node.slice.value, str):
-                module.rebinds.add(node.slice.value)  # globals()["NAME"] = x, mod.__dict__["NAME"] = x
             if isinstance(node.slice, ast.Constant) and isinstance(node.slice.value, str) and (
                 (isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name) and node.value.func.id in DYNAMIC_NAMES)
                 or (isinstance(node.value, ast.Attribute) and node.value.attr == "__dict__")
@@ -401,10 +408,6 @@ def scan_module(tree: ast.AST, module: Scope) -> None:
             func = node.func
             if isinstance(func, ast.Attribute) and func.attr in READ_METHODS:
                 ok.add(id(func.value))
-            elif isinstance(func, ast.Name) and func.id in ("setattr", "delattr") and len(node.args) > 1:
-                name = node.args[1]
-                if isinstance(name, ast.Constant) and isinstance(name.value, str):
-                    module.rebinds.add(name.value)
             if isinstance(func, ast.Name) and func.id in STRING_LOOKUPS:
                 for arg in node.args[1:2]:
                     if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
@@ -419,8 +422,29 @@ def scan_module(tree: ast.AST, module: Scope) -> None:
         elif isinstance(node, (ast.Global, ast.Nonlocal)):
             for name in node.names:
                 risky.setdefault(name, node.lineno)
-        elif isinstance(node, ast.ImportFrom):
-            module.aliases.extend((a.name, a.asname) for a in node.names if a.asname and a.asname != a.name)
+    return found
+
+
+class Rescanner:
+    """Reads a module's Mentions from its file, once, the first time the resolver asks.
+
+    Only a table or a functools.partial that the resolver has to prove needs them, and most
+    repositories never ask, so the indexing pass does not pay for the walk.
+    """
+
+    def __init__(self, repo: Path):
+        self.repo = repo
+        self.cache: dict[str, Mentions] = {}
+
+    def __call__(self, module: Scope) -> Mentions:
+        found = self.cache.get(module.id)
+        if found is None:
+            try:
+                found = scan_module(ast.parse((self.repo / module.file).read_bytes(), module.file))
+            except (SyntaxError, UnicodeDecodeError, ValueError, OSError, RecursionError, MemoryError):
+                found = Mentions(dynamic=True, readable=False)
+            self.cache[module.id] = found
+        return found
 
 
 def base_name(node: ast.AST) -> str:
@@ -519,11 +543,42 @@ class ScopeBuilder(ast.NodeVisitor):
         self.delayed = 0  # inside a lambda or generator expression, which run after the loop moved on
         for stmt in tree.body:
             self.visit(stmt)
-        scan_module(tree, root)
 
     @property
     def scope(self) -> Scope:
         return self.stack[-1]
+
+    # -- the walk itself ---------------------------------------------------
+    #
+    # ast.NodeVisitor looks the method up by name for every node and walks the fields through a
+    # generator. This is the same walk with the method found once per node class and the fields
+    # read directly, and without a visit of the leaves nothing here reads (names, constants, and
+    # the Load/Store/Del markers).
+
+    _methods: dict = {}
+
+    def visit(self, node):
+        cls = node.__class__
+        method = self._methods.get(cls)
+        if method is None:
+            method = getattr(self.__class__, "visit_" + cls.__name__, self.__class__.generic_visit)
+            self._methods[cls] = method
+        return method(self, node)
+
+    def generic_visit(self, node) -> None:
+        for name in node._fields:
+            value = getattr(node, name, None)
+            if isinstance(value, list):
+                for item in value:
+                    if isinstance(item, ast.AST):
+                        self.visit(item)
+            elif isinstance(value, ast.AST):
+                self.visit(value)
+
+    def visit_leaf(self, node) -> None:
+        """A node with no children that matter: a name, a constant, a Load/Store/Del marker."""
+
+    visit_Name = visit_Constant = visit_Load = visit_Store = visit_Del = visit_leaf
 
     # -- definitions -------------------------------------------------------
 
@@ -553,8 +608,8 @@ class ScopeBuilder(ast.NodeVisitor):
         target = f"{self.scope.id}.{node.name}" if not isinstance(node, ast.ClassDef) else ""
         for dec in node.decorator_list:
             self.visit(dec)  # records calls inside it, e.g. route("/x")
-            text = ast.unparse(dec)[:80]
             chain = dotted(dec) or []
+            text = ".".join(chain)[:80] if chain else ast.unparse(dec)[:80]  # a name or a.b.c unparses to itself
             if len(chain) == 2 and chain[1] in ("setter", "getter", "deleter"):
                 # @value.setter is a method of the builtin property object.
                 self.scope.calls.append(RawCall(None, text, dec.lineno, "decorator", "builtin", decorates=target))
@@ -567,6 +622,8 @@ class ScopeBuilder(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node) -> None:
         self._decorators(node)
+        for param in getattr(node, "type_params", ()):
+            self._rescan_for_setattr(param)
         for default in node.args.defaults + [d for d in node.args.kw_defaults if d is not None]:
             self.visit(default)
         args = node.args
@@ -642,6 +699,8 @@ class ScopeBuilder(ast.NodeVisitor):
 
     def visit_ClassDef(self, node) -> None:
         self._decorators(node)
+        for param in getattr(node, "type_params", ()):
+            self._rescan_for_setattr(param)
         for base in node.bases + [k.value for k in node.keywords]:
             self.visit(base)
         scope = self._enter(node, "class")
@@ -669,6 +728,8 @@ class ScopeBuilder(ast.NodeVisitor):
                 self.stack[0].star_imports.append(base)
             else:
                 self.scope.bind(alias.asname or alias.name, Binding("from", base, alias.name))
+                if alias.asname and alias.asname != alias.name:
+                    self.stack[0].aliases.append((alias.name, alias.asname))
 
     def _absolute(self, module: str | None, level: int) -> str:
         """Turn a relative import (from ..x import y) into an absolute module name."""
@@ -726,11 +787,53 @@ class ScopeBuilder(ast.NodeVisitor):
             # Each element keeps the reason it was given (a loop variable stays one), else it is unpacked.
             inner = evidence if evidence and all(ref.kind == "unknown" for ref in evidence) else [unknown_ref(UNPACKED)]
             for elt in target.elts:
+                if not isinstance(elt, ast.Name):
+                    self._rescan_for_setattr(elt)  # the visitor does not enter a tuple target's elements
                 self._bind_target(elt, inner)
         elif isinstance(target, ast.Starred):
+            if not isinstance(target.value, ast.Name):
+                self._rescan_for_setattr(target.value)
             self._bind_target(target.value, [unknown_ref(UNPACKED)])
         elif isinstance(target, ast.Attribute):
+            self.stack[0].rebinds.add(target.attr)
             self._record_self_attribute(target, evidence)
+        elif isinstance(target, ast.Subscript):
+            self._note_item_store(target)
+
+    def _note_item_store(self, target: ast.Subscript) -> None:
+        """`x["NAME"] = v` or `del x["NAME"]` can set a module's NAME (x may be globals() or its __dict__)."""
+        if isinstance(target.slice, ast.Constant) and isinstance(target.slice.value, str):
+            self.stack[0].rebinds.add(target.slice.value)
+
+    def _note_deleted(self, target: ast.AST) -> None:
+        if isinstance(target, (ast.Tuple, ast.List)):
+            for elt in target.elts:
+                self._note_deleted(elt)
+        elif isinstance(target, ast.Attribute):
+            self.stack[0].rebinds.add(target.attr)
+        elif isinstance(target, ast.Subscript):
+            self._note_item_store(target)
+
+    def visit_Delete(self, node) -> None:
+        for target in node.targets:
+            self._note_deleted(target)
+        self.generic_visit(node)
+
+    def _rescan_for_setattr(self, node: ast.AST | None) -> None:
+        """setattr(m, "NAME", x) written where the walk does not go (inside a tuple target's
+        subscript, a local variable's annotation, a type parameter's bound)."""
+        if node is not None:
+            for inner in ast.walk(node):
+                if isinstance(inner, ast.Call):
+                    self._note_setattr(inner)
+
+    def _note_setattr(self, node: ast.Call) -> None:
+        """setattr(m, "NAME", x) and delattr(m, "NAME") can rebind a module's NAME."""
+        func = node.func
+        if isinstance(func, ast.Name) and func.id in ("setattr", "delattr") and len(node.args) > 1:
+            name = node.args[1]
+            if isinstance(name, ast.Constant) and isinstance(name.value, str):
+                self.stack[0].rebinds.add(name.value)
 
     def _record_self_attribute(self, target: ast.Attribute, evidence: list) -> None:
         """self.x = value inside a method: remember x's type on the class."""
@@ -763,6 +866,8 @@ class ScopeBuilder(ast.NodeVisitor):
             self.visit(node.value)
         if self.scope.kind in ("module", "class"):  # a local variable's annotation is never evaluated
             self._visit_annotation(node.annotation)
+        else:
+            self._rescan_for_setattr(node.annotation)
         hint = annotation_type(node.annotation)
         evidence = [TypeRef("annotation", hint, self.scope.id) if hint else unknown_ref(ANNOTATION_NO_CLASS)]
         self._note_table(node.target, node.value)
@@ -882,7 +987,9 @@ class ScopeBuilder(ast.NodeVisitor):
 
     def visit_Call(self, node) -> None:
         func = node.func
-        text = ast.unparse(func)[:80]
+        self._note_setattr(node)
+        chain = dotted(func)
+        text = ".".join(chain)[:80] if chain else ast.unparse(func)[:80]  # a name or a.b.c unparses to itself
         kind = "annotation" if self.in_annotation else "call"
         if (
             isinstance(func, ast.Attribute)
@@ -895,7 +1002,6 @@ class ScopeBuilder(ast.NodeVisitor):
             # "-".join(parts), f"{x}".upper(): a method on a builtin literal.
             self.scope.calls.append(RawCall(None, text, node.lineno, kind, special="builtin"))
         else:
-            chain = dotted(func)
             path = None if chain else call_path(func)
             got = table_get(func)
             loop = next((lp for lp in reversed(self.loops) if lp[0] == self.scope.id and chain == [lp[1]]), None)
@@ -1005,7 +1111,17 @@ def run_deep(function, *args):
 
 def build_graph(repo: str | Path) -> Graph:
     """Index a repository from scratch. Most callers want cache.load_graph."""
-    return run_deep(_build_graph, Path(repo))
+    # The index is a large graph of objects that all stay alive until the end, so the cyclic
+    # collector, which rescans every live object each time it runs, finds almost nothing and
+    # costs a share of the build that grows with the repo (django: about 40% of a cold index).
+    # It stays off while the graph is built, and goes back on if it was on.
+    was_enabled = gc.isenabled()
+    gc.disable()
+    try:
+        return run_deep(_build_graph, Path(repo))
+    finally:
+        if was_enabled:
+            gc.enable()
 
 
 def _build_graph(repo: Path) -> Graph:
@@ -1014,7 +1130,7 @@ def _build_graph(repo: Path) -> Graph:
     repo = Path(repo).resolve()
     files, skipped = walk_repo(repo)
     scopes, errors = collect_scopes(repo, files)
-    graph = Resolver(scopes).run()
+    graph = Resolver(scopes, Rescanner(repo)).run()
     graph.parse_errors = errors
     graph.skipped_dirs = skipped
     unparsed = set(errors)
