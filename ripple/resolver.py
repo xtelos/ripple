@@ -24,7 +24,7 @@ of them. This is class hierarchy analysis, a standard static technique.
 from __future__ import annotations
 
 import builtins
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from .indexer import Binding, RawCall, Scope, TypeRef
 from .model import Edge, Graph, Symbol, Unresolved
@@ -45,6 +45,9 @@ class Target:
       instance  a value whose class is known (value is the class id)
       bound     a method looked up on an instance (value is the method id,
                 receiver is the instance's class, used to find overrides)
+    exact marks a variable whose every assignment is a constructor call of one
+    class (field = Field()), not merely a class the value could be (a parameter
+    annotated Field, self, a self.attr): it cannot be a subclass, so no overrides.
       external  something outside the repo: stdlib, a dependency, a builtin
       unknown   cannot be determined statically (reason says why)
     """
@@ -53,6 +56,7 @@ class Target:
     value: str = ""
     receiver: str = ""
     reason: str = ""
+    exact: bool = False
 
 
 def unknown(reason: str) -> Target:
@@ -111,6 +115,8 @@ class Resolver:
             return [(target.value, default)]
         # A bound method: the method found, plus overrides in subclasses.
         found = [(target.value, default)]
+        if target.exact:
+            return found
         name = target.value.rsplit(".", 1)[-1]
         owner = target.value.rsplit(".", 1)[0]
         for sub in self.all_subclasses(target.receiver):
@@ -186,7 +192,36 @@ class Resolver:
         if binding.kind == "self":
             cls = self.enclosing_class(where)
             return Target("instance", cls) if cls else unknown("self outside a class")
-        return self.value_of_type(self.var_type(binding))
+        value = self.value_of_type(self.var_type(binding))
+        if value.kind == "instance" and self.constructed(binding.evidence):
+            value = replace(value, exact=True)
+        return value
+
+    def constructed(self, evidence: list) -> bool:
+        """Whether every piece of evidence is a call of a class: the value is exactly that class."""
+        return bool(evidence) and all(
+            ref is not None and ref.kind == "call" and self.names_class(ref) for ref in evidence
+        )
+
+    def names_class(self, ref: TypeRef) -> bool:
+        """Whether ref calls a class named statically (never through self or cls, which may be a
+        subclass that redefines it) and calling it provably builds exactly that class."""
+        named = self.resolve_chain(self.scopes[ref.scope], ref.expr.split("."))
+        return named.kind == "symbol" and self.scopes[named.value].kind == "class" and self.builds_itself(named.value)
+
+    def builds_itself(self, cls: str) -> bool:
+        """Whether C() can only give an instance of exactly C.
+
+        A __new__ or a metaclass can return an instance of another class, usually a
+        subclass (anyio's Event.__new__ picks a backend's), so any in the hierarchy
+        spoils the proof, and so does a base ripple could not resolve: it may define one.
+        Bases outside the repo are trusted not to.
+        """
+        if self.unresolved_base(cls):
+            return False
+        return not any(
+            "__new__" in self.scopes[klass].names or self.scopes[klass].redirects_construction for klass in self.mro(cls)
+        )
 
     def value_of_type(self, cls: str | None) -> Target:
         """A value whose class is cls: a repo class, a builtin such as dict, or unknown."""
@@ -253,9 +288,10 @@ class Resolver:
                     f"property {method} has no return annotation naming a class"
                 )
             if method is not None:
-                return Target("bound", method, receiver=target.value)
+                return Target("bound", method, receiver=target.value, exact=target.exact)
             cls = self.attribute_type(target.value, attr)
             if cls:
+                # Never exact: a subclass of the holder, or code outside it, may assign another class.
                 return self.value_of_type(cls)
             if self.assigns(target.value, attr):
                 return unknown(f"'{attr}' is not a method or typed attribute of {target.value}")
