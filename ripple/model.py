@@ -37,6 +37,11 @@ class Edge:
     "annotation" (a call written inside an annotation, made by the scope that
     holds the annotated def or class) or "wrapped" (a decorator's wrapper
     calling the function the decorator was given).
+
+    via is set on the edges that belong to one decoration: a call by the name of a decorated
+    function (it reaches the wrapper), and each "wrapped" edge of that function's decorator
+    stack. It is the decorated function. One wrapper body serves every function its decorator
+    is applied to, so a chain through it continues only along edges with the same via.
     """
 
     caller: str
@@ -44,6 +49,7 @@ class Edge:
     file: str
     line: int
     kind: str = "call"
+    via: str = ""
 
 
 @dataclass(frozen=True)
@@ -77,9 +83,13 @@ class Graph:
         """Build lookup tables once so queries do not rescan the edge list."""
         self.callers_index: dict[str, list[Edge]] = defaultdict(list)
         self.callees_index: dict[str, list[Edge]] = defaultdict(list)
+        # decorated function -> the call sites of its name, which reach it through its wrapper
+        self.via_index: dict[str, list[Edge]] = defaultdict(list)
         for edge in self.edges:
             self.callers_index[edge.callee].append(edge)
             self.callees_index[edge.caller].append(edge)
+            if edge.via and edge.kind != "wrapped":
+                self.via_index[edge.via].append(edge)
 
     def stats(self) -> dict:
         kinds: dict[str, int] = defaultdict(int)

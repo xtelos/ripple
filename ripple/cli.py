@@ -76,7 +76,8 @@ def format_impact(result: dict) -> str:
     for file, entries in result["by_file"].items():
         lines.append(f"  {file}")
         for e in entries:
-            lines.append(f"    {e['symbol']}  line {e['line']}  ({e['distance']} hop{'s' * (e['distance'] > 1)})")
+            through = f"  through the wrapper {e['via_wrapper']}" if "via_wrapper" in e else ""
+            lines.append(f"    {e['symbol']}  line {e['line']}  ({e['distance']} hop{'s' * (e['distance'] > 1)}){through}")
     if result["omitted_callers"]:
         lines.append(MORE.format(n=result["omitted_callers"], what="callers"))
     lines.append(f"tests that reach it ({result['test_count']}):")
@@ -97,7 +98,14 @@ def format_result(command: str, result: dict) -> str:
     if command == "impact":
         return format_impact(result)
     if command == "callers":
-        return "\n".join(format_symbols(f"callers of {result['symbol']}", result["callers"]))
+        lines = format_symbols(f"callers of {result['symbol']}", result["callers"])
+        if result["through_wrapper"]:
+            lines.append(f"lines that call it by name, through its wrapper ({len(result['through_wrapper'])}):")
+            lines += [
+                f"  {e['symbol']}  {e['location']}  called at {', '.join(e['call_sites'])}  via {e['via_wrapper']}"
+                for e in result["through_wrapper"]
+            ]
+        return "\n".join(lines)
     if command == "callees":
         lines = format_symbols(f"callees of {result['symbol']}", result["callees"])
         lines.append(f"unresolved ({len(result['unresolved'])}):")

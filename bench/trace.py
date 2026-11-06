@@ -2,7 +2,10 @@
 
 This is how the hand-written ground truth is kept honest. The trace runs a
 fixture's own pytest suite under ``sys.setprofile`` and writes every
-(caller, callee) pair between repo-defined functions to a JSON file.
+(caller, callee) pair between repo-defined functions to a JSON file, and for every call the whole
+chain of repo-defined functions that were running when it was made (its stack, innermost first).
+The pairs are context-insensitive: they cannot tell that A reaches B through a wrapper when the
+same wrapper also serves C. The stacks can, and the ground truth for "impact" is read from them.
 
 It deliberately shares no code with the ripple indexer: it has its own tiny
 AST pass to name functions, so a bug in ripple cannot make the ground truth
@@ -85,6 +88,7 @@ def main(fixture: str, out: str) -> int:
     os.chdir(root)
     namer = Namer(root)
     edges: set[tuple[str, str]] = set()
+    stacks: set[tuple[str, ...]] = set()
 
     def profiler(frame, event, arg):
         if event != "call" or frame.f_code.co_name in ANONYMOUS or frame.f_back is None:
@@ -94,12 +98,19 @@ def main(fixture: str, out: str) -> int:
             return
         # Skip frames that are not repo code (runpy, functools, pytest), so
         # "no other repo-defined function in between" holds.
-        back, caller = frame.f_back, None
-        while back is not None and caller is None:
-            caller = namer.name(back.f_code)
+        back, caller, chain = frame.f_back, None, [callee]
+        while back is not None:
+            name = namer.name(back.f_code)
+            if name is not None:
+                if caller is None:
+                    caller = name
+                if name != chain[-1]:  # a recursive call is not another hop
+                    chain.append(name)
             back = back.f_back
         if caller is not None and caller != callee:
             edges.add((caller, callee))
+        if len(chain) > 1:
+            stacks.add(tuple(chain))
 
     import pytest
 
@@ -108,7 +119,7 @@ def main(fixture: str, out: str) -> int:
         code = pytest.main(["-q", "-p", "no:cacheprovider", "--rootdir", str(root), str(root / "tests")])
     finally:
         sys.setprofile(None)
-    Path(out).write_text(json.dumps(sorted(edges), indent=1))
+    Path(out).write_text(json.dumps({"edges": sorted(edges), "stacks": sorted(stacks)}, indent=1))
     return int(code)
 
 

@@ -140,7 +140,14 @@ argument, a wrapper whose every return is `return fn(...)` (not `result = fn(...
 async or generator wrapper), or `property`, `staticmethod`, `classmethod`, `functools.cache`, `lru_cache`,
 `cached_property`, `abstractmethod`, `overload`. Any other decorator, a repo one ripple cannot read or a
 dependency's (`retry`, `validate_call`), leaves the result unknown and the call unresolved, with the reason. A decorator also called as `timed(g)` keeps its wrapped call
-unresolved as well, since the wrapper may be given `g` too.
+unresolved as well, since the wrapper may be given `g` too. One wrapper body serves every function its
+decorator is applied to, but in each decoration it calls one of them, so the edges of a decoration carry
+the decorated function (`via`) and `impact` and `path` follow a chain through the wrapper only for the
+function the chain entered it for: the callers of `run_unload` are not callers of `ship` because both
+are `@audited`. `callers` of the wrapper itself still lists every caller of every function it wraps.
+`callers` of a decorated function lists the wrapper, which is what calls it, and also, under
+`through_wrapper`, the lines that write its name and reach it through the wrapper; `impact` labels such a
+caller `via_wrapper`. So a signature change finds every call site to edit.
 
 The index is cached outside your repo (`RIPPLE_CACHE_DIR` if set, else `$XDG_CACHE_HOME/ripple` or
 `~/.cache/ripple`) and keyed on every file's mtime and size, so each query re-checks the files and
@@ -172,9 +179,12 @@ How to read this honestly:
   before any indexer code existed (see the first commit), and the dynamic cases were included on
   purpose to show where static analysis stops.
 - **The truth is checked against runtime.** `bench/trace.py` runs each fixture's own test suite under
-  a profiler, records the calls that actually happen, and `tests/test_ground_truth.py` fails if any
-  expected answer disagrees with that trace. The tracer shares no code with ripple.
-- **It is small.** 39 queries over three fixtures I wrote, each query aimed at one resolution rule or
+  a profiler, records the calls that actually happen with the stack each was made under, and
+  `tests/test_ground_truth.py` fails if any expected answer disagrees with that trace. An impact answer
+  is read from the stacks, not from a closure over caller and callee pairs, which would also credit a
+  chain no run takes (two functions sharing one wrapper). A caller no test runs through is listed apart,
+  as `unexercised`, with the reason. The tracer shares no code with ripple.
+- **It is small.** 62 queries over four fixtures I wrote, each query aimed at one resolution rule or
   one known limit. It shows which rules work, not what recall looks like on your codebase, where
   more of the code is likely to be untyped and dynamic.
 - **The one false positive is a design choice.** ripple treats a decorated function as called

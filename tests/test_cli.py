@@ -81,6 +81,20 @@ def test_callers_callees_and_path(capsys):
     assert "shop.pricing.price_order" in capsys.readouterr().out
 
 
+def test_callers_and_impact_text_show_the_lines_that_reach_a_wrapped_function(capsys):
+    warehouse = str(FIXTURES / "warehouse")
+    assert main(["callers", "ship", "--repo", warehouse]) == 0
+    out = capsys.readouterr().out
+    assert "callers of warehouse.guards.ship (1):" in out
+    assert "lines that call it by name, through its wrapper (2):" in out
+    assert "warehouse.guards.run_ship" in out.split("through its wrapper")[1]
+    assert main(["impact", "ship", "--repo", warehouse]) == 0
+    assert (
+        "warehouse.guards.run_ship  line 41  (3 hops)  through the wrapper warehouse.guards.counted.decorate.counter"
+        in capsys.readouterr().out
+    )
+
+
 def test_unknown_symbol_exits_nonzero(capsys):
     assert main(["impact", "does_not_exist", "--repo", SHOP]) == 1
     assert "no symbol named" in capsys.readouterr().out

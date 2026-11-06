@@ -13,7 +13,7 @@ import difflib
 from collections import deque
 from pathlib import PurePosixPath
 
-from .model import Graph, Symbol
+from .model import Edge, Graph, Symbol
 
 MAX_LISTED = 100  # default cap on symbols listed per section, so a hub function cannot flood the agent
 
@@ -49,6 +49,17 @@ def _targets(graph: Graph, symbol_id: str) -> set[str]:
     return targets
 
 
+def _continues(edge: Edge, context: str) -> bool:
+    """Whether a chain that went through a wrapper for the decorated function `context` (empty: no
+    particular one) may go on along this edge into that wrapper.
+
+    One wrapper body serves every function its decorator is applied to, so the callers of one
+    decorated function are not callers of another through it: an edge that belongs to a
+    different decoration (see Edge.via) is not part of the chain.
+    """
+    return not (context and edge.via and edge.via != context)
+
+
 def callers(graph: Graph, query: str) -> dict:
     found = find_symbol(graph, query)
     if "symbol" not in found:
@@ -58,10 +69,20 @@ def callers(graph: Graph, query: str) -> dict:
         for edge in graph.callers_index.get(target, []):
             sites.setdefault(edge.caller, []).append(f"{edge.file}:{edge.line}")
     listed = [
-        {**_describe(graph.symbols[caller]), "call_sites": sorted(lines)}
+        {**_describe(graph.symbols[caller]), "call_sites": sorted(set(lines))}
         for caller, lines in sorted(sites.items())
     ]
-    return {"symbol": found["symbol"], "count": len(listed), "callers": listed}
+    # A decorated function is called by its wrapper. The lines that write its name call the wrapper, and
+    # reach the function through it: list them too, since changing the function changes what they run.
+    through: dict[str, tuple[str, list[str]]] = {}
+    for target in _targets(graph, found["symbol"]):
+        for edge in graph.via_index.get(target, []):
+            through.setdefault(edge.caller, (edge.callee, []))[1].append(f"{edge.file}:{edge.line}")
+    reaching = [
+        {**_describe(graph.symbols[caller]), "call_sites": sorted(set(lines)), "via_wrapper": wrapper}
+        for caller, (wrapper, lines) in sorted(through.items())
+    ]
+    return {"symbol": found["symbol"], "count": len(listed), "callers": listed, "through_wrapper": reaching}
 
 
 def callees(graph: Graph, query: str) -> dict:
@@ -232,18 +253,27 @@ def impact(graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED) ->
     symbol_id = found["symbol"]
     targets = _targets(graph, symbol_id)
     distance: dict[str, int] = {}
-    frontier = set(targets)
+    via_wrapper: dict[str, str] = {}  # caller -> the wrapper it reached the symbol through, when it names a decorated function
+    seen = {(target, "") for target in targets}
+    frontier = set(seen)
     for hop in range(1, depth + 1):
         next_frontier = set()
-        for target in frontier:
+        for target, context in frontier:
             for edge in graph.callers_index.get(target, []):
-                if edge.caller not in distance and edge.caller not in targets:
-                    distance[edge.caller] = hop
-                    next_frontier.add(edge.caller)
+                if edge.caller in targets or not _continues(edge, context):
+                    continue
+                state = (edge.caller, edge.via if edge.kind == "wrapped" else "")
+                if state not in seen:
+                    seen.add(state)
+                    if edge.caller not in distance:
+                        distance[edge.caller] = hop
+                        if edge.via and edge.kind != "wrapped":
+                            via_wrapper[edge.caller] = edge.callee
+                    next_frontier.add(state)
         frontier = next_frontier
     more_beyond_depth = any(
-        edge.caller not in distance and edge.caller not in targets
-        for target in frontier
+        edge.caller not in distance and edge.caller not in targets and _continues(edge, context)
+        for target, context in frontier
         for edge in graph.callers_index.get(target, [])
     )
 
@@ -253,6 +283,8 @@ def impact(graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED) ->
     for sid in sorted(distance, key=lambda sid: (distance[sid], sid)):
         symbol = graph.symbols[sid]
         entry = {"symbol": sid, "line": symbol.line, "distance": distance[sid]}
+        if sid in via_wrapper:
+            entry["via_wrapper"] = via_wrapper[sid]
         node_ids = collection.node_ids(sid)
         for node_id in node_ids:
             tests.append({"node_id": node_id, **entry, "file": node_id.split("::")[0]})
@@ -293,27 +325,32 @@ def path(graph: Graph, source: str, target: str, max_depth: int = 12) -> dict:
         if "symbol" not in found:
             return found
     goals = _targets(graph, goal["symbol"])
-    came_from: dict[str, tuple[str, str] | None] = {start["symbol"]: None}
-    queue = deque([(start["symbol"], 0)])
-    end = start["symbol"] if start["symbol"] in goals else None
+    # A step is (symbol, the decorated function whose wrapper the chain has just entered, if any).
+    first = (start["symbol"], "")
+    came_from: dict[tuple[str, str], tuple[tuple[str, str], str] | None] = {first: None}
+    queue = deque([(first, 0)])
+    end = first if first[0] in goals else None
     while queue and end is None:
         current, hops = queue.popleft()
         if hops >= max_depth:
             continue
-        for edge in graph.callees_index.get(current, []):
-            if edge.callee not in came_from:
-                came_from[edge.callee] = (current, f"{edge.file}:{edge.line}")
+        for edge in graph.callees_index.get(current[0], []):
+            if edge.kind == "wrapped" and not _continues(edge, current[1]):
+                continue  # this wrapper was entered for another decorated function
+            step = (edge.callee, edge.via)
+            if step not in came_from:
+                came_from[step] = (current, f"{edge.file}:{edge.line}")
                 if edge.callee in goals:
-                    end = edge.callee
+                    end = step
                     break
-                queue.append((edge.callee, hops + 1))
+                queue.append((step, hops + 1))
     result = {"from": start["symbol"], "to": goal["symbol"], "path": None}
     if end is None:
         return result
     chain, node = [], end
     while node is not None:
         step = came_from[node]
-        chain.append({**_describe(graph.symbols[node]), "called_at": step[1] if step else None})
+        chain.append({**_describe(graph.symbols[node[0]]), "called_at": step[1] if step else None})
         node = step[0] if step else None
     result["path"] = chain[::-1]
     return result

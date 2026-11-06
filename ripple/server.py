@@ -28,8 +28,10 @@ node_id of each of those tests. Symbols can be a full dotted path
 (pkg.module.Class.method), a suffix (Class.method) or a bare name; an
 ambiguous name returns candidates.
 The graph is static: calls through untyped values, getattr, dict dispatch
-and decorator wrappers are not followed. impact lists same-named call sites
-it could not resolve under possible_missed_callers; check those by hand.
+and decorators ripple cannot read are not followed. A decorated function is
+called by its wrapper; callers also lists, under through_wrapper, the lines
+that write its name. impact lists same-named call sites it could not resolve
+under possible_missed_callers; check those by hand.
 """
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True, idempotentHint=True, openWorldHint=False)
@@ -44,7 +46,8 @@ def build_server(repo: str, test_command: str | None = None, timeout: float = 30
         annotations=READ_ONLY,
         description=(
             "List the functions and methods that directly call a symbol, with the file:line of each "
-            "call site. symbol: dotted path, Class.method suffix, or bare name."
+            "call site. A decorated function is called by its wrapper, so the lines that write its name "
+            "are listed apart, under through_wrapper. symbol: dotted path, Class.method suffix, or bare name."
         ),
     )
     def callers(symbol: str) -> dict:
