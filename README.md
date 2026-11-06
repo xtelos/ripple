@@ -157,6 +157,23 @@ parameter or of anything ripple cannot resolve, a name assigned partials of diff
 assigned anything else, and a module-level name another module assigns to (`m.T = ...`, `setattr(m, "T", ...)`),
 or whose module uses `globals()`, `exec` or a star import that could define it.
 
+**Dispatch tables.** A module-level dict, list or tuple literal of plain function names is a fixed table when
+no code in the repo can change it, and then `TABLE["k"](x)`, `TABLE.get("k")(x)`, `TABLE[1](x)`, a local
+assigned `TABLE["k"]` and called, and `for f in TABLE: f(x)` (also `.values()` and `.items()`) are calls of
+the entries they reach: the one under that key, or every entry for a loop. ripple proves "no code can change
+it" by reading every module for any use of the name that is not a read: a subscript store, `update`, `pop`,
+`append` or any other method that is not `get`/`items`/`values`/`keys`/`copy`, `del`, an augmented assignment,
+passing the table to a call (`len(T)` included), aliasing it, returning it, storing it, `global T`, a second
+assignment, `getattr(m, "T")`, `globals()["T"]`. Names are matched as text in every module, so an import
+alias (`from m import T as U`, through any chain), `m.T` and a star import are all covered, and so is an
+unrelated variable that happens to share the name (the call then stays unresolved, never guessed). A module
+that uses `globals()`, `exec` or `__dict__`, or has a star import that could define the name, is not trusted.
+The unresolved call says which use spoiled the proof and where (`T may be changed or handed on: 'T' is used
+other than to read it, at m.py:60`). An entry that is not a plain name of a function or method, a missing
+key, a variable key, a loop over a dict's keys, and a loop variable that is assigned anywhere else in its
+function (two loops that reuse a variable name count), called after the loop, in the loop's `else`, in a
+nested function, lambda or generator expression, all stay unresolved.
+
 The index is cached outside your repo (`RIPPLE_CACHE_DIR` if set, else `$XDG_CACHE_HOME/ripple` or
 `~/.cache/ripple`) and keyed on every file's mtime and size, so each query re-checks the files and
 rebuilds only when something changed.
@@ -261,8 +278,9 @@ Static analysis of a dynamic language misses things. ripple does not follow:
 
 - method calls on values of unknown type: unannotated parameters, loop variables, results of
   functions without a return annotation (reported as unresolved, with the reason)
-- `getattr`, dict or registry dispatch, callbacks passed as arguments, a `functools.partial` that is not bound to
-  one name (passed on, stored in an attribute, or built by a call)
+- `getattr`, registries that are added to, a dict or list looked up by a variable key or whose contents are not
+  plain function names, callbacks passed as arguments, a `functools.partial` that is not bound to one name
+  (passed on, stored in an attribute, or built by a call)
 - decorators ripple cannot read, see "Decorators" below: for those the decorated function is treated as
   called directly
 - `__call__`, metaclasses, monkeypatching, `importlib`, `exec`, and a call on the result of a function

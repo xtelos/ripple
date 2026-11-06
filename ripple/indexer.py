@@ -36,7 +36,8 @@ class TypeRef:
     kind is "annotation" (expr is a type written in the source), "call"
     (expr is the thing that was called; it only counts if it is a class),
     "name" (the value was copied from another variable, named by expr),
-    "builtin" (a literal; expr is the builtin type name, e.g. "list") or
+    "builtin" (a literal; expr is the builtin type name, e.g. "list"),
+    "item" (the value is TABLE[key] or TABLE.get(key): expr is the table, key is (key,)) or
     "unknown" (an assignment that proves nothing; expr says why, in words that
     finish "the receiver is ...", so the unresolved calls can be counted by cause).
     scope is the id of the scope the expression should be resolved in. For a "call", arg is
@@ -47,6 +48,7 @@ class TypeRef:
     expr: str
     scope: str
     arg: str = ""
+    key: tuple | None = None
 
 
 # Why a value's class is unknown, as the unresolved calls report it.
@@ -110,6 +112,13 @@ class RawCall:
     # Why a computed callee (chain and path both None) is computed: one of the COMPUTED_* texts.
     why: str = ""
     decorates: str = ""
+    # special "table": TABLE[key](...) or TABLE.get(key)(...) with a constant key (form "item", key is
+    # (key,)), or a call of the variable of an enclosing `for x in TABLE` (form "iter"), `.values()`
+    # ("values") or `.items()` ("items") loop (var is the variable). table is the dotted name of TABLE.
+    table: list | None = None
+    key: tuple | None = None
+    form: str = ""
+    var: str = ""
 
 
 @dataclass
@@ -153,6 +162,11 @@ class Scope:
     # Names this module sets or deletes as an attribute of something (`mod.NAME = x`, setattr(mod, "NAME", x),
     # globals()["NAME"] = x), which can rebind a name another module defines.
     rebinds: set = field(default_factory=set)
+    tables: dict = field(default_factory=dict)  # NAME = {...} / [...] / (...): Table
+    # Names this module mentions other than to read a table, each with the line of the first mention,
+    # and what it imports under a new name, as (name, asname).
+    risky: dict = field(default_factory=dict)
+    aliases: list = field(default_factory=list)
     dynamic: bool = False  # globals(), vars(), exec, eval or __dict__ appear: the module's names can change unseen
 
     def bind(self, name: str, binding: Binding) -> None:
@@ -263,39 +277,150 @@ def call_path(node: ast.AST) -> list | None:
     return parts if "()" in parts else None
 
 
-DYNAMIC_NAMES = {"globals", "vars", "locals", "exec", "eval"}
+@dataclass
+class Table:
+    """A module-level dict, list or tuple literal: what it holds, as dotted names.
 
-
-def scan_rebinds(tree: ast.AST, module: Scope) -> None:
-    """Record how this module could rebind a name defined elsewhere, or change its own names unseen.
-
-    Matched on the name as text, on purpose: it holds through any alias or import form.
+    kind "dict": entries maps each constant key to the dotted name written as the value
+    (a list of parts), or None when the value is anything else. kind "seq": entries is
+    the list of dotted names, None where an element is anything else.
     """
+
+    kind: str
+    entries: object
+
+
+def const_key(node: ast.AST):
+    """(key,) for a constant str, bytes or int subscript or dict key, else None."""
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+        inner = const_key(node.operand)
+        return (-inner[0],) if inner and type(inner[0]) is int else None
+    if isinstance(node, ast.Constant) and type(node.value) in (str, bytes, int):
+        return (node.value,)
+    return None
+
+
+def table_of(value: ast.AST) -> Table | None:
+    """The Table a literal is, or None: not a dict, list or tuple, or one with **unpacking,
+    *star elements, a key that is not a plain constant, or the same key twice."""
+    if isinstance(value, ast.Dict):
+        entries = {}
+        for key_node, item in zip(value.keys, value.values):
+            key = const_key(key_node) if key_node is not None else None
+            if key is None or key[0] in entries:
+                return None
+            entries[key[0]] = dotted(item)
+        return Table("dict", entries)
+    if isinstance(value, (ast.List, ast.Tuple)):
+        if any(isinstance(item, ast.Starred) for item in value.elts):
+            return None
+        return Table("seq", [dotted(item) for item in value.elts])
+    return None
+
+
+def table_get(node: ast.AST):
+    """(table chain, (key,)) for TABLE[key] or TABLE.get(key) with a constant key, else None."""
+    if isinstance(node, ast.Subscript) and isinstance(node.ctx, ast.Load):
+        chain, key = dotted(node.value), const_key(node.slice)
+    elif (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "get"
+        and len(node.args) == 1
+        and not node.keywords
+    ):
+        chain, key = dotted(node.func.value), const_key(node.args[0])
+    else:
+        return None
+    return (chain, key) if chain and key else None
+
+
+# Methods that read a dict or list without changing it. Anything else called on a table
+# (update, append, pop, setdefault, sort, ...) may change it.
+READ_METHODS = {"get", "items", "values", "keys", "copy", "count", "index"}
+DYNAMIC_NAMES = {"globals", "vars", "locals", "exec", "eval"}
+STRING_LOOKUPS = {"getattr", "setattr", "delattr", "hasattr"}
+
+
+def _reads(node: ast.AST) -> list:
+    """Ids of the nodes a for-loop or comprehension reads from: `for x in T`, `for x in T.values()`."""
+    if isinstance(node, (ast.Name, ast.Attribute)):
+        return [id(node)]
+    if (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in ("values", "items", "keys")
+        and not node.args
+        and not node.keywords
+    ):
+        return [id(node.func.value)]
+    return []
+
+
+def scan_module(tree: ast.AST, module: Scope) -> None:
+    """Record how this module could rebind or change a name defined elsewhere, or its own names unseen.
+
+    rebinds and dynamic say a module-level name may be rebound (see Resolver.module_name_stable).
+    risky is for tables: a name (or attribute) that is only subscripted for reading, iterated, read
+    with get/items/values/..., or tested with `in` cannot change what it names. Every other mention
+    (assigned, deleted, passed on, aliased, returned, called with append or update, declared global)
+    goes in module.risky, so a table whose name is in no module's risky set (following
+    `from m import T as U`) is not changed by any code in the repo. Names are matched as text on
+    purpose: that holds through any alias, import form or module.
+
+    One pass: ast.walk visits a parent before its children, so a parent can clear its children.
+    """
+    ok: set = set()
+    risky = module.risky
     for node in ast.walk(tree):
-        if isinstance(node, ast.Attribute):
+        if isinstance(node, ast.Name):
+            if id(node) not in ok:
+                risky.setdefault(node.id, node.lineno)
+            if node.id in DYNAMIC_NAMES:
+                module.dynamic = True
+        elif isinstance(node, ast.Attribute):
+            if id(node) not in ok:
+                risky.setdefault(node.attr, node.lineno)
             if isinstance(node.ctx, (ast.Store, ast.Del)):
                 module.rebinds.add(node.attr)
             if node.attr == "__dict__":
                 module.dynamic = True
-        elif isinstance(node, ast.Name):
-            if node.id in DYNAMIC_NAMES:
-                module.dynamic = True
-        elif (
-            isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Name)
-            and node.func.id in ("setattr", "delattr")
-            and len(node.args) > 1
-            and isinstance(node.args[1], ast.Constant)
-            and isinstance(node.args[1].value, str)
-        ):
-            module.rebinds.add(node.args[1].value)
-        elif (
-            isinstance(node, ast.Subscript)
-            and isinstance(node.ctx, (ast.Store, ast.Del))
-            and isinstance(node.slice, ast.Constant)
-            and isinstance(node.slice.value, str)
-        ):
-            module.rebinds.add(node.slice.value)  # globals()["NAME"] = x, mod.__dict__["NAME"] = x (or any other dict: harmless)
+        elif isinstance(node, ast.Subscript):
+            if isinstance(node.ctx, ast.Load):
+                ok.add(id(node.value))
+            elif isinstance(node.slice, ast.Constant) and isinstance(node.slice.value, str):
+                module.rebinds.add(node.slice.value)  # globals()["NAME"] = x, mod.__dict__["NAME"] = x
+            if isinstance(node.slice, ast.Constant) and isinstance(node.slice.value, str) and (
+                (isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name) and node.value.func.id in DYNAMIC_NAMES)
+                or (isinstance(node.value, ast.Attribute) and node.value.attr == "__dict__")
+            ):
+                risky.setdefault(node.slice.value, node.lineno)
+        elif isinstance(node, (ast.For, ast.AsyncFor, ast.comprehension)):
+            ok.update(_reads(node.iter))
+        elif isinstance(node, ast.Call):
+            func = node.func
+            if isinstance(func, ast.Attribute) and func.attr in READ_METHODS:
+                ok.add(id(func.value))
+            elif isinstance(func, ast.Name) and func.id in ("setattr", "delattr") and len(node.args) > 1:
+                name = node.args[1]
+                if isinstance(name, ast.Constant) and isinstance(name.value, str):
+                    module.rebinds.add(name.value)
+            if isinstance(func, ast.Name) and func.id in STRING_LOOKUPS:
+                for arg in node.args[1:2]:
+                    if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                        risky.setdefault(arg.value, node.lineno)
+        elif isinstance(node, ast.Compare):
+            if any(isinstance(op, (ast.In, ast.NotIn)) for op in node.ops):
+                ok.update(id(c) for c in node.comparators)
+        elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+            if node.value is not None and table_of(node.value):
+                for target in node.targets if isinstance(node, ast.Assign) else [node.target]:
+                    ok.add(id(target))  # the definition itself
+        elif isinstance(node, (ast.Global, ast.Nonlocal)):
+            for name in node.names:
+                risky.setdefault(name, node.lineno)
+        elif isinstance(node, ast.ImportFrom):
+            module.aliases.extend((a.name, a.asname) for a in node.names if a.asname and a.asname != a.name)
 
 
 def base_name(node: ast.AST) -> str:
@@ -390,9 +515,11 @@ class ScopeBuilder(ast.NodeVisitor):
         self.scopes[module] = root
         self.stack = [root]
         self.in_annotation = 0
+        self.loops: list = []  # (scope id, variable, table, form) of the `for x in TABLE` loops whose body is being visited
+        self.delayed = 0  # inside a lambda or generator expression, which run after the loop moved on
         for stmt in tree.body:
             self.visit(stmt)
-        scan_rebinds(tree, root)
+        scan_module(tree, root)
 
     @property
     def scope(self) -> Scope:
@@ -574,6 +701,9 @@ class ScopeBuilder(ast.NodeVisitor):
             return [TypeRef("call", ".".join(chain), here, arg=".".join(first) if first else "")]
         if isinstance(value, ast.Name):
             return [TypeRef("name", value.id, here)]
+        got = table_get(value)
+        if got:
+            return [TypeRef("item", ".".join(got[0]), here, key=got[1])]
         if isinstance(value, ast.BoolOp) and isinstance(value.op, ast.Or):
             refs = []
             for operand in value.values:
@@ -613,8 +743,16 @@ class ScopeBuilder(ast.NodeVisitor):
         cls = self.scopes[self.scope.parent]
         cls.attr_types.setdefault(chain[1], []).extend(evidence)
 
+    def _note_table(self, target: ast.AST, value: ast.AST | None) -> None:
+        if self.scope.kind == "module" and isinstance(target, ast.Name) and value is not None:
+            table = table_of(value)
+            if table:
+                self.scope.tables[target.id] = table
+
     def visit_Assign(self, node) -> None:
         self.visit(node.value)
+        if len(node.targets) == 1:
+            self._note_table(node.targets[0], node.value)
         evidence = self._evidence(node.value)
         for target in node.targets:
             self._bind_target(target, evidence)
@@ -627,6 +765,7 @@ class ScopeBuilder(ast.NodeVisitor):
             self._visit_annotation(node.annotation)
         hint = annotation_type(node.annotation)
         evidence = [TypeRef("annotation", hint, self.scope.id) if hint else unknown_ref(ANNOTATION_NO_CLASS)]
+        self._note_table(node.target, node.value)
         if self.scope.kind == "class" and isinstance(node.target, ast.Name):
             self.scope.attr_types.setdefault(node.target.id, []).extend(evidence)
         self._bind_target(node.target, evidence)
@@ -650,7 +789,34 @@ class ScopeBuilder(ast.NodeVisitor):
 
     def visit_For(self, node) -> None:
         self._bind_target(node.target, [unknown_ref(LOOP_VARIABLE)])
-        self.generic_visit(node)
+        loop = self._table_loop(node)
+        self.visit(node.target)
+        self.visit(node.iter)
+        if loop:
+            self.loops.append(loop)
+        for stmt in node.body:
+            self.visit(stmt)
+        if loop:
+            self.loops.pop()
+        for stmt in node.orelse:
+            self.visit(stmt)  # runs after the loop: the variable is the last element, not each one
+
+    def _table_loop(self, node) -> tuple | None:
+        """(scope id, variable, table, form) when this loop reads a table whole: `for f in T`,
+        `for f in T.values()`, `for k, f in T.items()`."""
+        source = node.iter
+        form, target = "iter", node.target
+        if isinstance(source, ast.Call) and isinstance(source.func, ast.Attribute) and not source.args and not source.keywords:
+            if source.func.attr == "values":
+                form, source = "values", source.func.value
+            elif source.func.attr == "items":
+                form, source = "items", source.func.value
+                if isinstance(target, ast.Tuple) and len(target.elts) == 2 and all(isinstance(e, ast.Name) for e in target.elts):
+                    target = target.elts[1]
+        table = dotted(source)
+        if not table or not isinstance(target, ast.Name):
+            return None
+        return (self.scope.id, target.id, table, form)
 
     visit_AsyncFor = visit_For
 
@@ -689,7 +855,14 @@ class ScopeBuilder(ast.NodeVisitor):
     def visit_Lambda(self, node) -> None:
         for arg in node.args.posonlyargs + node.args.args + node.args.kwonlyargs:
             self.scope.bind(arg.arg, Binding("var", evidence=[unknown_ref(LAMBDA_PARAMETER)]))
+        self.delayed += 1
         self.generic_visit(node)
+        self.delayed -= 1
+
+    def visit_GeneratorExp(self, node) -> None:
+        self.delayed += 1
+        self.generic_visit(node)
+        self.delayed -= 1
 
     def visit_Global(self, node) -> None:
         self.scope.globals.update(node.names)
@@ -724,7 +897,20 @@ class ScopeBuilder(ast.NodeVisitor):
         else:
             chain = dotted(func)
             path = None if chain else call_path(func)
-            if chain:
+            got = table_get(func)
+            loop = next((lp for lp in reversed(self.loops) if lp[0] == self.scope.id and chain == [lp[1]]), None)
+            if got:
+                # TABLE["k"](...) and TABLE.get("k")(...): a table's entry, if the resolver can prove the table;
+                # otherwise the call is what it was before (a computed callee, or the result of a call)
+                why = COMPUTED_SUBSCRIPT if isinstance(func, ast.Subscript) else COMPUTED_OTHER
+                call = RawCall(None, text, node.lineno, kind, special="table", path=path, why=why)
+                call.table, call.key, call.form = got[0], got[1], "item"
+                self.scope.calls.append(call)
+            elif loop and not self.delayed:
+                call = RawCall(chain, text, node.lineno, kind, special="table")
+                call.table, call.form, call.var = loop[2], loop[3], loop[1]
+                self.scope.calls.append(call)
+            elif chain:
                 self.scope.calls.append(RawCall(chain, text, node.lineno, kind))
             elif path:
                 self.scope.calls.append(RawCall(None, text, node.lineno, kind, path=path))
