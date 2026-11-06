@@ -108,8 +108,10 @@ Two passes over the standard library `ast` module, no other parser.
 What counts as proof: names defined or imported in scope; `import x`, `from x import y`, aliases,
 relative imports and package re-exports; `self.method()` through base classes; `super()`; calling a
 class (edge to its `__init__`); and method calls on values whose class is known from a constructor
-call, a type annotation, a return annotation or a `self.attr` assigned in the class. When a method is
-called on `self` or a typed value, subclass overrides are linked too (class hierarchy analysis).
+call, a type annotation, a return annotation or a `self.attr` assigned in the class, including a
+value that is itself a call result (`Foo().run()`, `make().run()` where `make` is annotated `-> Foo`,
+`Foo().current().place()`). When a method is called on `self` or a typed value, subclass overrides are
+linked too (class hierarchy analysis), except on a value that is exactly `Foo()`.
 
 The index is cached outside your repo (`RIPPLE_CACHE_DIR` if set, else `$XDG_CACHE_HOME/ripple` or
 `~/.cache/ripple`) and keyed on every file's mtime and size, so each query re-checks the files and
@@ -214,8 +216,11 @@ Static analysis of a dynamic language misses things. ripple does not follow:
   functions without a return annotation (reported as unresolved, with the reason)
 - `getattr`, dict or registry dispatch, callbacks passed as arguments, `functools.partial`
 - decorator wrappers (the decorated function is treated as called directly)
-- calls on the result of a call (`make().run()`), property access, `__call__`, metaclasses,
-  monkeypatching, `importlib`, `exec`
+- `__call__`, metaclasses, monkeypatching, `importlib`, `exec`, and a call on the result of a function
+  with no return annotation naming a class (`make().run()` is followed when `make` has a return
+  annotation or is a class; ripple does not read `return Foo()` to infer one, and an `@overload`ed function
+  or two defs of one name that annotate differently, or only one of which is annotated, in either order
+  (a def in each branch of an `if sys.platform`), give no type)
 - calls written inside an annotation (`x: Annotated[int, Field(gt=0)]`): they are not recorded, so
   `Field` has no caller there. Pydantic has about 1,300 of them
 - syntax the Python running ripple cannot parse (`except*` before 3.11, `type X = ...` and `def f[T]()`
