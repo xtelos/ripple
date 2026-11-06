@@ -149,6 +149,14 @@ are `@audited`. `callers` of the wrapper itself still lists every caller of ever
 `through_wrapper`, the lines that write its name and reach it through the wrapper; `impact` labels such a
 caller `via_wrapper`. So a signature change finds every call site to edit.
 
+**Functions held in names.** `with_tax = functools.partial(apply_tax, 10)` then `with_tax(x)` is a call of
+`apply_tax`, when `partial` is `functools.partial` (imported any way), every assignment to the name is such a
+call, and they all name the same function or method of the repo (a bound method such as `self.k.step` also
+reaches the overrides of that method). It stays unresolved, with the reason, for a partial of a class, of a
+parameter or of anything ripple cannot resolve, a name assigned partials of different functions or also
+assigned anything else, and a module-level name another module assigns to (`m.T = ...`, `setattr(m, "T", ...)`),
+or whose module uses `globals()`, `exec` or a star import that could define it.
+
 The index is cached outside your repo (`RIPPLE_CACHE_DIR` if set, else `$XDG_CACHE_HOME/ripple` or
 `~/.cache/ripple`) and keyed on every file's mtime and size, so each query re-checks the files and
 rebuilds only when something changed.
@@ -253,7 +261,8 @@ Static analysis of a dynamic language misses things. ripple does not follow:
 
 - method calls on values of unknown type: unannotated parameters, loop variables, results of
   functions without a return annotation (reported as unresolved, with the reason)
-- `getattr`, dict or registry dispatch, callbacks passed as arguments, `functools.partial`
+- `getattr`, dict or registry dispatch, callbacks passed as arguments, a `functools.partial` that is not bound to
+  one name (passed on, stored in an attribute, or built by a call)
 - decorators ripple cannot read, see "Decorators" below: for those the decorated function is treated as
   called directly
 - `__call__`, metaclasses, monkeypatching, `importlib`, `exec`, and a call on the result of a function

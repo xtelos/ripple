@@ -39,12 +39,14 @@ class TypeRef:
     "builtin" (a literal; expr is the builtin type name, e.g. "list") or
     "unknown" (an assignment that proves nothing; expr says why, in words that
     finish "the receiver is ...", so the unresolved calls can be counted by cause).
-    scope is the id of the scope the expression should be resolved in.
+    scope is the id of the scope the expression should be resolved in. For a "call", arg is
+    the dotted first positional argument, if it is one (partial(f, 1) has arg "f").
     """
 
     kind: str
     expr: str
     scope: str
+    arg: str = ""
 
 
 # Why a value's class is unknown, as the unresolved calls report it.
@@ -148,6 +150,10 @@ class Scope:
     # modules only
     is_package: bool = False
     star_imports: list = field(default_factory=list)
+    # Names this module sets or deletes as an attribute of something (`mod.NAME = x`, setattr(mod, "NAME", x),
+    # globals()["NAME"] = x), which can rebind a name another module defines.
+    rebinds: set = field(default_factory=set)
+    dynamic: bool = False  # globals(), vars(), exec, eval or __dict__ appear: the module's names can change unseen
 
     def bind(self, name: str, binding: Binding) -> None:
         """Record a binding. A name bound two different ways becomes unknown."""
@@ -257,6 +263,41 @@ def call_path(node: ast.AST) -> list | None:
     return parts if "()" in parts else None
 
 
+DYNAMIC_NAMES = {"globals", "vars", "locals", "exec", "eval"}
+
+
+def scan_rebinds(tree: ast.AST, module: Scope) -> None:
+    """Record how this module could rebind a name defined elsewhere, or change its own names unseen.
+
+    Matched on the name as text, on purpose: it holds through any alias or import form.
+    """
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute):
+            if isinstance(node.ctx, (ast.Store, ast.Del)):
+                module.rebinds.add(node.attr)
+            if node.attr == "__dict__":
+                module.dynamic = True
+        elif isinstance(node, ast.Name):
+            if node.id in DYNAMIC_NAMES:
+                module.dynamic = True
+        elif (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id in ("setattr", "delattr")
+            and len(node.args) > 1
+            and isinstance(node.args[1], ast.Constant)
+            and isinstance(node.args[1].value, str)
+        ):
+            module.rebinds.add(node.args[1].value)
+        elif (
+            isinstance(node, ast.Subscript)
+            and isinstance(node.ctx, (ast.Store, ast.Del))
+            and isinstance(node.slice, ast.Constant)
+            and isinstance(node.slice.value, str)
+        ):
+            module.rebinds.add(node.slice.value)  # globals()["NAME"] = x, mod.__dict__["NAME"] = x (or any other dict: harmless)
+
+
 def base_name(node: ast.AST) -> str:
     """How a base class is written: "pkg.Base" for pkg.Base and for pkg.Base[int].
 
@@ -351,6 +392,7 @@ class ScopeBuilder(ast.NodeVisitor):
         self.in_annotation = 0
         for stmt in tree.body:
             self.visit(stmt)
+        scan_rebinds(tree, root)
 
     @property
     def scope(self) -> Scope:
@@ -526,7 +568,10 @@ class ScopeBuilder(ast.NodeVisitor):
             return [TypeRef("builtin", literal_type(value), here)]
         if isinstance(value, ast.Call):
             chain = dotted(value.func)
-            return [TypeRef("call", ".".join(chain), here) if chain else unknown_ref(ASSIGNED_COMPUTED_CALL)]
+            if not chain:
+                return [unknown_ref(ASSIGNED_COMPUTED_CALL)]
+            first = dotted(value.args[0]) if value.args and not isinstance(value.args[0], ast.Starred) else None
+            return [TypeRef("call", ".".join(chain), here, arg=".".join(first) if first else "")]
         if isinstance(value, ast.Name):
             return [TypeRef("name", value.id, here)]
         if isinstance(value, ast.BoolOp) and isinstance(value.op, ast.Or):
