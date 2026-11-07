@@ -1,0 +1,7 @@
+{
+  "id": "13-rich-rename-highlighter-highlight",
+  "repo": "rich",
+  "prompt": "Rename the abstract method `Highlighter.highlight` (in rich/highlighter.py) to `apply_highlights`. Rename every override of it in the repository, and update every call that reaches it on a highlighter. `Syntax.highlight` and the `highlight` attributes of other classes are unrelated and keep their names. The test suite must pass when you are done.",
+  "min_tests": 950,
+  "why": "Highlighter.highlight has 5 definitions (the base, Null, Regex and JSON highlighters in rich/highlighter.py, and RainbowHighlighter in examples/rainbow.py, a subclass outside the package that no test imports) and 10 calls in 4 files: `self.highlight` inside Highlighter.__call__, `super().highlight` in JSONHighlighter, `self.highlighter.highlight` twice in rich/progress.py, and six in tests/test_highlighter.py. Most callers use `highlighter(text)` and need no edit. `highlight` is also Syntax.highlight (a method) and a plain attribute on tables, columns and console options, which grep for `.highlight` matches 19 times."
+}

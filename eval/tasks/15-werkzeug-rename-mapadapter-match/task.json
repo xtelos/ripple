@@ -1,0 +1,7 @@
+{
+  "id": "15-werkzeug-rename-mapadapter-match",
+  "repo": "werkzeug",
+  "prompt": "Rename the method `MapAdapter.match` (in src/werkzeug/routing/map.py) to `match_request`. It has three definitions there (two typing overloads and the implementation): rename all three. Update every call to it on a map adapter anywhere in the repository, tests and examples included. Other `match` methods (for example on compiled regular expressions and on the router's internal matcher) are unrelated and keep their name. The test suite must pass when you are done.",
+  "min_tests": 900,
+  "why": "171 calls to MapAdapter.match in 10 files (160 in tests/test_routing.py alone, 7 in separate example apps no test imports, 3 through `self` inside MapAdapter itself) plus three definitions. Receivers are variables with unrelated names (adapter, a, urls, url_adapter, www, my, b, ma) and `match` is also re.Pattern.match (9 uses in src/werkzeug) and StateMachineMatcher.match (called from inside MapAdapter.match itself), so grep for `.match(` cannot separate them; only the receiver's type can."
+}

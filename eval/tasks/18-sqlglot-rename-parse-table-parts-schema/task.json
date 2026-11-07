@@ -1,0 +1,7 @@
+{
+  "id": "18-sqlglot-rename-parse-table-parts-schema",
+  "repo": "sqlglot",
+  "prompt": "The parameter `schema` of `Parser._parse_table_parts` (in sqlglot/parser.py) is confusing next to the `schema` parameter of other parser methods. Rename it to `is_schema` on `Parser._parse_table_parts` and on each override of that method in the dialect parsers, update every call that passes it by keyword, and update the code in those methods that reads it. Other methods that take a `schema` parameter (for example `_parse_table` and `_parse_table_part`) keep theirs. The test suite must pass when you are done.",
+  "min_tests": 1400,
+  "why": "_parse_table_parts is defined on the base Parser and overridden in three dialect parsers in other modules (bigquery, snowflake, tsql), each forwarding `schema=schema` to `super()`. Callers pass `schema=True` by keyword in 6 files (14 in parser.py, plus the clickhouse and oracle parsers); there are 25 edits in 6 files. `schema=` is also a keyword of `_parse_table_part` and `_parse_table`, which are called right next to it (inside the base `_parse_table_parts` body, `self._parse_table_part(schema=schema)` must become `schema=is_schema` while the keyword stays), and `_parse_table` forwards its own `schema` to `_parse_table_parts` as `schema=schema`, where only the keyword changes. grep for `schema=` returns hundreds of unrelated hits."
+}

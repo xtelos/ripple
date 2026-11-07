@@ -1,0 +1,7 @@
+{
+  "id": "19-sqlglot-rename-schema-column-names",
+  "repo": "sqlglot",
+  "prompt": "Rename the method `column_names` of the schema classes (`Schema.column_names`, `MappingSchema.column_names` in sqlglot/schema.py) to `get_column_names`. Rename every override, including ones in the tests, and update every call that reaches it on a schema. Local variables that happen to be called `column_names` are not methods and need no change. The test suite must pass when you are done.",
+  "min_tests": 1400,
+  "why": "Three definitions (the abstract Schema, MappingSchema, and the CustomSchema subclass defined inside a test in tests/test_schema.py) and 25 calls in 8 files (plus one test that names the method as a string, `patch.object(schema, \"column_names\", ...)`), on receivers named `schema`, `self.schema`, `resolver.schema` and `self`: the optimizer (qualify_columns, annotate_types, isolate_table_selects, resolver), sqlglot/lineage.py and the tests. The same name is also a local variable in 4 files (10 uses in sqlglot/executor/table.py, generator.py, generators/bigquery.py and tests/test_optimizer.py), so grep for `column_names` mixes methods with variables. The call receivers are typed only by parameter annotations that vary, which a call graph can follow."
+}

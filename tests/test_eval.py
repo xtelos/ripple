@@ -6,15 +6,17 @@ and passes on the reference solution (the task can be done).
 """
 
 import ast
+import importlib.util
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
 
-from eval.check import count_passed, check_task
-from eval.loader import apply_solution, copy_fixture, load_task, load_tasks
+from eval.check import HELPERS, count_passed, check_task, run_hidden
+from eval.loader import REPO_ROOT, apply_solution, copy_fixture, load_task, load_tasks
 from eval.repos import RepoSpec, load_repos
 from eval.report import input_tokens, summarize, table
 import eval.fetch as fetch
@@ -34,6 +36,7 @@ from eval.run import (
 )
 
 TASKS = load_tasks()
+REAL = [t for t in TASKS if t.spec]
 NO_CACHE = "needs the pinned repositories: python -m eval.fetch"
 
 
@@ -42,10 +45,42 @@ def graded(tasks):
     return [pytest.param(t, id=t.id, marks=pytest.mark.skipif(not t.available, reason=NO_CACHE)) for t in tasks]
 
 
-def test_ten_tasks_with_unique_ids_and_prompts():
-    assert len(TASKS) == 10
-    assert len({t.id for t in TASKS}) == 10
+def test_nineteen_tasks_with_unique_ids_and_prompts():
+    assert len(TASKS) == 19 and len(REAL) == 9
+    assert len({t.id for t in TASKS}) == 19
     assert all(t.prompt.strip() and t.why.strip() for t in TASKS)
+
+
+def test_real_repo_tasks_are_pinned_and_each_has_a_patch_solution():
+    repos = load_repos()
+    assert set(repos) == {t.spec.name for t in REAL} == {"rich", "werkzeug", "sqlglot"}
+    assert all(len(r.sha) == 40 and r.url.startswith("https://") for r in repos.values())
+    assert all(t.solution_patch.is_file() and not t.solution.exists() for t in REAL)
+    assert all(t.fixture.name == f"{t.spec.name}-{t.spec.sha[:12]}" for t in REAL)
+    assert all(not t.fixture.is_relative_to(REPO_ROOT) for t in REAL)  # the cache is outside this repository
+
+
+def test_shims_for_a_real_repo_export_the_graders_test_environment(tmp_path):
+    spec = next(t.spec for t in REAL if t.spec.name == "sqlglot")
+    repo = tmp_path / "copy"
+    run_mod.write_python_shims(tmp_path / "bin", "/venv/bin/python", spec.env(repo))
+    text = (tmp_path / "bin" / "pytest").read_text()
+    assert f"export PYTHONPATH={repo}" in text and "PYTEST_ADDOPTS" in text and "test_sqlglotc.py" in text
+    assert "export PATH" not in text and text.rstrip().endswith('exec /venv/bin/python -m pytest "$@"')
+
+
+def test_main_refuses_tasks_whose_repository_is_not_fetched(tmp_path, monkeypatch):
+    monkeypatch.setenv("RIPPLE_EVAL_CACHE", str(tmp_path / "empty"))
+    with pytest.raises(SystemExit):
+        run_mod.main(["--tasks", REAL[0].id, "--repeats", "1", "--out", str(tmp_path / "x.json")])
+
+
+def test_a_real_task_without_its_cache_says_how_to_get_it(tmp_path, monkeypatch):
+    monkeypatch.setenv("RIPPLE_EVAL_CACHE", str(tmp_path / "empty"))
+    task = load_tasks(only=[REAL[0].id])[0]
+    assert not task.available
+    with pytest.raises(FileNotFoundError, match="python -m eval.fetch"):
+        copy_fixture(task, tmp_path / "repo")
 
 
 def test_a_task_missing_a_field_is_refused(tmp_path):
@@ -79,11 +114,68 @@ def test_check_passes_on_the_reference_solution(task, tmp_path):
     assert verdict["success"], verdict
 
 
+def patch_files(patch: str) -> list[str]:
+    return re.findall(r"(?m)^diff -ruN (?:-x \S+ )*a/(\S+) b/", patch)
+
+
+def patch_without(patch: str, skip: int) -> str:
+    """The patch with its skip-th file section left out."""
+    sections = [x for x in re.split(r"(?m)^(?=diff -ruN )", patch) if x]
+    return "".join(x for i, x in enumerate(sections) if i != skip)
+
+
+@pytest.mark.parametrize("task", [pytest.param(t, id=t.id) for t in REAL])
+def test_every_diff_section_of_a_solution_patch_is_seen_by_the_parser(task):
+    """The drop-one test below loops over patch_files, so a header it cannot read would make
+    it check nothing and still pass. Every section must be found, and there must be some."""
+    patch = task.solution_patch.read_text()
+    sections = re.findall(r"(?m)^diff ", patch)
+    files = patch_files(patch)
+    assert len(files) == len(sections) > 0, f"{task.id}: {len(files)} files parsed, {len(sections)} sections"
+    assert len(files) == len(set(files))
+
+
+@pytest.mark.parametrize("task", graded(REAL))
+def test_a_solution_that_misses_any_one_file_fails_the_hidden_check(task, tmp_path, capsys):
+    """Every file the reference solution touches holds a caller or a definition the hidden
+    check must notice if it is left alone, so the check is about the whole caller set."""
+    patch = task.solution_patch.read_text()
+    files = patch_files(patch)
+    assert files, f"{task.id}: the patch parsed to no files, so nothing would be checked"
+    survivors = []
+    omissions = 0
+    for index, name in enumerate(files):
+        repo = copy_fixture(task, tmp_path / f"repo{index}")
+        partial = tmp_path / f"partial{index}.patch"
+        partial.write_text(patch_without(patch, index))
+        done = subprocess.run(
+            ["git", "apply", "--whitespace=nowarn", str(partial)], cwd=repo, capture_output=True, text=True
+        )
+        assert done.returncode == 0, done.stderr
+        omissions += 1
+        if run_hidden(task, repo)["passed"]:
+            survivors.append(name)
+        shutil.rmtree(repo)
+    with capsys.disabled():
+        print(f"\n{task.id}: {omissions} omissions, {len(survivors)} passed the hidden check", end="")
+    assert omissions == len(files)
+    assert survivors == []
+
+
 def find_function(source: str, name: str, cls: str | None = None) -> ast.FunctionDef:
     body = ast.parse(source).body
     if cls:
         body = next(n for n in body if isinstance(n, ast.ClassDef) and n.name == cls).body
     return next(n for n in body if isinstance(n, ast.FunctionDef) and n.name == name)
+
+
+def delete_function(path: Path, name: str, cls: str | None = None) -> None:
+    """Remove a test function (top level, or a method of cls), its decorators included."""
+    source = path.read_text()
+    node = find_function(source, name, cls)
+    first = min([node.lineno] + [d.lineno for d in node.decorator_list])
+    lines = source.splitlines(keepends=True)
+    path.write_text("".join(lines[: first - 1] + lines[node.end_lineno :]))
 
 
 def gut_function(path: Path, name: str) -> None:
@@ -94,10 +186,120 @@ def gut_function(path: Path, name: str) -> None:
     path.write_text("".join(lines[: node.body[0].lineno - 1] + ["    pass\n"] + lines[node.end_lineno :]))
 
 
+def real_task(task_id: str):
+    task = next(t for t in REAL if t.id == task_id)
+    if not task.available:
+        pytest.skip(NO_CACHE)
+    return task
+
+
 def replace_once(path: Path, old: str, new: str) -> None:
     text = path.read_text()
     assert text.count(old) == 1, f"{path}: {old!r} found {text.count(old)} times"
     path.write_text(text.replace(old, new))
+
+
+def apply_solution_without(task, repo, test_file):
+    """The reference solution minus its edit to test_file: the agent left that file's callers alone."""
+    patch = task.solution_patch.read_text()
+    partial = repo.parent / "partial.patch"
+    partial.write_text(patch_without(patch, patch_files(patch).index(test_file)))
+    done = subprocess.run(["git", "apply", "--whitespace=nowarn", str(partial)], cwd=repo, capture_output=True, text=True)
+    assert done.returncode == 0, done.stderr
+
+
+def test_a_stale_read_whose_failing_tests_are_deleted_does_not_pass_even_in_untouched_test_files(tmp_path):
+    """Task 18's solution edits no test file, so only a floor with 57 tests of slack once guarded
+    it. The reference solution with one read of the old parameter left in the 4-part-name
+    branch (a NameError on `FROM server.db.dbo.t`), and the three tests that reach it deleted."""
+    task = real_task("18-sqlglot-rename-parse-table-parts-schema")
+    repo = copy_fixture(task, tmp_path / "repo")
+    apply_solution(task, repo)
+    replace_once(
+        repo / "sqlglot/parser.py",
+        "exp.Dot(this=table, expression=self._parse_table_part(schema=is_schema))",
+        "exp.Dot(this=table, expression=self._parse_table_part(schema=schema))",
+    )
+    delete_function(repo / "tests/dialects/test_tsql.py", "test_bare_table_hints", "TestTSQL")
+    delete_function(repo / "tests/test_expressions.py", "test_table_name", "TestExprs")
+    delete_function(repo / "tests/test_optimizer.py", "test_simplify", "TestOptimizer")
+    verdict = check_task(task, repo)
+    assert not verdict["success"], verdict
+    assert not verdict["suite_passed"], verdict  # the suite itself, not only the hidden check, catches it
+    assert any("test_table_name" in f for f in verdict["failures"]), verdict
+
+
+@pytest.mark.parametrize(
+    "path, old, new",
+    [
+        (
+            "sqlglot/parser.py",
+            "exp.Dot(this=table, expression=self._parse_table_part(schema=is_schema))",
+            "exp.Dot(this=table, expression=self._parse_table_part(schema=schema))",
+        ),
+        (
+            "sqlglot/parsers/tsql.py",
+            "is_schema=is_schema,\n            is_db_reference=is_db_reference,",
+            "is_schema=schema,\n            is_db_reference=is_db_reference,",
+        ),
+    ],
+    ids=["base-body-read", "override-forwarded-value"],
+)
+def test_a_stale_read_of_the_renamed_parameter_inside_a_method_fails_the_hidden_check(path, old, new, tmp_path):
+    """The prompt asks for the code that reads the parameter to change too. A read left behind is a
+    NameError at run time, and the check must see it without the suite's help."""
+    task = real_task("18-sqlglot-rename-parse-table-parts-schema")
+    repo = copy_fixture(task, tmp_path / "repo")
+    apply_solution(task, repo)
+    assert run_hidden(task, repo)["passed"]
+    replace_once(repo / path, old, new)
+    hidden = run_hidden(task, repo)
+    assert not hidden["passed"], hidden
+
+
+def test_a_failing_test_gutted_to_pass_does_not_hide_a_source_bug(tmp_path):
+    """The reference solution for task 11, then a source change the test of that code catches
+    (the style a live render is given is dropped), and that test's body replaced with `pass`."""
+    task = real_task("11-rich-rename-style-parse")
+    repo = copy_fixture(task, tmp_path / "repo")
+    apply_solution(task, repo)
+    replace_once(repo / "rich/live_render.py", "style = console.get_style(self.style)", 'style = console.get_style("none")')
+    gut_function(repo / "tests/test_live_render.py", "test_rich_console")
+    verdict = check_task(task, repo)
+    assert not verdict["success"], verdict
+    assert not verdict["suite_passed"], verdict
+
+
+def test_a_test_gutted_to_pass_is_marked_down_though_the_source_is_right(tmp_path):
+    """The literal round-2 repro: task 11's reference solution minus its edit to
+    tests/test_live_render.py (the source is complete), then the test that fails for the stale
+    caller emptied to `pass`. The tests are replaced, so nothing runs wrong, but the agent hollowed
+    out a test the reference edited."""
+    task = real_task("11-rich-rename-style-parse")
+    repo = copy_fixture(task, tmp_path / "repo")
+    apply_solution_without(task, repo, "tests/test_live_render.py")
+    gut_function(repo / "tests/test_live_render.py", "test_rich_console")
+    verdict = check_task(task, repo)
+    assert not verdict["success"], verdict
+    assert any("test_live_render.py::test_rich_console" in t for t in verdict["lost_tests"]), verdict
+
+
+@pytest.mark.parametrize(
+    "task_id, test_file, function",
+    [
+        ("15-werkzeug-rename-mapadapter-match", "tests/middleware/test_proxy_fix.py", "test_proxy_fix"),
+        ("11-rich-rename-style-parse", "tests/test_live_render.py", "test_rich_console"),
+    ],
+)
+def test_deleting_the_one_failing_test_in_a_real_repo_does_not_pass(task_id, test_file, function, tmp_path):
+    """The agent leaves a caller in one test file and deletes the test that now fails."""
+    task = real_task(task_id)
+    repo = copy_fixture(task, tmp_path / "repo")
+    apply_solution_without(task, repo, test_file)
+    delete_function(repo / test_file, function)
+    verdict = check_task(task, repo)
+    assert not verdict["success"], verdict
+    assert verdict["tests_lost"] > 0 and any(function in t for t in verdict["lost_tests"]), verdict
 
 
 def test_hollowing_out_a_test_the_reference_edited_is_marked_down_on_a_fixture_task(tmp_path):
@@ -111,6 +313,17 @@ def test_hollowing_out_a_test_the_reference_edited_is_marked_down_on_a_fixture_t
     assert verdict["lost_tests"] == ["tests/test_invoices.py::test_credit_note_total_is_negative (dropped amount_due)"]
 
 
+def test_a_test_file_left_with_a_stale_caller_is_still_a_miss(tmp_path):
+    """Replacing the agent's tests must not let it skip the callers the prompt asks it to update:
+    the reference solution minus its edit to tests/test_live_render.py still calls the old name."""
+    task = real_task("11-rich-rename-style-parse")
+    repo = copy_fixture(task, tmp_path / "repo")
+    apply_solution_without(task, repo, "tests/test_live_render.py")
+    verdict = check_task(task, repo)
+    assert not verdict["success"], verdict
+    assert not verdict["hidden_passed"], verdict
+
+
 FLIP_FAILURES = '''import pytest
 
 @pytest.hookimpl(hookwrapper=True)
@@ -121,6 +334,16 @@ def pytest_runtest_makereport(item, call):
         report.outcome = "passed"
         report.longrepr = None
 '''
+
+
+def test_a_root_conftest_that_turns_failures_into_passes_does_not_pass_a_real_repo(tmp_path):
+    """The untouched task 12 checkout, with one root conftest.py that rewrites every failing test
+    to a pass: the suite, the required ids and the hidden check all used to see it."""
+    task = real_task("12-rich-rename-cell-len")
+    repo = copy_fixture(task, tmp_path / "repo")
+    (repo / "conftest.py").write_text(FLIP_FAILURES)
+    verdict = check_task(task, repo)
+    assert not verdict["success"] and not verdict["hidden_passed"], verdict
 
 
 def test_a_root_conftest_that_turns_failures_into_passes_does_not_pass_a_fixture_task(tmp_path):
@@ -264,11 +487,44 @@ def test_a_repo_name_that_could_leave_the_cache_is_refused(name, tmp_path):
         load_repos(tmp_path / "repos.json")
 
 
+def load_check_helpers():
+    spec = importlib.util.spec_from_file_location("check_helpers_under_test", HELPERS)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_a_file_that_does_not_parse_is_a_failure_unless_the_repo_lists_it(tmp_path):
+    helpers = load_check_helpers()
+    (tmp_path / "ok.py").write_text("x = 1\n")
+    (tmp_path / "broken.py").write_text("def f(:\n")
+    with pytest.raises(AssertionError, match="broken.py does not parse"):
+        list(helpers.sources(tmp_path, allowed=set()))
+    seen = [rel for rel, _tree in helpers.sources(tmp_path, allowed={"broken.py"})]
+    assert seen == ["ok.py"]
+
+
 def test_the_pinned_repos_list_no_unparseable_files_and_a_spec_can_list_some(tmp_path):
     assert all(spec.unparseable == () for spec in load_repos().values())
     data = {"url": "u", "sha": "a" * 40, "python": "3.12", "tests": "tests", "deps": [], "unparseable": ["x/data.py"]}
     (tmp_path / "repos.json").write_text(json.dumps({"r": data}))
     assert load_repos(tmp_path / "repos.json")["r"].unparseable == ("x/data.py",)
+
+
+def test_breaking_a_file_that_holds_stale_callers_does_not_hide_them(tmp_path):
+    """The reference solution minus its edit to examples/log.py leaves six Style.parse calls
+    there. A syntax error in that file must not take them out of the scan."""
+    task = next(t for t in REAL if t.id == "11-rich-rename-style-parse")
+    if not task.available:
+        pytest.skip(NO_CACHE)
+    repo = copy_fixture(task, tmp_path / "repo")
+    apply_solution_without(task, repo, "examples/log.py")
+    assert not run_hidden(task, repo)["passed"]  # the six calls are found while the file parses
+    with (repo / "examples" / "log.py").open("a") as f:
+        f.write("\ndef broken(:\n")
+    hidden = run_hidden(task, repo)
+    assert not hidden["passed"], hidden
+    assert hidden["failures"] == ["FAILED _eval_check/test_eval_hidden.py::test_no_call_to_the_old_name_is_left_anywhere"]
 
 
 def test_deleting_the_tests_does_not_pass(tmp_path):

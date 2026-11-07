@@ -1,0 +1,606 @@
+diff -ruN -x __pycache__ a/sqlglot/dialects/dialect.py b/sqlglot/dialects/dialect.py
+--- a/sqlglot/dialects/dialect.py	2026-11-06 09:30:53.029049149 -0500
++++ b/sqlglot/dialects/dialect.py	2026-11-06 09:31:31.856238304 -0500
+@@ -167,7 +167,7 @@
+ 
+ # "Strict" dialects (e.g. modern Hive, Spark 3+) map their zero-padded MM/dd/HH/hh/mm/ss to these in
+ # TIME_MAPPING so they roundtrip, since a lax %m/%d renders non-padded there for parse expressions
+-# (see HiveGenerator.format_time).
++# (see HiveGenerator.render_time_format).
+ STRICT_TIME_FORMATS = {
+     "%mstrict": "%m",
+     "%dstrict": "%d",
+@@ -1830,7 +1830,7 @@
+         Returns the time format for a given expression, unless it's equivalent
+         to the default time format of the dialect of interest.
+         """
+-        time_format = self.format_time(expression)
++        time_format = self.render_time_format(expression)
+         return time_format if time_format != Dialect.get_or_raise(dialect).TIME_FORMAT else None
+ 
+     return _time_format
+diff -ruN -x __pycache__ a/sqlglot/generator.py b/sqlglot/generator.py
+--- a/sqlglot/generator.py	2026-11-06 09:30:53.032420828 -0500
++++ b/sqlglot/generator.py	2026-11-06 09:31:14.397905660 -0500
+@@ -4962,7 +4962,7 @@
+     def too_wide(self, args: t.Iterable) -> bool:
+         return sum(len(arg) for arg in args) > self.max_text_width
+ 
+-    def format_time(
++    def render_time_format(
+         self,
+         expression: exp.Expr,
+         inverse_time_mapping: dict[str, str] | None = None,
+@@ -5452,7 +5452,7 @@
+ 
+     def tsordstotime_sql(self, expression: exp.TsOrDsToTime) -> str:
+         this = expression.this
+-        time_format = self.format_time(expression)
++        time_format = self.render_time_format(expression)
+ 
+         if time_format:
+             return self.sql(
+@@ -5483,7 +5483,7 @@
+ 
+     def tsordstodate_sql(self, expression: exp.TsOrDsToDate) -> str:
+         this = expression.this
+-        time_format = self.format_time(expression)
++        time_format = self.render_time_format(expression)
+         safe = expression.args.get("safe")
+         if time_format and time_format not in (self.dialect.TIME_FORMAT, self.dialect.DATE_FORMAT):
+             return self.sql(
+diff -ruN -x __pycache__ a/sqlglot/generators/bigquery.py b/sqlglot/generators/bigquery.py
+--- a/sqlglot/generators/bigquery.py	2026-11-06 09:30:53.039052846 -0500
++++ b/sqlglot/generators/bigquery.py	2026-11-06 09:31:14.418305136 -0500
+@@ -300,14 +300,14 @@
+     dtype = "DATE" if isinstance(expression, exp.StrToDate) else "TIMESTAMP"
+ 
+     if expression.args.get("safe"):
+-        fmt = self.format_time(
++        fmt = self.render_time_format(
+             expression,
+             self.dialect.INVERSE_FORMAT_MAPPING,
+             self.dialect.INVERSE_FORMAT_TRIE,
+         )
+         return f"SAFE_CAST({this} AS {dtype} FORMAT {fmt})"
+ 
+-    fmt = self.format_time(expression)
++    fmt = self.render_time_format(expression)
+     return self.func(f"PARSE_{dtype}", fmt, this, expression.args.get("zone"))
+ 
+ 
+@@ -487,8 +487,8 @@
+         exp.RegexpLike: rename_func("REGEXP_CONTAINS"),
+         exp.ReturnsProperty: _returnsproperty_sql,
+         exp.Rollback: lambda *_: "ROLLBACK TRANSACTION",
+-        exp.ParseTime: lambda self, e: self.func("PARSE_TIME", self.format_time(e), e.this),
+-        exp.ParseDatetime: lambda self, e: self.func("PARSE_DATETIME", self.format_time(e), e.this),
++        exp.ParseTime: lambda self, e: self.func("PARSE_TIME", self.render_time_format(e), e.this),
++        exp.ParseDatetime: lambda self, e: self.func("PARSE_DATETIME", self.render_time_format(e), e.this),
+         exp.Select: transforms.preprocess(
+             [
+                 _unnest_explode_generate_series,
+@@ -825,7 +825,7 @@
+ 
+         time_expr = this if isinstance(this, self.TS_OR_DS_TYPES) else expression
+         return self.func(
+-            func_name, self.format_time(expression), time_expr.this, expression.args.get("zone")
++            func_name, self.render_time_format(expression), time_expr.this, expression.args.get("zone")
+         )
+ 
+     def eq_sql(self, expression: exp.EQ) -> str:
+diff -ruN -x __pycache__ a/sqlglot/generators/clickhouse.py b/sqlglot/generators/clickhouse.py
+--- a/sqlglot/generators/clickhouse.py	2026-11-06 09:30:53.037736627 -0500
++++ b/sqlglot/generators/clickhouse.py	2026-11-06 09:31:14.424997650 -0500
+@@ -355,7 +355,7 @@
+         exp.TimeToStr: lambda self, e: self.func(
+             "formatDateTime",
+             e.this.this if isinstance(e.this, exp.TsOrDsToTimestamp) else e.this,
+-            self.format_time(e),
++            self.render_time_format(e),
+             e.args.get("zone"),
+         ),
+         exp.TimeStrToTime: _timestrtotime_sql,
+diff -ruN -x __pycache__ a/sqlglot/generators/doris.py b/sqlglot/generators/doris.py
+--- a/sqlglot/generators/doris.py	2026-11-06 09:30:53.038304002 -0500
++++ b/sqlglot/generators/doris.py	2026-11-06 09:31:14.429144994 -0500
+@@ -82,7 +82,7 @@
+         exp.SchemaCommentProperty: lambda self, e: self.naked_property(e),
+         exp.Split: rename_func("SPLIT_BY_STRING"),
+         exp.StringToArray: rename_func("SPLIT_BY_STRING"),
+-        exp.StrToUnix: lambda self, e: self.func("UNIX_TIMESTAMP", e.this, self.format_time(e)),
++        exp.StrToUnix: lambda self, e: self.func("UNIX_TIMESTAMP", e.this, self.render_time_format(e)),
+         exp.TimeStrToDate: rename_func("TO_DATE"),
+         exp.TsOrDsAdd: lambda self, e: self.func("DATE_ADD", e.this, e.expression),
+         exp.TsOrDsToDate: lambda self, e: self.func("TO_DATE", e.this),
+diff -ruN -x __pycache__ a/sqlglot/generators/dremio.py b/sqlglot/generators/dremio.py
+--- a/sqlglot/generators/dremio.py	2026-11-06 09:30:53.038859984 -0500
++++ b/sqlglot/generators/dremio.py	2026-11-06 09:31:14.430161987 -0500
+@@ -66,7 +66,7 @@
+         exp.BitwiseAndAgg: rename_func("BIT_AND"),
+         exp.BitwiseOrAgg: rename_func("BIT_OR"),
+         exp.ToChar: rename_func("TO_CHAR"),
+-        exp.TimeToStr: lambda self, e: self.func("TO_CHAR", e.this, self.format_time(e)),
++        exp.TimeToStr: lambda self, e: self.func("TO_CHAR", e.this, self.render_time_format(e)),
+         exp.TryCast: no_trycast_sql,
+         exp.DateAdd: _date_delta_sql("DATE_ADD"),
+         exp.DateSub: _date_delta_sql("DATE_SUB"),
+diff -ruN -x __pycache__ a/sqlglot/generators/drill.py b/sqlglot/generators/drill.py
+--- a/sqlglot/generators/drill.py	2026-11-06 09:30:53.037374752 -0500
++++ b/sqlglot/generators/drill.py	2026-11-06 09:31:14.431364002 -0500
+@@ -18,7 +18,7 @@
+     from sqlglot.dialects.drill import Drill
+ 
+     this = self.sql(expression, "this")
+-    time_format = self.format_time(expression)
++    time_format = self.render_time_format(expression)
+     if time_format == Drill.DATE_FORMAT:
+         return self.sql(exp.cast(this, exp.DType.DATE))
+     return self.func("TO_DATE", this, time_format)
+@@ -90,11 +90,11 @@
+             [transforms.eliminate_distinct_on, transforms.eliminate_semi_and_anti_joins]
+         ),
+         exp.StrPosition: strposition_sql,
+-        exp.StrToTime: lambda self, e: self.func("TO_TIMESTAMP", e.this, self.format_time(e)),
++        exp.StrToTime: lambda self, e: self.func("TO_TIMESTAMP", e.this, self.render_time_format(e)),
+         exp.TimeStrToDate: lambda self, e: self.sql(exp.cast(e.this, exp.DType.DATE)),
+         exp.TimeStrToTime: timestrtotime_sql,
+         exp.TimeStrToUnix: rename_func("UNIX_TIMESTAMP"),
+-        exp.TimeToStr: lambda self, e: self.func("TO_CHAR", e.this, self.format_time(e)),
++        exp.TimeToStr: lambda self, e: self.func("TO_CHAR", e.this, self.render_time_format(e)),
+         exp.TimeToUnix: rename_func("UNIX_TIMESTAMP"),
+         exp.ToChar: lambda self, e: self.function_fallback_sql(e),
+         exp.TryCast: no_trycast_sql,
+diff -ruN -x __pycache__ a/sqlglot/generators/duckdb.py b/sqlglot/generators/duckdb.py
+--- a/sqlglot/generators/duckdb.py	2026-11-06 09:30:53.037527360 -0500
++++ b/sqlglot/generators/duckdb.py	2026-11-06 09:31:14.478143142 -0500
+@@ -1791,7 +1791,7 @@
+         exp.Return: lambda self, e: self.sql(e, "this"),
+         exp.ReturnsProperty: lambda self, e: "TABLE" if isinstance(e.this, exp.Schema) else "",
+         exp.StrToUnix: lambda self, e: self.func(
+-            "EPOCH", self.func("STRPTIME", e.this, self.format_time(e))
++            "EPOCH", self.func("STRPTIME", e.this, self.render_time_format(e))
+         ),
+         exp.Struct: _struct_sql,
+         exp.Transform: rename_func("LIST_TRANSFORM"),
+@@ -1810,7 +1810,7 @@
+         exp.TimeStrToUnix: lambda self, e: self.func(
+             "EPOCH", exp.cast(e.this, exp.DType.TIMESTAMP)
+         ),
+-        exp.TimeToStr: lambda self, e: self.func("STRFTIME", e.this, self.format_time(e)),
++        exp.TimeToStr: lambda self, e: self.func("STRFTIME", e.this, self.render_time_format(e)),
+         exp.ToBoolean: _to_boolean_sql,
+         exp.ToVariant: lambda self, e: self.sql(
+             exp.cast(e.this, exp.DataType.from_str("VARIANT", dialect="duckdb"))
+@@ -1832,7 +1832,7 @@
+             exp.cast(self.func("EPOCH", _implicit_datetime_cast(e.this)), exp.DType.BIGINT)
+         ),
+         exp.UnixToStr: lambda self, e: self.func(
+-            "STRFTIME", self.func("TO_TIMESTAMP", e.this), self.format_time(e)
++            "STRFTIME", self.func("TO_TIMESTAMP", e.this), self.render_time_format(e)
+         ),
+         exp.UnixToTime: _unix_to_time_sql,
+         exp.UnixToTimeStr: lambda self, e: f"CAST(TO_TIMESTAMP({self.sql(e, 'this')}) AS TEXT)",
+@@ -2882,7 +2882,7 @@
+         self, expression: exp.StrToTime | exp.StrToDate | exp.ParseDatetime
+     ) -> tuple[exp.ExpOrStr, exp.ExpOrStr | None]:
+         value: exp.ExpOrStr = expression.this
+-        formatted_time: exp.ExpOrStr | None = self.format_time(expression)
++        formatted_time: exp.ExpOrStr | None = self.render_time_format(expression)
+ 
+         if default_year := expression.args.get("default_year"):
+             value = exp.DPipe(this=exp.Literal.string(f"{default_year.name} "), expression=value)
+@@ -2895,7 +2895,7 @@
+         return self.func("STRPTIME", value, formatted_time)
+ 
+     def parsetime_sql(self, expression: exp.ParseTime) -> str:
+-        formatted_time = self.format_time(expression)
++        formatted_time = self.render_time_format(expression)
+         return self.sql(
+             exp.cast(
+                 self.func("STRPTIME", expression.this, formatted_time),
+@@ -2905,7 +2905,7 @@
+ 
+     def tsordstotime_sql(self, expression: exp.TsOrDsToTime) -> str:
+         this = expression.this
+-        time_format = self.format_time(expression)
++        time_format = self.render_time_format(expression)
+         safe = expression.args.get("safe")
+         time_type = exp.DataType.from_str("TIME", dialect="duckdb")
+         cast_expr = exp.TryCast if safe else exp.Cast
+diff -ruN -x __pycache__ a/sqlglot/generators/exasol.py b/sqlglot/generators/exasol.py
+--- a/sqlglot/generators/exasol.py	2026-11-06 09:30:53.038679399 -0500
++++ b/sqlglot/generators/exasol.py	2026-11-06 09:31:14.488151388 -0500
+@@ -372,13 +372,13 @@
+         # https://docs.exasol.com/db/latest/sql_references/functions/alphabeticallistfunctions/approximate_count_distinct.htm
+         exp.ApproxDistinct: unsupported_args("accuracy")(rename_func("APPROXIMATE_COUNT_DISTINCT")),
+         # https://docs.exasol.com/db/latest/sql_references/functions/alphabeticallistfunctions/to_char%20(datetime).htm
+-        exp.TimeToStr: lambda self, e: self.func("TO_CHAR", e.this, self.format_time(e)),
+-        exp.ToChar: lambda self, e: self.func("TO_CHAR", e.this, self.format_time(e)),
++        exp.TimeToStr: lambda self, e: self.func("TO_CHAR", e.this, self.render_time_format(e)),
++        exp.ToChar: lambda self, e: self.func("TO_CHAR", e.this, self.render_time_format(e)),
+         # https://docs.exasol.com/db/latest/sql_references/functions/alphabeticallistfunctions/to_date.htm
+-        exp.TsOrDsToDate: lambda self, e: self.func("TO_DATE", e.this, self.format_time(e)),
++        exp.TsOrDsToDate: lambda self, e: self.func("TO_DATE", e.this, self.render_time_format(e)),
+         exp.TimeStrToTime: timestrtotime_sql,
+         exp.TimestampTrunc: _timestamp_trunc_sql,
+-        exp.StrToTime: lambda self, e: self.func("TO_DATE", e.this, self.format_time(e)),
++        exp.StrToTime: lambda self, e: self.func("TO_DATE", e.this, self.render_time_format(e)),
+         exp.CurrentUser: lambda *_: "CURRENT_USER",
+         exp.AtTimeZone: lambda self, e: self.func(
+             "CONVERT_TZ",
+diff -ruN -x __pycache__ a/sqlglot/generators/hive.py b/sqlglot/generators/hive.py
+--- a/sqlglot/generators/hive.py	2026-11-06 09:30:53.038993937 -0500
++++ b/sqlglot/generators/hive.py	2026-11-06 09:31:14.494709571 -0500
+@@ -190,7 +190,7 @@
+     if time_format in HIVE_NON_PADDED_TIME_FORMATS:
+         # The base render skips the lenient rewrite: a lax specifier pads back (e.g. %m -> MM),
+         # an explicit non-padded specifier (e.g. %-m) doesn't
+-        padded_format = generator.Generator.format_time(self, expression)
++        padded_format = generator.Generator.render_time_format(self, expression)
+         return padded_format in (HIVE_TIME_FORMAT, HIVE_DATE_FORMAT)
+ 
+     return False
+@@ -198,7 +198,7 @@
+ 
+ def _str_to_date_sql(self: HiveGenerator, expression: exp.StrToDate) -> str:
+     this = self.sql(expression, "this")
+-    time_format = self.format_time(expression)
++    time_format = self.render_time_format(expression)
+     if time_format and not _is_cast_time_format(self, expression, time_format):
+         this = f"FROM_UNIXTIME(UNIX_TIMESTAMP({this}, {time_format}))"
+     return f"CAST({this} AS DATE)"
+@@ -206,14 +206,14 @@
+ 
+ def _str_to_time_sql(self: HiveGenerator, expression: exp.StrToTime) -> str:
+     this = self.sql(expression, "this")
+-    time_format = self.format_time(expression)
++    time_format = self.render_time_format(expression)
+     if time_format and not _is_cast_time_format(self, expression, time_format):
+         this = f"FROM_UNIXTIME(UNIX_TIMESTAMP({this}, {time_format}))"
+     return f"CAST({this} AS TIMESTAMP)"
+ 
+ 
+ def _to_date_sql(self: HiveGenerator, expression: exp.TsOrDsToDate) -> str:
+-    time_format = self.format_time(expression)
++    time_format = self.render_time_format(expression)
+     if time_format and not _is_cast_time_format(self, expression, time_format):
+         return self.func("TO_DATE", expression.this, time_format)
+ 
+@@ -413,7 +413,7 @@
+ 
+     IGNORE_NULLS_FUNCS: t.ClassVar = (exp.First, exp.Last, exp.FirstValue, exp.LastValue)
+ 
+-    def format_time(
++    def render_time_format(
+         self,
+         expression: exp.Expr,
+         inverse_time_mapping: dict[str, str] | None = None,
+@@ -434,7 +434,7 @@
+                 self.dialect.INVERSE_TIME_TRIE,
+             )
+ 
+-        return super().format_time(expression, inverse_time_mapping, inverse_time_trie)
++        return super().render_time_format(expression, inverse_time_mapping, inverse_time_trie)
+ 
+     def ignorenulls_sql(self, expression: exp.IgnoreNulls) -> str:
+         this = expression.this
+@@ -604,7 +604,7 @@
+         if isinstance(this, exp.TimeStrToTime):
+             this = this.this
+ 
+-        return self.func("DATE_FORMAT", this, self.format_time(expression))
++        return self.func("DATE_FORMAT", this, self.render_time_format(expression))
+ 
+     def usingproperty_sql(self, expression: exp.UsingProperty) -> str:
+         kind = expression.args.get("kind")
+diff -ruN -x __pycache__ a/sqlglot/generators/mysql.py b/sqlglot/generators/mysql.py
+--- a/sqlglot/generators/mysql.py	2026-11-06 09:30:53.038750916 -0500
++++ b/sqlglot/generators/mysql.py	2026-11-06 09:31:14.500832165 -0500
+@@ -61,7 +61,7 @@
+ def _str_to_date_sql(
+     self: MySQLGenerator, expression: exp.StrToDate | exp.StrToTime | exp.TsOrDsToDate
+ ) -> str:
+-    return self.func("STR_TO_DATE", expression.this, self.format_time(expression))
++    return self.func("STR_TO_DATE", expression.this, self.render_time_format(expression))
+ 
+ 
+ def _unix_to_time_sql(self: MySQLGenerator, expression: exp.UnixToTime) -> str:
+@@ -69,12 +69,12 @@
+     timestamp = expression.this
+ 
+     if scale in (None, exp.UnixToTime.SECONDS):
+-        return self.func("FROM_UNIXTIME", timestamp, self.format_time(expression))
++        return self.func("FROM_UNIXTIME", timestamp, self.render_time_format(expression))
+ 
+     return self.func(
+         "FROM_UNIXTIME",
+         exp.Div(this=timestamp, expression=exp.func("POW", 10, scale)),
+-        self.format_time(expression),
++        self.render_time_format(expression),
+     )
+ 
+ 
+@@ -217,7 +217,7 @@
+             include_precision=not e.args.get("zone"),
+         ),
+         exp.TimeToStr: remove_ts_or_ds_to_date(
+-            lambda self, e: self.func("DATE_FORMAT", e.this, self.format_time(e))
++            lambda self, e: self.func("DATE_FORMAT", e.this, self.render_time_format(e))
+         ),
+         exp.Trim: trim_sql,
+         exp.Trunc: lambda self, e: self.func(
+diff -ruN -x __pycache__ a/sqlglot/generators/oracle.py b/sqlglot/generators/oracle.py
+--- a/sqlglot/generators/oracle.py	2026-11-06 09:30:53.037870690 -0500
++++ b/sqlglot/generators/oracle.py	2026-11-06 09:31:14.502956001 -0500
+@@ -90,17 +90,17 @@
+             self, e, func_name="INSTR", supports_position=True, supports_occurrence=True
+         ),
+         exp.StrToTime: lambda self, e: self.func(
+-            "TO_TIMESTAMP", e.this, self.format_time(e), e.args.get("nlsparam")
++            "TO_TIMESTAMP", e.this, self.render_time_format(e), e.args.get("nlsparam")
+         ),
+         exp.StrToDate: lambda self, e: self.func(
+-            "TO_DATE", e.this, self.format_time(e), e.args.get("nlsparam")
++            "TO_DATE", e.this, self.render_time_format(e), e.args.get("nlsparam")
+         ),
+         exp.Subquery: lambda self, e: self.subquery_sql(e, sep=" "),
+         exp.Substring: rename_func("SUBSTR"),
+         exp.Table: lambda self, e: self.table_sql(e, sep=" "),
+         exp.TableSample: lambda self, e: self.tablesample_sql(e),
+         exp.TemporaryProperty: lambda _, e: f"{e.name or 'GLOBAL'} TEMPORARY",
+-        exp.TimeToStr: lambda self, e: self.func("TO_CHAR", e.this, self.format_time(e)),
++        exp.TimeToStr: lambda self, e: self.func("TO_CHAR", e.this, self.render_time_format(e)),
+         exp.ToChar: lambda self, e: self.function_fallback_sql(e),
+         exp.Trim: _trim_sql,
+         exp.Unicode: lambda self, e: f"ASCII(UNISTR({self.sql(e.this)}))",
+diff -ruN -x __pycache__ a/sqlglot/generators/postgres.py b/sqlglot/generators/postgres.py
+--- a/sqlglot/generators/postgres.py	2026-11-06 09:30:53.038185118 -0500
++++ b/sqlglot/generators/postgres.py	2026-11-06 09:31:14.508619768 -0500
+@@ -227,12 +227,12 @@
+     timestamp = expression.this
+ 
+     if scale in (None, exp.UnixToTime.SECONDS):
+-        return self.func("TO_TIMESTAMP", timestamp, self.format_time(expression))
++        return self.func("TO_TIMESTAMP", timestamp, self.render_time_format(expression))
+ 
+     return self.func(
+         "TO_TIMESTAMP",
+         exp.Div(this=timestamp, expression=exp.func("POW", 10, scale)),
+-        self.format_time(expression),
++        self.render_time_format(expression),
+     )
+ 
+ 
+@@ -414,8 +414,8 @@
+         ),
+         exp.SHA2Digest: sha2_digest_sql,
+         exp.StrPosition: lambda self, e: strposition_sql(self, e, func_name="POSITION"),
+-        exp.StrToDate: lambda self, e: self.func("TO_DATE", e.this, self.format_time(e)),
+-        exp.StrToTime: lambda self, e: self.func("TO_TIMESTAMP", e.this, self.format_time(e)),
++        exp.StrToDate: lambda self, e: self.func("TO_DATE", e.this, self.render_time_format(e)),
++        exp.StrToTime: lambda self, e: self.func("TO_TIMESTAMP", e.this, self.render_time_format(e)),
+         exp.StructExtract: struct_extract_sql,
+         exp.Substring: _substring_sql,
+         exp.TimeFromParts: rename_func("MAKE_TIME"),
+@@ -424,7 +424,7 @@
+         exp.TimestampAdd: _date_add_sql("+"),
+         exp.TimestampSub: _date_add_sql("-"),
+         exp.TimeStrToTime: timestrtotime_sql,
+-        exp.TimeToStr: lambda self, e: self.func("TO_CHAR", e.this, self.format_time(e)),
++        exp.TimeToStr: lambda self, e: self.func("TO_CHAR", e.this, self.render_time_format(e)),
+         exp.ToChar: lambda self, e: (
+             self.function_fallback_sql(e) if e.args.get("format") else self.tochar_sql(e)
+         ),
+diff -ruN -x __pycache__ a/sqlglot/generators/presto.py b/sqlglot/generators/presto.py
+--- a/sqlglot/generators/presto.py	2026-11-06 09:30:53.037989895 -0500
++++ b/sqlglot/generators/presto.py	2026-11-06 09:31:14.515361708 -0500
+@@ -106,11 +106,11 @@
+ def _str_to_time_sql(
+     self: PrestoGenerator, expression: exp.StrToDate | exp.StrToTime | exp.TsOrDsToDate
+ ) -> str:
+-    return self.func("DATE_PARSE", expression.this, self.format_time(expression))
++    return self.func("DATE_PARSE", expression.this, self.render_time_format(expression))
+ 
+ 
+ def _ts_or_ds_to_date_sql(self: PrestoGenerator, expression: exp.TsOrDsToDate) -> str:
+-    time_format = self.format_time(expression)
++    time_format = self.render_time_format(expression)
+     dialect_class = type(self.dialect)
+     if time_format and time_format not in (dialect_class.TIME_FORMAT, dialect_class.DATE_FORMAT):
+         return self.sql(exp.cast(_str_to_time_sql(self, expression), exp.DType.DATE))
+@@ -415,9 +415,9 @@
+         exp.TimeStrToUnix: lambda self, e: self.func(
+             "TO_UNIXTIME", self.func("DATE_PARSE", e.this, type(self.dialect).TIME_FORMAT)
+         ),
+-        exp.TimeToStr: lambda self, e: self.func("DATE_FORMAT", e.this, self.format_time(e)),
++        exp.TimeToStr: lambda self, e: self.func("DATE_FORMAT", e.this, self.render_time_format(e)),
+         exp.TimeToUnix: rename_func("TO_UNIXTIME"),
+-        exp.ToChar: lambda self, e: self.func("DATE_FORMAT", e.this, self.format_time(e)),
++        exp.ToChar: lambda self, e: self.func("DATE_FORMAT", e.this, self.render_time_format(e)),
+         exp.TryCast: transforms.preprocess([transforms.epoch_cast_to_ts]),
+         exp.TsOrDiToDi: lambda self, e: (
+             f"CAST(SUBSTR(REPLACE(CAST({self.sql(e, 'this')} AS VARCHAR), '-', ''), 1, 8) AS INT)"
+@@ -427,7 +427,7 @@
+         exp.TsOrDsToDate: _ts_or_ds_to_date_sql,
+         exp.Unhex: rename_func("FROM_HEX"),
+         exp.UnixToStr: lambda self, e: (
+-            f"DATE_FORMAT(FROM_UNIXTIME({self.sql(e, 'this')}), {self.format_time(e)})"
++            f"DATE_FORMAT(FROM_UNIXTIME({self.sql(e, 'this')}), {self.render_time_format(e)})"
+         ),
+         exp.UnixToTime: _unix_to_time_sql,
+         exp.UnixToTimeStr: lambda self, e: f"CAST(FROM_UNIXTIME({self.sql(e, 'this')}) AS VARCHAR)",
+@@ -590,13 +590,13 @@
+         value_as_text = exp.cast(this, exp.DType.TEXT)
+         value_as_timestamp = exp.cast(this, exp.DType.TIMESTAMP) if this.is_string else this
+ 
+-        parse_without_tz = self.func("DATE_PARSE", value_as_text, self.format_time(expression))
++        parse_without_tz = self.func("DATE_PARSE", value_as_text, self.render_time_format(expression))
+ 
+-        formatted_value = self.func("DATE_FORMAT", value_as_timestamp, self.format_time(expression))
++        formatted_value = self.func("DATE_FORMAT", value_as_timestamp, self.render_time_format(expression))
+         parse_with_tz = self.func(
+             "PARSE_DATETIME",
+             formatted_value,
+-            self.format_time(expression, Hive.INVERSE_TIME_MAPPING, Hive.INVERSE_TIME_TRIE),
++            self.render_time_format(expression, Hive.INVERSE_TIME_MAPPING, Hive.INVERSE_TIME_TRIE),
+         )
+         coalesced = self.func("COALESCE", self.func("TRY", parse_without_tz), parse_with_tz)
+         return self.func("TO_UNIXTIME", coalesced)
+diff -ruN -x __pycache__ a/sqlglot/generators/singlestore.py b/sqlglot/generators/singlestore.py
+--- a/sqlglot/generators/singlestore.py	2026-11-06 09:30:53.038125757 -0500
++++ b/sqlglot/generators/singlestore.py	2026-11-06 09:31:14.526691537 -0500
+@@ -47,16 +47,16 @@
+             if k not in (exp.JSONExtractScalar, exp.CurrentDate)
+         },
+         exp.TsOrDsToDate: lambda self, e: (
+-            self.func("TO_DATE", e.this, self.format_time(e))
++            self.func("TO_DATE", e.this, self.render_time_format(e))
+             if e.args.get("format")
+             else self.func("DATE", e.this)
+         ),
+-        exp.StrToTime: lambda self, e: self.func("TO_TIMESTAMP", e.this, self.format_time(e)),
+-        exp.ToChar: lambda self, e: self.func("TO_CHAR", e.this, self.format_time(e)),
++        exp.StrToTime: lambda self, e: self.func("TO_TIMESTAMP", e.this, self.render_time_format(e)),
++        exp.ToChar: lambda self, e: self.func("TO_CHAR", e.this, self.render_time_format(e)),
+         exp.StrToDate: lambda self, e: self.func(
+             "STR_TO_DATE",
+             e.this,
+-            self.format_time(
++            self.render_time_format(
+                 e,
+                 inverse_time_mapping=self.dialect.MYSQL_INVERSE_TIME_MAPPING,
+                 inverse_time_trie=self.dialect.MYSQL_INVERSE_TIME_TRIE,
+@@ -65,7 +65,7 @@
+         exp.TimeToStr: lambda self, e: self.func(
+             "DATE_FORMAT",
+             e.this,
+-            self.format_time(
++            self.render_time_format(
+                 e,
+                 inverse_time_mapping=self.dialect.MYSQL_INVERSE_TIME_MAPPING,
+                 inverse_time_trie=self.dialect.MYSQL_INVERSE_TIME_TRIE,
+@@ -88,7 +88,7 @@
+         exp.UnixToStr: lambda self, e: self.func(
+             "FROM_UNIXTIME",
+             e.this,
+-            self.format_time(
++            self.render_time_format(
+                 e,
+                 inverse_time_mapping=self.dialect.MYSQL_INVERSE_TIME_MAPPING,
+                 inverse_time_trie=self.dialect.MYSQL_INVERSE_TIME_TRIE,
+@@ -98,7 +98,7 @@
+             lambda self, e: self.func(
+                 "FROM_UNIXTIME",
+                 e.this,
+-                self.format_time(
++                self.render_time_format(
+                     e,
+                     inverse_time_mapping=self.dialect.MYSQL_INVERSE_TIME_MAPPING,
+                     inverse_time_trie=self.dialect.MYSQL_INVERSE_TIME_TRIE,
+diff -ruN -x __pycache__ a/sqlglot/generators/snowflake.py b/sqlglot/generators/snowflake.py
+--- a/sqlglot/generators/snowflake.py	2026-11-06 09:30:53.038442425 -0500
++++ b/sqlglot/generators/snowflake.py	2026-11-06 09:31:14.537604477 -0500
+@@ -573,7 +573,7 @@
+         exp.StrPosition: lambda self, e: strposition_sql(
+             self, e, func_name="CHARINDEX", supports_position=True
+         ),
+-        exp.StrToDate: lambda self, e: self.func("DATE", e.this, self.format_time(e)),
++        exp.StrToDate: lambda self, e: self.func("DATE", e.this, self.render_time_format(e)),
+         exp.StringToArray: rename_func("STRTOK_TO_ARRAY"),
+         exp.StrtokToArray: rename_func("STRTOK_TO_ARRAY"),
+         exp.Stuff: rename_func("INSERT"),
+@@ -600,10 +600,10 @@
+         exp.TsOrDsAdd: date_delta_sql("DATEADD", cast=True),
+         exp.TsOrDsDiff: date_delta_sql("DATEDIFF"),
+         exp.TsOrDsToDate: lambda self, e: self.func(
+-            f"{'TRY_' if e.args.get('safe') else ''}TO_DATE", e.this, self.format_time(e)
++            f"{'TRY_' if e.args.get('safe') else ''}TO_DATE", e.this, self.render_time_format(e)
+         ),
+         exp.TsOrDsToTime: lambda self, e: self.func(
+-            f"{'TRY_' if e.args.get('safe') else ''}TO_TIME", e.this, self.format_time(e)
++            f"{'TRY_' if e.args.get('safe') else ''}TO_TIME", e.this, self.render_time_format(e)
+         ),
+         exp.Unhex: rename_func("HEX_DECODE_BINARY"),
+         exp.UnixToTime: lambda self, e: self.func("TO_TIMESTAMP", e.this, e.args.get("scale")),
+@@ -960,7 +960,7 @@
+         return self.func(
+             f"{'TRY_' if expression.args.get('safe') else ''}{func_name}",
+             expression.this,
+-            self.format_time(expression),
++            self.render_time_format(expression),
+         )
+ 
+     def timestampsub_sql(self, expression: exp.TimestampSub):
+@@ -993,7 +993,7 @@
+         if this.is_string:
+             this = exp.cast(this, exp.DType.TIMESTAMP)
+ 
+-        return self.func("TO_CHAR", this, self.format_time(expression))
++        return self.func("TO_CHAR", this, self.render_time_format(expression))
+ 
+     def datesub_sql(self, expression: exp.DateSub) -> str:
+         value = expression.expression
+diff -ruN -x __pycache__ a/sqlglot/generators/spark2.py b/sqlglot/generators/spark2.py
+--- a/sqlglot/generators/spark2.py	2026-11-06 09:30:53.038569948 -0500
++++ b/sqlglot/generators/spark2.py	2026-11-06 09:31:14.543891109 -0500
+@@ -73,7 +73,7 @@
+ 
+ 
+ def _str_to_date(self: Spark2Generator, expression: exp.StrToDate) -> str:
+-    time_format = self.format_time(expression)
++    time_format = self.render_time_format(expression)
+     if time_format == HIVE_DATE_FORMAT:
+         return self.func("TO_DATE", expression.this)
+     return self.func("TO_DATE", expression.this, time_format)
+@@ -216,7 +216,7 @@
+                 "SHA2", e.this, e.args.get("length") or exp.Literal.number(256)
+             ),
+             exp.StrToDate: _str_to_date,
+-            exp.StrToTime: lambda self, e: self.func("TO_TIMESTAMP", e.this, self.format_time(e)),
++            exp.StrToTime: lambda self, e: self.func("TO_TIMESTAMP", e.this, self.render_time_format(e)),
+             exp.TimestampTrunc: timestamptrunc_sql(),
+             exp.UnixToTime: _unix_to_time_sql,
+             exp.VariancePop: rename_func("VAR_POP"),
+diff -ruN -x __pycache__ a/sqlglot/generators/starrocks.py b/sqlglot/generators/starrocks.py
+--- a/sqlglot/generators/starrocks.py	2026-11-06 09:30:53.038349319 -0500
++++ b/sqlglot/generators/starrocks.py	2026-11-06 09:31:14.549708896 -0500
+@@ -137,12 +137,12 @@
+         exp.SchemaCommentProperty: lambda self, e: self.naked_property(e),
+         exp.SqlSecurityProperty: lambda self, e: f"SECURITY {self.sql(e.this)}",
+         exp.StDistance: st_distance_sphere,
+-        exp.StrToUnix: lambda self, e: self.func("UNIX_TIMESTAMP", e.this, self.format_time(e)),
++        exp.StrToUnix: lambda self, e: self.func("UNIX_TIMESTAMP", e.this, self.render_time_format(e)),
+         exp.TimestampTrunc: lambda self, e: self.func(
+             "DATE_TRUNC", weekstart_unit_to_str(self, e), e.this
+         ),
+         exp.TimeStrToDate: rename_func("TO_DATE"),
+-        exp.UnixToStr: lambda self, e: self.func("FROM_UNIXTIME", e.this, self.format_time(e)),
++        exp.UnixToStr: lambda self, e: self.func("FROM_UNIXTIME", e.this, self.render_time_format(e)),
+         exp.UnixToTime: rename_func("FROM_UNIXTIME"),
+         exp.VarMap: lambda self, e: var_map_sql(self, e, "MAP"),
+     }
+diff -ruN -x __pycache__ a/sqlglot/generators/teradata.py b/sqlglot/generators/teradata.py
+--- a/sqlglot/generators/teradata.py	2026-11-06 09:30:53.037455873 -0500
++++ b/sqlglot/generators/teradata.py	2026-11-06 09:31:14.552243937 -0500
+@@ -88,7 +88,7 @@
+             self, e, func_name="INSTR", supports_position=True, supports_occurrence=True
+         ),
+         exp.StrToDate: lambda self, e: (
+-            f"CAST({self.sql(e, 'this')} AS DATE FORMAT {self.format_time(e)})"
++            f"CAST({self.sql(e, 'this')} AS DATE FORMAT {self.render_time_format(e)})"
+         ),
+         exp.ToChar: lambda self, e: self.function_fallback_sql(e),
+         exp.ToNumber: to_number_with_nls_param,
+diff -ruN -x __pycache__ a/sqlglot/generators/tsql.py b/sqlglot/generators/tsql.py
+--- a/sqlglot/generators/tsql.py	2026-11-06 09:30:53.038072363 -0500
++++ b/sqlglot/generators/tsql.py	2026-11-06 09:31:14.560579907 -0500
+@@ -44,7 +44,7 @@
+             mapped_fmt = format_time(fmt.name, TSQL.INVERSE_TIME_MAPPING)
+             fmt_sql = self.sql(exp.Literal.string(mapped_fmt))
+         else:
+-            fmt_sql = self.format_time(expression) or self.sql(fmt)
++            fmt_sql = self.render_time_format(expression) or self.sql(fmt)
+     else:
+         fmt_sql = self.sql(fmt)
+ 

@@ -1,0 +1,7 @@
+{
+  "id": "17-sqlglot-rename-generator-format-time",
+  "repo": "sqlglot",
+  "prompt": "Rename the method `Generator.format_time` (in sqlglot/generator.py, the SQL generator's method) to `render_time_format`. Rename the override in the Hive generator too, and update every call that reaches it on a generator, including calls through `super()` and calls that name the base class explicitly. `Dialect.format_time` (a classmethod on dialects) and the `format_time` function in sqlglot/time.py are different things and keep their name. The test suite must pass when you are done.",
+  "min_tests": 1400,
+  "why": "Generator.format_time is called 68 times in 20 files: `self.format_time` in the base generator and in the generator of every dialect, `super().format_time` in the Hive override, `generator.Generator.format_time(self, ...)` (an explicit base-class call in generators/hive.py), and a closure in dialects/dialect.py whose `self` is a generator. The same name is also the classmethod Dialect.format_time (10 calls in 3 files, through `MySQL`, `Dialect['mysql']` and `target_dialect`) and the function sqlglot.time.format_time (imported by name in 4 modules), so grep for `format_time` returns about 90 lines of which only some are the target. ripple resolves `self.` calls through the class hierarchy and the overrides."
+}

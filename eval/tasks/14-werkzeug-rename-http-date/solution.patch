@@ -1,0 +1,249 @@
+diff -ruN -x __pycache__ a/src/werkzeug/datastructures/range.py b/src/werkzeug/datastructures/range.py
+--- a/src/werkzeug/datastructures/range.py	2026-11-06 09:28:05.429152036 -0500
++++ b/src/werkzeug/datastructures/range.py	2026-11-06 09:28:15.523290936 -0500
+@@ -28,7 +28,7 @@
+     def to_header(self) -> str:
+         """Converts the object back into an HTTP header."""
+         if self.date is not None:
+-            return http.http_date(self.date)
++            return http.format_http_date(self.date)
+         if self.etag is not None:
+             return http.quote_etag(self.etag)
+         return ""
+diff -ruN -x __pycache__ a/src/werkzeug/exceptions.py b/src/werkzeug/exceptions.py
+--- a/src/werkzeug/exceptions.py	2026-11-06 09:28:05.425936304 -0500
++++ b/src/werkzeug/exceptions.py	2026-11-06 09:28:15.565253091 -0500
+@@ -677,9 +677,9 @@
+ 
+         if self.retry_after:
+             if isinstance(self.retry_after, datetime):
+-                from .http import http_date
++                from .http import format_http_date
+ 
+-                value = http_date(self.retry_after)
++                value = format_http_date(self.retry_after)
+             else:
+                 value = str(self.retry_after)
+ 
+diff -ruN -x __pycache__ a/src/werkzeug/http.py b/src/werkzeug/http.py
+--- a/src/werkzeug/http.py	2026-11-06 09:28:05.428320594 -0500
++++ b/src/werkzeug/http.py	2026-11-06 09:28:15.581542674 -0500
+@@ -1106,7 +1106,7 @@
+     return dt
+ 
+ 
+-def http_date(
++def format_http_date(
+     timestamp: datetime | date | int | float | struct_time | None = None,
+ ) -> str:
+     """Format a datetime object or timestamp into an :rfc:`2822` date
+@@ -1418,9 +1418,9 @@
+ 
+     if expires is not None:
+         if not isinstance(expires, str):
+-            expires = http_date(expires)
++            expires = format_http_date(expires)
+     elif max_age is not None and sync_expires:
+-        expires = http_date(datetime.now(tz=timezone.utc).timestamp() + max_age)
++        expires = format_http_date(datetime.now(tz=timezone.utc).timestamp() + max_age)
+ 
+     if samesite is not None:
+         samesite = samesite.title()
+diff -ruN -x __pycache__ a/src/werkzeug/middleware/shared_data.py b/src/werkzeug/middleware/shared_data.py
+--- a/src/werkzeug/middleware/shared_data.py	2026-11-06 09:28:05.425880786 -0500
++++ b/src/werkzeug/middleware/shared_data.py	2026-11-06 09:28:15.600296931 -0500
+@@ -23,7 +23,7 @@
+ from time import time
+ from zlib import adler32
+ 
+-from ..http import http_date
++from ..http import format_http_date
+ from ..http import is_resource_modified
+ from ..http import quote_etag
+ from ..security import safe_join
+@@ -254,7 +254,7 @@
+         mime_type = get_content_type(guessed_type[0] or self.fallback_mimetype, "utf-8")
+         f, mtime, file_size = file_loader()
+ 
+-        headers = [("Date", http_date())]
++        headers = [("Date", format_http_date())]
+ 
+         if self.cache:
+             timeout = self.cache_timeout
+@@ -269,7 +269,7 @@
+                 start_response("304 Not Modified", headers)
+                 return []
+ 
+-            headers.append(("Expires", http_date(time() + timeout)))
++            headers.append(("Expires", format_http_date(time() + timeout)))
+         else:
+             headers.append(("Cache-Control", "public"))
+ 
+@@ -277,7 +277,7 @@
+             (
+                 ("Content-Type", mime_type),
+                 ("Content-Length", str(file_size)),
+-                ("Last-Modified", http_date(mtime)),
++                ("Last-Modified", format_http_date(mtime)),
+             )
+         )
+         start_response("200 OK", headers)
+diff -ruN -x __pycache__ a/src/werkzeug/sansio/response.py b/src/werkzeug/sansio/response.py
+--- a/src/werkzeug/sansio/response.py	2026-11-06 09:28:05.427517531 -0500
++++ b/src/werkzeug/sansio/response.py	2026-11-06 09:28:15.638186234 -0500
+@@ -19,7 +19,7 @@
+ from ..http import dump_cookie
+ from ..http import dump_header
+ from ..http import dump_options_header
+-from ..http import http_date
++from ..http import format_http_date
+ from ..http import HTTP_STATUS_CODES
+ from ..http import parse_age
+ from ..http import parse_cache_control_header
+@@ -389,7 +389,7 @@
+         "Date",
+         None,
+         parse_date,
+-        http_date,
++        format_http_date,
+         doc="""The Date general-header field represents the date and
+         time at which the message was originated, having the same
+         semantics as orig-date in RFC 822.
+@@ -402,7 +402,7 @@
+         "Expires",
+         None,
+         parse_date,
+-        http_date,
++        format_http_date,
+         doc="""The Expires entity-header field gives the date/time after
+         which the response is considered stale. A stale cache entry may
+         not normally be returned by a cache.
+@@ -415,7 +415,7 @@
+         "Last-Modified",
+         None,
+         parse_date,
+-        http_date,
++        format_http_date,
+         doc="""The Last-Modified entity-header field indicates the date
+         and time at which the origin server believes the variant was
+         last modified.
+@@ -454,7 +454,7 @@
+                 del self.headers["retry-after"]
+             return
+         elif isinstance(value, datetime):
+-            value = http_date(value)
++            value = format_http_date(value)
+         else:
+             value = str(value)
+         self.headers["Retry-After"] = value
+diff -ruN -x __pycache__ a/src/werkzeug/wrappers/response.py b/src/werkzeug/wrappers/response.py
+--- a/src/werkzeug/wrappers/response.py	2026-11-06 09:28:05.426824089 -0500
++++ b/src/werkzeug/wrappers/response.py	2026-11-06 09:28:15.687277725 -0500
+@@ -8,7 +8,7 @@
+ from .._internal import _get_environ
+ from ..datastructures import Headers
+ from ..http import generate_etag
+-from ..http import http_date
++from ..http import format_http_date
+ from ..http import is_resource_modified
+ from ..http import parse_etags
+ from ..http import parse_range_header
+@@ -760,7 +760,7 @@
+             # this header will be overridden by many WSGI servers including
+             # wsgiref.
+             if "date" not in self.headers:
+-                self.headers["Date"] = http_date()
++                self.headers["Date"] = format_http_date()
+             is206 = self._process_range_request(environ, complete_length, accept_ranges)
+             if not is206 and not is_resource_modified(
+                 environ,
+diff -ruN -x __pycache__ a/tests/test_http.py b/tests/test_http.py
+--- a/tests/test_http.py	2026-11-06 09:28:05.396957814 -0500
++++ b/tests/test_http.py	2026-11-06 09:28:15.751088848 -0500
+@@ -331,7 +331,7 @@
+         assert etags.contains_raw('W/"foo"')
+ 
+     def test_remove_entity_headers(self):
+-        now = http.http_date()
++        now = http.format_http_date()
+         headers1 = [
+             ("Date", now),
+             ("Content-Type", "text/html"),
+@@ -446,7 +446,7 @@
+         assert not http.is_resource_modified(env, etag=etag)
+         assert not http.is_resource_modified(env, data=b"awesome")
+ 
+-        env["HTTP_IF_MODIFIED_SINCE"] = http.http_date(datetime(2008, 1, 1, 12, 30))
++        env["HTTP_IF_MODIFIED_SINCE"] = http.format_http_date(datetime(2008, 1, 1, 12, 30))
+         assert not http.is_resource_modified(
+             env, last_modified=datetime(2008, 1, 1, 12, 00)
+         )
+@@ -457,7 +457,7 @@
+     def test_is_resource_modified_for_range_requests(self):
+         env = create_environ()
+ 
+-        env["HTTP_IF_MODIFIED_SINCE"] = http.http_date(datetime(2008, 1, 1, 12, 30))
++        env["HTTP_IF_MODIFIED_SINCE"] = http.format_http_date(datetime(2008, 1, 1, 12, 30))
+         env["HTTP_IF_RANGE"] = http.quote_etag(http.generate_etag(b"awesome_if_range"))
+         # Range header not present, so If-Range should be ignored
+         assert not http.is_resource_modified(
+@@ -475,7 +475,7 @@
+             env, data=b"not_the_same", ignore_if_range=False
+         )
+ 
+-        env["HTTP_IF_RANGE"] = http.http_date(datetime(2008, 1, 1, 13, 30))
++        env["HTTP_IF_RANGE"] = http.format_http_date(datetime(2008, 1, 1, 13, 30))
+         assert http.is_resource_modified(
+             env, last_modified=datetime(2008, 1, 1, 14, 00), ignore_if_range=False
+         )
+@@ -799,7 +799,7 @@
+     ],
+ )
+ def test_http_date(value, expect):
+-    assert http.http_date(value) == expect
++    assert http.format_http_date(value) == expect
+ 
+ 
+ @pytest.mark.parametrize("value", [".5", "+0.5", "0.5_1", "🯰.🯵"])
+diff -ruN -x __pycache__ a/tests/test_send_file.py b/tests/test_send_file.py
+--- a/tests/test_send_file.py	2026-11-06 09:28:05.400859815 -0500
++++ b/tests/test_send_file.py	2026-11-06 09:28:15.795337829 -0500
+@@ -5,7 +5,7 @@
+ import pytest
+ 
+ from werkzeug.exceptions import NotFound
+-from werkzeug.http import http_date
++from werkzeug.http import format_http_date
+ from werkzeug.test import EnvironBuilder
+ from werkzeug.utils import send_file
+ from werkzeug.utils import send_from_directory
+@@ -128,7 +128,7 @@
+     rv = send_file(
+         txt_path,
+         EnvironBuilder(
+-            headers={"If-Modified-Since": http_date(datetime.datetime(2020, 7, 12))}
++            headers={"If-Modified-Since": format_http_date(datetime.datetime(2020, 7, 12))}
+         ).get_environ(),
+         last_modified=datetime.datetime(2020, 7, 11),
+     )
+diff -ruN -x __pycache__ a/tests/test_utils.py b/tests/test_utils.py
+--- a/tests/test_utils.py	2026-11-06 09:28:05.402426719 -0500
++++ b/tests/test_utils.py	2026-11-06 09:28:15.820931567 -0500
+@@ -8,7 +8,7 @@
+ from werkzeug import Request
+ from werkzeug import utils
+ from werkzeug.datastructures import Headers
+-from werkzeug.http import http_date
++from werkzeug.http import format_http_date
+ from werkzeug.http import parse_date
+ from werkzeug.test import Client
+ from werkzeug.test import EnvironBuilder
+@@ -155,7 +155,7 @@
+         number = utils.environ_property("number", load_func=int)
+         broken_number = utils.environ_property("broken_number", load_func=int)
+         date = utils.environ_property(
+-            "date", None, parse_date, http_date, read_only=False
++            "date", None, parse_date, format_http_date, read_only=False
+         )
+         foo = utils.environ_property("foo")
+ 
