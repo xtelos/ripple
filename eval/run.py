@@ -1,6 +1,6 @@
 """Run the agent A/B eval: every task, with and without ripple, N times each.
 
-    python -m eval.run                          10 tasks x 2 modes x 3 repeats
+    python -m eval.run                          19 tasks x 2 modes x 3 repeats
     python -m eval.run --tasks 01-shop-tax-args --repeats 1 --out /tmp/smoke.json
 
 Each run copies the task's fixture to a fresh directory under /tmp, runs
@@ -23,6 +23,7 @@ import json
 import os
 import re
 import secrets
+import shlex
 import shutil
 import signal
 import subprocess
@@ -93,13 +94,16 @@ def child_env(base: dict, bin_dir: Path, cache_dir: Path) -> dict:
     return env
 
 
-def write_python_shims(bin_dir: Path, python: str = sys.executable) -> None:
+def write_python_shims(bin_dir: Path, python: str = sys.executable, env: dict[str, str] | None = None) -> None:
     """python, python3 and pytest for the agent, from an environment that has
-    pytest. Shell scripts rather than symlinks, so the venv is still found."""
+    pytest. Shell scripts rather than symlinks, so the venv is still found.
+    env is exported first: for a real-repo task it carries the variables the
+    grader runs the tests with (RepoSpec.env), so the agent's runs match."""
     bin_dir.mkdir(parents=True, exist_ok=True)
+    exports = "".join(f"export {k}={shlex.quote(v)}\n" for k, v in (env or {}).items() if k != "PATH")
     for name, target in (("python", python), ("python3", python), ("pytest", f"{python} -m pytest")):
         shim = bin_dir / name
-        shim.write_text(f'#!/bin/sh\nexec {target} "$@"\n')
+        shim.write_text(f'#!/bin/sh\n{exports}exec {target} "$@"\n')
         shim.chmod(0o755)
 
 
@@ -207,6 +211,11 @@ def invalid_reason(parsed: dict, mode: str) -> str | None:
 def run_one(task: Task, mode: str, repeat: int, root: Path, bin_dir: Path, args) -> dict:
     run_dir = new_run_dir(root)
     repo = copy_fixture(task, run_dir / "repo")
+    if task.spec:
+        # A real repository needs its own venv's python and its test settings; the shims are
+        # per run because they name this run's copy (the repo is never installed).
+        bin_dir = run_dir / "bin"
+        write_python_shims(bin_dir, task.python, task.spec.env(repo))
     cache_dir = run_dir / "cache"
     mcp_file = run_dir / "mcp.json"
     mcp_file.write_text(json.dumps(mcp_config(mode, repo, cache_dir)))
@@ -316,6 +325,10 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
 
     tasks = load_tasks(only=args.tasks.split(",") if args.tasks else None)
+    missing = [t.id for t in tasks if not t.available]
+    if missing:
+        parser.error(f"these tasks need pinned repositories that are not fetched: {', '.join(missing)}\n"
+                     "run `python -m eval.fetch`, or pick other tasks with --tasks")  # fmt: skip
     modes = args.modes.split(",")
     if any(m not in MODES for m in modes):
         parser.error(f"modes must be among {', '.join(MODES)}")
