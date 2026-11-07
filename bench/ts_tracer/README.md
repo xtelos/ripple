@@ -20,6 +20,10 @@ Dependencies never live in the repository. `install` copies the fixture's `packa
 runs at once never share a copy. The one lockfile pins everything: the tracer reads the TypeScript compiler
 API, and the runners come from the same install. Do not run `install` while a trace is running.
 
+To score ripple's TypeScript graph against the truth (no node needed, only the `typescript` extra), run
+`python -m bench.ts_score`: precision and recall of the `calls` edges, every expected edge ripple missed with its
+reason, and an exit code of 1 below `bench/baseline_ts.json`. The JSX kinds are reported as not yet indexed.
+
 `tests/test_ts_trace.py` runs the trace and compares it with the truth. It skips, with the reason in the
 `-rs` output, when `node` is missing or `install` has not been run, so CI without node stays green.
 
@@ -52,6 +56,10 @@ has both on purpose, and the truth lists the pairs that look like an edge in one
   a class with no constructor in source gets one inserted by the transform (`super(...args)`) and is
   named by the class alone, as Python names a class with no `__init__`.
 - A getter and setter with the same name share one symbol.
+- Two declarations of one name under one parent get a `#2`, `#3` suffix on the later ones, in source order:
+  a class `P` in each of two sibling blocks of `f` is `m:f.P` and `m:f.P#2`, and a static and an instance
+  member of one name are `m:A.make` and `m:A.make#2`. This is the only `#` suffix an id has, and ripple's
+  front end (`ripple/ts_indexer.py`) writes it. The fixture has no such pair, so the truth does not use it.
 - An arrow or function expression that initialises `const x` is named `x`.
 - The callback of `it()` or `test()` is `<describe titles> > <it title>`. A `describe()` callback is the module.
 - Every other function is anonymous. It is never a callee, and what it calls belongs to the named function

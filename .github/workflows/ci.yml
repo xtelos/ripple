@@ -11,14 +11,20 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.12"]
+        # "dev" is the base install: the TypeScript tests must skip there, and everything else must pass.
+        # "dev,typescript" adds the optional parser, so the TypeScript tests and benchmark run.
+        extras: ["dev", "dev,typescript"]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install
-        run: python -m pip install -e ".[dev]"
+        run: python -m pip install -e ".[${{ matrix.extras }}]"
       - name: Tests
-        run: python -m pytest -q
+        run: python -m pytest -q -rs
       - name: Benchmark (fails if precision or recall drops below bench/baseline.json)
         run: python -m bench
+      - name: TypeScript benchmark (fails if below bench/baseline_ts.json; needs the typescript extra)
+        if: contains(matrix.extras, 'typescript')
+        run: python -m bench.ts_score
