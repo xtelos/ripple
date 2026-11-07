@@ -200,10 +200,11 @@ def _no_test_command(repo: Path) -> list[str]:
 #
 # The classes are the constructors the language itself defines (ECMAScript 2024, the global object's
 # constructor properties) plus the few host classes every runtime has in common (WHATWG URL, text,
-# abort and fetch types, which both browsers and Node define). Proxy is left out: what a Proxy
-# returns is whatever its handler says.
+# abort and fetch types, which both browsers and Node define). Proxy, Object and Function are names
+# but not types: a Proxy returns whatever its handler says, an Object has whatever properties the
+# code gave it, and a value typed Function is called, which is calling code ripple cannot see.
 _TS_BUILTIN_TYPES = (
-    "Object Function Array String Number Boolean Symbol BigInt Date RegExp "
+    "Array String Number Boolean Symbol BigInt Date RegExp "
     "Error EvalError RangeError ReferenceError SyntaxError TypeError URIError AggregateError "
     "Map Set WeakMap WeakSet WeakRef FinalizationRegistry Promise ArrayBuffer SharedArrayBuffer DataView "
     "Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array "
@@ -214,7 +215,7 @@ _TS_BUILTIN_TYPES = (
 # objects, the timers and console every runtime has, Node's module globals and the browser's window
 # and document. Calling any of them is calling code outside the repo.
 _TS_BUILTIN_VALUES = (
-    "Math JSON Reflect Atomics Intl Proxy globalThis undefined NaN Infinity "
+    "Object Function Math JSON Reflect Atomics Intl Proxy globalThis undefined NaN Infinity "
     "parseInt parseFloat isNaN isFinite eval encodeURI encodeURIComponent decodeURI decodeURIComponent escape unescape "
     "console setTimeout setInterval setImmediate clearTimeout clearInterval clearImmediate queueMicrotask "
     "structuredClone fetch atob btoa performance "

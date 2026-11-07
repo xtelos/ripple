@@ -1008,8 +1008,8 @@ def run_deep(function, *args):
 def build_graph(repo: str | Path, profile: LanguageProfile = PYTHON) -> Graph:
     """Index a repository from scratch. Most callers want cache.load_graph.
 
-    The profile chooses which files are read and what the resolver assumes about the language.
-    The parser is still Python's, so only a profile with Python's syntax is meaningful here.
+    The profile chooses which files are read, what the resolver assumes about the language and which
+    front end reads them: Python's (this module) or, for TYPESCRIPT, ts_indexer.py.
     """
     # The index is a large graph of objects that all stay alive until the end, so the cyclic
     # collector, which rescans every live object each time it runs, finds almost nothing and
@@ -1029,6 +1029,11 @@ def _build_graph(repo: Path, profile: LanguageProfile = PYTHON) -> Graph:
 
     repo = Path(repo).resolve()
     files, skipped = walk_repo(repo, profile)
+    if profile.front_end == "typescript":
+        # Imported here, so the Python path never loads it, and it loads tree-sitter only when it parses a file.
+        from .ts_indexer import build_ts_graph
+
+        return build_ts_graph(repo, files, skipped, profile)
     scopes, errors = collect_scopes(repo, files)
     graph = Resolver(scopes, Rescanner(repo), errors, profile).run()
     graph.parse_errors = errors
