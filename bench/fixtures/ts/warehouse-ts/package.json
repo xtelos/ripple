@@ -1,0 +1,26 @@
+{
+  "name": "ripple-warehouse-ts-fixture",
+  "private": true,
+  "version": "0.0.0",
+  "description": "TypeScript fixture for ripple's ground truth. Dependencies install into a cache outside the repository (see bench/ts_tracer/README.md); the lockfile is committed.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:jest": "jest"
+  },
+  "dependencies": {
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "jest": "29.7.0",
+    "jest-environment-jsdom": "29.7.0",
+    "jsdom": "26.1.0",
+    "ts-jest": "29.4.5",
+    "typescript": "5.9.3",
+    "vitest": "3.2.4"
+  }
+}
