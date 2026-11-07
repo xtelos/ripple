@@ -67,8 +67,9 @@ files that are not tests themselves are listed with the other callers, since the
 
 `check(tests=[...])` accepts only test file paths and node ids inside the repository. Anything that
 starts with `-` or `@` (pytest reads options from an `@file`) or points outside the repo is refused,
-so a caller cannot slip in a pytest option (`--basetemp=DIR` deletes `DIR`). Output is read from a temporary file and the timeout covers the
-whole run, so a test that leaves a process running in the background cannot hold up the result.
+so a caller cannot slip in a pytest option (`--basetemp=DIR` deletes `DIR`). Output is read from a
+temporary file and the timeout covers the whole run, so a test that leaves a process running in the
+background cannot hold up the result.
 The summary and each failure or output line `check` returns are cut to 240 characters, ending in
 `[truncated N chars]` when something was cut.
 
@@ -139,8 +140,9 @@ A call of a decorated function is typed by its def's return annotation (`compute
 argument, a wrapper whose every return is `return fn(...)` (not `result = fn(...); return result`, and not an
 async or generator wrapper), or `property`, `staticmethod`, `classmethod`, `functools.cache`, `lru_cache`,
 `cached_property`, `abstractmethod`, `overload`. Any other decorator, a repo one ripple cannot read or a
-dependency's (`retry`, `validate_call`), leaves the result unknown and the call unresolved, with the reason. A decorator also called as `timed(g)` keeps its wrapped call
-unresolved as well, since the wrapper may be given `g` too. One wrapper body serves every function its
+dependency's (`retry`, `validate_call`), leaves the result unknown and the call unresolved, with the
+reason. A decorator also called as `timed(g)` keeps its wrapped call unresolved as well, since the
+wrapper may be given `g` too. One wrapper body serves every function its
 decorator is applied to, but in each decoration it calls one of them, so the edges of a decoration carry
 the decorated function (`via`) and `impact` and `path` follow a chain through the wrapper only for the
 function the chain entered it for: the callers of `run_unload` are not callers of `ship` because both
@@ -170,8 +172,8 @@ assignment, `getattr(m, "T")`. Names are matched as text in every module, so an 
 alias (`from m import T as U`, through any chain), `m.T` and a star import are all covered, and so is an
 unrelated variable that happens to share the name (the call then stays unresolved, never guessed). A module
 that has a star import that could define the name is not trusted either, nor is any table while a store word
-appears in the repo (see below). The unresolved call says which use spoiled the proof and where (`T may be changed or handed on: 'T' is used
-other than to read it, at m.py:60`). An entry that is not a plain name of a function or method, a missing
+appears in the repo (see below). The unresolved call says which use spoiled the proof and where
+(`T may be changed or handed on: 'T' is used other than to read it, at m.py:60`). An entry that is not a plain name of a function or method, a missing
 key, a variable key, a loop over a dict's keys, and a loop variable that is assigned anywhere else in its
 function (two loops that reuse a variable name count), called after the loop, in the loop's `else`, in a
 nested function, lambda or generator expression, all stay unresolved.
@@ -185,51 +187,65 @@ looks for the words instead: `setattr`, `delattr`, `__setattr__`, `__delattr__`,
 or in a string or a comment, in any spelling (an alias, `self.module`, a line continuation, a look-alike Unicode
 letter, a file in another encoding), no table or partial of the repo is followed, and the unresolved call
 names the word and where it is. That disables tables and partials in any repo that uses those words anywhere,
-a test file that only calls `monkeypatch` or `patch` included (so most repos with a test suite that patches),
-and a file the word is in is not excepted because it does not import the module: another module can hand it one. Not covered: a word spelled by computing a string at run
-time (`getattr(object, "__set" + "attr__")`), `gc.get_referrers`, `ctypes`.
+a test file that only calls `monkeypatch` or `patch` included (so most repos with a test suite that
+patches). A file the word is in is not excepted because it does not import the module: another module can
+hand it one. Not covered: a word spelled by computing a string at run time
+(`getattr(object, "__set" + "attr__")`), `gc.get_referrers`, `ctypes`.
 
 The index is cached outside your repo (`RIPPLE_CACHE_DIR` if set, else `$XDG_CACHE_HOME/ripple` or
 `~/.cache/ripple`) and keyed on every file's mtime and size, so each query re-checks the files and
 rebuilds only when something changed.
-On my machine (a WSL2 laptop, timings vary by about 30% run to run) click, 91 files, takes 0.6 s cold and
-0.03 s from the cache; pydantic's repository, 3,156 files with its core's tests and docs, 6 to 8 s and
-0.5 s; Django, 2,941 files and about 47,000 symbols, 13 to 17 s and 1 to 2 s, peaking at 290 MB.
+On my machine (a WSL2 laptop, timings vary by about 30% run to run) click, 91 files, takes 0.4 s cold and
+0.08 s from the cache; pydantic's repository, 3,156 files with its core's tests and docs, 3.7 s and 0.4 s,
+peaking at 190 MB; Django, 2,941 files, 16 to 20 s and 1.1 s, peaking at 445 MB (the cyclic garbage
+collector is off while the graph is built, which is faster and costs memory).
 
 ## Benchmark
 
-`python -m bench` scores ripple against hand-written ground truth: 39 caller, callee and impact
-queries over three small fixture apps in `bench/fixtures` (an order and pricing service, a notes CLI,
-a web handler layer). CI fails if any number drops below `bench/baseline.json`.
+`python -m bench` scores ripple against hand-written ground truth: 63 caller, callee and impact
+queries over four small fixture apps in `bench/fixtures` (an order and pricing service, a notes CLI,
+a web handler layer, and a warehouse toolkit that holds the calls on standard library objects, on call
+results, in annotations and defaults, through decorators that wrap, and through `functools.partial` and
+dispatch tables). CI fails if any number drops below `bench/baseline.json`.
 
 | Case | Queries | Exact | Precision | Recall |
 |---|---:|---:|---:|---:|
 | Imports, aliases, re-exports | 11 | 11 | 1.000 | 1.000 |
 | Methods, `super()`, constructors | 6 | 6 | 1.000 | 1.000 |
-| Typed receivers | 5 | 5 | 1.000 | 1.000 |
+| Typed receivers (annotations, call results, standard library values) | 8 | 8 | 1.000 | 1.000 |
 | Callees | 3 | 2 | 1.000 | 0.750 |
-| Decorators | 4 | 2 | 0.667 | 0.500 |
-| Dynamic (getattr, dispatch tables, untyped values) | 6 | 0 | 1.000 | 0.125 |
-| Impact (transitive) | 4 | 1 | 1.000 | 0.459 |
-| **Overall** | **39** | **27** | **0.985** | **0.670** |
+| Decorators (including wrappers) | 10 | 10 | 1.000 | 1.000 |
+| Dynamic (getattr, dispatch tables, partials, untyped values) | 12 | 4 | 1.000 | 0.438 |
+| Calls made at definition time | 2 | 2 | 1.000 | 1.000 |
+| Impact (transitive) | 7 | 4 | 1.000 | 0.633 |
+| **Overall** | **59** | **47** | **1.000** | **0.779** |
+| Missed callers (scored apart, not in overall) | 4 | 4 | 1.000 | 1.000 |
+
+The missed-callers row scores the other half of the contract: for a symbol, the callers ripple lists
+under `possible_missed_callers` because it could not rule them out. There, precision is the share of
+the listed callers that really call the symbol (a caller that never does is a false alarm), and recall
+is the share of the callers ripple missed that it still lists. It answers a different question from the
+rows above, so it is not averaged into the overall figure.
 
 How to read this honestly:
 
-- **The truth was written before the code.** The fixtures and every expected answer were committed
-  before any indexer code existed (see the first commit), and the dynamic cases were included on
-  purpose to show where static analysis stops.
+- **The truth was written before the code.** The first three fixtures and every expected answer were
+  committed before any indexer code existed (see the first commit), and the dynamic cases were
+  included on purpose to show where static analysis stops. The warehouse queries were added the same
+  way: each group was committed, failing, before the rule that answers it.
 - **The truth is checked against runtime.** `bench/trace.py` runs each fixture's own test suite under
   a profiler, records the calls that actually happen with the stack each was made under, and
   `tests/test_ground_truth.py` fails if any expected answer disagrees with that trace. An impact answer
   is read from the stacks, not from a closure over caller and callee pairs, which would also credit a
   chain no run takes (two functions sharing one wrapper). A caller no test runs through is listed apart,
   as `unexercised`, with the reason. The tracer shares no code with ripple.
-- **It is small.** 62 queries over four fixtures I wrote, each query aimed at one resolution rule or
+- **It is small.** 63 queries over four fixtures I wrote, each query aimed at one resolution rule or
   one known limit. It shows which rules work, not what recall looks like on your codebase, where
   more of the code is likely to be untyped and dynamic.
-- **The one false positive is a design choice.** ripple treats a decorated function as called
-  directly, so it reports a test that calls `hello()` as a caller of `hello`. At runtime the test
-  calls the decorator's wrapper, which calls `hello`.
+- **Precision is 1.000 everywhere, recall is not.** ripple reports a call only when the source proves
+  it, so every miss is a call it left unresolved (see "What the benchmark still misses" below), never a
+  wrong edge. The benchmark does not cover a decorator ripple cannot read: there the decorated function
+  is treated as called directly (see "Decorators" above), which is a design choice, not a proof.
 
 ## Agent eval
 
@@ -305,6 +321,12 @@ Static analysis of a dynamic language misses things. ripple does not follow:
   so its subclass overrides stay linked (see the exact-class rule below). It does not add an edge to the
   class the decorator builds, which it cannot see. See "Decorators" above for the full list
 - calls ripple leaves unresolved on purpose, where it could have guessed:
+  - a method on a value annotated with a class from outside the repo (`logging.Handler`) when a repo class that
+    may inherit from it overrides the method. A repo class's base is compared with the annotation by what the
+    interpreter says for standard library classes, and a dependency's class or a base ripple cannot read is
+    never ruled out, so the call stays unresolved and `impact` lists it under `possible_missed_callers`
+  - a call result through a decorator ripple cannot prove returns what the def returned, and through a function
+    with a def that has no annotation among several (see "Decorators")
   - every table and partial while any file of the repo has a store word (`setattr`, `patch`, `monkeypatch`,
     `vars`, `exec`, `importlib`, `sys.modules` and the rest of the list in "Tables and partials, and the store words"),
     or while the repo has a file
@@ -316,7 +338,7 @@ Static analysis of a dynamic language misses things. ripple does not follow:
   (a def in each branch of an `if sys.platform`), give no type)
 - calls written inside a string annotation (`x: "Annotated[int, Field(gt=0)]"`): the string is not
   parsed. Calls in an ordinary annotation are recorded (see above); the annotation of a local variable in a
-  function never runs, so it is left out
+  function (`x: Annotated[int, Field()] = 1` inside a def) is never evaluated by Python, so it is left out
 - syntax the Python running ripple cannot parse (`except*` before 3.11, `type X = ...` and `def f[T]()`
   before 3.12): that file is listed as unparsable and left out. So are files with invalid bytes or a
   null byte, and files nested so deeply that the parser itself gives up (hundreds of thousands of terms).
@@ -355,8 +377,8 @@ only a short list is trusted: `dataclasses.dataclass` (bare or called), `attr.s`
 call, `functools.total_ordering`, `typing.final` and `typing.runtime_checkable`. Any other decorator
 from outside the repo (`six.add_metaclass`, `pytest.mark.x`) leaves the class not exact. A repo
 decorator that only returns its argument is not told apart from one that returns a subclass, so it costs
-the class its exactness too. Otherwise override edges stay. Method lookup walks bases depth-first, which matches Python's C3 order except
-in diamond-shaped hierarchies.
+the class its exactness too. Otherwise override edges stay. Method lookup walks bases depth-first, which
+matches Python's C3 order except in diamond-shaped hierarchies.
 
 To keep the blind spots visible, `callees` lists every unresolved call with its reason, and `impact`
 lists unresolved call sites that use the same name as the target under `possible_missed_callers`.
@@ -377,6 +399,27 @@ annotation such as `Any`, a protocol or an ABC), and one attribute further (`loc
 stored on an object from outside the repo may be a repo object). An unresolved receiver says why in its
 reason (an unannotated parameter, a loop variable, the result of a call to a function without a return
 annotation, ...), and `ripple index --reasons` counts unresolved calls and calls outside the repo by cause.
+
+### What the benchmark still misses, and why
+
+`python -m bench` lists every query it does not answer exactly. Each remaining miss needs something ripple
+does not do, and none of them is a bug that more rules would fix without guessing:
+
+- **Receivers whose class only a type inferrer or the running program knows.** The loop variable over a list
+  with no element type (`for item in self.items: item.subtotal()`), the parameter without an annotation
+  (`store.search(...)`), the value returned by a function without a return annotation (`best_discount()`,
+  `pick_three()`), and a lambda over an untyped list. Closing these needs return-type inference and
+  element-type inference, and ripple reads annotations and constructor calls only. The `impact` queries
+  that hang on one of these hops inherit the miss, since every caller further up the chain is missed too.
+- **Names built at run time.** `getattr(module, "cmd_" + name)`, `getattr(self, "on_" + verb)` and a table
+  looked up by a variable key. The target is a string value that exists only when the program runs.
+- **A table something changes.** A registry that is added to after it is built (`REGISTRY["b"] = ...`)
+  does not fix what a key finds, so `REGISTRY["a"](x)` stays unresolved. Only a table no code in the
+  repo can change is read (see "Dispatch tables"). Proving a mutation does not matter would need
+  knowing the order the code runs in.
+
+In every case ripple reports the call as unresolved with its reason and, for `impact`, lists it under
+`possible_missed_callers`, rather than choosing a target.
 
 ## Next
 
