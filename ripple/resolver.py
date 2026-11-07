@@ -30,7 +30,7 @@ import warnings
 from collections import Counter
 from dataclasses import dataclass, replace
 
-from .indexer import ASSIGNED_UNTYPED, COMPUTED_OTHER, LOOP_VARIABLE, Binding, Mentions, RawCall, Scope, Table, TypeRef
+from .facts import ASSIGNED_UNTYPED, COMPUTED_OTHER, LOOP_VARIABLE, Binding, Mentions, RawCall, Scope, Table, TypeRef
 from .model import Edge, Graph, Symbol, Unresolved
 
 BUILTIN_NAMES = set(dir(builtins))
