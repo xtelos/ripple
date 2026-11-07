@@ -48,6 +48,7 @@ from .facts import (
     unknown_ref,
 )
 from .model import Graph
+from .profile import PYTHON, LanguageProfile
 
 # Directories that hold dependencies or caches, never the project's own
 # source, wherever they appear. Hidden directories (.git, .venv, .tox, ...),
@@ -59,8 +60,8 @@ SKIP_ANYWHERE = {"__pycache__", "node_modules", "venv", "site-packages"}
 SKIP_AT_ROOT = {"build", "dist", "env"}
 
 
-def walk_repo(repo: Path) -> tuple[list[Path], list[str]]:
-    """(the .py files to index, the directories skipped as not project source).
+def walk_repo(repo: Path, profile: LanguageProfile = PYTHON) -> tuple[list[Path], list[str]]:
+    """(the source files to index (.py for Python), the directories skipped as not project source).
 
     The skipped list is for reporting, so it leaves out hidden directories,
     __pycache__ and *.egg-info: they never hold source and would be noise.
@@ -79,7 +80,7 @@ def walk_repo(repo: Path) -> tuple[list[Path], list[str]]:
         dirnames[:] = keep
         # isfile follows symlinks, so a dangling or looping link, a named pipe
         # (reading one blocks forever) and a directory called x.py are all left out.
-        files.extend(here / f for f in sorted(filenames) if f.endswith(".py") and _may_be_file(here / f))
+        files.extend(here / f for f in sorted(filenames) if f.endswith(profile.source_suffixes) and _may_be_file(here / f))
     return files, sorted(skipped)
 
 
@@ -100,8 +101,12 @@ def _may_be_file(path: Path) -> bool:
         return True
 
 
+def find_source_files(repo: Path, profile: LanguageProfile = PYTHON) -> list[Path]:
+    return walk_repo(repo, profile)[0]
+
+
 def find_python_files(repo: Path) -> list[Path]:
-    return walk_repo(repo)[0]
+    return find_source_files(repo)
 
 
 def module_name(repo: Path, path: Path) -> tuple[str, bool]:
@@ -994,8 +999,12 @@ def run_deep(function, *args):
     return outcome["value"]
 
 
-def build_graph(repo: str | Path) -> Graph:
-    """Index a repository from scratch. Most callers want cache.load_graph."""
+def build_graph(repo: str | Path, profile: LanguageProfile = PYTHON) -> Graph:
+    """Index a repository from scratch. Most callers want cache.load_graph.
+
+    The profile chooses which files are read and what the resolver assumes about the language.
+    The parser is still Python's, so only a profile with Python's syntax is meaningful here.
+    """
     # The index is a large graph of objects that all stay alive until the end, so the cyclic
     # collector, which rescans every live object each time it runs, finds almost nothing and
     # costs a share of the build that grows with the repo (django: about 40% of a cold index).
@@ -1003,19 +1012,19 @@ def build_graph(repo: str | Path) -> Graph:
     was_enabled = gc.isenabled()
     gc.disable()
     try:
-        return run_deep(_build_graph, Path(repo))
+        return run_deep(_build_graph, Path(repo), profile)
     finally:
         if was_enabled:
             gc.enable()
 
 
-def _build_graph(repo: Path) -> Graph:
+def _build_graph(repo: Path, profile: LanguageProfile = PYTHON) -> Graph:
     from .resolver import Resolver
 
     repo = Path(repo).resolve()
-    files, skipped = walk_repo(repo)
+    files, skipped = walk_repo(repo, profile)
     scopes, errors = collect_scopes(repo, files)
-    graph = Resolver(scopes, Rescanner(repo), errors).run()
+    graph = Resolver(scopes, Rescanner(repo), errors, profile).run()
     graph.parse_errors = errors
     graph.skipped_dirs = skipped
     unparsed = set(errors)

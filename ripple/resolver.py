@@ -23,19 +23,15 @@ of them. This is class hierarchy analysis, a standard static technique.
 
 from __future__ import annotations
 
-import builtins
 import importlib
-import sys
 import warnings
 from collections import Counter
 from dataclasses import dataclass, replace
 
 from .facts import ASSIGNED_UNTYPED, COMPUTED_OTHER, LOOP_VARIABLE, Binding, Mentions, RawCall, Scope, Table, TypeRef
 from .model import Edge, Graph, Symbol, Unresolved
+from .profile import PYTHON, LanguageProfile
 
-BUILTIN_NAMES = set(dir(builtins))
-# Values of these types run only builtin methods: "x".strip(), {}.get(...).
-BUILTIN_TYPES = {f"builtins.{n}" for n in BUILTIN_NAMES if isinstance(getattr(builtins, n), type)}
 MAX_IMPORT_HOPS = 8
 
 # A type stored as "external:threading.Event" is a class that lives outside the
@@ -53,25 +49,6 @@ EXT_INSTANCE = "a method of an instance of a class outside the repo"
 # A decorated function's call gives what its decorators return, which ripple cannot tell is what the def returned.
 DECORATED_RESULT = "the callee is the result of a call to a decorated function, and its decorator may change what it returns"
 DECORATED_RESULT_RECEIVER = "the receiver is the result of a call to a decorated function, and its decorator may change what it returns"
-
-# Standard library modules ripple may import to ask whether a name is a class.
-# Importing runs the module, so this is a list of ones that are safe and quiet
-# to import (not `this`, `antigravity`, `idlelib`, `tkinter`), never "any stdlib name".
-SAFE_STDLIB_MODULES = frozenset(
-    {
-        "argparse", "array", "bisect", "calendar", "collections", "concurrent.futures", "configparser",
-        "contextlib", "copy", "csv", "datetime", "decimal", "difflib", "email.message", "enum", "fractions",
-        "functools", "gzip", "hashlib", "heapq", "hmac", "html.parser", "http.client", "http.cookies",
-        "io", "ipaddress", "itertools", "json", "logging", "logging.handlers", "pathlib", "pprint", "queue",
-        "random", "re", "sched", "secrets", "shlex", "shutil", "socket", "sqlite3", "statistics", "string",
-        "struct", "subprocess", "tarfile", "tempfile", "textwrap", "threading", "time", "types", "urllib.parse",
-        "uuid", "weakref", "xml.etree.ElementTree", "zipfile",
-    }
-)  # fmt: skip
-# type(x)(...) and super(...) are not instances of themselves: they reach the class of x and its bases.
-NOT_BUILT_AS_INSTANCE = {"builtins.type", "builtins.super"}
-# Names that may be satisfied by a class that never inherits from them (protocols, ABCs).
-NOMINAL_ONLY_EXCLUDED = ("typing.", "typing_extensions.", "collections.abc.", "abc.")
 
 
 @dataclass(frozen=True)
@@ -118,28 +95,6 @@ class Shape:
     param: str = ""
 
 
-# Class decorators from outside the repo that return the class they are given (dataclass, attrs and
-# typing.final may build a new class object of the same name and bases, never a subclass or a wrapper).
-# Called or not: @dataclass, @dataclass(frozen=True). The attrs names are those of attr and attrs.
-SAME_CLASS_DECORATORS = frozenset(
-    {"dataclasses.dataclass"}
-    | {f"attr.{name}" for name in ("s", "attrs", "attributes", "define", "mutable", "frozen", "dataclass")}
-    | {f"attrs.{name}" for name in ("define", "mutable", "frozen")}
-)
-# Decorators from outside the repo that give a call the value the def returned (a call of what they
-# return gives that value), so the def's return annotation still says what a call gives.
-RESULT_KEEPING = frozenset(
-    {
-        "builtins.property", "builtins.staticmethod", "builtins.classmethod",
-        "functools.cached_property", "functools.cache", "functools.lru_cache",
-        "abc.abstractmethod", "typing.overload", "typing.final", "typing.override",
-        "typing_extensions.overload", "typing_extensions.final", "typing_extensions.override",
-    }
-)  # fmt: skip
-# Only written without a call.
-SAME_CLASS_PLAIN_DECORATORS = frozenset({"functools.total_ordering", "typing.final", "typing.runtime_checkable"})
-
-
 def unknown(reason: str) -> Target:
     return Target("unknown", reason=reason)
 
@@ -149,8 +104,15 @@ def external(value: str, reason: str) -> Target:
 
 
 class Resolver:
-    def __init__(self, scopes: dict[str, Scope], mentions=None, unparsed: list[str] | None = None):
+    def __init__(
+        self,
+        scopes: dict[str, Scope],
+        mentions=None,
+        unparsed: list[str] | None = None,
+        profile: LanguageProfile = PYTHON,
+    ):
         self.scopes = scopes
+        self.profile = profile
         # files that could not be parsed: they have no scope, and may do anything to a table or a partial
         self._unparsed = list(unparsed or [])
         # module Scope -> Mentions (what a module could change unseen), asked only to prove a table or a partial
@@ -353,7 +315,7 @@ class Resolver:
             if call.special != "decorator_result" or not call.chain:
                 return False
             target = self.resolve_chain(scope, call.chain)
-            if target.kind != "external" or target.value != "functools.wraps":
+            if target.kind != "external" or target.value not in self.profile.wraps_names:
                 return False
         return True
 
@@ -406,7 +368,7 @@ class Resolver:
         """Whether calling the function's name gives what its def returns, so its return annotation
         says what a call gives. True for an undecorated def. For a decorated one, only when every
         decorator is proven to hand the value back: one that returns its argument, a wrapper whose every
-        return is a call of the function it wraps, or a standard decorator that does (RESULT_KEEPING)."""
+        return is a call of the function it wraps, or a standard decorator that does (profile.result_keeping)."""
         if function not in self.decorations():
             return True
         if function not in self._keeps_result:
@@ -424,7 +386,7 @@ class Resolver:
             return False
         named = self.resolve_chain(scope, call.chain)
         if named.kind == "external":
-            return named.value in RESULT_KEEPING
+            return named.value in self.profile.result_keeping
         shape = self.applied_decorator(scope, call)
         if shape is None:
             return False
@@ -497,7 +459,7 @@ class Resolver:
         """Resolve a dotted expression like a.b.c as seen from scope."""
         found = self.lookup(scope, chain[0])
         if found is None:
-            if chain[0] in BUILTIN_NAMES:
+            if chain[0] in self.profile.builtin_names:
                 return external("builtins." + ".".join(chain), EXT_BUILTIN)
             return unknown(f"name '{chain[0]}' is not defined anywhere ripple can see")
         where, binding = found
@@ -535,7 +497,7 @@ class Resolver:
                 return unknown("the callee is the result of a call whose return annotation does not name a class ripple can follow")
             return unknown("the callee is the result of a call to a function with no return annotation")
         if target.kind == "external":
-            if target.reason == EXT_BUILTIN and target.value in BUILTIN_TYPES and target.value not in NOT_BUILT_AS_INSTANCE:
+            if target.reason == EXT_BUILTIN and target.value in self.profile.builtin_types and target.value not in self.profile.not_built_as_instance:
                 return external(target.value, EXT_BUILTIN_VALUE)
             if target.reason == EXT_IMPORT and self.stdlib_class(target.value):
                 return Target("foreign", target.value, exact=True)
@@ -633,7 +595,7 @@ class Resolver:
         if ref.kind != "call":
             return False
         named = self.resolve_chain(self.scopes[ref.scope], ref.expr.split("."))
-        return named.kind == "external" and named.reason == EXT_IMPORT and named.value == "functools.partial"
+        return named.kind == "external" and named.reason == EXT_IMPORT and named.value in self.profile.partial_names
 
     def partial_of(self, ref: TypeRef) -> Target:
         """The def partial(f, ...) wraps, or unknown."""
@@ -884,7 +846,7 @@ class Resolver:
         if self.unresolved_base(cls):
             return False
         return not any(
-            "__new__" in self.scopes[klass].names
+            self.profile.allocator_name in self.scopes[klass].names
             or self.scopes[klass].redirects_construction
             or self.class_replaced(klass)
             for klass in self.mro(cls)
@@ -894,7 +856,7 @@ class Resolver:
         """Whether a decorator on the class may bind its name to something else than the class.
 
         Only a decorator from outside the repo that is known to return the class it is given
-        (SAME_CLASS_DECORATORS) is trusted. A decorator that is a repo function or class may
+        (profile.same_class_decorators) is trusted. A decorator that is a repo function or class may
         return a subclass or a wrapper, and so may one ripple cannot resolve.
         """
         if cls not in self._replaced:
@@ -911,15 +873,15 @@ class Resolver:
         if named.kind != "external" or named.reason != EXT_IMPORT:
             return False
         if call.special == "decorator_result":
-            return named.value in SAME_CLASS_DECORATORS
-        return named.value in SAME_CLASS_DECORATORS or named.value in SAME_CLASS_PLAIN_DECORATORS
+            return named.value in self.profile.same_class_decorators
+        return named.value in self.profile.same_class_decorators or named.value in self.profile.same_class_plain_decorators
 
     def value_of_type(self, cls: str | None) -> Target:
         """A value whose class is cls: a repo class, a builtin such as dict, a class from
         outside the repo, or unknown."""
         if cls is None:
             return unknown("the receiver's class is not known statically")
-        if cls in BUILTIN_TYPES:
+        if cls in self.profile.builtin_types:
             return external(cls, EXT_BUILTIN_VALUE)
         if cls.startswith(EXTERNAL):
             return Target("foreign", cls[len(EXTERNAL) :])
@@ -930,7 +892,7 @@ class Resolver:
     def stdlib_class(self, dotted: str) -> bool:
         """Whether a dotted name is a plain class of the standard library.
 
-        Asked of the interpreter ripple runs on, for modules on SAFE_STDLIB_MODULES only.
+        Asked of the interpreter ripple runs on, for modules on profile.safe_import_modules only.
         "Plain" means its metaclass is `type`: an ABC or an Enum can be satisfied by classes
         that never inherit from them, and a function (threading.Lock before 3.13) builds
         whatever it likes. A name that cannot be asked about is not proven a class.
@@ -946,12 +908,11 @@ class Resolver:
             self._stdlib_objects[dotted] = self._ask_stdlib(dotted)
         return self._stdlib_objects[dotted]
 
-    @staticmethod
-    def _ask_stdlib(dotted: str):
+    def _ask_stdlib(self, dotted: str):
         parts = dotted.split(".")
         for i in range(len(parts) - 1, 0, -1):
             module = ".".join(parts[:i])
-            if module in SAFE_STDLIB_MODULES:
+            if module in self.profile.safe_import_modules:
                 try:
                     with warnings.catch_warnings():
                         warnings.simplefilter("ignore")
@@ -973,7 +934,7 @@ class Resolver:
             return False
         if self._base_proven is None:
             self._base_proven = {name for names in self._external_bases.values() for name in names}
-        return dotted in self._base_proven and not dotted.startswith(NOMINAL_ONLY_EXCLUDED)
+        return dotted in self._base_proven and not dotted.startswith(self.profile.nominal_only_excluded)
 
     def subclass_defines(self, dotted: str, attr: str) -> bool:
         """Whether a repo class that may inherit from the outside class defines attr itself or in
@@ -1027,9 +988,8 @@ class Resolver:
                 return True
         return not (self.in_stdlib(base) and not self.in_stdlib(above))
 
-    @staticmethod
-    def in_stdlib(dotted: str) -> bool:
-        return dotted.split(".")[0] in sys.stdlib_module_names
+    def in_stdlib(self, dotted: str) -> bool:
+        return dotted.split(".")[0] in self.profile.stdlib_module_names
 
     # -- modules -----------------------------------------------------------
 
@@ -1158,7 +1118,7 @@ class Resolver:
         if blocked:
             klass, base = blocked
             return unknown(f"'{name}' is not defined on the bases of {cls}, and base class {base} of {klass} could not be resolved")
-        if not hasattr(object, name) and not self.has_external_base(cls):
+        if not self.profile.has_universal_member(name) and not self.has_external_base(cls):
             # Nothing the class inherits defines it and object does not either, so
             # it is a mixin counting on a sibling class in the concrete MRO.
             return unknown(f"super().{name}: no base of {cls} defines it, so it may reach a sibling class in a subclass's MRO")
@@ -1195,7 +1155,7 @@ class Resolver:
                 if target.kind == "symbol" and self.scopes[target.value].kind == "class":
                     found.append(target.value)
                 elif target.kind == "external":
-                    if base != "object":
+                    if base != self.profile.implicit_base:
                         self._external_bases.setdefault(cls, []).append(target.value)
                 else:
                     self._unresolved_bases.setdefault(cls, base)
@@ -1349,7 +1309,7 @@ class Resolver:
             if found is None:
                 return None
             target = self.binding_target(found[0], found[1])
-            if target.kind == "instance" or (target.kind == "external" and target.value in BUILTIN_TYPES):
+            if target.kind == "instance" or (target.kind == "external" and target.value in self.profile.builtin_types):
                 return target.value
             if target.kind == "foreign":
                 return EXTERNAL + target.value
@@ -1358,7 +1318,7 @@ class Resolver:
         # call) a repo function whose return annotation names one.
         named = self.resolve_chain(scope, ref.expr.split("."))
         if named.kind == "external":
-            if named.value in BUILTIN_TYPES:
+            if named.value in self.profile.builtin_types:
                 return named.value
             return EXTERNAL + named.value if self.outside_class(named.value) else None
         if named.kind not in ("symbol", "bound"):
@@ -1379,5 +1339,5 @@ class Resolver:
         return self.type_of(TypeRef("annotation", scope.returns, scope.parent)) if scope.returns else None
 
     def constructor(self, cls: str) -> str:
-        """Calling a class runs the first __init__ in its bases, else the class itself."""
-        return self.class_member(cls, "__init__") or cls
+        """Calling a class runs the first constructor (__init__ in Python) in its bases, else the class itself."""
+        return self.class_member(cls, self.profile.constructor_name) or cls

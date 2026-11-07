@@ -11,12 +11,13 @@ from __future__ import annotations
 import os
 import re
 import shlex
-import shutil
 import signal
 import subprocess
 import tempfile
 import time
 from pathlib import Path
+
+from .profile import PYTHON, LanguageProfile
 
 MAX_FAILURES = 10
 MAX_LINE = 240
@@ -25,18 +26,9 @@ TAIL_LINES = 30
 SUMMARY = re.compile(r"\b(passed|failed|errors?|skipped|no tests ran)\b")
 
 
-def default_test_command(repo: Path) -> list[str]:
-    """python -m pytest -q, using the repo's own virtualenv when it has one.
-
-    ripple usually runs from its own environment, which does not have the
-    project's dependencies installed, so its own interpreter is the wrong one.
-    """
-    for venv in (".venv", "venv"):
-        python = repo / venv / "bin" / "python"
-        if python.exists():
-            return [str(python), "-m", "pytest", "-q"]
-    python = shutil.which("python") or shutil.which("python3") or "python"
-    return [python, "-m", "pytest", "-q"]
+def default_test_command(repo: Path, profile: LanguageProfile = PYTHON) -> list[str]:
+    """The command the profile's language runs a repo's tests with (for Python, see profile.py)."""
+    return profile.default_test_command(repo)
 
 
 def check_tests(repo: Path, tests: list[str]) -> None:
@@ -68,6 +60,7 @@ def run_check(
     command: list[str] | str | None = None,
     timeout: float = 300,
     tests: list[str] | None = None,
+    profile: LanguageProfile = PYTHON,
 ) -> dict:
     """Run the test command, or just the given test paths / node ids, and summarize.
 
@@ -77,7 +70,7 @@ def run_check(
     check_tests(repo, tests or [])
     if isinstance(command, str):
         command = shlex.split(command)
-    argv = list(command or default_test_command(repo)) + list(tests or [])
+    argv = list(command or default_test_command(repo, profile)) + list(tests or [])
     started = time.monotonic()
     # Output goes to a temporary file rather than a pipe. With a pipe, reading
     # to the end waits for every process that inherited it, and a helper the
@@ -105,7 +98,7 @@ def run_check(
         output = out.read().decode(errors="replace")
 
     lines = [line.rstrip() for line in output.splitlines()]
-    failures = [clip(line) for line in lines if line.startswith(("FAILED ", "ERROR "))]
+    failures = [clip(line) for line in lines if line.startswith(profile.failure_prefixes)]
     summary = next((line.strip("= ") for line in reversed(lines) if SUMMARY.search(line)), "")
     passed = proc.returncode == 0 and not timed_out
     result = {
