@@ -22,7 +22,11 @@ from eval.report import input_tokens, summarize, table
 import eval.fetch as fetch
 import eval.run as run_mod
 from eval.run import (
+    PREAMBLE,
+    WITH_RIPPLE_LINE,
     agent_command,
+    blocked_reason,
+    build_prompt,
     child_env,
     default_out,
     diff_trees,
@@ -720,3 +724,173 @@ def test_invalid_runs_are_left_out_of_the_summary_and_counted():
     assert summary["modes"]["with-ripple"]["success_rate"] == 1.0
     assert summary["invalid"] == 1
     assert "1 run(s) marked invalid" in table(summary)
+
+
+def stream_with_denials(denials, tools=("Read",)):
+    events = [{"type": "system", "subtype": "init", "model": "claude-x", "mcp_servers": [], "tools": []}]
+    events += [{"type": "assistant", "message": {"content": [{"type": "tool_use", "name": t}]}} for t in tools]
+    events.append({"type": "result", "subtype": "success", "num_turns": 3, "usage": {"input_tokens": 1},
+                   "permission_denials": denials, "result": "I could not edit anything"})  # fmt: skip
+    return "\n".join(json.dumps(e) for e in events) + "\n"
+
+
+def refused(tool, **tool_input):
+    return parse_stream(stream_with_denials([{"tool_name": tool, "tool_input": tool_input}]))
+
+
+def test_a_refused_edit_tool_with_no_change_is_invalid_not_a_failure():
+    for tool in ("Edit", "Write", "MultiEdit", "NotebookEdit"):
+        reason = blocked_reason(refused(tool, file_path="x.py"), [])
+        assert reason and "edit tool" in reason, tool
+
+
+def test_a_refused_shell_rewrite_with_no_change_is_a_real_failure():
+    """The prompt told the agent not to edit through the shell, so trying sed -i anyway is its own doing."""
+    assert blocked_reason(refused("Bash", command="sed -i s/a/b/ x.py"), []) is None
+
+
+def test_a_refused_read_only_command_with_no_change_is_a_real_failure():
+    assert blocked_reason(refused("Bash", command="python -c 'print(1)'"), []) is None
+
+
+def test_a_run_that_changed_files_is_never_invalid_for_its_refusals():
+    for parsed in (refused("Edit", file_path="x.py"), refused("Bash", command="sed -i s/a/b/ x.py")):
+        assert blocked_reason(parsed, ["rich/style.py"]) is None
+
+
+def test_a_run_with_no_refusal_or_no_result_is_an_ordinary_failure():
+    assert blocked_reason(parse_stream(stream_with_denials([])), []) is None
+    assert blocked_reason({}, []) is None
+
+
+def test_an_edit_refusal_past_the_listed_ones_still_counts():
+    shell = [{"tool_name": "Bash", "tool_input": {"command": f"c{i}"}} for i in range(30)]
+    parsed = parse_stream(stream_with_denials(shell + [{"tool_name": "Edit", "tool_input": {}}]))
+    assert len(parsed["permission_denied"]) == 20 and blocked_reason(parsed, []) is not None
+
+
+def test_a_blocked_run_is_left_out_of_the_success_rate_but_counted_and_printed():
+    blocked = {**run("t1", "without", False, 8, 100), "invalid": "no edits made, 5 tool calls denied by permissions"}
+    runs = [run("t1", "with-ripple", True, 4, 100), blocked, run("t1", "without", True, 6, 200)]
+    summary = summarize(runs)
+    assert summary["modes"]["without"]["runs"] == 1 and summary["modes"]["without"]["success_rate"] == 1.0
+    assert summary["modes"]["without"]["invalid"] == 1 and summary["modes"]["with-ripple"]["invalid"] == 0
+    assert summary["invalid"] == 1
+    text = table(summary)
+    assert "1 run(s) marked invalid" in text and "no edits made, 5 tool calls denied" in text
+    assert "| t1 | 1/1 | 1/1 (+1 invalid) |" in text
+
+
+def test_a_mode_whose_every_run_was_invalid_still_appears_in_the_table():
+    runs = [run("t1", "with-ripple", True, 4, 100), {**run("t1", "without", False, 8, 1), "invalid": "blocked"}]
+    summary = summarize(runs)
+    assert summary["modes"]["without"]["runs"] == 0 and summary["modes"]["without"]["invalid"] == 1
+    assert "| without | 0 | n/a |" in table(summary)
+
+
+def test_both_modes_get_the_same_prompt_but_for_the_one_ripple_line():
+    task = "Rename `Style.parse` to `Style.from_string`."
+    plain, with_ripple = build_prompt(task, "without"), build_prompt(task, "with-ripple")
+    assert plain != with_ripple
+    assert with_ripple.replace(WITH_RIPPLE_LINE + "\n\n", "", 1) == plain
+    assert plain.endswith(task) and with_ripple.endswith(task)
+    assert PREAMBLE in plain and PREAMBLE in with_ripple
+    assert "ripple" not in plain.lower()
+    # the shared guidance names the Edit tool and the shell restriction
+    assert "Edit" in PREAMBLE and "shell" in PREAMBLE.lower()
+    assert chr(0x2014) not in plain + with_ripple
+
+
+def test_the_ripple_line_names_the_tools_and_does_not_tell_the_agent_to_use_them():
+    assert all(name in WITH_RIPPLE_LINE for name in ("impact", "callers", "callees", "path", "check"))
+    assert not re.search(r"\b(must|should|always|first|before)\b", WITH_RIPPLE_LINE, re.I)
+
+
+FAKE_KEY = "sk-ant-abcdefghijklmnop1234"  # pragma: allowlist secret
+FAKE_TOKEN = "ghp_abc123"  # pragma: allowlist secret
+
+
+def test_denied_tools_are_recorded_with_truncated_inputs_and_no_secrets():
+    long_cmd = "echo " + "x" * 5000
+    denials = [
+        {"tool_name": "Bash", "tool_use_id": "t1", "tool_input": {"command": "sed -i s/a/b/ rich/style.py"}},
+        {"tool_name": "Bash", "tool_use_id": "t2", "tool_input": {"command": long_cmd}},
+        {"tool_name": "Bash", "tool_use_id": "t3",
+         "tool_input": {"command": f"ANTHROPIC_API_KEY={FAKE_KEY} curl x; GH_TOKEN={FAKE_TOKEN} ls"}},
+    ]  # fmt: skip
+    parsed = parse_stream(stream_with_denials(denials))
+    assert parsed["permission_denials"] == 3
+    shown = parsed["permission_denied"]
+    assert [d["tool"] for d in shown] == ["Bash", "Bash", "Bash"]
+    assert shown[0]["input"] == {"command": "sed -i s/a/b/ rich/style.py"}
+    assert len(shown[1]["input"]["command"]) <= 300
+    secrets_text = json.dumps(shown[2])
+    assert FAKE_KEY not in secrets_text and FAKE_TOKEN not in secrets_text
+    assert "tool_use_id" not in shown[0]
+
+
+def test_only_the_first_denials_are_listed_in_full():
+    parsed = parse_stream(stream_with_denials([{"tool_name": "Bash", "tool_input": {"command": f"c{i}"}} for i in range(40)]))
+    assert parsed["permission_denials"] == 40 and len(parsed["permission_denied"]) == 20
+
+
+class FakeAgent:
+    """Stands in for subprocess.Popen(claude ...): writes a canned stream to the run's stdout file."""
+
+    prompts: list = []
+    stream = ""
+
+    edits = False  # when set, the "agent" adds a .py file to its working copy
+
+    def __init__(self, cmd, cwd, env, stdin, stdout, stderr, start_new_session):
+        FakeAgent.prompts.append(cmd[2])
+        if FakeAgent.edits:
+            (Path(cwd) / "agent_made_this.py").write_text("x = 1\n")
+        stdout.write(FakeAgent.stream.encode())
+        self.returncode = 0
+        self.pid = 0
+
+    def wait(self, timeout=None):
+        return 0
+
+
+def fake_run(monkeypatch, tmp_path, stream, mode):
+    FakeAgent.prompts, FakeAgent.stream = [], stream
+    monkeypatch.setattr(run_mod.subprocess, "Popen", FakeAgent)
+    monkeypatch.setattr(run_mod, "check_task", lambda task, repo: {"success": False, "failures": []})
+    args = type("Args", (), {"model": "sonnet", "timeout": 5})()
+    task = next(t for t in TASKS if not t.spec)
+    root = tmp_path / "root"
+    root.mkdir()
+    return run_mod.run_one(task, mode, 1, root, tmp_path / "bin", args), task
+
+
+def test_run_one_marks_a_run_whose_edit_tool_was_refused_invalid_and_keeps_what_was_denied(monkeypatch, tmp_path):
+    stream = stream_with_denials([{"tool_name": "Edit", "tool_input": {"file_path": "x.py", "old_string": "a"}}])
+    record, task = fake_run(monkeypatch, tmp_path, stream, "without")
+    assert record["changed_files"] == []
+    assert "edit tool" in record["invalid"]
+    assert record["permission_denied"] == [{"tool": "Edit", "input": {"file_path": "x.py", "old_string": "a"}}]
+    assert FakeAgent.prompts == [build_prompt(task.prompt, "without")]
+
+
+def test_run_one_counts_a_refused_shell_rewrite_with_no_edit_as_a_failure(monkeypatch, tmp_path):
+    stream = stream_with_denials([{"tool_name": "Bash", "tool_input": {"command": "sed -i s/a/b/ x.py"}}])
+    record, _ = fake_run(monkeypatch, tmp_path, stream, "without")
+    assert record["changed_files"] == [] and "invalid" not in record and record["success"] is False
+    assert record["permission_denied"][0]["tool"] == "Bash"  # still recorded, for diagnosis
+
+
+def test_run_one_counts_a_run_with_no_denial_and_no_edit_as_a_failure(monkeypatch, tmp_path):
+    record, _ = fake_run(monkeypatch, tmp_path, stream_with_denials([]), "without")
+    assert "invalid" not in record and record["success"] is False
+
+
+def test_run_one_counts_a_run_that_edited_despite_a_refused_edit_tool(monkeypatch, tmp_path):
+    FakeAgent.edits = True
+    try:
+        stream = stream_with_denials([{"tool_name": "Edit", "tool_input": {"file_path": "x.py"}}])
+        record, _ = fake_run(monkeypatch, tmp_path, stream, "without")
+    finally:
+        FakeAgent.edits = False
+    assert record["changed_files"] == ["agent_made_this.py"] and "invalid" not in record

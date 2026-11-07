@@ -265,11 +265,22 @@ Code in headless mode, once with a ripple MCP server and once without, three tim
   still works.
   `tests/test_eval.py` shows each check fails on the untouched fixture and passes on a reference
   solution, and CI runs it.
-- **Same conditions.** Both modes get the same prompt, model, tools and permissions (edit files,
-  run pytest). The MCP server is the only difference. Each run starts from a fresh copy under
-  `/tmp`, in a directory whose name says nothing about the task or mode, and leaves out the user's
-  own settings, hooks and auto-memory. A with-ripple run whose ripple server fails to connect is
-  marked invalid and left out of the numbers.
+- **Same conditions.** Both modes get the same model, tools and permissions (edit files, run
+  pytest) and the same prompt: a short note that the shell is only for running tests and edits go
+  through the Edit or Write tool, then the task. The MCP server is the only other difference, plus
+  one line in the with-ripple prompt saying the server is connected and naming its tools (it does
+  not tell the agent to use them, so `ripple calls` is the agent's own choice). Each run starts
+  from a fresh copy under `/tmp`, in a directory whose name says nothing about the task or mode,
+  and leaves out the user's own settings, hooks and auto-memory.
+- **Invalid runs.** A run is marked invalid and left out of the success rate, but counted and
+  printed (per mode, per task and with its reason) in two cases: a with-ripple run whose ripple
+  server fails to connect, and a run that changed no file while an edit tool (Edit, Write,
+  MultiEdit, NotebookEdit) was refused by the permissions, since the harness then blocked the very
+  tool the prompt named. Other refusals are routine and do not invalidate a run: an agent that
+  tries `sed -i` despite the prompt, or a read-only command that is refused, and changes nothing,
+  is a real failure. The result JSON keeps each run's refused tools and their inputs
+  (`permission_denied`).
+  Results from before this wording (the 2026-09-26 batch) used the bare task prompt.
 
 ### Tasks over real repositories
 

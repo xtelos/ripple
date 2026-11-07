@@ -6,8 +6,14 @@
 Each run copies the task's fixture to a fresh directory under /tmp, runs
 Claude Code headless there, then runs the check (eval/check.py). The two
 modes differ in one thing: with-ripple gives the agent a ripple MCP server
-for that directory, without gives it no MCP servers at all. Prompt, model,
-tools and permissions are otherwise identical.
+for that directory, without gives it no MCP servers at all. Model, tools and
+permissions are identical, and so is the prompt (a shared note on the shell
+limit, then the task) apart from one line in with-ripple saying the server is
+connected. A run that changed no file and had an edit tool (Edit, Write,
+MultiEdit, NotebookEdit) refused is marked invalid and left out of the success
+rate: the harness blocked the very tool the prompt named. Any other refusal
+(a shell rewrite the prompt said not to try, a read-only command) is routine
+and the run still counts, as a failure if it changed nothing.
 
 This calls the claude CLI on whatever account it is logged in to, so it
 never runs in CI. The tests cover the parts that do not call it.
@@ -45,6 +51,39 @@ RESULTS_DIR = EVAL_DIR / "results"
 # would need permission is refused, since nobody is there to answer.
 TEST_COMMANDS = ["Bash(python -m pytest:*)", "Bash(python3 -m pytest:*)", "Bash(pytest:*)"]
 RATE_LIMITED = re.compile(r"rate.?limit|usage limit|limit reached|quota|\b429\b|overloaded", re.I)
+
+# Told to the agent in both modes, ahead of the task. The first real-repo smoke run showed why: with
+# only the test commands allowed in the shell, one agent tried sed -i, xargs sed and a python rewrite,
+# was refused every time, never tried the Edit tool, and was graded a failure for it. That says nothing
+# about ripple, so the limit is stated up front, in words that mention neither mode.
+PREAMBLE = (
+    "The shell is there for running the tests: do not use it to edit files (sed, scripted rewrites). "
+    "Make every edit with the Edit or Write tool."
+)
+# The one difference between the two prompts: the sort of line a user's own CLAUDE.md would carry. It
+# says the tools exist and what they cover, and not to use them, so how often the agent reaches for
+# them (ripple_calls) stays its own choice and is still reported as it is.
+WITH_RIPPLE_LINE = (
+    "A ripple MCP server is connected for this repository. Its tools (impact, callers, callees, path, "
+    "check) cover the call graph and running tests."
+)
+# The tools that write files. Refusals are routine (most runs of the first batch had one), so only a
+# refused edit tool with nothing changed means the harness stopped the run: it blocked the very tool
+# the prompt told the agent to use.
+EDIT_TOOLS = frozenset({"Edit", "Write", "MultiEdit", "NotebookEdit"})
+BLOCKED = "no file changed and an edit tool was refused by the permissions"
+MAX_DENIALS_LISTED, MAX_INPUT_CHARS = 20, 300
+SECRET = re.compile(
+    r"sk-[A-Za-z0-9_-]{10,}|gh[pousr]_[A-Za-z0-9]{6,}|AKIA[0-9A-Z]{12,}|"
+    r"((?:API|ACCESS|AUTH|SECRET)[_-]?KEY|TOKEN|SECRET|PASSWORD|PASSWD)\w*=\S+",
+    re.I,
+)
+
+
+def build_prompt(task_prompt: str, mode: str) -> str:
+    """What the agent is told: the shared preamble, in with-ripple the ripple line, then the task."""
+    parts = [PREAMBLE] + ([WITH_RIPPLE_LINE] if mode == "with-ripple" else []) + [task_prompt]
+    return "\n\n".join(parts)
 
 
 def mcp_config(mode: str, repo: Path, cache_dir: Path) -> dict:
@@ -107,6 +146,27 @@ def write_python_shims(bin_dir: Path, python: str = sys.executable, env: dict[st
         shim.chmod(0o755)
 
 
+def clip_input(value, limit: int = MAX_INPUT_CHARS):
+    """A denied tool's input, kept short and with anything that looks like a credential masked."""
+    if isinstance(value, dict):
+        return {str(k): clip_input(v, limit) for k, v in value.items()}
+    if isinstance(value, list):
+        return [clip_input(v, limit) for v in value[:10]]
+    if isinstance(value, str):
+        return SECRET.sub("[redacted]", value)[:limit]
+    return value
+
+
+def denied_tools(denials) -> list[dict]:
+    """The tool calls the permissions refused, as the result event lists them: which tool and
+    what it was asked to do, so a run that was blocked can be told from one that gave up."""
+    return [
+        {"tool": str(d.get("tool_name", "?")), "input": clip_input(d.get("tool_input"))}
+        for d in denials[:MAX_DENIALS_LISTED]
+        if isinstance(d, dict)
+    ]
+
+
 def parse_stream(text: str) -> dict:
     """Pick the numbers out of claude's stream-json output: the init event
     (model, which MCP servers connected, which tools it had), every tool call,
@@ -148,6 +208,11 @@ def parse_stream(text: str) -> dict:
                     for k in ("input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens")
                 },
                 "permission_denials": len(result.get("permission_denials") or []),
+                "permission_denied": denied_tools(result.get("permission_denials") or []),
+                # counted over every denial, not just the listed ones
+                "edit_tools_denied": sum(
+                    1 for d in result.get("permission_denials") or [] if isinstance(d, dict) and d.get("tool_name") in EDIT_TOOLS
+                ),
                 "final_message": str(result.get("result", ""))[:500],
             }
         )
@@ -208,6 +273,16 @@ def invalid_reason(parsed: dict, mode: str) -> str | None:
     return f"ripple MCP server {status or 'missing'}"
 
 
+def blocked_reason(parsed: dict, changed_files: list[str]) -> str | None:
+    """Why a run that made no edit says nothing about its mode, or None. Only a run that changed
+    no file and had an edit tool (Edit, Write, ...) refused was stopped by the harness. A refused
+    shell rewrite the prompt said not to try, or a refused read-only command, is a routine refusal:
+    with no edit made it is a real failure, and a run that edited was not stopped at all."""
+    if changed_files or not parsed.get("edit_tools_denied"):
+        return None
+    return BLOCKED
+
+
 def run_one(task: Task, mode: str, repeat: int, root: Path, bin_dir: Path, args) -> dict:
     run_dir = new_run_dir(root)
     repo = copy_fixture(task, run_dir / "repo")
@@ -223,7 +298,7 @@ def run_one(task: Task, mode: str, repeat: int, root: Path, bin_dir: Path, args)
     started = time.monotonic()
     with open(stdout_path, "wb") as out, open(stderr_path, "wb") as err:
         proc = subprocess.Popen(
-            agent_command(task.prompt, mode, mcp_file, args.model),
+            agent_command(build_prompt(task.prompt, mode), mode, mcp_file, args.model),
             cwd=repo,
             env=child_env(dict(os.environ), bin_dir, cache_dir),
             stdin=subprocess.DEVNULL,
@@ -257,7 +332,7 @@ def run_one(task: Task, mode: str, repeat: int, root: Path, bin_dir: Path, args)
     record.update(check_task(task, repo))
     if not parsed["got_result"]:
         record["stderr_tail"] = stderr
-    reason = invalid_reason(parsed, mode)
+    reason = invalid_reason(parsed, mode) or blocked_reason(parsed, record["changed_files"])
     if reason:
         record["invalid"] = reason
     return record
@@ -344,6 +419,8 @@ def main(argv=None) -> int:
         "repeats": args.repeats,
         "timeout_s": args.timeout,
         "jobs": args.jobs,
+        "prompt_preamble": PREAMBLE,
+        "with_ripple_line": WITH_RIPPLE_LINE,
         "command": agent_command("<task prompt>", "with-ripple", Path("<mcp.json>"), args.model),
     }
     # Repeat-major order, both modes of a task back to back, so a batch cut
@@ -388,9 +465,10 @@ def main(argv=None) -> int:
     print()
     print(table(summarize(runs)))
     print(f"\nresults: {out}")
-    invalid = sum(1 for r in runs if r.get("invalid") and not r.get("aborted"))
+    invalid = Counter(r["invalid"] for r in runs if r.get("invalid") and not r.get("aborted"))
     if invalid:
-        print(f"WARNING: {invalid} with-ripple run(s) had no connected ripple server and are not counted")
+        why = "; ".join(f"{n} x {reason}" for reason, n in sorted(invalid.items()))
+        print(f"WARNING: {sum(invalid.values())} run(s) are invalid and not counted: {why}")
     if stop.is_set():
         print(f"stopped early: rate limited after {len(runs)} of {len(plan)} runs")
     return 0
