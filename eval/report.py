@@ -2,13 +2,17 @@
 
 A run the agent never got to finish because the subscription refused it
 (rate limit) is marked aborted and left out of every number here, so a
-partial batch reports only the runs that actually happened. A with-ripple
-run whose ripple server never connected is marked invalid and left out the
-same way, since it ran without ripple; both are reported as counts.
+partial batch reports only the runs that actually happened. A run marked
+invalid is left out the same way: a with-ripple run whose ripple server never
+connected (it ran without ripple), or a run that changed no file and had an
+edit tool refused by the permissions (the harness blocked the tool it was told
+to use). Other refusals do not invalidate a run. Both kinds are
+reported as counts, per mode, per task and with their reasons, never hidden.
 """
 
 from __future__ import annotations
 
+from collections import Counter
 from statistics import median
 
 MODES = ("with-ripple", "without")
@@ -34,13 +38,15 @@ def summarize(runs: list[dict]) -> dict:
     modes = {}
     for mode in MODES:
         mine = [r for r in counted if r["mode"] == mode]
-        if not mine:
+        spoiled = sum(1 for r in invalid if r["mode"] == mode)
+        if not mine and not spoiled:
             continue
         wins = sum(1 for r in mine if r["success"])
         modes[mode] = {
             "runs": len(mine),
+            "invalid": spoiled,
             "successes": wins,
-            "success_rate": wins / len(mine),
+            "success_rate": wins / len(mine) if mine else None,
             "median_input_tokens": _median([input_tokens(r) for r in mine]),
             "median_output_tokens": _median([(r.get("usage") or {}).get("output_tokens") for r in mine]),
             "median_turns": _median([r.get("num_turns") for r in mine]),
@@ -54,7 +60,17 @@ def summarize(runs: list[dict]) -> dict:
         cell = tasks.setdefault(r["task"], {}).setdefault(r["mode"], {"runs": 0, "successes": 0})
         cell["runs"] += 1
         cell["successes"] += 1 if r["success"] else 0
-    return {"modes": modes, "tasks": dict(sorted(tasks.items())), "aborted": len(aborted), "invalid": len(invalid)}
+    for r in invalid:
+        cell = tasks.setdefault(r["task"], {}).setdefault(r["mode"], {"runs": 0, "successes": 0})
+        cell["invalid"] = cell.get("invalid", 0) + 1
+    reasons = Counter(r["invalid"] for r in invalid)
+    return {
+        "modes": modes,
+        "tasks": dict(sorted(tasks.items())),
+        "aborted": len(aborted),
+        "invalid": len(invalid),
+        "invalid_reasons": dict(sorted(reasons.items())),
+    }
 
 
 def _num(value, digits: int = 0) -> str:
@@ -65,21 +81,28 @@ def _num(value, digits: int = 0) -> str:
 
 def table(summary: dict) -> str:
     lines = [
-        "| Mode | Runs | Success | Median input tokens | Median output tokens | Median turns | Median wall s | Median cost-equivalent $ | ripple calls |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Mode | Runs | Success | Median input tokens | Median output tokens | Median turns | Median wall s | Median cost-equivalent $ | ripple calls | Invalid (not counted) |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for mode, m in summary["modes"].items():
+        wins = f"{m['successes']}/{m['runs']} ({m['success_rate']:.0%})" if m["runs"] else "n/a"
         lines.append(
-            f"| {mode} | {m['runs']} | {m['successes']}/{m['runs']} ({m['success_rate']:.0%}) "
+            f"| {mode} | {m['runs']} | {wins} "
             f"| {_num(m['median_input_tokens'])} | {_num(m['median_output_tokens'])} | {_num(m['median_turns'], 1)} "
-            f"| {_num(m['median_wall_s'], 1)} | {_num(m['median_cost_usd'], 3)} | {m['ripple_calls']} |"
+            f"| {_num(m['median_wall_s'], 1)} | {_num(m['median_cost_usd'], 3)} | {m['ripple_calls']} | {m.get('invalid', 0)} |"
         )
     lines += ["", "| Task | with-ripple | without |", "|---|---:|---:|"]
     for task, cells in summary["tasks"].items():
-        row = [f"{cells[m]['successes']}/{cells[m]['runs']}" if m in cells else "-" for m in MODES]
+        row = [
+            f"{cells[m]['successes']}/{cells[m]['runs']}" + (f" (+{cells[m]['invalid']} invalid)" if cells[m].get("invalid") else "")
+            if m in cells
+            else "-"
+            for m in MODES
+        ]
         lines.append(f"| {task} | {row[0]} | {row[1]} |")
     if summary["aborted"]:
         lines += ["", f"{summary['aborted']} run(s) aborted by a rate limit are not counted."]
     if summary.get("invalid"):
-        lines += ["", f"{summary['invalid']} run(s) marked invalid (ripple server not connected) are not counted."]
+        why = "; ".join(f"{n} x {reason}" for reason, n in summary.get("invalid_reasons", {}).items())
+        lines += ["", f"{summary['invalid']} run(s) marked invalid are not counted: {why}."]
     return "\n".join(lines)
