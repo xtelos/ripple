@@ -11,9 +11,10 @@ from __future__ import annotations
 
 import difflib
 from collections import deque
-from pathlib import PurePosixPath
 
 from .model import Edge, Graph, Symbol
+from .profile import PYTHON, LanguageProfile
+from .pytest_collection import PytestCollection  # noqa: F401 (it was defined here)
 
 MAX_LISTED = 100  # default cap on symbols listed per section, so a hub function cannot flood the agent
 
@@ -37,15 +38,16 @@ def _describe(symbol: Symbol) -> dict:
     return {"symbol": symbol.id, "kind": symbol.kind, "location": f"{symbol.file}:{symbol.line}"}
 
 
-def _targets(graph: Graph, symbol_id: str) -> set[str]:
+def _targets(graph: Graph, symbol_id: str, profile: LanguageProfile) -> set[str]:
     """Ids whose callers count as callers of symbol_id.
 
-    Calling a class runs its __init__, and ripple records that edge against
-    __init__, so a question about the class includes both.
+    Calling a class runs its constructor (__init__ in Python), and ripple records that edge against
+    the constructor, so a question about the class includes both.
     """
     targets = {symbol_id}
-    if graph.symbols[symbol_id].kind == "class" and f"{symbol_id}.__init__" in graph.symbols:
-        targets.add(f"{symbol_id}.__init__")
+    constructor = f"{symbol_id}.{profile.constructor_name}"
+    if graph.symbols[symbol_id].kind == "class" and constructor in graph.symbols:
+        targets.add(constructor)
     return targets
 
 
@@ -60,12 +62,12 @@ def _continues(edge: Edge, context: str) -> bool:
     return not (context and edge.via and edge.via != context)
 
 
-def callers(graph: Graph, query: str) -> dict:
+def callers(graph: Graph, query: str, profile: LanguageProfile = PYTHON) -> dict:
     found = find_symbol(graph, query)
     if "symbol" not in found:
         return found
     sites: dict[str, list[str]] = {}
-    for target in _targets(graph, found["symbol"]):
+    for target in _targets(graph, found["symbol"], profile):
         for edge in graph.callers_index.get(target, []):
             sites.setdefault(edge.caller, []).append(f"{edge.file}:{edge.line}")
     listed = [
@@ -75,7 +77,7 @@ def callers(graph: Graph, query: str) -> dict:
     # A decorated function is called by its wrapper. The lines that write its name call the wrapper, and
     # reach the function through it: list them too, since changing the function changes what they run.
     through: dict[str, tuple[str, list[str]]] = {}
-    for target in _targets(graph, found["symbol"]):
+    for target in _targets(graph, found["symbol"], profile):
         for edge in graph.via_index.get(target, []):
             through.setdefault(edge.caller, (edge.callee, []))[1].append(f"{edge.file}:{edge.line}")
     reaching = [
@@ -104,138 +106,7 @@ def callees(graph: Graph, query: str) -> dict:
     return {"symbol": symbol_id, "callees": listed, "unresolved": unresolved}
 
 
-class PytestCollection:
-    """Which symbols pytest would collect as tests, and under which node ids.
-
-    This follows pytest's default rules. In files named test_*.py or
-    *_test.py it collects functions named test* at module level; methods
-    named test* on classes named Test* that define no __init__ or __new__
-    (nested Test* classes too); and every test* method of a
-    unittest.TestCase subclass, whatever the class is called. A class also
-    runs the test* methods it inherits, so a method defined once can be
-    collected as several tests: TestChild(TestBase) runs
-    TestChild::test_shared as well as TestBase::test_shared.
-
-    ripple sees only the repo's own classes, so a class counts as a TestCase
-    subclass when a base outside the repo is named *TestCase
-    (unittest.TestCase, unittest.IsolatedAsyncioTestCase,
-    django.test.TestCase and so on).
-    """
-
-    def __init__(self, graph: Graph):
-        self.graph = graph
-        self.subclasses: dict[str, list[str]] = {}
-        for cls, bases in graph.bases.items():
-            for base in bases:
-                self.subclasses.setdefault(base, []).append(cls)
-        self._mro: dict[str, list[str]] = {}
-
-    def module_of(self, symbol: Symbol) -> str:
-        """The module a symbol was defined in, looked up by its file.
-
-        Two files can map to the same module name (tests/test_x.py and
-        src/tests/test_x.py), so the module symbol alone cannot say which
-        file a symbol came from; the file can.
-        """
-        if symbol.file in self.graph.modules:
-            return self.graph.modules[symbol.file]
-        prefix = symbol.id
-        while "." in prefix:  # a graph without the file map: the longest prefix that is a module
-            prefix = prefix.rsplit(".", 1)[0]
-            if self.graph.symbols.get(prefix) and self.graph.symbols[prefix].kind == "module":
-                return prefix
-        return prefix
-
-    def mro(self, cls: str) -> list[str]:
-        """The class, then its repo bases depth-first, as the resolver orders them."""
-        if cls not in self._mro:
-            self._mro[cls] = [cls]  # guards against a class that inherits itself
-            order = [cls]
-            for base in self.graph.bases.get(cls, []):
-                order += [klass for klass in self.mro(base) if klass not in order]
-            self._mro[cls] = order
-        return self._mro[cls]
-
-    def lookup(self, cls: str, name: str) -> str | None:
-        """The id of the def that cls.name finds, walking bases."""
-        for klass in self.mro(cls):
-            if f"{klass}.{name}" in self.graph.symbols:
-                return f"{klass}.{name}"
-        return None
-
-    def is_unittest(self, cls: str) -> bool:
-        return any(
-            name.rsplit(".", 1)[-1].endswith("TestCase")
-            for klass in self.mro(cls)
-            for name in self.graph.external_bases.get(klass, [])
-        )
-
-    def is_pytest_class(self, cls: str) -> bool:
-        """A plain Test* class that pytest can instantiate."""
-        if not cls.rsplit(".", 1)[-1].startswith("Test") or self.is_unittest(cls):
-            return False
-        return not any(self.lookup(cls, dunder) for dunder in ("__init__", "__new__"))
-
-    def class_path(self, cls: str) -> list[str] | None:
-        """[file, Outer, ..., cls] if pytest collects cls, else None."""
-        symbol = self.graph.symbols[cls]
-        filename = PurePosixPath(symbol.file).name
-        if not (filename.startswith("test_") or filename.endswith("_test.py")):
-            return None
-        if not (self.is_pytest_class(cls) or self.is_unittest(cls)):
-            return None
-        module = self.module_of(symbol)
-        if not cls.startswith(module + "."):
-            return None
-        parts = cls[len(module) + 1 :].split(".")
-        enclosing = module
-        for name in parts[:-1]:  # pytest looks for classes inside Test* classes, not inside TestCases or functions
-            enclosing = f"{enclosing}.{name}"
-            if self.graph.symbols[enclosing].kind != "class" or not self.is_pytest_class(enclosing):
-                return None
-        return [symbol.file] + parts
-
-    def collecting_classes(self, cls: str) -> list[str]:
-        """cls and every class that inherits from it, transitively."""
-        found, stack = [], [cls]
-        while stack:
-            klass = stack.pop()
-            if klass not in found:
-                found.append(klass)
-                stack.extend(self.subclasses.get(klass, []))
-        return found
-
-    def node_ids(self, symbol_id: str) -> list[str]:
-        """The pytest node ids that run symbol_id, e.g. tests/test_x.py::TestA::test_m.
-
-        Empty when pytest would not collect it. A method inherited by other
-        test classes gets one node id per class that runs it, named after
-        that class rather than the base that defines it.
-        """
-        symbol = self.graph.symbols[symbol_id]
-        if not symbol.name.startswith("test"):
-            return []
-        if symbol.kind == "function":
-            filename = PurePosixPath(symbol.file).name
-            if not (filename.startswith("test_") or filename.endswith("_test.py")):
-                return []
-            if symbol_id != f"{self.module_of(symbol)}.{symbol.name}":
-                return []  # nested in a function, not at module level
-            return [f"{symbol.file}::{symbol.name}"]
-        if symbol.kind != "method":
-            return []
-        owner = symbol_id.rsplit(".", 1)[0]
-        ids = []
-        for cls in self.collecting_classes(owner):
-            if self.lookup(cls, symbol.name) != symbol_id:
-                continue  # cls overrides it, or finds another definition first
-            where = self.class_path(cls)
-            if where:
-                ids.append("::".join(where + [symbol.name]))
-        return sorted(ids)
-
-
-def impact(graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED) -> dict:
+def impact(graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED, profile: LanguageProfile = PYTHON) -> dict:
     """Everything that transitively calls the symbol, up to depth hops away.
 
     Tests that reach it are listed with their pytest node ids (what you
@@ -251,7 +122,7 @@ def impact(graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED) ->
     if "symbol" not in found:
         return found
     symbol_id = found["symbol"]
-    targets = _targets(graph, symbol_id)
+    targets = _targets(graph, symbol_id, profile)
     distance: dict[str, int] = {}
     via_wrapper: dict[str, str] = {}  # caller -> the wrapper it reached the symbol through, when it names a decorated function
     seen = {(target, "") for target in targets}
@@ -277,7 +148,7 @@ def impact(graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED) ->
         for edge in graph.callers_index.get(target, [])
     )
 
-    collection = PytestCollection(graph)
+    collection = profile.test_collection(graph)
     code: list[dict] = []
     tests: list[dict] = []
     for sid in sorted(distance, key=lambda sid: (distance[sid], sid)):
@@ -318,13 +189,13 @@ def impact(graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED) ->
     }
 
 
-def path(graph: Graph, source: str, target: str, max_depth: int = 12) -> dict:
+def path(graph: Graph, source: str, target: str, max_depth: int = 12, profile: LanguageProfile = PYTHON) -> dict:
     """The shortest call chain from source to target (breadth-first search)."""
     start, goal = find_symbol(graph, source), find_symbol(graph, target)
     for found in (start, goal):
         if "symbol" not in found:
             return found
-    goals = _targets(graph, goal["symbol"])
+    goals = _targets(graph, goal["symbol"], profile)
     # A step is (symbol, the decorated function whose wrapper the chain has just entered, if any).
     first = (start["symbol"], "")
     came_from: dict[tuple[str, str], tuple[tuple[str, str], str] | None] = {first: None}

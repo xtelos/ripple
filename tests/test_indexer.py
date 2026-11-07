@@ -11,7 +11,7 @@ def test_the_garbage_collector_is_off_while_indexing_and_back_as_it_was(make_rep
     import ripple.indexer as indexer
 
     original = indexer._build_graph
-    indexer._build_graph = lambda path: (seen.append(gc.isenabled()), original(path))[1]
+    indexer._build_graph = lambda *args: (seen.append(gc.isenabled()), original(*args))[1]
     try:
         for before in (True, False):
             (gc.enable if before else gc.disable)()
