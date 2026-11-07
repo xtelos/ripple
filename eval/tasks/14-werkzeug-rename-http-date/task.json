@@ -1,0 +1,7 @@
+{
+  "id": "14-werkzeug-rename-http-date",
+  "repo": "werkzeug",
+  "prompt": "Rename the function `http_date` in src/werkzeug/http.py to `format_http_date`. Update every use of it in the repository: calls, imports, and anywhere it is passed along rather than called. Do not keep `http_date` as an alias. The test suite must pass when you are done.",
+  "min_tests": 900,
+  "why": "26 references to werkzeug.http.http_date in 9 files: 10 plain `http_date(...)` calls, 6 module-attribute calls (`http.http_date(...)`), 6 imports (one is function-local, inside a method in exceptions.py), the def, and three places in sansio/response.py that pass the function as an argument without calling it (`header_property(..., parse_date, http_date)` for Date, Expires and Last-Modified). A search for `http_date(` misses those three and the suite only catches them by setting those headers. A call graph does not list them either, so this task is the control for that blind spot."
+}

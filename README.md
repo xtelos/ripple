@@ -250,8 +250,8 @@ How to read this honestly:
 ## Agent eval
 
 The benchmark checks that ripple's answers are right. The eval checks whether a coding agent does
-better with them: ten refactoring tasks, each run by Claude Code in headless mode, once with a
-ripple MCP server and once without, three times each.
+better with them: nineteen refactoring tasks (ten on small fixtures, nine on real repositories), each run by Claude
+Code in headless mode, once with a ripple MCP server and once without, three times each.
 
 - **The tasks** (`eval/tasks/`) are renames and signature changes where grep is noisy or
   incomplete: a method named `total` on four classes, a function reached only through a package
@@ -273,6 +273,12 @@ ripple MCP server and once without, three times each.
 
 ### Tasks over real repositories
 
+The first ten tasks sit at the ceiling (see Results), so nine more run over pinned, real open-source
+repositories, where the agent can no longer read everything: [rich](https://github.com/Textualize/rich)
+v15.0.0 (38k lines), [werkzeug](https://github.com/pallets/werkzeug) 3.1.9 (22k) and
+[sqlglot](https://github.com/tobymao/sqlglot) v30.29.0 (86k, with a Dialect/Parser/Generator
+hierarchy overridden across dozens of modules). They are in `eval/tasks/11-*` to `19-*`.
+
 - **Pinned.** `eval/repos.json` names each repo by git URL and a full commit SHA (a tag or branch is
   refused), with the Python version and exact-version test dependencies. Nothing from these repos is
   committed or vendored: `python -m eval.fetch` downloads them into `$RIPPLE_EVAL_CACHE` (default
@@ -285,6 +291,12 @@ ripple MCP server and once without, three times each.
   tzdata, pluggy and so on) resolve at fetch time and are not locked, so two fetches on different days
   can differ there. A venv counts as built only once its install finished (a `.ripple-ready` file in it),
   so re-run `python -m eval.fetch` after an interrupted fetch, or to upgrade an older cache.
+- **Hard on grep.** Each task is a rename or a parameter rename whose true callers are known and spread
+  over 4 to 20 files, and each goes through something that defeats grep: a same-named method on another
+  class (`Style.parse` next to `Color.parse`), a decoy that must not change (`Dialect.format_time` and a
+  module function beside the generator method being renamed), an override in another module, a call
+  through `self` or `super()`, an alias or a function-local import, a function passed as an argument, a
+  subclass in a test or an example no test runs. Each task's `why` gives the caller count and the files.
 - **Graded the same way.** The agent's tests are not the ones that grade it. When the agent finishes,
   its copy is copied again and the starting repo's own tests directory is put over it, with the reference
   solution's edits to those tests (the prompts name every new name and signature, so they are a fair
@@ -304,10 +316,16 @@ ripple MCP server and once without, three times each.
   sqlglot (plus roughly 30 once per process for the reference run). What this cannot cover: anything the agent writes outside its copy
   (the venv is shared by every run), and source it changes to patch pytest itself at import time; the diff of
   every run is saved for that.
+  A reference solution for each task is kept as a `solution.patch` (a diff, never upstream files).
+  `tests/test_eval.py` shows each check fails on the untouched repo, passes on the patch, and fails
+  again when the patch leaves out any one file of its callers. Those tests are skipped when the
+  repos have not been fetched, so CI (which does not fetch them) stays green; run them locally after
+  `python -m eval.fetch`.
 
 ```sh
 .venv/bin/python -m eval.fetch --verify        # once: fetch the pinned repos, run their own suites
-.venv/bin/python -m eval.run                   # 10 tasks x 2 modes x 3 repeats, into eval/results/
+.venv/bin/python -m eval.run                   # 19 tasks x 2 modes x 3 repeats = 114 runs, into eval/results/
+.venv/bin/python -m eval.run --tasks 11-rich-rename-style-parse,12-rich-rename-cell-len,13-rich-rename-highlighter-highlight,14-werkzeug-rename-http-date,15-werkzeug-rename-mapadapter-match,16-werkzeug-rename-get-response,17-sqlglot-rename-generator-format-time,18-sqlglot-rename-parse-table-parts-schema,19-sqlglot-rename-schema-column-names   # only the real repos: 54 runs
 .venv/bin/python -m eval.run --tasks 04-ledger-rename-invoice-total --repeats 1 --out /tmp/smoke.json
 ```
 

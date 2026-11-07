@@ -1,0 +1,467 @@
+diff -ruN -x __pycache__ a/benchmarks/benchmarks.py b/benchmarks/benchmarks.py
+--- a/benchmarks/benchmarks.py	2026-11-06 09:24:03.995566619 -0500
++++ b/benchmarks/benchmarks.py	2026-11-06 09:24:11.278862180 -0500
+@@ -150,17 +150,17 @@
+         self.console = Console(
+             file=StringIO(), color_system="truecolor", legacy_windows=False, width=100
+         )
+-        self.style1 = Style.parse("blue on red")
+-        self.style2 = Style.parse("green italic bold")
++        self.style1 = Style.from_string("blue on red")
++        self.style2 = Style.from_string("green italic bold")
+ 
+     def time_parse_ansi(self):
+-        Style.parse("red on blue")
++        Style.from_string("red on blue")
+ 
+     def time_parse_hex(self):
+-        Style.parse("#f0f0f0 on #e2e28a")
++        Style.from_string("#f0f0f0 on #e2e28a")
+ 
+     def time_parse_mixed_complex_style(self):
+-        Style.parse("dim bold reverse #00ee00 on rgb(123,12,50)")
++        Style.from_string("dim bold reverse #00ee00 on rgb(123,12,50)")
+ 
+     def time_style_add(self):
+         self.style1 + self.style2
+diff -ruN -x __pycache__ a/examples/log.py b/examples/log.py
+--- a/examples/log.py	2026-11-06 09:24:03.959864657 -0500
++++ b/examples/log.py	2026-11-06 09:24:11.286371989 -0500
+@@ -19,12 +19,12 @@
+ 
+ theme = Theme(
+     {
+-        "req.protocol": Style.parse("dim bold green"),
+-        "req.method": Style.parse("bold cyan"),
+-        "req.path": Style.parse("magenta"),
+-        "req.filename": Style.parse("bright_magenta"),
+-        "req.result": Style.parse("yellow"),
+-        "req.stats": Style.parse("dim"),
++        "req.protocol": Style.from_string("dim bold green"),
++        "req.method": Style.from_string("bold cyan"),
++        "req.path": Style.from_string("magenta"),
++        "req.filename": Style.from_string("bright_magenta"),
++        "req.result": Style.from_string("yellow"),
++        "req.stats": Style.from_string("dim"),
+     }
+ )
+ console = Console(theme=theme)
+diff -ruN -x __pycache__ a/rich/_win32_console.py b/rich/_win32_console.py
+--- a/rich/_win32_console.py	2026-11-06 09:24:03.977787797 -0500
++++ b/rich/_win32_console.py	2026-11-06 09:24:11.383781737 -0500
+@@ -584,7 +584,7 @@
+ 
+     style = Style(color="black", bgcolor="red")
+ 
+-    heading = Style.parse("black on green")
++    heading = Style.from_string("black on green")
+ 
+     # Check colour output
+     console.rule("Checking colour output")
+@@ -636,7 +636,7 @@
+     term.write_text("The red arrow shows the cursor location, and direction of erase")
+     time.sleep(1)
+     term.move_cursor_to_column(16)
+-    term.write_styled("<", Style.parse("black on red"))
++    term.write_styled("<", Style.from_string("black on red"))
+     term.move_cursor_backward()
+     time.sleep(1)
+     term.erase_start_of_line()
+@@ -647,13 +647,13 @@
+     time.sleep(1)
+ 
+     term.move_cursor_to_column(16)
+-    term.write_styled(">", Style.parse("black on red"))
++    term.write_styled(">", Style.from_string("black on red"))
+     time.sleep(1)
+     term.erase_end_of_line()
+     time.sleep(1)
+ 
+     console.print("\n\n...Now the whole line will be erased...")
+-    term.write_styled("I'm going to disappear!", style=Style.parse("black on cyan"))
++    term.write_styled("I'm going to disappear!", style=Style.from_string("black on cyan"))
+     time.sleep(1)
+     term.erase_line()
+ 
+diff -ruN -x __pycache__ a/rich/ansi.py b/rich/ansi.py
+--- a/rich/ansi.py	2026-11-06 09:24:03.975313700 -0500
++++ b/rich/ansi.py	2026-11-06 09:24:11.389018851 -0500
+@@ -173,7 +173,7 @@
+                         self.style = _Style.null()
+                     elif code in SGR_STYLE_MAP:
+                         # styles
+-                        self.style += _Style.parse(SGR_STYLE_MAP[code])
++                        self.style += _Style.from_string(SGR_STYLE_MAP[code])
+                     elif code == 38:
+                         #  Foreground
+                         with suppress(StopIteration):
+diff -ruN -x __pycache__ a/rich/console.py b/rich/console.py
+--- a/rich/console.py	2026-11-06 09:24:03.974732438 -0500
++++ b/rich/console.py	2026-11-06 09:24:11.413588226 -0500
+@@ -1488,7 +1488,7 @@
+         try:
+             style = self._theme_stack.get(name)
+             if style is None:
+-                style = Style.parse(name)
++                style = Style.from_string(name)
+             return style.copy() if style.link else style
+         except errors.StyleSyntaxError as error:
+             if default is not None:
+diff -ruN -x __pycache__ a/rich/style.py b/rich/style.py
+--- a/rich/style.py	2026-11-06 09:24:03.975095753 -0500
++++ b/rich/style.py	2026-11-06 09:24:11.476540526 -0500
+@@ -397,7 +397,7 @@
+             str: Normal form of style definition.
+         """
+         try:
+-            return str(cls.parse(style))
++            return str(cls.from_string(style))
+         except errors.StyleSyntaxError:
+             return style.strip().lower()
+ 
+@@ -495,7 +495,7 @@
+ 
+     @classmethod
+     @lru_cache(maxsize=4096)
+-    def parse(cls, style_definition: str) -> "Style":
++    def from_string(cls, style_definition: str) -> "Style":
+         """Parse a style definition.
+ 
+         Args:
+diff -ruN -x __pycache__ a/rich/theme.py b/rich/theme.py
+--- a/rich/theme.py	2026-11-06 09:24:03.975786464 -0500
++++ b/rich/theme.py	2026-11-06 09:24:11.499962656 -0500
+@@ -21,7 +21,7 @@
+         if styles is not None:
+             self.styles.update(
+                 {
+-                    name: style if isinstance(style, Style) else Style.parse(style)
++                    name: style if isinstance(style, Style) else Style.from_string(style)
+                     for name, style in styles.items()
+                 }
+             )
+@@ -52,7 +52,7 @@
+ 
+         config = configparser.ConfigParser()
+         config.read_file(config_file, source=source)
+-        styles = {name: Style.parse(value) for name, value in config.items("styles")}
++        styles = {name: Style.from_string(value) for name, value in config.items("styles")}
+         theme = Theme(styles, inherit=inherit)
+         return theme
+ 
+diff -ruN -x __pycache__ a/tests/test_ansi.py b/tests/test_ansi.py
+--- a/tests/test_ansi.py	2026-11-06 09:24:03.991629627 -0500
++++ b/tests/test_ansi.py	2026-11-06 09:24:11.509635335 -0500
+@@ -23,10 +23,10 @@
+     print(repr(lines))
+     expected = [
+         Text("Hello"),
+-        Text("foo", spans=[Span(0, 3, Style.parse("bold"))]),
+-        Text("bar", spans=[Span(0, 3, Style.parse("link http://example.org"))]),
+-        Text("red", spans=[Span(0, 3, Style.parse("#ff0000 on color(200)"))]),
+-        Text("red", spans=[Span(0, 3, Style.parse("color(200) on #ff0000"))]),
++        Text("foo", spans=[Span(0, 3, Style.from_string("bold"))]),
++        Text("bar", spans=[Span(0, 3, Style.from_string("link http://example.org"))]),
++        Text("red", spans=[Span(0, 3, Style.from_string("#ff0000 on color(200)"))]),
++        Text("red", spans=[Span(0, 3, Style.from_string("color(200) on #ff0000"))]),
+         Text(""),
+     ]
+ 
+diff -ruN -x __pycache__ a/tests/test_bar.py b/tests/test_bar.py
+--- a/tests/test_bar.py	2026-11-06 09:24:03.992215606 -0500
++++ b/tests/test_bar.py	2026-11-06 09:24:11.510593998 -0500
+@@ -64,30 +64,30 @@
+ def test_get_pulse_segments():
+     bar = ProgressBar()
+     segments = bar._get_pulse_segments(
+-        Style.parse("red"), Style.parse("yellow"), None, False, False
++        Style.from_string("red"), Style.from_string("yellow"), None, False, False
+     )
+     print(repr(segments))
+     expected = [
+-        Segment("━", Style.parse("red")),
+-        Segment("━", Style.parse("red")),
+-        Segment("━", Style.parse("red")),
+-        Segment("━", Style.parse("red")),
+-        Segment("━", Style.parse("red")),
+-        Segment("━", Style.parse("red")),
+-        Segment("━", Style.parse("red")),
+-        Segment("━", Style.parse("red")),
+-        Segment("━", Style.parse("red")),
+-        Segment("━", Style.parse("red")),
+-        Segment("━", Style.parse("yellow")),
+-        Segment("━", Style.parse("yellow")),
+-        Segment("━", Style.parse("yellow")),
+-        Segment("━", Style.parse("yellow")),
+-        Segment("━", Style.parse("yellow")),
+-        Segment("━", Style.parse("yellow")),
+-        Segment("━", Style.parse("yellow")),
+-        Segment("━", Style.parse("yellow")),
+-        Segment("━", Style.parse("yellow")),
+-        Segment("━", Style.parse("yellow")),
++        Segment("━", Style.from_string("red")),
++        Segment("━", Style.from_string("red")),
++        Segment("━", Style.from_string("red")),
++        Segment("━", Style.from_string("red")),
++        Segment("━", Style.from_string("red")),
++        Segment("━", Style.from_string("red")),
++        Segment("━", Style.from_string("red")),
++        Segment("━", Style.from_string("red")),
++        Segment("━", Style.from_string("red")),
++        Segment("━", Style.from_string("red")),
++        Segment("━", Style.from_string("yellow")),
++        Segment("━", Style.from_string("yellow")),
++        Segment("━", Style.from_string("yellow")),
++        Segment("━", Style.from_string("yellow")),
++        Segment("━", Style.from_string("yellow")),
++        Segment("━", Style.from_string("yellow")),
++        Segment("━", Style.from_string("yellow")),
++        Segment("━", Style.from_string("yellow")),
++        Segment("━", Style.from_string("yellow")),
++        Segment("━", Style.from_string("yellow")),
+     ]
+     assert segments == expected
+ 
+diff -ruN -x __pycache__ a/tests/test_containers.py b/tests/test_containers.py
+--- a/tests/test_containers.py	2026-11-06 09:24:03.992633438 -0500
++++ b/tests/test_containers.py	2026-11-06 09:24:11.525561289 -0500
+@@ -51,7 +51,7 @@
+     assert lines2._lines == [
+         Text(
+             "foo bar",
+-            spans=[Span(0, 3, "b"), Span(3, 4, Style.parse("bold")), Span(4, 7, "b")],
++            spans=[Span(0, 3, "b"), Span(3, 4, Style.from_string("bold")), Span(4, 7, "b")],
+         ),
+         Text("test"),
+     ]
+diff -ruN -x __pycache__ a/tests/test_live_render.py b/tests/test_live_render.py
+--- a/tests/test_live_render.py	2026-11-06 09:24:03.992180096 -0500
++++ b/tests/test_live_render.py	2026-11-06 09:24:11.535059687 -0500
+@@ -42,4 +42,4 @@
+     assert [Segment("my string", None)] == list(rich_console)
+     live_render.style = "red"
+     rich_console = live_render.__rich_console__(Console(), options)
+-    assert [Segment("my string", Style.parse("red"))] == list(rich_console)
++    assert [Segment("my string", Style.from_string("red"))] == list(rich_console)
+diff -ruN -x __pycache__ a/tests/test_style.py b/tests/test_style.py
+--- a/tests/test_style.py	2026-11-06 09:24:03.991734919 -0500
++++ b/tests/test_style.py	2026-11-06 09:24:11.562094304 -0500
+@@ -82,7 +82,7 @@
+     assert bool(Style()) is False
+     assert bool(Style(bold=True)) is True
+     assert bool(Style(color="red")) is True
+-    assert bool(Style.parse("")) is False
++    assert bool(Style.from_string("")) is False
+ 
+ 
+ def test_color_property():
+@@ -94,32 +94,32 @@
+ 
+ 
+ def test_parse():
+-    assert Style.parse("") == Style()
+-    assert Style.parse("red") == Style(color="red")
+-    assert Style.parse("not bold") == Style(bold=False)
+-    assert Style.parse("bold red on black") == Style(
++    assert Style.from_string("") == Style()
++    assert Style.from_string("red") == Style(color="red")
++    assert Style.from_string("not bold") == Style(bold=False)
++    assert Style.from_string("bold red on black") == Style(
+         color="red", bgcolor="black", bold=True
+     )
+-    assert Style.parse("bold link https://example.org") == Style(
++    assert Style.from_string("bold link https://example.org") == Style(
+         bold=True, link="https://example.org"
+     )
+     with pytest.raises(errors.StyleSyntaxError):
+-        Style.parse("on")
++        Style.from_string("on")
+     with pytest.raises(errors.StyleSyntaxError):
+-        Style.parse("on nothing")
++        Style.from_string("on nothing")
+     with pytest.raises(errors.StyleSyntaxError):
+-        Style.parse("rgb(999,999,999)")
++        Style.from_string("rgb(999,999,999)")
+     with pytest.raises(errors.StyleSyntaxError):
+-        Style.parse("not monkey")
++        Style.from_string("not monkey")
+     with pytest.raises(errors.StyleSyntaxError):
+-        Style.parse("link")
++        Style.from_string("link")
+ 
+ 
+ def test_link_id():
+     assert Style().link_id == ""
+-    assert Style.parse("").link_id == ""
+-    assert Style.parse("red").link_id == ""
+-    style = Style.parse("red link https://example.org")
++    assert Style.from_string("").link_id == ""
++    assert Style.from_string("red").link_id == ""
++    style = Style.from_string("red link https://example.org")
+     assert isinstance(style.link_id, str)
+     assert len(style.link_id) > 1
+ 
+@@ -232,7 +232,7 @@
+ 
+ 
+ def test_clear_meta_and_links():
+-    style = Style.parse("bold red on black link https://example.org") + Style.on(
++    style = Style.from_string("bold red on black link https://example.org") + Style.on(
+         click="CLICK"
+     )
+ 
+@@ -256,7 +256,7 @@
+ def test_clear_meta_and_links_clears_hash():
+     """Regression test for https://github.com/Textualize/rich/issues/2942."""
+ 
+-    style = Style.parse("bold red on black link https://example.org") + Style.on(
++    style = Style.from_string("bold red on black link https://example.org") + Style.on(
+         click="CLICK"
+     )
+     hash(style)  # Force hash caching.
+diff -ruN -x __pycache__ a/tests/test_syntax.py b/tests/test_syntax.py
+--- a/tests/test_syntax.py	2026-11-06 09:24:03.992784711 -0500
++++ b/tests/test_syntax.py	2026-11-06 09:24:11.564937508 -0500
+@@ -166,7 +166,7 @@
+ 
+ def test_pygments_syntax_theme() -> None:
+     style = PygmentsSyntaxTheme("default")
+-    assert style.get_style_for_token("abc") == Style.parse("none")
++    assert style.get_style_for_token("abc") == Style.from_string("none")
+ 
+ 
+ def test_get_line_color_none() -> None:
+@@ -196,16 +196,16 @@
+         word_wrap=True,
+         background_color="red",
+     )
+-    assert syntax.highlight(CODE).style == Style.parse("on red")
++    assert syntax.highlight(CODE).style == Style.from_string("on red")
+ 
+ 
+ def test_get_number_styles() -> None:
+     syntax = Syntax(CODE, "python", theme="monokai", line_numbers=True)
+     console = Console(color_system="windows")
+     assert syntax._get_number_styles(console=console) == (
+-        Style.parse("on #272822"),
+-        Style.parse("dim on #272822"),
+-        Style.parse("not dim on #272822"),
++        Style.from_string("on #272822"),
++        Style.from_string("dim on #272822"),
++        Style.from_string("not dim on #272822"),
+     )
+ 
+ 
+diff -ruN -x __pycache__ a/tests/test_table.py b/tests/test_table.py
+--- a/tests/test_table.py	2026-11-06 09:24:03.992026265 -0500
++++ b/tests/test_table.py	2026-11-06 09:24:11.567810395 -0500
+@@ -154,8 +154,8 @@
+     table = Table()
+     table.add_row("foo")
+     table.add_row("bar", style="on red")
+-    assert table.get_row_style(console, 0) == Style.parse("")
+-    assert table.get_row_style(console, 1) == Style.parse("on red")
++    assert table.get_row_style(console, 0) == Style.from_string("")
++    assert table.get_row_style(console, 1) == Style.from_string("on red")
+ 
+ 
+ def test_vertical_align_top():
+diff -ruN -x __pycache__ a/tests/test_text.py b/tests/test_text.py
+--- a/tests/test_text.py	2026-11-06 09:24:03.991876041 -0500
++++ b/tests/test_text.py	2026-11-06 09:24:11.577026024 -0500
+@@ -233,7 +233,7 @@
+     compiled_re_cve = re.compile(r"CVE-\d{4}-\d+")
+ 
+     def get_style(text: str) -> Style:
+-        return Style.parse(
++        return Style.from_string(
+             f"bold yellow link https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword={text}"
+         )
+ 
+diff -ruN -x __pycache__ a/tests/test_theme.py b/tests/test_theme.py
+--- a/tests/test_theme.py	2026-11-06 09:24:03.991920114 -0500
++++ b/tests/test_theme.py	2026-11-06 09:24:11.578138498 -0500
+@@ -43,11 +43,11 @@
+ def test_theme_stack():
+     theme = Theme({"warning": "red"})
+     stack = ThemeStack(theme)
+-    assert stack.get("warning") == Style.parse("red")
++    assert stack.get("warning") == Style.from_string("red")
+     new_theme = Theme({"warning": "bold yellow"})
+     stack.push_theme(new_theme)
+-    assert stack.get("warning") == Style.parse("bold yellow")
++    assert stack.get("warning") == Style.from_string("bold yellow")
+     stack.pop_theme()
+-    assert stack.get("warning") == Style.parse("red")
++    assert stack.get("warning") == Style.from_string("red")
+     with pytest.raises(ThemeStackError):
+         stack.pop_theme()
+diff -ruN -x __pycache__ a/tests/test_win32_console.py b/tests/test_win32_console.py
+--- a/tests/test_win32_console.py	2026-11-06 09:24:03.991832108 -0500
++++ b/tests/test_win32_console.py	2026-11-06 09:24:11.584816008 -0500
+@@ -82,7 +82,7 @@
+         win32_handle,
+         capsys,
+     ):
+-        style = Style.parse("black on red")
++        style = Style.from_string("black on red")
+         text = "Hello, world!"
+         term = LegacyWindowsTerm(sys.stdout)
+ 
+@@ -106,7 +106,7 @@
+     def test_write_styled_bold(
+         SetConsoleTextAttribute, win32_console_getters, win32_handle
+     ):
+-        style = Style.parse("bold black on red")
++        style = Style.from_string("bold black on red")
+         text = "Hello, world!"
+         term = LegacyWindowsTerm(sys.stdout)
+ 
+@@ -123,7 +123,7 @@
+     def test_write_styled_reverse(
+         SetConsoleTextAttribute, win32_console_getters, win32_handle
+     ):
+-        style = Style.parse("reverse red on blue")
++        style = Style.from_string("reverse red on blue")
+         text = "Hello, world!"
+         term = LegacyWindowsTerm(sys.stdout)
+ 
+@@ -140,7 +140,7 @@
+     def test_write_styled_reverse(
+         SetConsoleTextAttribute, win32_console_getters, win32_handle
+     ):
+-        style = Style.parse("dim bright_red on blue")
++        style = Style.from_string("dim bright_red on blue")
+         text = "Hello, world!"
+         term = LegacyWindowsTerm(sys.stdout)
+ 
+@@ -157,7 +157,7 @@
+     def test_write_styled_no_foreground_color(
+         SetConsoleTextAttribute, win32_console_getters, win32_handle
+     ):
+-        style = Style.parse("on blue")
++        style = Style.from_string("on blue")
+         text = "Hello, world!"
+         term = LegacyWindowsTerm(sys.stdout)
+ 
+@@ -174,7 +174,7 @@
+     def test_write_styled_no_background_color(
+         SetConsoleTextAttribute, win32_console_getters, win32_handle
+     ):
+-        style = Style.parse("blue")
++        style = Style.from_string("blue")
+         text = "Hello, world!"
+         term = LegacyWindowsTerm(sys.stdout)
+ 
+diff -ruN -x __pycache__ a/tests/test_windows_renderer.py b/tests/test_windows_renderer.py
+--- a/tests/test_windows_renderer.py	2026-11-06 09:24:03.992918279 -0500
++++ b/tests/test_windows_renderer.py	2026-11-06 09:24:11.586139925 -0500
+@@ -40,7 +40,7 @@
+ 
+ def test_text_with_style(legacy_term_mock):
+     text = "Hello, world!"
+-    style = Style.parse("black on red")
++    style = Style.from_string("black on red")
+     buffer = [Segment(text, style)]
+ 
+     legacy_windows_render(buffer, legacy_term_mock)

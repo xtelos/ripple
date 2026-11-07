@@ -1,0 +1,7 @@
+{
+  "id": "16-werkzeug-rename-get-response",
+  "repo": "werkzeug",
+  "prompt": "Rename the method `HTTPException.get_response` (in src/werkzeug/exceptions.py) to `build_response`. It has three definitions there (two typing overloads and the implementation): rename all three. Rename the override in src/werkzeug/routing/exceptions.py too, and update every call that reaches it on an exception. The `get_response` method of the cupoftee example's `Page` class is unrelated and keeps its name. The test suite must pass when you are done.",
+  "min_tests": 900,
+  "why": "HTTPException.get_response has 8 calls in 4 files (through `self` in HTTPException.__call__, on `e` in wrappers/request.py, and on exceptions in 6 tests) and 4 definitions in 2 files, one of them the override RequestRedirect.get_response in the routing package. examples/cupoftee has an unrelated Page.get_response, called as `page.get_response` and `super().get_response`, that a rename by name would break."
+}

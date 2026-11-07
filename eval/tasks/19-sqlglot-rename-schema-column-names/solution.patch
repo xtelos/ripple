@@ -1,0 +1,206 @@
+diff -ruN -x __pycache__ a/sqlglot/lineage.py b/sqlglot/lineage.py
+--- a/sqlglot/lineage.py	2026-11-06 09:35:01.602060687 -0500
++++ b/sqlglot/lineage.py	2026-11-06 09:35:20.792346204 -0500
+@@ -526,7 +526,7 @@
+         if isinstance(cte_source, Scope) and isinstance(cte_source.expression, exp.Query):
+             columns = cte_source.expression.named_selects
+         elif schema is not None:
+-            columns = list(schema.column_names(parent, only_visible=True))
++            columns = list(schema.get_column_names(parent, only_visible=True))
+ 
+     return [] if "*" in columns else columns
+ 
+diff -ruN -x __pycache__ a/sqlglot/optimizer/annotate_types.py b/sqlglot/optimizer/annotate_types.py
+--- a/sqlglot/optimizer/annotate_types.py	2026-11-06 09:35:01.600377787 -0500
++++ b/sqlglot/optimizer/annotate_types.py	2026-11-06 09:35:20.802592389 -0500
+@@ -477,7 +477,7 @@
+                     if source_id not in self._table_column_aliases:
+                         column_aliases: dict[str, str] = {}
+                         if alias_columns := source.alias_column_names:
+-                            for alias, name in zip(alias_columns, self.schema.column_names(source)):
++                            for alias, name in zip(alias_columns, self.schema.get_column_names(source)):
+                                 column_aliases.setdefault(alias, name)
+                         self._table_column_aliases[source_id] = (source, column_aliases)
+ 
+diff -ruN -x __pycache__ a/sqlglot/optimizer/isolate_table_selects.py b/sqlglot/optimizer/isolate_table_selects.py
+--- a/sqlglot/optimizer/isolate_table_selects.py	2026-11-06 09:35:01.599985366 -0500
++++ b/sqlglot/optimizer/isolate_table_selects.py	2026-11-06 09:35:20.813618611 -0500
+@@ -29,7 +29,7 @@
+ 
+             if (
+                 not isinstance(source, exp.Table)
+-                or not schema.column_names(source)
++                or not schema.get_column_names(source)
+                 or isinstance(source.parent, exp.Subquery)
+                 or isinstance(source.parent.parent, exp.Table)
+             ):
+diff -ruN -x __pycache__ a/sqlglot/optimizer/qualify_columns.py b/sqlglot/optimizer/qualify_columns.py
+--- a/sqlglot/optimizer/qualify_columns.py	2026-11-06 09:35:01.600446270 -0500
++++ b/sqlglot/optimizer/qualify_columns.py	2026-11-06 09:35:20.841866748 -0500
+@@ -825,7 +825,7 @@
+     position_value = int(position.to_py())
+     if isinstance(column_source, exp.Table):
+         alias_columns = column_source.alias_column_names
+-        source_columns_without_aliases = resolver.schema.column_names(
++        source_columns_without_aliases = resolver.schema.get_column_names(
+             column_source, only_visible=True
+         )
+         source_columns_incomplete = (
+diff -ruN -x __pycache__ a/sqlglot/optimizer/resolver.py b/sqlglot/optimizer/resolver.py
+--- a/sqlglot/optimizer/resolver.py	2026-11-06 09:35:01.600092176 -0500
++++ b/sqlglot/optimizer/resolver.py	2026-11-06 09:35:20.849328680 -0500
+@@ -215,7 +215,7 @@
+                 source = self.scope.cte_sources[source.name]
+ 
+             if isinstance(source, exp.Table):
+-                columns = self.schema.column_names(source, only_visible)
++                columns = self.schema.get_column_names(source, only_visible)
+             elif isinstance(source, Scope) and isinstance(
+                 source_expr := source.expression, (exp.Values, exp.Unnest, exp.Lateral)
+             ):
+diff -ruN -x __pycache__ a/sqlglot/schema.py b/sqlglot/schema.py
+--- a/sqlglot/schema.py	2026-11-06 09:35:01.601916327 -0500
++++ b/sqlglot/schema.py	2026-11-06 09:35:21.140038047 -0500
+@@ -52,7 +52,7 @@
+         """
+ 
+     @abc.abstractmethod
+-    def column_names(
++    def get_column_names(
+         self,
+         table: exp.Table | str,
+         only_visible: bool = False,
+@@ -113,7 +113,7 @@
+             True if the column appears in the schema, False otherwise.
+         """
+         name = column if isinstance(column, str) else column.name
+-        return name in self.column_names(table, dialect=dialect, normalize=normalize)
++        return name in self.get_column_names(table, dialect=dialect, normalize=normalize)
+ 
+     def get_udf_type(
+         self,
+@@ -411,7 +411,7 @@
+         self._find_cache.pop((normalized_table, True), None)
+         self._find_cache.pop((normalized_table, False), None)
+ 
+-    def column_names(
++    def get_column_names(
+         self,
+         table: exp.Table | str,
+         only_visible: bool = False,
+diff -ruN -x __pycache__ a/tests/test_optimizer.py b/tests/test_optimizer.py
+--- a/tests/test_optimizer.py	2026-11-06 09:35:01.622799867 -0500
++++ b/tests/test_optimizer.py	2026-11-06 09:44:50.701427292 -0500
+@@ -3118,7 +3118,7 @@
+                     f"FROM x AS t({', '.join(aliases)})"
+                 )
+                 with patch.object(
+-                    schema, "column_names", wraps=schema.column_names
++                    schema, "get_column_names", wraps=schema.get_column_names
+                 ) as column_names:
+                     annotate_types(query, schema=schema)
+                     column_names.assert_called_once()
+diff -ruN -x __pycache__ a/tests/test_schema.py b/tests/test_schema.py
+--- a/tests/test_schema.py	2026-11-06 09:35:01.622221846 -0500
++++ b/tests/test_schema.py	2026-11-06 09:35:21.584390535 -0500
+@@ -36,18 +36,18 @@
+     def assert_column_names(self, schema, *table_results):
+         for table, result in table_results:
+             with self.subTest(f"{table} -> {result}"):
+-                self.assertEqual(schema.column_names(to_table(table)), result)
++                self.assertEqual(schema.get_column_names(to_table(table)), result)
+ 
+     def assert_column_names_raises(self, schema, *tables):
+         for table in tables:
+             with self.subTest(table):
+                 with self.assertRaises(SchemaError):
+-                    schema.column_names(to_table(table))
++                    schema.get_column_names(to_table(table))
+ 
+     def assert_column_names_empty(self, schema, *tables):
+         for table in tables:
+             with self.subTest(table):
+-                self.assertEqual(schema.column_names(to_table(table)), [])
++                self.assertEqual(schema.get_column_names(to_table(table)), [])
+ 
+     def test_schema(self):
+         schema = ensure_schema(
+@@ -181,13 +181,13 @@
+     def test_schema_add_table_with_and_without_mapping(self):
+         schema = MappingSchema()
+         schema.add_table("test")
+-        self.assertEqual(schema.column_names("test"), [])
++        self.assertEqual(schema.get_column_names("test"), [])
+         schema.add_table("test", {"x": "string"})
+-        self.assertEqual(schema.column_names("test"), ["x"])
++        self.assertEqual(schema.get_column_names("test"), ["x"])
+         schema.add_table("test", {"x": "string", "y": "int"})
+-        self.assertEqual(schema.column_names("test"), ["x", "y"])
++        self.assertEqual(schema.get_column_names("test"), ["x", "y"])
+         schema.add_table("test")
+-        self.assertEqual(schema.column_names("test"), ["x", "y"])
++        self.assertEqual(schema.get_column_names("test"), ["x", "y"])
+ 
+     def test_schema_get_column_type(self):
+         schema = MappingSchema({"A": {"b": "varchar"}})
+@@ -232,41 +232,41 @@
+         table_z = exp.table_("Z", db="y", catalog="x")
+         table_w = exp.table_("w", db="y", catalog="x")
+ 
+-        self.assertEqual(schema.column_names(table_z), ["a", "B"])
+-        self.assertEqual(schema.column_names(table_w), ["C"])
++        self.assertEqual(schema.get_column_names(table_z), ["a", "B"])
++        self.assertEqual(schema.get_column_names(table_w), ["C"])
+ 
+         schema = MappingSchema(schema={"x": {"`y`": "INT"}}, dialect="clickhouse")
+-        self.assertEqual(schema.column_names(exp.table_("x")), ["y"])
++        self.assertEqual(schema.get_column_names(exp.table_("x")), ["y"])
+ 
+         # Check that add_table normalizes both the table and the column names to be added / updated
+         schema = MappingSchema()
+         schema.add_table("Foo", {"SomeColumn": "INT", '"SomeColumn"': "DOUBLE"})
+-        self.assertEqual(schema.column_names(exp.table_("fOO")), ["somecolumn", "SomeColumn"])
++        self.assertEqual(schema.get_column_names(exp.table_("fOO")), ["somecolumn", "SomeColumn"])
+ 
+         # Check that names are normalized to uppercase for Snowflake
+         schema = MappingSchema(schema={"x": {"foo": "int", '"bLa"': "int"}}, dialect="snowflake")
+-        self.assertEqual(schema.column_names(exp.table_("x")), ["FOO", "bLa"])
++        self.assertEqual(schema.get_column_names(exp.table_("x")), ["FOO", "bLa"])
+ 
+         # Check that switching off the normalization logic works as expected
+         schema = MappingSchema(schema={"x": {"foo": "int"}}, normalize=False, dialect="snowflake")
+-        self.assertEqual(schema.column_names(exp.table_("x")), ["foo"])
++        self.assertEqual(schema.get_column_names(exp.table_("x")), ["foo"])
+ 
+         # Check that the correct dialect is used when calling schema methods
+         # Note: T-SQL is case-insensitive by default, so `fo` in clickhouse will match the normalized table name
+         schema = MappingSchema(schema={"[Fo]": {"x": "int"}}, dialect="tsql")
+         self.assertEqual(
+-            schema.column_names("[Fo]"), schema.column_names("`fo`", dialect="clickhouse")
++            schema.get_column_names("[Fo]"), schema.get_column_names("`fo`", dialect="clickhouse")
+         )
+ 
+         # Check that all column identifiers are normalized to lowercase for BigQuery, even quoted
+         # ones. Also, ensure that tables aren't normalized, since they're case-sensitive by default.
+         schema = MappingSchema(schema={"Foo": {"`BaR`": "int"}}, dialect="bigquery")
+-        self.assertEqual(schema.column_names("Foo"), ["bar"])
+-        self.assertEqual(schema.column_names("foo"), [])
++        self.assertEqual(schema.get_column_names("Foo"), ["bar"])
++        self.assertEqual(schema.get_column_names("foo"), [])
+ 
+         # Check that the schema's normalization setting can be overridden
+         schema = MappingSchema(schema={"X": {"y": "int"}}, normalize=False, dialect="snowflake")
+-        self.assertEqual(schema.column_names("x", normalize=True), ["y"])
++        self.assertEqual(schema.get_column_names("x", normalize=True), ["y"])
+ 
+         # Check that identifiers in nested data types are normalized
+         # BigQuery: STRUCT field names should be lowercased
+@@ -375,7 +375,7 @@
+             ):
+                 pass
+ 
+-            def column_names(self, table, only_visible=False, dialect=None, normalize=None):
++            def get_column_names(self, table, only_visible=False, dialect=None, normalize=None):
+                 return ["a"]
+ 
+             def get_column_type(self, table, column, dialect=None, normalize=None):

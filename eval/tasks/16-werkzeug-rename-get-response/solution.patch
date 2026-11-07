@@ -1,0 +1,115 @@
+diff -ruN -x __pycache__ a/src/werkzeug/exceptions.py b/src/werkzeug/exceptions.py
+--- a/src/werkzeug/exceptions.py	2026-11-06 09:30:06.843400849 -0500
++++ b/src/werkzeug/exceptions.py	2026-11-06 09:30:06.968388053 -0500
+@@ -130,18 +130,18 @@
+         return [("Content-Type", "text/html; charset=utf-8")]
+ 
+     @t.overload
+-    def get_response(
++    def build_response(
+         self,
+         environ: WSGIEnvironment | WSGIRequest | None = ...,
+         scope: None = None,
+     ) -> WSGIResponse: ...
+     @t.overload
+-    def get_response(
++    def build_response(
+         self,
+         environ: None = None,
+         scope: dict[str, t.Any] = ...,
+     ) -> SansIOResponse: ...
+-    def get_response(
++    def build_response(
+         self,
+         environ: WSGIEnvironment | WSGIRequest | None = None,
+         scope: dict[str, t.Any] | None = None,
+@@ -175,7 +175,7 @@
+         :param start_response: the response callable provided by the WSGI
+                                server.
+         """
+-        response = self.get_response(environ)
++        response = self.build_response(environ)
+         return response(environ, start_response)
+ 
+     def __str__(self) -> str:
+diff -ruN -x __pycache__ a/src/werkzeug/routing/exceptions.py b/src/werkzeug/routing/exceptions.py
+--- a/src/werkzeug/routing/exceptions.py	2026-11-06 09:30:06.845273338 -0500
++++ b/src/werkzeug/routing/exceptions.py	2026-11-06 09:30:06.992144862 -0500
+@@ -38,7 +38,7 @@
+         super().__init__(new_url)
+         self.new_url = new_url
+ 
+-    def get_response(
++    def build_response(
+         self,
+         environ: WSGIEnvironment | Request | None = None,
+         scope: dict[str, t.Any] | None = None,
+diff -ruN -x __pycache__ a/src/werkzeug/wrappers/request.py b/src/werkzeug/wrappers/request.py
+--- a/src/werkzeug/wrappers/request.py	2026-11-06 09:30:06.844111856 -0500
++++ b/src/werkzeug/wrappers/request.py	2026-11-06 09:30:07.037757033 -0500
+@@ -204,7 +204,7 @@
+                 try:
+                     resp = f(*args[:-2] + (request,))
+                 except HTTPException as e:
+-                    resp = t.cast("WSGIApplication", e.get_response(args[-2]))
++                    resp = t.cast("WSGIApplication", e.build_response(args[-2]))
+                 return resp(*args[-2:])
+ 
+         return t.cast("WSGIApplication", application)
+diff -ruN -x __pycache__ a/tests/test_exceptions.py b/tests/test_exceptions.py
+--- a/tests/test_exceptions.py	2026-11-06 09:30:06.819957165 -0500
++++ b/tests/test_exceptions.py	2026-11-06 09:30:07.067133990 -0500
+@@ -16,7 +16,7 @@
+     orig_resp = Response("Hello World")
+     with pytest.raises(exceptions.HTTPException) as excinfo:
+         exceptions.abort(orig_resp)
+-    resp = excinfo.value.get_response({})
++    resp = excinfo.value.build_response({})
+     assert resp is orig_resp
+     assert resp.get_data() == b"Hello World"
+ 
+@@ -116,7 +116,7 @@
+ 
+ def test_response_header_content_type_should_contain_charset():
+     exc = exceptions.HTTPException("An error message")
+-    h = exc.get_response({})
++    h = exc.build_response({})
+     assert h.headers["Content-Type"] == "text/html; charset=utf-8"
+ 
+ 
+@@ -149,12 +149,12 @@
+         pass
+ 
+     exc = cls(response=TestResponse())
+-    rp = exc.get_response({})
++    rp = exc.build_response({})
+     assert isinstance(rp, TestResponse)
+ 
+ 
+ def test_description_none():
+-    HTTPException().get_response()
++    HTTPException().build_response()
+ 
+ 
+ @pytest.mark.parametrize(
+diff -ruN -x __pycache__ a/tests/test_routing.py b/tests/test_routing.py
+--- a/tests/test_routing.py	2026-11-06 09:30:06.819176087 -0500
++++ b/tests/test_routing.py	2026-11-06 09:30:07.101990747 -0500
+@@ -1237,7 +1237,7 @@
+     exc = r.RequestRedirect("http://www.google.com/")
+     exc.code = 307
+     env = create_environ()
+-    assert exc.get_response(env).status_code == exc.code
++    assert exc.build_response(env).status_code == exc.code
+ 
+ 
+ def test_redirect_path_quoting():
+@@ -1251,7 +1251,7 @@
+ 
+     with pytest.raises(r.RequestRedirect) as excinfo:
+         adapter.match("/foo bar/page/1")
+-    response = excinfo.value.get_response({})
++    response = excinfo.value.build_response({})
+     assert response.headers["location"] == "http://example.com/foo%20bar"
+ 
+ 

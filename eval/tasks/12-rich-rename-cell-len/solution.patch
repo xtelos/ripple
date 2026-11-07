@@ -1,0 +1,459 @@
+diff -ruN -x __pycache__ a/rich/_wrap.py b/rich/_wrap.py
+--- a/rich/_wrap.py	2026-11-06 09:25:57.315384815 -0500
++++ b/rich/_wrap.py	2026-11-06 09:25:57.597798493 -0500
+@@ -4,7 +4,7 @@
+ from typing import Iterable
+ 
+ from ._loop import loop_last
+-from .cells import cell_len, chop_cells
++from .cells import cell_width, chop_cells
+ 
+ re_word = re.compile(r"\s*\S+\s*")
+ 
+@@ -39,7 +39,7 @@
+     break_positions: list[int] = []  # offsets to insert the breaks at
+     append = break_positions.append
+     cell_offset = 0
+-    _cell_len = cell_len
++    _cell_len = cell_width
+ 
+     for start, _end, word in words(text):
+         word_length = _cell_len(word.rstrip())
+diff -ruN -x __pycache__ a/rich/cells.py b/rich/cells.py
+--- a/rich/cells.py	2026-11-06 09:25:57.310973161 -0500
++++ b/rich/cells.py	2026-11-06 09:26:07.576243818 -0500
+@@ -83,7 +83,7 @@
+     """Get the number of cells required to display text.
+ 
+     This method always caches, which may use up a lot of memory. It is recommended to use
+-    `cell_len` over this method.
++    `cell_width` over this method.
+ 
+     Args:
+         text (str): Text to display.
+@@ -95,7 +95,7 @@
+     return _cell_len(text, unicode_version)
+ 
+ 
+-def cell_len(text: str, unicode_version: str = "auto") -> int:
++def cell_width(text: str, unicode_version: str = "auto") -> int:
+     """Get the cell length of a string (length as it appears in the terminal).
+ 
+     Args:
+@@ -314,7 +314,7 @@
+         return text[:total]
+     if total <= 0:
+         return ""
+-    cell_size = cell_len(text)
++    cell_size = cell_width(text)
+     if cell_size == total:
+         return text
+     if cell_size < total:
+diff -ruN -x __pycache__ a/rich/console.py b/rich/console.py
+--- a/rich/console.py	2026-11-06 09:25:57.312961552 -0500
++++ b/rich/console.py	2026-11-06 09:25:57.651978983 -0500
+@@ -2379,7 +2379,7 @@
+         import zlib
+         from html import escape
+ 
+-        from rich.cells import cell_len
++        from rich.cells import cell_width
+ 
+         style_cache: Dict[Style, str] = {}
+ 
+@@ -2509,7 +2509,7 @@
+                         else style.bgcolor.get_truecolor(_theme).hex
+                     )
+ 
+-                text_length = cell_len(text)
++                text_length = cell_width(text)
+                 if has_background:
+                     text_backgrounds.append(
+                         make_tag(
+@@ -2535,7 +2535,7 @@
+                             clip_path=f"url(#{unique_id}-line-{y})",
+                         )
+                     )
+-                x += cell_len(text)
++                x += cell_width(text)
+ 
+         line_offsets = [line_no * line_height + 1.5 for line_no in range(y)]
+         lines = "\n".join(
+diff -ruN -x __pycache__ a/rich/containers.py b/rich/containers.py
+--- a/rich/containers.py	2026-11-06 09:25:57.314673905 -0500
++++ b/rich/containers.py	2026-11-06 09:25:57.656521089 -0500
+@@ -21,7 +21,7 @@
+     )
+     from .text import Text
+ 
+-from .cells import cell_len
++from .cells import cell_width
+ from .measure import Measurement
+ 
+ T = TypeVar("T")
+@@ -133,19 +133,19 @@
+             for line in self._lines:
+                 line.rstrip()
+                 line.truncate(width, overflow=overflow)
+-                line.pad_left((width - cell_len(line.plain)) // 2)
+-                line.pad_right(width - cell_len(line.plain))
++                line.pad_left((width - cell_width(line.plain)) // 2)
++                line.pad_right(width - cell_width(line.plain))
+         elif justify == "right":
+             for line in self._lines:
+                 line.rstrip()
+                 line.truncate(width, overflow=overflow)
+-                line.pad_left(width - cell_len(line.plain))
++                line.pad_left(width - cell_width(line.plain))
+         elif justify == "full":
+             for line_index, line in enumerate(self._lines):
+                 if line_index == len(self._lines) - 1:
+                     break
+                 words = line.split(" ")
+-                words_size = sum(cell_len(word.plain) for word in words)
++                words_size = sum(cell_width(word.plain) for word in words)
+                 num_spaces = len(words) - 1
+                 spaces = [1 for _ in range(num_spaces)]
+                 index = 0
+diff -ruN -x __pycache__ a/rich/panel.py b/rich/panel.py
+--- a/rich/panel.py	2026-11-06 09:25:57.314817959 -0500
++++ b/rich/panel.py	2026-11-06 09:25:57.707369589 -0500
+@@ -2,7 +2,7 @@
+ 
+ from .align import AlignMethod
+ from .box import ROUNDED, Box
+-from .cells import cell_len
++from .cells import cell_width
+ from .jupyter import JupyterMixin
+ from .measure import Measurement, measure_renderables
+ from .padding import Padding, PaddingDimensions
+@@ -173,7 +173,7 @@
+             """
+             text = text.copy()
+             text.truncate(width)
+-            excess_space = width - cell_len(text.plain)
++            excess_space = width - cell_width(text.plain)
+             if text.style:
+                 text.stylize(console.get_style(text.style))
+ 
+diff -ruN -x __pycache__ a/rich/pretty.py b/rich/pretty.py
+--- a/rich/pretty.py	2026-11-06 09:25:57.312897081 -0500
++++ b/rich/pretty.py	2026-11-06 09:25:57.721044950 -0500
+@@ -40,7 +40,7 @@
+ from ._loop import loop_last
+ from ._pick import pick_bool
+ from .abc import RichRenderable
+-from .cells import cell_len
++from .cells import cell_width
+ from .highlighter import ReprHighlighter
+ from .jupyter import JupyterMixin, JupyterRenderable
+ from .measure import Measurement
+@@ -349,7 +349,7 @@
+             expand_all=self.expand_all,
+         )
+         text_width = (
+-            max(cell_len(line) for line in pretty_str.splitlines()) if pretty_str else 0
++            max(cell_width(line) for line in pretty_str.splitlines()) if pretty_str else 0
+         )
+         return Measurement(text_width, text_width)
+ 
+@@ -455,7 +455,7 @@
+         """
+         total_length = start_length
+         for token in self.iter_tokens():
+-            total_length += cell_len(token)
++            total_length += cell_width(token)
+             if total_length > max_length:
+                 return False
+         return True
+@@ -511,7 +511,7 @@
+     def check_length(self, max_length: int) -> bool:
+         """Check this line fits within a given number of cells."""
+         start_length = (
+-            len(self.whitespace) + cell_len(self.text) + cell_len(self.suffix)
++            len(self.whitespace) + cell_width(self.text) + cell_width(self.suffix)
+         )
+         assert self.node is not None
+         return self.node.check_length(start_length, max_length)
+diff -ruN -x __pycache__ a/rich/rule.py b/rich/rule.py
+--- a/rich/rule.py	2026-11-06 09:25:57.313118417 -0500
++++ b/rich/rule.py	2026-11-06 09:25:57.752924473 -0500
+@@ -1,7 +1,7 @@
+ from typing import Union
+ 
+ from .align import AlignMethod
+-from .cells import cell_len, set_cell_size
++from .cells import cell_width, set_cell_size
+ from .console import Console, ConsoleOptions, RenderResult
+ from .jupyter import JupyterMixin
+ from .measure import Measurement
+@@ -29,7 +29,7 @@
+         end: str = "\n",
+         align: AlignMethod = "center",
+     ) -> None:
+-        if cell_len(characters) < 1:
++        if cell_width(characters) < 1:
+             raise ValueError(
+                 "'characters' argument must have a cell width of at least 1"
+             )
+@@ -57,7 +57,7 @@
+             else self.characters
+         )
+ 
+-        chars_len = cell_len(characters)
++        chars_len = cell_width(characters)
+         if not self.title:
+             yield self._rule_line(chars_len, width)
+             return
+@@ -79,10 +79,10 @@
+         rule_text = Text(end=self.end)
+         if self.align == "center":
+             title_text.truncate(truncate_width, overflow="ellipsis")
+-            side_width = (width - cell_len(title_text.plain)) // 2
++            side_width = (width - cell_width(title_text.plain)) // 2
+             left = Text(characters * (side_width // chars_len + 1))
+             left.truncate(side_width - 1)
+-            right_length = width - cell_len(left.plain) - cell_len(title_text.plain)
++            right_length = width - cell_width(left.plain) - cell_width(title_text.plain)
+             right = Text(characters * (side_width // chars_len + 1))
+             right.truncate(right_length)
+             rule_text.append(left.plain + " ", self.style)
+diff -ruN -x __pycache__ a/rich/segment.py b/rich/segment.py
+--- a/rich/segment.py	2026-11-06 09:25:57.311058973 -0500
++++ b/rich/segment.py	2026-11-06 09:25:57.762921728 -0500
+@@ -18,7 +18,7 @@
+ from .cells import (
+     _is_single_cell_widths,
+     cached_cell_len,
+-    cell_len,
++    cell_width,
+     get_character_cell_size,
+     set_cell_size,
+ )
+@@ -83,7 +83,7 @@
+             int: A number of cells.
+         """
+         text, _style, control = self
+-        return 0 if control else cell_len(text)
++        return 0 if control else cell_width(text)
+ 
+     def __rich_repr__(self) -> Result:
+         yield self.text
+@@ -130,7 +130,7 @@
+ 
+         while True:
+             before = text[:pos]
+-            cell_pos = cell_len(before)
++            cell_pos = cell_width(before)
+             out_by = cell_pos - cut
+             if not out_by:
+                 return (
+@@ -405,7 +405,7 @@
+         Returns:
+             int: The length of the line.
+         """
+-        _cell_len = cell_len
++        _cell_len = cell_width
+         return sum(_cell_len(text) for text, style, control in line if not control)
+ 
+     @classmethod
+diff -ruN -x __pycache__ a/rich/syntax.py b/rich/syntax.py
+--- a/rich/syntax.py	2026-11-06 09:25:57.314774424 -0500
++++ b/rich/syntax.py	2026-11-06 09:25:57.789534662 -0500
+@@ -46,7 +46,7 @@
+ from rich.padding import Padding, PaddingDimensions
+ 
+ from ._loop import loop_first
+-from .cells import cell_len
++from .cells import cell_width
+ from .color import Color, blend_rgb
+ from .jupyter import JupyterMixin
+ from .measure import Measurement
+@@ -634,7 +634,7 @@
+         width = (
+             self._numbers_column_width
+             + padding
+-            + (max(cell_len(line) for line in lines) if lines else 0)
++            + (max(cell_width(line) for line in lines) if lines else 0)
+         )
+         if self.line_numbers:
+             width += 1
+diff -ruN -x __pycache__ a/rich/text.py b/rich/text.py
+--- a/rich/text.py	2026-11-06 09:25:57.313603579 -0500
++++ b/rich/text.py	2026-11-06 09:25:57.821448609 -0500
+@@ -20,7 +20,7 @@
+ from ._pick import pick_bool
+ from ._wrap import divide_line
+ from .align import AlignMethod
+-from .cells import cell_len, set_cell_size
++from .cells import cell_width, set_cell_size
+ from .containers import Lines
+ from .control import strip_control_codes
+ from .emoji import EmojiVariant
+@@ -224,7 +224,7 @@
+     @property
+     def cell_len(self) -> int:
+         """Get the number of cells required to render this text."""
+-        return cell_len(self.plain)
++        return cell_width(self.plain)
+ 
+     @property
+     def markup(self) -> str:
+@@ -709,10 +709,10 @@
+     ) -> Measurement:
+         text = self.plain
+         lines = text.splitlines()
+-        max_text_width = max(cell_len(line) for line in lines) if lines else 0
++        max_text_width = max(cell_width(line) for line in lines) if lines else 0
+         words = text.split()
+         min_text_width = (
+-            max(cell_len(word) for word in words) if words else max_text_width
++            max(cell_width(word) for word in words) if words else max_text_width
+         )
+         return Measurement(min_text_width, max_text_width)
+ 
+@@ -872,7 +872,7 @@
+         """
+         _overflow = overflow or self.overflow or DEFAULT_OVERFLOW
+         if _overflow != "ignore":
+-            length = cell_len(self.plain)
++            length = cell_width(self.plain)
+             if length > max_width:
+                 if _overflow == "ellipsis":
+                     self.plain = set_cell_size(self.plain, max_width - 1) + "…"
+@@ -950,7 +950,7 @@
+             character (str, optional): Character to pad with. Defaults to " ".
+         """
+         self.truncate(width)
+-        excess_space = width - cell_len(self.plain)
++        excess_space = width - cell_width(self.plain)
+         if excess_space:
+             if align == "left":
+                 self.pad_right(excess_space, character)
+diff -ruN -x __pycache__ a/tests/test_cells.py b/tests/test_cells.py
+--- a/tests/test_cells.py	2026-11-06 09:25:57.327962839 -0500
++++ b/tests/test_cells.py	2026-11-06 09:25:57.855462342 -0500
+@@ -8,7 +8,7 @@
+ from rich.cells import (
+     CellSpan,
+     _is_single_cell_widths,
+-    cell_len,
++    cell_width,
+     chop_cells,
+     get_character_cell_size,
+     split_graphemes,
+@@ -33,16 +33,16 @@
+ 
+ def test_cell_len_long_string():
+     # Long strings don't use cached cell length implementation
+-    assert cells.cell_len("abc" * 200) == 3 * 200
++    assert cells.cell_width("abc" * 200) == 3 * 200
+     # Boundary case
+-    assert cells.cell_len("a" * 512) == 512
++    assert cells.cell_width("a" * 512) == 512
+ 
+ 
+ def test_cell_len_short_string():
+     # Short strings use cached cell length implementation
+-    assert cells.cell_len("abc" * 100) == 3 * 100
++    assert cells.cell_width("abc" * 100) == 3 * 100
+     # Boundary case
+-    assert cells.cell_len("a" * 511) == 511
++    assert cells.cell_width("a" * 511) == 511
+ 
+ 
+ def test_set_cell_size():
+@@ -63,7 +63,7 @@
+ def test_set_cell_size_infinite():
+     for size in range(38):
+         assert (
+-            cells.cell_len(
++            cells.cell_width(
+                 cells.set_cell_size(
+                     "เป็นเกมที่ต้องมีความอดทนมากที่สุดตั้งเเต่เคยเล่นมา", size
+                 )
+@@ -226,7 +226,7 @@
+ ):
+     spans, cell_length = split_graphemes(text)
+     print(spans)
+-    assert cell_len(text) == expected_cell_length
++    assert cell_width(text) == expected_cell_length
+     assert spans == expected_spans
+     assert cell_length == expected_cell_length
+ 
+@@ -234,21 +234,21 @@
+ def test_nerd_font():
+     """Regression test for https://github.com/Textualize/rich/issues/3943"""
+     # Not allocated by unicode, but used by nerd fonts
+-    assert cell_len("\U000f024d") == 1
++    assert cell_width("\U000f024d") == 1
+ 
+ 
+ def test_zwj():
+     """Test special case of zero width joiners"""
+-    assert cell_len("") == 0
+-    assert cell_len("\u200d") == 0
+-    assert cell_len("1\u200d") == 1
++    assert cell_width("") == 0
++    assert cell_width("\u200d") == 0
++    assert cell_width("1\u200d") == 1
+     # This sequence should really produce 2, but it aligns with with wcwidth
+     # What gets written to the terminal is anybody's guess, I've seen multiple variations
+-    assert cell_len("1\u200d2") == 1
++    assert cell_width("1\u200d2") == 1
+ 
+ 
+ def test_non_printable():
+     """Non printable characters should report a width of 0."""
+     for ordinal in range(31):
+         character = chr(ordinal)
+-        assert cell_len(character) == 0
++        assert cell_width(character) == 0
+diff -ruN -x __pycache__ a/tests/test_segment.py b/tests/test_segment.py
+--- a/tests/test_segment.py	2026-11-06 09:25:57.326744016 -0500
++++ b/tests/test_segment.py	2026-11-06 09:25:57.968914122 -0500
+@@ -2,7 +2,7 @@
+ 
+ import pytest
+ 
+-from rich.cells import cell_len
++from rich.cells import cell_width
+ from rich.segment import ControlType, Segment, SegmentLines, Segments
+ from rich.style import Style
+ 
+@@ -320,10 +320,10 @@
+     for position in range(0, segment.cell_length + 1):
+         left, right = Segment.split_cells(segment, position)
+         assert all(
+-            cell_len(c) > 0 for c in segment.text
++            cell_width(c) > 0 for c in segment.text
+         )  # Sanity check there aren't any sneaky control codes
+-        assert cell_len(left.text) == position
+-        assert cell_len(right.text) == segment.cell_length - position
++        assert cell_width(left.text) == position
++        assert cell_width(right.text) == segment.cell_length - position
+ 
+ 
+ def test_split_cells_doubles() -> None:
+@@ -331,8 +331,8 @@
+     test = Segment("早" * 20)
+     for position in range(1, test.cell_length):
+         left, right = Segment.split_cells(test, position)
+-        assert cell_len(left.text) == position
+-        assert cell_len(right.text) == test.cell_length - position
++        assert cell_width(left.text) == position
++        assert cell_width(right.text) == test.cell_length - position
+ 
+ 
+ def test_split_cells_single() -> None:
+@@ -340,8 +340,8 @@
+     test = Segment("A" * 20)
+     for position in range(1, test.cell_length):
+         left, right = Segment.split_cells(test, position)
+-        assert cell_len(left.text) == position
+-        assert cell_len(right.text) == test.cell_length - position
++        assert cell_width(left.text) == position
++        assert cell_width(right.text) == test.cell_length - position
+ 
+ 
+ def test_segment_lines_renderable():

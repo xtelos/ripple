@@ -1,0 +1,7 @@
+{
+  "id": "12-rich-rename-cell-len",
+  "repo": "rich",
+  "prompt": "Rename the function `cell_len` in rich/cells.py to `cell_width`. Update every import and call of it in the repository. The `Text.cell_len` property is a different thing and keeps its name, and so do the other, similarly named functions. Do not keep `cell_len` as an alias in rich/cells.py. The test suite must pass when you are done.",
+  "min_tests": 950,
+  "why": "56 uses of the function cells.cell_len in 12 files: 39 bare-name calls, 11 imports (one of them a function-local import in rich/console.py), 5 `cells.cell_len` attribute calls and the def. The name is also a property on Text (8 more `.cell_len` mentions in 4 files, which must stay), a substring of `cached_cell_len` and `_cell_len`, and segment.py binds it to a local alias (`_cell_len = cell_len`). Grep for `cell_len` returns all of those."
+}

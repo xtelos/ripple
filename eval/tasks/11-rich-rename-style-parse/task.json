@@ -1,0 +1,7 @@
+{
+  "id": "11-rich-rename-style-parse",
+  "repo": "rich",
+  "prompt": "Rename the classmethod `Style.parse` (in rich/style.py) to `Style.from_string`. Update every call to it anywhere in the repository. `Color.parse` is a different method and keeps its name. Do not keep `parse` as an alias on `Style`. The test suite must pass when you are done.",
+  "min_tests": 950,
+  "why": "82 calls to Style.parse across 18 files, among 57 calls to the unrelated Color.parse (52 of them in tests) and one parser.parse, so grep for `.parse(` cannot tell them apart. Some callers are reached only through an alias (`from .style import Style as _Style` in rich/ansi.py), a `cls.parse` inside Style itself, or sit in code the suite never runs (rich/_win32_console.py, examples/log.py, benchmarks/benchmarks.py). ripple resolves the receiver's class."
+}

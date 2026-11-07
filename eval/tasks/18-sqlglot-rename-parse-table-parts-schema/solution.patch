@@ -1,0 +1,202 @@
+diff -ruN -x __pycache__ a/sqlglot/parser.py b/sqlglot/parser.py
+--- a/sqlglot/parser.py	2026-11-06 09:34:11.977450225 -0500
++++ b/sqlglot/parser.py	2026-11-06 09:34:13.015773625 -0500
+@@ -2376,7 +2376,7 @@
+         elif kind.token_type == TokenType.COLUMN:
+             this = self._parse_column()
+         else:
+-            this = self._parse_table_parts(schema=True)
++            this = self._parse_table_parts(is_schema=True)
+ 
+         self._match(TokenType.IS)
+ 
+@@ -2393,7 +2393,7 @@
+     def _parse_to_table(
+         self,
+     ) -> exp.ToTableProperty:
+-        table = self._parse_table_parts(schema=True)
++        table = self._parse_table_parts(is_schema=True)
+         return self.expression(exp.ToTableProperty(this=table))
+ 
+     # https://clickhouse.com/docs/en/engines/table-engines/mergetree-family/mergetree#mergetree-table-ttl
+@@ -2509,9 +2509,9 @@
+                 self.expression(exp.Column(this=name)) if isinstance(name, exp.Identifier) else name
+             )
+         elif kind in ("TABLE", "VIEW"):
+-            tables = self._parse_csv(lambda: self._parse_table_parts(schema=True))
++            tables = self._parse_csv(lambda: self._parse_table_parts(is_schema=True))
+         else:
+-            tables = self._parse_table_parts(schema=True, is_db_reference=kind == "SCHEMA")
++            tables = self._parse_table_parts(is_schema=True, is_db_reference=kind == "SCHEMA")
+ 
+         cluster: exp.Expr | None = None
+         if self._match(TokenType.ON):
+@@ -2726,7 +2726,7 @@
+             this = trigger_name
+             extend_props(exp.Properties(expressions=[trigger_props] if trigger_props else []))
+         elif create_token_type == TokenType.TYPE:
+-            this = self._parse_table_parts(schema=True)
++            this = self._parse_table_parts(is_schema=True)
+             if not this or not self._match(TokenType.ALIAS):
+                 return self._parse_as_command(start)
+ 
+@@ -2741,7 +2741,7 @@
+                 return self._parse_as_command(start)
+         elif create_token_type in self.DB_CREATABLES:
+             table_parts = self._parse_table_parts(
+-                schema=True, is_db_reference=create_token_type == TokenType.SCHEMA
++                is_schema=True, is_db_reference=create_token_type == TokenType.SCHEMA
+             )
+ 
+             # exp.Properties.Location.POST_NAME
+@@ -4973,7 +4973,7 @@
+ 
+             self._match(TokenType.ON)
+             self._match(TokenType.TABLE)  # hive
+-            table = self._parse_table_parts(schema=True)
++            table = self._parse_table_parts(is_schema=True)
+         else:
+             unique = self._match(TokenType.UNIQUE)
+             primary = self._match_text_seq("PRIMARY")
+@@ -5094,7 +5094,7 @@
+ 
+     def _parse_table_parts(
+         self,
+-        schema: bool = False,
++        is_schema: bool = False,
+         is_db_reference: bool = False,
+         wildcard: bool = False,
+         fast: bool = False,
+@@ -5104,19 +5104,19 @@
+ 
+         catalog: exp.Expr | str | None = None
+         db: exp.Expr | str | None = None
+-        table: exp.Expr | str | None = self._parse_table_part(schema=schema)
++        table: exp.Expr | str | None = self._parse_table_part(schema=is_schema)
+ 
+         while self._match(TokenType.DOT):
+             if catalog:
+                 # This allows nesting the table in arbitrarily many dot expressions if needed
+                 table = self.expression(
+-                    exp.Dot(this=table, expression=self._parse_table_part(schema=schema))
++                    exp.Dot(this=table, expression=self._parse_table_part(schema=is_schema))
+                 )
+             else:
+                 catalog = db
+                 db = table
+                 # "" used for tsql FROM a..b case
+-                table = self._parse_table_part(schema=schema) or ""
++                table = self._parse_table_part(schema=is_schema) or ""
+ 
+         if (
+             wildcard
+@@ -5241,7 +5241,7 @@
+             bracket
+             or rows_from
+             or self._parse_bracket(
+-                self._parse_table_parts(schema=schema, is_db_reference=is_db_reference)
++                self._parse_table_parts(is_schema=schema, is_db_reference=is_db_reference)
+             ),
+         )
+ 
+@@ -6874,7 +6874,7 @@
+                 expressions = self._parse_csv(self._parse_equality)
+             elif type_token == TokenType.REF:
+                 # REF(schema.customer) names a target; REF(1) can still be a function call.
+-                target = self._try_parse(lambda: self._parse_table_parts(schema=True))
++                target = self._try_parse(lambda: self._parse_table_parts(is_schema=True))
+                 if target is None:
+                     self._retreat(index)
+                     return None
+@@ -7706,7 +7706,7 @@
+         return self._parse_column_def(this=self._parse_id_var(), computed_column=False)
+ 
+     def _parse_user_defined_function(self, kind: TokenType | None = None) -> exp.Expr | None:
+-        this = self._parse_table_parts(schema=True)
++        this = self._parse_table_parts(is_schema=True)
+ 
+         if not self._match(TokenType.L_PAREN):
+             return this
+diff -ruN -x __pycache__ a/sqlglot/parsers/bigquery.py b/sqlglot/parsers/bigquery.py
+--- a/sqlglot/parsers/bigquery.py	2026-11-06 09:34:11.981556012 -0500
++++ b/sqlglot/parsers/bigquery.py	2026-11-06 09:34:13.040660150 -0500
+@@ -433,13 +433,13 @@
+ 
+     def _parse_table_parts(
+         self,
+-        schema: bool = False,
++        is_schema: bool = False,
+         is_db_reference: bool = False,
+         wildcard: bool = False,
+         fast: bool = False,
+     ) -> exp.Table | exp.Dot | None:
+         table = super()._parse_table_parts(
+-            schema=schema, is_db_reference=is_db_reference, wildcard=True, fast=fast
++            is_schema=is_schema, is_db_reference=is_db_reference, wildcard=True, fast=fast
+         )
+ 
+         if not isinstance(table, exp.Table):
+diff -ruN -x __pycache__ a/sqlglot/parsers/clickhouse.py b/sqlglot/parsers/clickhouse.py
+--- a/sqlglot/parsers/clickhouse.py	2026-11-06 09:34:11.980386091 -0500
++++ b/sqlglot/parsers/clickhouse.py	2026-11-06 09:34:13.052378781 -0500
+@@ -888,7 +888,7 @@
+ 
+         dependencies = None
+         if self._match_text_seq("DEPENDS", "ON"):
+-            dependencies = self._parse_csv(lambda: self._parse_table_parts(schema=True))
++            dependencies = self._parse_csv(lambda: self._parse_table_parts(is_schema=True))
+             if not dependencies:
+                 self._retreat(index)
+                 return None
+diff -ruN -x __pycache__ a/sqlglot/parsers/oracle.py b/sqlglot/parsers/oracle.py
+--- a/sqlglot/parsers/oracle.py	2026-11-06 09:34:11.980546319 -0500
++++ b/sqlglot/parsers/oracle.py	2026-11-06 09:34:13.085573042 -0500
+@@ -351,7 +351,7 @@
+         # Oracle does not use AS for INSERT INTO alias
+         # https://docs.oracle.com/en/database/oracle/oracle-database/18/sqlrf/INSERT.html
+         # Parse table parts without schema to avoid parsing the alias with its columns
+-        this = self._parse_table_parts(schema=True)
++        this = self._parse_table_parts(is_schema=True)
+ 
+         if isinstance(this, exp.Table):
+             this.set("partition", self._parse_partition())
+diff -ruN -x __pycache__ a/sqlglot/parsers/snowflake.py b/sqlglot/parsers/snowflake.py
+--- a/sqlglot/parsers/snowflake.py	2026-11-06 09:34:11.981064658 -0500
++++ b/sqlglot/parsers/snowflake.py	2026-11-06 09:34:13.117868340 -0500
+@@ -1138,7 +1138,7 @@
+ 
+     def _parse_table_parts(
+         self,
+-        schema: bool = False,
++        is_schema: bool = False,
+         is_db_reference: bool = False,
+         wildcard: bool = False,
+         fast: bool = False,
+@@ -1171,7 +1171,7 @@
+             table = self.expression(exp.Table(this=table, format=file_format, pattern=pattern))
+         else:
+             table = super()._parse_table_parts(
+-                schema=schema,
++                is_schema=is_schema,
+                 is_db_reference=is_db_reference,
+                 fast=fast,
+             )
+diff -ruN -x __pycache__ a/sqlglot/parsers/tsql.py b/sqlglot/parsers/tsql.py
+--- a/sqlglot/parsers/tsql.py	2026-11-06 09:34:11.980735965 -0500
++++ b/sqlglot/parsers/tsql.py	2026-11-06 09:34:13.146446413 -0500
+@@ -795,13 +795,13 @@
+ 
+     def _parse_table_parts(
+         self,
+-        schema: bool = False,
++        is_schema: bool = False,
+         is_db_reference: bool = False,
+         wildcard: bool = False,
+         fast: bool = False,
+     ) -> exp.Table | exp.Dot | None:
+         table = super()._parse_table_parts(
+-            schema=schema,
++            is_schema=is_schema,
+             is_db_reference=is_db_reference,
+             wildcard=wildcard,
+             fast=fast,
