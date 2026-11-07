@@ -37,9 +37,11 @@ def default_cache_dir() -> Path:
 
 
 def fingerprint(repo: Path, profile: LanguageProfile = PYTHON) -> dict[str, list[int]]:
-    """{relative path: [mtime_ns, size]} for every file the indexer would read."""
+    """{relative path: [mtime_ns, size]} for every file the indexer would read, and for the
+    profile's config files (tsconfig.json) that are there: an edit to one changes the index too."""
     result = {}
-    for path in find_source_files(repo, profile):
+    configs = [repo / name for name in profile.config_files if (repo / name).is_file()]
+    for path in [*find_source_files(repo, profile), *configs]:
         try:
             stat = path.stat()
         except OSError:

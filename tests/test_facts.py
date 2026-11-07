@@ -14,7 +14,7 @@ def test_every_name_that_moved_is_still_importable_from_the_indexer():
     # cannot be added without being re-exported, and each name must be the same object.
     defined = {n for n in vars(facts) if not n.startswith("_")} - {"annotations", "dataclass", "field"}
     assert set(facts.__all__) == defined
-    assert len(facts.__all__) == 22
+    assert len(facts.__all__) == 24
     for name in facts.__all__:
         assert getattr(indexer, name) is getattr(facts, name), name
 

@@ -40,6 +40,8 @@ from .facts import (
     VARIADIC,
     WITH_TARGET,
     Binding,
+    CallbackCall,  # noqa: F401 (not used here; re-exported, see facts.__all__)
+    ExportingModule,  # noqa: F401 (same)
     Mentions,
     RawCall,
     Scope,
@@ -80,7 +82,11 @@ def walk_repo(repo: Path, profile: LanguageProfile = PYTHON) -> tuple[list[Path]
         dirnames[:] = keep
         # isfile follows symlinks, so a dangling or looping link, a named pipe
         # (reading one blocks forever) and a directory called x.py are all left out.
-        files.extend(here / f for f in sorted(filenames) if f.endswith(profile.source_suffixes) and _may_be_file(here / f))
+        files.extend(
+            here / f
+            for f in sorted(filenames)
+            if f.endswith(profile.source_suffixes) and not f.endswith(profile.excluded_suffixes) and _may_be_file(here / f)
+        )
     return files, sorted(skipped)
 
 

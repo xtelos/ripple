@@ -19,6 +19,8 @@ __all__ = [
     "Scope",
     "Table",
     "Mentions",
+    "ExportingModule",
+    "CallbackCall",
     "unknown_ref",
     "COMPUTED_SUBSCRIPT",
     "COMPUTED_OTHER",
@@ -107,6 +109,12 @@ class RawCall:
     (applying what a decorator factory returned). kind "decorator" and
     "annotation" say where the call is written; decorates is the id of the
     function a decorator call decorates.
+
+    Three more specials are for a language where reading or writing a property can run code.
+    "access" (chain or path ends in the property read) and "assign" (the property written) are an
+    edge only when the property is a getter (read) or setter (write) of a repo class, and nothing at
+    all otherwise: an ordinary property is not a call and is not reported as an unresolved one.
+    "callback" is a CallbackCall.
     """
 
     chain: list | None
@@ -186,6 +194,34 @@ class Scope:
             old.evidence.extend(binding.evidence)
         elif (old.kind, old.target, old.name) != (binding.kind, binding.target, binding.name):
             self.names[name] = Binding("var", evidence=[unknown_ref(REBOUND)])
+
+
+@dataclass
+class ExportingModule(Scope):
+    """A module scope of a language whose modules say what they export (ES modules).
+
+    names holds what the module's own code can see, exports what an importer can: the exported name
+    mapped to its binding. `export function f` puts f in both, `export { f as g }` and
+    `export { x } from "./m"` only put g and x in exports. A Python module has no such list (every
+    name is an attribute), so the Python front end writes a plain Scope and the resolver reads
+    attributes from names. star_imports lists the modules `export *` re-exports.
+    """
+
+    exports: dict = field(default_factory=dict)
+
+
+@dataclass
+class CallbackCall(RawCall):
+    """A function passed by name as the FIRST argument: chain is the dotted name that is passed.
+
+    It is a call of that function only when host, the call it is passed to, proves to run it: a
+    builtin method named in the profile's synchronous_callbacks (`[...].map(describe)`). Passed to
+    anything else, the callee may call it, store it or ignore it, and no edge is made. method is the
+    name of the host's method. special is "callback".
+    """
+
+    host: RawCall | None = None
+    method: str = ""
 
 
 COMPUTED_SUBSCRIPT = "the callee is looked up by subscript (a dict, list or registry)"
