@@ -9,8 +9,10 @@ record, and the resolver, queries, checker and cache take it as a parameter inst
 of reading module constants. PYTHON is the profile every one of them defaults to,
 and holds exactly the values they used to hard-code.
 
-A field is here only because Python code reads it today. A language that needs
-another one adds it when it needs it.
+A field is here only because some code reads it. A language that needs another one adds it
+when it needs it, and gives PYTHON the value it has always had.
+
+TYPESCRIPT, at the bottom, is the second profile. Its front end is ts_indexer.py.
 """
 
 from __future__ import annotations
@@ -31,8 +33,14 @@ from .pytest_collection import PytestCollection
 class LanguageProfile:
     name: str
 
-    # Which files the indexer reads and the cache fingerprints (str.endswith takes the tuple).
+    # Which files the indexer reads and the cache fingerprints (str.endswith takes the tuple), the
+    # suffixes among them that are not source (.d.ts is declarations only), and the files outside
+    # the sources whose contents change what the indexer makes of them (tsconfig.json: path aliases),
+    # which the cache fingerprints too. front_end names the front end that reads the sources.
     source_suffixes: tuple[str, ...]
+    excluded_suffixes: tuple[str, ...]
+    config_files: tuple[str, ...]
+    front_end: str
 
     # Builtins: a name no scope binds that is still defined, and the ids ("builtins.list") of those
     # that are types, whose values run only builtin methods. not_built_as_instance are builtin types
@@ -60,6 +68,17 @@ class LanguageProfile:
     # functools.partial and functools.wraps, as the dotted names they resolve to.
     partial_names: frozenset[str]
     wraps_names: frozenset[str]
+
+    # How imports bind. True is Python's: a module is a package whose submodules are its attributes,
+    # `import a.b` binds a and a.b.c is read as the longest module prefix, and `from m import *`
+    # re-exports everything. False is ES modules: a module is exactly what it exports (see
+    # ExportingModule in facts.py), a namespace import is one module and members follow it, and
+    # `export *` leaves out the default export.
+    package_imports: bool
+    # Methods of a builtin value that call a function passed by name before they return (forEach,
+    # map, ...), so passing it is calling it, when it is the FIRST argument (`xs.reduce(f, init)` runs f, never
+    # init, and `xs.map(f, thisArg)` never thisArg). Empty: ripple does not follow functions passed on.
+    synchronous_callbacks: frozenset[str]
 
     # What calling a class runs (the member looked up in its bases), the member that may hand back an
     # instance of another class (so a class that defines it is not "exactly" itself), the base every
@@ -96,6 +115,9 @@ _BUILTIN_NAMES = frozenset(dir(builtins))
 PYTHON = LanguageProfile(
     name="python",
     source_suffixes=(".py",),
+    excluded_suffixes=(),
+    config_files=(),
+    front_end="python",
     builtin_names=_BUILTIN_NAMES,
     # Values of these types run only builtin methods: "x".strip(), {}.get(...).
     builtin_types=frozenset(f"builtins.{n}" for n in _BUILTIN_NAMES if isinstance(getattr(builtins, n), type)),
@@ -137,6 +159,8 @@ PYTHON = LanguageProfile(
     ),  # fmt: skip
     partial_names=frozenset({"functools.partial"}),
     wraps_names=frozenset({"functools.wraps"}),
+    package_imports=True,
+    synchronous_callbacks=frozenset(),
     constructor_name="__init__",
     allocator_name="__new__",
     implicit_base="object",
@@ -144,4 +168,108 @@ PYTHON = LanguageProfile(
     test_collection=PytestCollection,
     default_test_command=_python_test_command,
     failure_prefixes=("FAILED ", "ERROR "),
+)
+
+
+class NoTestCollection:
+    """The test collection of a language whose test runner ripple does not read yet.
+
+    No symbol is a test, so impact lists every caller as code to update. jest and vitest
+    name a test by its describe and it titles; the TypeScript front end already makes those
+    the ids of the test callbacks (ts_indexer.py), but nothing maps them back to a command.
+    """
+
+    def __init__(self, graph: Graph):
+        self.graph = graph
+
+    def node_ids(self, symbol_id: str) -> list[str]:
+        return []
+
+
+def _no_test_command(repo: Path) -> list[str]:
+    raise ValueError(
+        "ripple does not know how to run TypeScript tests yet: pass the command that runs them "
+        "(for example `npx vitest run`)"
+    )
+
+
+# What a TypeScript program can name without declaring it. A name that is not declared in the repo
+# and is in builtin_names resolves to code outside the repo ("external"), never to an unresolved name,
+# and the ones in builtin_types are classes whose instances run only builtin methods
+# (`new Map().get(k)`, `"x".trim()`, `Promise.then`).
+#
+# The classes are the constructors the language itself defines (ECMAScript 2024, the global object's
+# constructor properties) plus the few host classes every runtime has in common (WHATWG URL, text,
+# abort and fetch types, which both browsers and Node define). Proxy is left out: what a Proxy
+# returns is whatever its handler says.
+_TS_BUILTIN_TYPES = (
+    "Object Function Array String Number Boolean Symbol BigInt Date RegExp "
+    "Error EvalError RangeError ReferenceError SyntaxError TypeError URIError AggregateError "
+    "Map Set WeakMap WeakSet WeakRef FinalizationRegistry Promise ArrayBuffer SharedArrayBuffer DataView "
+    "Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array "
+    "Float32Array Float64Array BigInt64Array BigUint64Array "
+    "URL URLSearchParams TextEncoder TextDecoder AbortController AbortSignal Headers Request Response FormData Blob"
+).split()
+# Namespaces and functions that are not classes: the ECMAScript global functions and namespace
+# objects, the timers and console every runtime has, Node's module globals and the browser's window
+# and document. Calling any of them is calling code outside the repo.
+_TS_BUILTIN_VALUES = (
+    "Math JSON Reflect Atomics Intl Proxy globalThis undefined NaN Infinity "
+    "parseInt parseFloat isNaN isFinite eval encodeURI encodeURIComponent decodeURI decodeURIComponent escape unescape "
+    "console setTimeout setInterval setImmediate clearTimeout clearInterval clearImmediate queueMicrotask "
+    "structuredClone fetch atob btoa performance "
+    "process Buffer require module exports global __dirname __filename "
+    "window document navigator location history localStorage sessionStorage alert confirm prompt "
+    "requestAnimationFrame cancelAnimationFrame"
+).split()
+# jest and vitest put these in scope without an import (vitest with `globals: true`). A test that
+# imports them from "vitest" binds them in the module and they are no longer looked up here.
+_TS_TEST_GLOBALS = (
+    "describe it test expect beforeAll beforeEach afterAll afterEach jest vi xdescribe xit fdescribe fit"
+).split()
+_TS_BUILTIN_NAMES = frozenset(_TS_BUILTIN_TYPES + _TS_BUILTIN_VALUES + _TS_TEST_GLOBALS)
+# What Object.prototype gives every object, so `super.toString()` needs no base that defines it.
+_OBJECT_PROTOTYPE = frozenset(
+    {"constructor", "hasOwnProperty", "isPrototypeOf", "propertyIsEnumerable", "toLocaleString", "toString", "valueOf"}
+)
+
+TYPESCRIPT = LanguageProfile(
+    name="typescript",
+    # .d.ts files declare types only and hold no code, and node_modules is skipped by the walk itself.
+    source_suffixes=(".ts", ".tsx", ".mts", ".cts"),
+    excluded_suffixes=(".d.ts", ".d.mts", ".d.cts"),
+    # Path aliases and baseUrl change what an import means, so the cache must notice an edit to it.
+    config_files=("tsconfig.json",),
+    front_end="typescript",
+    builtin_names=_TS_BUILTIN_NAMES,
+    builtin_types=frozenset(f"builtins.{n}" for n in _TS_BUILTIN_TYPES),
+    not_built_as_instance=frozenset(),
+    # ripple never runs the code it reads: there is no interpreter to ask, so nothing is imported
+    # and a name from outside the repo is never proven to be a class by asking for it.
+    safe_import_modules=frozenset(),
+    stdlib_module_names=frozenset(),
+    nominal_only_excluded=(),
+    # Decorators are not followed (they stay unresolved), so no decorator is trusted to hand a class
+    # or a result back.
+    same_class_decorators=frozenset(),
+    same_class_plain_decorators=frozenset(),
+    result_keeping=frozenset(),
+    partial_names=frozenset(),
+    wraps_names=frozenset(),
+    package_imports=False,
+    # The Array methods (and Map.forEach, Set.forEach) that run the function they are given before
+    # they return, by their first argument. Not then/catch/setTimeout: those run it later, from the event loop.
+    synchronous_callbacks=frozenset(
+        {
+            "forEach", "map", "filter", "reduce", "reduceRight", "find", "findIndex", "findLast",
+            "findLastIndex", "some", "every", "flatMap", "sort", "toSorted",
+        }
+    ),  # fmt: skip
+    constructor_name="constructor",
+    allocator_name="",  # no member to look for: ripple does not read a constructor that returns another object
+    implicit_base="",  # a class with no `extends` has no base to name
+    has_universal_member=lambda name: name in _OBJECT_PROTOTYPE,
+    test_collection=NoTestCollection,
+    default_test_command=_no_test_command,
+    failure_prefixes=("FAIL ", " FAIL "),
 )

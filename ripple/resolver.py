@@ -24,11 +24,23 @@ of them. This is class hierarchy analysis, a standard static technique.
 from __future__ import annotations
 
 import importlib
+import re
 import warnings
 from collections import Counter
 from dataclasses import dataclass, replace
 
-from .facts import ASSIGNED_UNTYPED, COMPUTED_OTHER, LOOP_VARIABLE, Binding, Mentions, RawCall, Scope, Table, TypeRef
+from .facts import (
+    ASSIGNED_UNTYPED,
+    COMPUTED_OTHER,
+    LOOP_VARIABLE,
+    Binding,
+    CallbackCall,
+    Mentions,
+    RawCall,
+    Scope,
+    Table,
+    TypeRef,
+)
 from .model import Edge, Graph, Symbol, Unresolved
 from .profile import PYTHON, LanguageProfile
 
@@ -45,6 +57,9 @@ EXT_BUILTIN_VALUE = "a method of a builtin value (str, list, dict, ...)"
 EXT_INHERITED = "a method inherited from a base class outside the repo"
 EXT_SUPER = "super() into a base class outside the repo"
 EXT_INSTANCE = "a method of an instance of a class outside the repo"
+
+# RawCall.special values that are an edge only when proven (see facts.RawCall).
+EFFECT_SPECIALS = ("access", "assign", "callback")
 
 # A decorated function's call gives what its decorators return, which ripple cannot tell is what the def returned.
 DECORATED_RESULT = "the callee is the result of a call to a decorated function, and its decorator may change what it returns"
@@ -169,6 +184,17 @@ class Resolver:
         for scope in self.scopes.values():
             wrapper = wrappers.get(scope.id)
             for call in scope.calls:
+                if call.special in EFFECT_SPECIALS:
+                    # A property read or write, or a function passed by name: an edge when proven, and never
+                    # an unresolved call or an outside one (most properties are plain values).
+                    try:
+                        proven = self.resolve_effect(scope, call)
+                    except RecursionError:
+                        proven = None
+                    if proven is not None:
+                        for callee, kind, via in self.edge_targets(proven, call):
+                            edges.append(Edge(scope.id, callee, scope.file, call.line, kind, via))
+                    continue
                 if wrapper and self.calls_what_it_wraps(scope, call, wrapper[0]):
                     wrapper_calls.append((scope, call, wrapper))
                     continue
@@ -227,7 +253,7 @@ class Resolver:
         return found
 
     def _edge_targets(self, target: Target, call: RawCall) -> list[tuple[str, str]]:
-        default = call.kind if call.kind in ("decorator", "annotation") else "call"
+        default = call.kind if call.kind in ("decorator", "annotation") else "callback" if call.special == "callback" else "call"
         if target.kind == "each":
             return [(member, default) for member in target.members]
         if self.scopes[target.value].kind == "class":
@@ -455,15 +481,59 @@ class Resolver:
             return unknown("calls a module")
         return target
 
+    def resolve_effect(self, scope: Scope, call: RawCall) -> Target | None:
+        """What a property access or a function passed by name runs, or None when that is not proven."""
+        if call.special == "callback":
+            return self.callback_target(scope, call)
+        parts = call.path or call.chain
+        if not parts or len(parts) < 2:
+            return None
+        receiver = self.resolve_path(scope, parts[:-1]) if call.path else self.resolve_chain(scope, parts[:-1])
+        if receiver.kind == "instance":
+            cls = receiver.value
+        elif receiver.kind == "symbol" and self.scopes[receiver.value].kind == "class":
+            cls = receiver.value  # a static accessor, read on the class
+        else:
+            return None
+        method = self.class_member(cls, parts[-1])
+        accessor = self.scopes[method] if method else None
+        if accessor is None or accessor.kind != "method":
+            return None
+        # A getter is a def that is_property. A setter is a def that is not a plain one (a property
+        # setter in Python, the same facts), so a setter-only property has defs but no plain def.
+        runs = accessor.is_property if call.special == "access" else accessor.defs > accessor.plain_defs
+        if not runs:
+            return None
+        if receiver.kind == "symbol":
+            return Target("symbol", method)
+        return Target("bound", method, receiver=cls, exact=receiver.exact)
+
+    def callback_target(self, scope: Scope, call: CallbackCall) -> Target | None:
+        """The function or method passed by name, when what it is passed to is a builtin method that runs it."""
+        if call.host is None or call.method not in self.profile.synchronous_callbacks or not call.chain:
+            return None
+        host = self.resolve_call(scope, call.host)
+        if host.kind != "external" or host.reason != EXT_BUILTIN_VALUE:
+            return None
+        passed = self.resolve_chain(scope, call.chain)
+        if passed.kind in ("symbol", "bound") and self.scopes[passed.value].kind in ("function", "method"):
+            return passed
+        return None
+
+    def plain(self, name: str) -> str:
+        """A name as the source wrote it. An ES-module front end binds a name declared in a block or a callback under a
+        private key (`Parent#4`, see ts_indexer.py), which is looked up as it is and never shown or tested as syntax."""
+        return name if self.profile.package_imports else re.sub(r"#\d+(?=\.|$)", "", name)
+
     def resolve_chain(self, scope: Scope, chain: list) -> Target:
         """Resolve a dotted expression like a.b.c as seen from scope."""
         found = self.lookup(scope, chain[0])
         if found is None:
             if chain[0] in self.profile.builtin_names:
                 return external("builtins." + ".".join(chain), EXT_BUILTIN)
-            return unknown(f"name '{chain[0]}' is not defined anywhere ripple can see")
+            return unknown(f"name '{self.plain(chain[0])}' is not defined anywhere ripple can see")
         where, binding = found
-        if binding.kind == "import":
+        if binding.kind == "import" and self.profile.package_imports:
             # import a.b binds a; resolve the whole a.b.c path at once so
             # namespace packages (no __init__.py) still work.
             return self.resolve_dotted(".".join([binding.target] + chain[1:]))
@@ -994,7 +1064,12 @@ class Resolver:
     # -- modules -----------------------------------------------------------
 
     def resolve_dotted(self, path: str) -> Target:
-        """Resolve pkg.mod.Class.method: longest module prefix, then members."""
+        """Resolve pkg.mod.Class.method: longest module prefix, then members.
+
+        Under ES modules (package_imports False) the path is one module id, which is a file path and
+        may hold dots (tests/ui.test), so it is looked up whole and never cut at a dot."""
+        if not self.profile.package_imports:
+            return Target("module", path) if path in self.modules else external(path, EXT_IMPORT)
         parts = path.split(".")
         for i in range(len(parts), 0, -1):
             prefix = ".".join(parts[:i])
@@ -1007,6 +1082,8 @@ class Resolver:
 
     def module_member(self, module: str, name: str, depth: int = 0) -> Target:
         """What `from module import name` gives you, following re-exports."""
+        if not self.profile.package_imports:
+            return self.exported_member(module, name, depth)
         full = f"{module}.{name}"
         if depth > MAX_IMPORT_HOPS:
             return unknown(f"import cycle while resolving {full}")
@@ -1028,6 +1105,43 @@ class Resolver:
         if full in self.modules:  # the attribute is missing, so the import machinery loads the submodule
             return Target("module", full)
         return unknown(f"'{name}' is not defined in module {module}")
+
+    def exported_member(self, module: str, name: str, depth: int = 0) -> Target:
+        """What `import { name } from module` gives you under ES modules, following re-exports.
+
+        Only what the module exports is there (ExportingModule.exports): a name it declares and keeps
+        to itself is not importable, and a submodule is never an attribute. `export *` forwards every
+        name but the default one. A package from outside the repo has whatever name you ask it for.
+        """
+        full = f"{module}.{name}"
+        if depth > MAX_IMPORT_HOPS:
+            return unknown(f"import cycle while resolving {full}")
+        if module not in self.modules:
+            return external(full, EXT_IMPORT)
+        scope = self.scopes[module]
+        binding = getattr(scope, "exports", {}).get(name)
+        if binding is not None:
+            return self.binding_target(scope, binding, depth, name)
+        if name != "default":
+            # A name two `export *` provide is exported by neither (the compiler reports it as ambiguous and
+            # a native import fails to link), and a package's star may provide any name: the repo's own
+            # answer stands only when it is the one answer.
+            found_here: list[Target] = []
+            from_package = False
+            for star in scope.star_imports:
+                if star not in self.modules:
+                    from_package = True
+                    continue
+                found = self.exported_member(star, name, depth + 1)
+                if found.kind != "unknown" and found not in found_here:
+                    found_here.append(found)
+            if len(found_here) == 1 and not from_package:
+                return found_here[0]
+            if found_here:
+                return unknown(f"'{name}' is exported by more than one `export *` of module {module}, so it is ambiguous")
+            if from_package:
+                return external(full, EXT_IMPORT)
+        return unknown(f"'{name}' is not exported by module {module}")
 
     # -- attributes --------------------------------------------------------
 
@@ -1148,7 +1262,7 @@ class Resolver:
             found = []
             for base in scope.bases:
                 parts = base.split(".")
-                if all(part.isidentifier() for part in parts):
+                if all(part.isidentifier() for part in self.plain(base).split(".")):
                     target = self.resolve_chain(parent, parts)
                 else:
                     target = unknown("the base is computed")  # e.g. with_metaclass(Meta)
@@ -1158,7 +1272,7 @@ class Resolver:
                     if base != self.profile.implicit_base:
                         self._external_bases.setdefault(cls, []).append(target.value)
                 else:
-                    self._unresolved_bases.setdefault(cls, base)
+                    self._unresolved_bases.setdefault(cls, self.plain(base))
             self._bases[cls] = found
         return self._bases[cls]
 
@@ -1336,6 +1450,10 @@ class Resolver:
         scope = self.scopes[function]
         if scope.returns_ambiguous or not self.keeps_result(function):
             return None
+        if not self.profile.package_imports and scope.returns in self.profile.builtin_types:
+            # a front end writes "builtins.Array" for a type the language names itself (T[], string): the
+            # builtin, whatever the scope binds to the names Array or String
+            return scope.returns
         return self.type_of(TypeRef("annotation", scope.returns, scope.parent)) if scope.returns else None
 
     def constructor(self, cls: str) -> str:
