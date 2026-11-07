@@ -258,9 +258,11 @@ ripple MCP server and once without, three times each.
   re-export alias, an override in another package, a `getattr` lookup that neither grep nor ripple
   can see. Seven run over `eval/fixtures/ledger`, a small invoicing app written for the eval, and
   three reuse the benchmark fixtures. Each task's `why` field says what makes it hard.
-- **Grading.** An edit counts as a success when the fixture's own tests pass and still number at
-  least the task's minimum (`min_tests`), and a hidden test the agent never sees passes too. The
-  hidden test checks that the change was made and that every caller still works.
+- **Grading.** An edit counts as a success when the fixture's own tests pass against the agent's
+  source and still number at least the task's minimum (`min_tests`), and a hidden test the agent never
+  sees passes too. The tests that run are the starting repo's own, not the agent's copy of them (see
+  "Graded the same way" below). The hidden test checks that the change was made and that every caller
+  still works.
   `tests/test_eval.py` shows each check fails on the untouched fixture and passes on a reference
   solution, and CI runs it.
 - **Same conditions.** Both modes get the same prompt, model, tools and permissions (edit files,
@@ -269,7 +271,42 @@ ripple MCP server and once without, three times each.
   own settings, hooks and auto-memory. A with-ripple run whose ripple server fails to connect is
   marked invalid and left out of the numbers.
 
+### Tasks over real repositories
+
+- **Pinned.** `eval/repos.json` names each repo by git URL and a full commit SHA (a tag or branch is
+  refused), with the Python version and exact-version test dependencies. Nothing from these repos is
+  committed or vendored: `python -m eval.fetch` downloads them into `$RIPPLE_EVAL_CACHE` (default
+  `~/.cache/ripple-eval`), without `.git` and without the repos' own `CLAUDE.md` or `AGENTS.md`, and builds
+  one virtualenv per repo with the test dependencies (the repo itself is never installed, so a run
+  tests the agent's copy). Needs git and uv. `python -m eval.fetch --verify` also runs each repo's own
+  suite and prints its summary line. A few test files are left out (they build C code, start a dev
+  server that imports an installed copy, or take a minute): see `ignore` and `deselect` in `repos.json`.
+  Only the top-level test dependencies are pinned to exact versions: their own dependencies (numpy,
+  tzdata, pluggy and so on) resolve at fetch time and are not locked, so two fetches on different days
+  can differ there. A venv counts as built only once its install finished (a `.ripple-ready` file in it),
+  so re-run `python -m eval.fetch` after an interrupted fetch, or to upgrade an older cache.
+- **Graded the same way.** The agent's tests are not the ones that grade it. When the agent finishes,
+  its copy is copied again and the starting repo's own tests directory is put over it, with the reference
+  solution's edits to those tests (the prompts name every new name and signature, so they are a fair
+  oracle), along with every `conftest.py`, `pytest.ini`, `tox.ini`, `setup.cfg`, `pyproject.toml`,
+  `sitecustomize.py` and any module added at the root of a source path that shadows pytest or the standard
+  library. The whole suite then runs against the agent's source: it must pass, every test that passes on the
+  reference solution must pass (a test that skips itself on the agent's source is caught), and at least
+  `min_tests` must run. Deleting, gutting, skipping or conftest-patching a test therefore changes nothing;
+  an agent that deleted or hollowed out a test the reference edited is also marked down (the identifiers
+  the reference added to that test function must still be in the agent's). A hidden test passes too, run
+  with no conftest over the agent's own files. The hidden tests scan every
+  `.py` file with `ast` for stale uses of the old name (including examples and Windows-only code the
+  suite never runs, tests the agent left on the old name, and a file that no longer parses is a failure,
+  not a skip) and then exercise the callers; task 18's also checks the parameter reads inside the method
+  bodies. Grading costs one reference run per task per process (cached) plus the hidden check and one full
+  suite run per graded run, measured here at about 7 seconds per run for rich and werkzeug and about 40 for
+  sqlglot (plus roughly 30 once per process for the reference run). What this cannot cover: anything the agent writes outside its copy
+  (the venv is shared by every run), and source it changes to patch pytest itself at import time; the diff of
+  every run is saved for that.
+
 ```sh
+.venv/bin/python -m eval.fetch --verify        # once: fetch the pinned repos, run their own suites
 .venv/bin/python -m eval.run                   # 10 tasks x 2 modes x 3 repeats, into eval/results/
 .venv/bin/python -m eval.run --tasks 04-ledger-rename-invoice-total --repeats 1 --out /tmp/smoke.json
 ```
