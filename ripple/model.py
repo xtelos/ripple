@@ -88,6 +88,9 @@ class Graph:
     bases: dict[str, list[str]] = field(default_factory=dict)  # class id -> bases that are repo classes
     external_bases: dict[str, list[str]] = field(default_factory=dict)  # class id -> bases from outside the repo
     external_reasons: dict[str, int] = field(default_factory=dict)  # why calls count as outside the repo -> how many
+    # Ids that a Python file and a TypeScript file of one repo both define, with the files (see languages.merge_graphs).
+    # Held in memory only: a merged graph is never cached, each language's graph is.
+    ambiguous_ids: dict[str, list[str]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self._index()

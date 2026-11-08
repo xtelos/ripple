@@ -21,6 +21,17 @@ from pathlib import Path
 
 from . import __version__
 from .indexer import build_graph, find_source_files
+from .languages import (
+    LanguageIndex,
+    RepoError,
+    RepoGraph,
+    Scan,
+    ambiguity_warning,
+    merge_graphs,
+    only_language_message,
+    scan_repo,
+    skipped_message,
+)
 from .model import Graph
 from .profile import PYTHON, LanguageProfile
 
@@ -36,17 +47,19 @@ def default_cache_dir() -> Path:
     return Path(base) / "ripple"
 
 
-def fingerprint(repo: Path, profile: LanguageProfile = PYTHON) -> dict[str, list[int]]:
+def fingerprint(repo: Path, profile: LanguageProfile = PYTHON, sources: list[Path] | None = None) -> dict[str, list[int]]:
     """{relative path: [mtime_ns, size]} for every file the indexer would read, and for the
     profile's config files (tsconfig.json) that are there: an edit to one changes the index too. For TypeScript
-    that includes every config the root one extends inside the repo, which the indexer reads as well."""
+    that includes every config the root one extends inside the repo, which the indexer reads as well.
+    sources are the profile's files when the caller has already walked the repo for them."""
     result = {}
     names = [name for name in profile.config_files if (repo / name).is_file()]
     if profile.front_end == "typescript" and names:
         from .ts_modules import config_files  # no parser needed to read configs
 
         names = [*names, *(f for f in config_files(repo) if f not in names)]
-    for path in [*find_source_files(repo, profile), *(repo / name for name in names)]:
+    sources = find_source_files(repo, profile) if sources is None else sources
+    for path in [*sources, *(repo / name for name in names)]:
         try:
             stat = path.stat()
         except OSError:
@@ -121,19 +134,79 @@ def load_graph(
     return graph, False
 
 
-class RepoIndex:
-    """One repository's graph, held in memory for a long-running server."""
+def _index(scan: Scan, fingerprints: dict[str, dict], cache_dir: str | Path | None) -> RepoGraph:
+    """Each language's graph (from its own cache entry, or built and saved there), merged.
 
-    def __init__(self, repo: str | Path, cache_dir: str | Path | None = None, profile: LanguageProfile = PYTHON):
+    A language whose parser is missing is left out and said so, unless it is the repo's only one."""
+    graphs, languages, missing = [], [], {}
+    for profile in scan.profiles:
+        language = LanguageIndex(profile.name, found=len(scan.files[profile.name]))
+        languages.append(language)
+        try:
+            graph, language.cached = load_graph(scan.repo, cache_dir, fingerprints[profile.name], profile)
+        except ImportError as error:
+            from .ts_indexer import TypeScriptNotInstalled  # loaded only now: nothing else asked for it
+
+            if not isinstance(error, TypeScriptNotInstalled):
+                raise
+            language.skipped = True
+            missing[profile.name] = error
+            continue
+        language.files, language.parse_errors = language.found, list(graph.parse_errors)  # files read, unparsable too
+        graphs.append(graph)
+    skipped = []
+    for language in languages:
+        if language.skipped:
+            if not graphs:
+                raise RepoError(only_language_message(scan.repo, language, missing[language.name]))
+            skipped.append(skipped_message(language, missing[language.name], [x for x in languages if not x.skipped]))
+    merged = merge_graphs(graphs)
+    warnings = skipped + ([ambiguity_warning(merged.ambiguous_ids)] if merged.ambiguous_ids else [])
+    return RepoGraph(merged, languages, skipped, warnings)
+
+
+def load_repo(repo: str | Path, cache_dir: str | Path | None = None, lang: str = "auto") -> RepoGraph:
+    """The graph of a repository in whichever languages it has (see languages.py), with what each one
+    contributed. Raises RepoError for a repo that is missing, has nothing to read, or needs a missing parser."""
+    scan = scan_repo(repo, lang)
+    fingerprints = {p.name: fingerprint(scan.repo, p, scan.files[p.name]) for p in scan.profiles}
+    return _index(scan, fingerprints, cache_dir)
+
+
+class RepoIndex:
+    """One repository's graph, held in memory for a long-running server.
+
+    By default the languages are found from the files (lang "auto", or python or typescript). Given a
+    profile, it indexes with that profile alone, whatever the files are.
+    """
+
+    def __init__(
+        self,
+        repo: str | Path,
+        cache_dir: str | Path | None = None,
+        profile: LanguageProfile | None = None,
+        lang: str = "auto",
+    ):
         self.repo = Path(repo).resolve()
         self.profile = profile
+        self.lang = lang
         self.cache_dir = cache_dir
         self._files: dict | None = None
-        self._graph: Graph | None = None
+        self._loaded: RepoGraph | None = None
+
+    def _scan(self) -> Scan:
+        if self.profile is None:
+            return scan_repo(self.repo, self.lang)
+        return Scan(self.repo, [self.profile], {self.profile.name: find_source_files(self.repo, self.profile)}, [])
+
+    def load(self) -> RepoGraph:
+        """The graph and what went into it, rebuilt only for a language whose files changed."""
+        scan = self._scan()
+        files = {p.name: fingerprint(self.repo, p, scan.files[p.name]) for p in scan.profiles}
+        if self._loaded is None or files != self._files:
+            self._loaded = _index(scan, files, self.cache_dir)
+            self._files = files
+        return self._loaded
 
     def graph(self) -> Graph:
-        files = fingerprint(self.repo, self.profile)
-        if self._graph is None or files != self._files:
-            self._graph, _ = load_graph(self.repo, self.cache_dir, files, self.profile)
-            self._files = files
-        return self._graph
+        return self.load().graph

@@ -19,39 +19,59 @@ from mcp.types import ToolAnnotations
 from . import __version__, queries
 from .cache import RepoIndex
 from .checker import run_check
+from .languages import RepoError, check_profile, check_repo, selected_profiles, with_warnings
 
 INSTRUCTIONS = """\
-ripple answers questions about the call graph of this Python repository.
-Before changing a function, call impact on it to see what calls it (grouped
-by file) and which tests reach it; after the change, call check with the
-node_id of each of those tests. Symbols can be a full dotted path
-(pkg.module.Class.method), a suffix (Class.method) or a bare name; an
-ambiguous name returns candidates.
-The graph is static: calls through untyped values, getattr, dict dispatch
-and decorators ripple cannot read are not followed. A decorated function is
-called by its wrapper; callers also lists, under through_wrapper, the lines
-that write its name. impact lists same-named call sites it could not resolve
-under possible_missed_callers; check those by hand.
+ripple answers questions about the call graph of this repository, written in
+Python, TypeScript or both. Before changing a function, call impact on it to
+see what calls it (grouped by file) and which tests reach it; after the
+change, call check with the node_id of each of those tests (TypeScript tests
+are not collected yet: every caller of a TypeScript symbol is listed as code).
+A Python symbol is a full dotted path (pkg.module.Class.method), a suffix
+(Class.method) or a bare name. A TypeScript symbol is its file path without
+the extension, a colon and the member (src/util/math:clamp, src/cart/cart:Cart.add),
+and Class.method, the path tail (math:clamp) or a bare member name work too. An
+ambiguous name returns candidates; pick one, ripple never does.
+The graph is static: calls through untyped values, getattr, dict dispatch,
+computed keys, interface-typed values and decorators ripple cannot read are
+not followed. A decorated Python function is called by its wrapper; callers
+also lists, under through_wrapper, the lines that write its name. impact
+lists same-named call sites it could not resolve under possible_missed_callers;
+check those by hand. If a result has a warnings list, part of the repository
+was left out (TypeScript without a parser that loads, or ids both languages
+define): the answer covers only the rest, and the warning says what and why.
 """
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True, idempotentHint=True, openWorldHint=False)
 RUNS_CODE = ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=False)
 
 
-def build_server(repo: str, test_command: str | None = None, timeout: float = 300) -> MCPServer:
-    index = RepoIndex(repo)
+def build_server(repo: str, test_command: str | None = None, timeout: float = 300, lang: str = "auto") -> MCPServer:
+    """The server for one repository. lang is "auto" (the languages its files are in), "python" or "typescript"."""
+    check_repo(repo)  # a repo that is not there fails now, with a message, not at the first question
+    selected_profiles(lang)
+    index = RepoIndex(repo, lang=lang)
     server = MCPServer("ripple", version=__version__, instructions=INSTRUCTIONS)
+
+    def answer(query, *args, **kwargs) -> dict:
+        """A query's result, with a `warnings` list when part of the repo was not indexed."""
+        try:
+            loaded = index.load()
+        except RepoError as error:
+            raise ToolError(str(error)) from error  # the agent sees this message; other errors are masked
+        return with_warnings(query(loaded.graph, *args, **kwargs), loaded.warnings)
 
     @server.tool(
         annotations=READ_ONLY,
         description=(
             "List the functions and methods that directly call a symbol, with the file:line of each "
             "call site. A decorated function is called by its wrapper, so the lines that write its name "
-            "are listed apart, under through_wrapper. symbol: dotted path, Class.method suffix, or bare name."
+            "are listed apart, under through_wrapper. symbol: a Python dotted path, a TypeScript path:member id "
+            "(src/util/math:clamp), a Class.method suffix, or a bare name."
         ),
     )
     def callers(symbol: str) -> dict:
-        return queries.callers(index.graph(), symbol)
+        return answer(queries.callers, symbol)
 
     @server.tool(
         annotations=READ_ONLY,
@@ -61,20 +81,20 @@ def build_server(repo: str, test_command: str | None = None, timeout: float = 30
         ),
     )
     def callees(symbol: str) -> dict:
-        return queries.callees(index.graph(), symbol)
+        return answer(queries.callees, symbol)
 
     @server.tool(
         annotations=READ_ONLY,
         description=(
             "Answer 'what breaks if I change this?': every transitive caller of a symbol up to depth "
-            "hops, grouped by file, with the tests that reach it listed separately (each with the pytest "
-            "node_id to pass to check). At most limit callers and limit tests are listed; truncated and "
-            "omitted_callers / omitted_tests say how many more were found. Also lists unresolved call "
+            "hops, grouped by file, with the Python tests that reach it listed separately (each with the pytest "
+            "node_id to pass to check; TypeScript tests are not collected, so their callers are listed as code). "
+            "At most limit callers and limit tests are listed; truncated and omitted_callers / omitted_tests say how many more were found. Also lists unresolved call "
             "sites with the same name, which static analysis cannot rule out."
         ),
     )
     def impact(symbol: str, depth: int = 5, limit: int = queries.MAX_LISTED) -> dict:
-        return queries.impact(index.graph(), symbol, depth=max(1, min(depth, 20)), limit=max(1, min(limit, 1000)))
+        return answer(queries.impact, symbol, depth=max(1, min(depth, 20)), limit=max(1, min(limit, 1000)))
 
     @server.tool(
         annotations=READ_ONLY,
@@ -84,12 +104,13 @@ def build_server(repo: str, test_command: str | None = None, timeout: float = 30
         ),
     )
     def path(source: str, target: str) -> dict:
-        return queries.path(index.graph(), source, target)
+        return answer(queries.path, source, target)
 
     @server.tool(
         annotations=RUNS_CODE,
         description=(
-            "Run the repository's test command (default: python -m pytest -q) and return pass or fail, "
+            "Run the repository's test command (default: python -m pytest -q; a TypeScript-only repo has no "
+            "default and must be started with a test command) and return pass or fail, "
             "the summary line and the first failing tests, never the full log. tests: optional pytest "
             "node ids or test paths inside the repo to run instead of the whole suite, e.g. the node_id "
             "of each test impact listed. Options (anything starting with '-') are refused."
@@ -97,8 +118,9 @@ def build_server(repo: str, test_command: str | None = None, timeout: float = 30
     )
     def check(tests: list[str] | None = None) -> dict:
         try:
-            return run_check(index.repo, command=test_command, timeout=timeout, tests=tests)
-        except ValueError as error:
+            profile = check_profile(index.repo, lang)
+            return run_check(index.repo, command=test_command, timeout=timeout, tests=tests, profile=profile)
+        except ValueError as error:  # includes RepoError, and a language with no default test command
             raise ToolError(str(error)) from error  # the agent sees this message; other errors are masked
 
     return server
