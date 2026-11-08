@@ -49,9 +49,9 @@ def graded(tasks):
     return [pytest.param(t, id=t.id, marks=pytest.mark.skipif(not t.available, reason=NO_CACHE)) for t in tasks]
 
 
-def test_twenty_tasks_with_unique_ids_and_prompts():
-    assert len(TASKS) == 20 and len(REAL) == 10
-    assert len({t.id for t in TASKS}) == 20
+def test_twenty_one_tasks_with_unique_ids_and_prompts():
+    assert len(TASKS) == 21 and len(REAL) == 11
+    assert len({t.id for t in TASKS}) == 21
     assert all(t.prompt.strip() and t.why.strip() for t in TASKS)
 
 
