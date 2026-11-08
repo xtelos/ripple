@@ -10,27 +10,111 @@ candidates instead of picking one.
 from __future__ import annotations
 
 import difflib
+import re
 from collections import deque
 
 from .model import Edge, Graph, Symbol
-from .profile import PYTHON, LanguageProfile
+from .profile import PYTHON, TYPESCRIPT, LanguageProfile
 from .pytest_collection import PytestCollection  # noqa: F401 (it was defined here)
+from .ts_modules import SUFFIXES, module_id  # no parser needed to read an id
 
 MAX_LISTED = 100  # default cap on symbols listed per section, so a hub function cannot flood the agent
 
 
+_CLASH = re.compile(r"#\d+$")
+
+
+def _is_path_id(symbol_id: str) -> bool:
+    """A TypeScript id: a path, and for a member a colon (src/util/math:clamp). A Python id has neither."""
+    return ":" in symbol_id or "/" in symbol_id
+
+
+def _stem(file: str) -> str:
+    return next((file[: -len(suffix)] for suffix in SUFFIXES if file.endswith(suffix)), file)
+
+
+def _module_ids(graph: Graph, path: str) -> list[str]:
+    """The module ids a path in a query names, read through the ids the indexer gave the files.
+
+    An id is not the path folded by a rule: `src/a.ts` beside `src/a/index.ts` leaves the index file
+    the id `src/a/index`, and a root `util.ts` is `util`, never `src/util`. So the graph's own map of
+    file to module id decides. A file's path (with or without its extension) or a module id that is
+    exactly the query wins; a trailing slash is the index file of that directory; only when nothing
+    matches exactly is the query taken for the tail of a path, and then every module it ends is
+    returned, for the caller to call ambiguous.
+    """
+    known = graph.modules or {s.file: s.id for s in graph.symbols.values() if s.kind == "module"}
+    files = {f: m for f, m in known.items() if f.endswith(SUFFIXES)}
+    if path.endswith("/"):
+        directory = path.rstrip("/")
+        return sorted({m for f, m in files.items() if _stem(f) == (directory + "/index").lstrip("/")})
+    exact = {m for f, m in files.items() if path in (f, _stem(f))} | ({path} & set(files.values()))
+    if exact:
+        return sorted(exact)
+    tail = "/" + path
+    return sorted({m for f, m in files.items() if f.endswith(tail) or _stem(f).endswith(tail) or m.endswith(tail)})
+
+
+def _path_matches(graph: Graph, query: str) -> list[str]:
+    """The ids a query shaped like a path names: its path part through _module_ids, then the member as
+    written, with or without a clash suffix (`A.make` is `A.make` and `A.make#2`)."""
+    path, colon, member = query.partition(":")
+    found = []
+    for module in _module_ids(graph, path):
+        if not colon:
+            found.append(module)
+            continue
+        wanted = f"{module}:{member}"
+        found += [sid for sid in graph.symbols if sid == wanted or _CLASH.sub("", sid) == wanted]
+    return found
+
+
+def _matches(graph: Graph, query: str) -> list[str]:
+    """Every id the query names. At a dot it ends an id (Python, and a TypeScript member). A query with a
+    path in it (a slash, a colon, a TypeScript extension) goes through the file map (_path_matches); any
+    other also ends an id at a slash or a colon (a bare TypeScript member or module name), with or
+    without a clash suffix."""
+    path_shaped = ":" in query or "/" in query or query.endswith(SUFFIXES)
+    found = set()
+    for sid in graph.symbols:
+        if sid.endswith("." + query):
+            found.add(sid)
+        elif not path_shaped and _is_path_id(sid):
+            forms = {sid, _CLASH.sub("", sid)}
+            if any(f == query or f.endswith(sep + query) for f in forms for sep in ".:/"):
+                found.add(sid)
+    if path_shaped:
+        found.update(_path_matches(graph, query))
+    return sorted(found)
+
+
+def _tail(query: str) -> str:
+    """The part of a query to compare with symbol names when suggesting: the last member or path segment."""
+    if ":" in query:
+        return query.rpartition(":")[2].rsplit(".", 1)[-1]
+    if "/" in query:
+        return module_id(query).rsplit("/", 1)[-1]
+    return query.rsplit(".", 1)[-1]
+
+
 def find_symbol(graph: Graph, query: str) -> dict:
-    """{"symbol": id} on a unique match, else {"error", "candidates" | "suggestions"}."""
+    """{"symbol": id} on a unique match, else {"error", "candidates" | "suggestions"}.
+
+    A Python id is dotted (pkg.mod.Class.method) and a suffix at a dot names it. A TypeScript id is a
+    path and a member (src/util/math:clamp): it is also named by the path with its extension, by the
+    tail of the path (util/math:clamp), by Class.method or by the bare member, whichever of them
+    is only one symbol's. More than one symbol is never picked between: they are listed.
+    """
     query = query.strip()
     if query in graph.symbols:
         return {"symbol": query}
-    matches = sorted(sid for sid in graph.symbols if sid.endswith("." + query))
+    matches = _matches(graph, query)
     if len(matches) == 1:
         return {"symbol": matches[0]}
     if matches:
         return {"error": f"'{query}' is ambiguous; pass one of the candidates", "candidates": matches}
     names = {s.name: s.id for s in graph.symbols.values()}
-    close = difflib.get_close_matches(query.rsplit(".", 1)[-1], list(names), n=5)
+    close = difflib.get_close_matches(_tail(query), list(names), n=5)
     return {"error": f"no symbol named '{query}'", "suggestions": [names[n] for n in close]}
 
 
@@ -38,14 +122,36 @@ def _describe(symbol: Symbol) -> dict:
     return {"symbol": symbol.id, "kind": symbol.kind, "location": f"{symbol.file}:{symbol.line}"}
 
 
-def _targets(graph: Graph, symbol_id: str, profile: LanguageProfile) -> set[str]:
+def _profile_of(symbol: Symbol, profile: LanguageProfile | None) -> LanguageProfile:
+    """The profile a query uses for one symbol: the one it was given, or (None) the language of the
+    symbol's file, so one graph can hold Python and TypeScript and each is read by its own rules."""
+    if profile is not None:
+        return profile
+    return TYPESCRIPT if symbol.file.endswith(TYPESCRIPT.source_suffixes) else PYTHON
+
+
+class _Collections:
+    """The test collection of each language in the graph, built when first asked, and asked per symbol."""
+
+    def __init__(self, graph: Graph, profile: LanguageProfile | None):
+        self.graph, self.profile = graph, profile
+        self.built: dict[str, object] = {}
+
+    def node_ids(self, symbol_id: str) -> list[str]:
+        profile = _profile_of(self.graph.symbols[symbol_id], self.profile)
+        if profile.name not in self.built:
+            self.built[profile.name] = profile.test_collection(self.graph)
+        return self.built[profile.name].node_ids(symbol_id)
+
+
+def _targets(graph: Graph, symbol_id: str, profile: LanguageProfile | None) -> set[str]:
     """Ids whose callers count as callers of symbol_id.
 
     Calling a class runs its constructor (__init__ in Python), and ripple records that edge against
     the constructor, so a question about the class includes both.
     """
     targets = {symbol_id}
-    constructor = f"{symbol_id}.{profile.constructor_name}"
+    constructor = f"{symbol_id}.{_profile_of(graph.symbols[symbol_id], profile).constructor_name}"
     if graph.symbols[symbol_id].kind == "class" and constructor in graph.symbols:
         targets.add(constructor)
     return targets
@@ -62,7 +168,7 @@ def _continues(edge: Edge, context: str) -> bool:
     return not (context and edge.via and edge.via != context)
 
 
-def callers(graph: Graph, query: str, profile: LanguageProfile = PYTHON) -> dict:
+def callers(graph: Graph, query: str, profile: LanguageProfile | None = None) -> dict:
     found = find_symbol(graph, query)
     if "symbol" not in found:
         return found
@@ -106,7 +212,7 @@ def callees(graph: Graph, query: str) -> dict:
     return {"symbol": symbol_id, "callees": listed, "unresolved": unresolved}
 
 
-def impact(graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED, profile: LanguageProfile = PYTHON) -> dict:
+def impact(graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED, profile: LanguageProfile | None = None) -> dict:
     """Everything that transitively calls the symbol, up to depth hops away.
 
     Tests that reach it are listed with their pytest node ids (what you
@@ -148,7 +254,7 @@ def impact(graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED, pr
         for edge in graph.callers_index.get(target, [])
     )
 
-    collection = profile.test_collection(graph)
+    collection = _Collections(graph, profile)
     code: list[dict] = []
     tests: list[dict] = []
     for sid in sorted(distance, key=lambda sid: (distance[sid], sid)):
@@ -189,7 +295,7 @@ def impact(graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED, pr
     }
 
 
-def path(graph: Graph, source: str, target: str, max_depth: int = 12, profile: LanguageProfile = PYTHON) -> dict:
+def path(graph: Graph, source: str, target: str, max_depth: int = 12, profile: LanguageProfile | None = None) -> dict:
     """The shortest call chain from source to target (breadth-first search)."""
     start, goal = find_symbol(graph, source), find_symbol(graph, target)
     for found in (start, goal):

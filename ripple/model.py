@@ -7,6 +7,7 @@ unresolved calls (call sites ripple saw but could not pin to one target).
 
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 
@@ -23,7 +24,19 @@ class Symbol:
 
     @property
     def name(self) -> str:
-        return self.id.rsplit(".", 1)[-1]
+        """The last part of the id, the name a call site writes: `price_order` for `shop.pricing.price_order`.
+
+        A TypeScript id is a path, a colon and a member (`src/util/math:clamp`, `src/cart:Cart.add#2`):
+        its name is the member's last segment without the clash suffix, `clamp` and `add`, and for a
+        module the last directory or file name. A test callback (`tests/a.test:suite > case`) is named by
+        its whole title chain, which a dot in a title could not be split from.
+        """
+        if ":" not in self.id:
+            return self.id.rsplit(".", 1)[-1] if "/" not in self.id else self.id.rsplit("/", 1)[-1]
+        member = self.id.split(":", 1)[1]
+        if " > " in member:
+            return member
+        return re.sub(r"#\d+$", "", member).rsplit(".", 1)[-1]
 
 
 @dataclass(frozen=True)
