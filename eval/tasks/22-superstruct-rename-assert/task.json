@@ -1,0 +1,7 @@
+{
+  "id": "22-superstruct-rename-assert",
+  "repo": "superstruct",
+  "prompt": "Rename the exported function `assert` (in src/struct.ts) to `assertValid`. Update every use of it anywhere in the repository: its imports, its calls, and the examples in examples/ that import it from the package. A use that imports it under another local name (`assert as assertValue`) keeps that local name. The method `Struct.assert` is a different function and keeps its name. Do not keep `assert` as an alias of the function. The test suite must pass when you are done.",
+  "min_tests": 225,
+  "why": "`assert` is two functions: the exported function (1 declaration, 55 imports, 83 calls) and the method Struct.assert (1 declaration, 3 calls in test/api/assert.test.ts) that keeps its name, and the method's own body calls the function (`return assert(value, this, message)`). 125 of the 137 imports and calls are in files the suite never runs: 44 imports and 69 calls in test/typings (read only by `tsc`) and 6 imports and 6 calls in examples/ (which import it from the package name and which nothing reads). One import is aliased (`assert as assertValue` in test/index.test.ts), so its call is spelled differently and needs no edit, and the 138 edits (the declaration, 55 imports, 82 calls) span 56 files. ripple lists 77 of the 83 calls with no false one: it misses the 6 in examples/, which reach the function through the package's own name."
+}
