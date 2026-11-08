@@ -13,7 +13,8 @@ import difflib
 import re
 from collections import deque
 
-from .model import Edge, Graph, Symbol
+from .jsx_facts import JSX_NO_RENDERER, JSX_TAG_UNRESOLVED
+from .model import Edge, Graph, Symbol, Unresolved
 from .profile import PYTHON, TYPESCRIPT, LanguageProfile
 from .pytest_collection import PytestCollection  # noqa: F401 (it was defined here)
 from .ts_modules import SUFFIXES, module_id  # no parser needed to read an id
@@ -22,6 +23,46 @@ MAX_LISTED = 100  # default cap on symbols listed per section, so a hub function
 
 
 _CLASH = re.compile(r"#\d+$")
+
+# The kinds of edge a question can be about. `calls` is every edge a call makes (a call, `new`, an override, a
+# callback, a decorator); `renders` and `renderer` are the two JSX edges (see ts_indexer.py and jsx.py).
+KINDS = ("calls", "renders", "renderer")
+JSX_KINDS = ("renders", "renderer")
+
+
+def parse_kinds(value: str | None) -> frozenset[str] | None:
+    """The kinds a `--kinds calls,renders` or a tool's `kinds` argument names, None for all.
+    Raises ValueError for a word that is none."""
+    if value is None:
+        return None
+    words = [w.strip().lower() for w in value.split(",") if w.strip()]
+    if not words or "all" in words:
+        return None
+    unknown = [w for w in words if w not in KINDS]
+    if unknown:
+        raise ValueError(f"unknown edge kind {unknown[0]!r}: choose from {', '.join(KINDS)}, or all")
+    return frozenset(words)
+
+
+def edge_group(edge: Edge) -> str:
+    """The kind a question filters on: renders, renderer, else calls."""
+    return edge.kind if edge.kind in JSX_KINDS else "calls"
+
+
+def _unresolved_group(u: Unresolved) -> str:
+    if u.reason.startswith(JSX_NO_RENDERER):
+        return "renderer"
+    return "renders" if u.reason.startswith(JSX_TAG_UNRESOLVED) else "calls"
+
+
+def _wanted(group: str, kinds) -> bool:
+    return kinds is None or group in kinds
+
+
+def _edge_kinds(groups) -> list[str] | None:
+    """The labelled kinds of a set of edges: None when none is a JSX edge (a plain call carries no label)."""
+    found = [k for k in KINDS if k in groups]
+    return found if any(k in JSX_KINDS for k in found) else None
 
 
 def _is_path_id(symbol_id: str) -> bool:
@@ -179,24 +220,23 @@ def _continues(edge: Edge, context: str) -> bool:
     return not (context and edge.via and edge.via != context)
 
 
-def callers(graph: Graph, query: str, profile: LanguageProfile | None = None) -> dict:
+def callers(graph: Graph, query: str, profile: LanguageProfile | None = None, kinds=None) -> dict:
     found = find_symbol(graph, query)
     if "symbol" not in found:
         return found
-    sites: dict[str, list[str]] = {}
+    sites: dict[str, list[tuple[str, str]]] = {}
     for target in _targets(graph, found["symbol"], profile):
         for edge in graph.callers_index.get(target, []):
-            sites.setdefault(edge.caller, []).append(f"{edge.file}:{edge.line}")
-    listed = [
-        {**_describe(graph.symbols[caller]), "call_sites": sorted(set(lines))}
-        for caller, lines in sorted(sites.items())
-    ]
+            if _wanted(edge_group(edge), kinds):
+                sites.setdefault(edge.caller, []).append((f"{edge.file}:{edge.line}", edge_group(edge)))
+    listed = [{**_describe(graph.symbols[caller]), **_sites(here)} for caller, here in sorted(sites.items())]
     # A decorated function is called by its wrapper. The lines that write its name call the wrapper, and
     # reach the function through it: list them too, since changing the function changes what they run.
     through: dict[str, tuple[str, list[str]]] = {}
     for target in _targets(graph, found["symbol"], profile):
         for edge in graph.via_index.get(target, []):
-            through.setdefault(edge.caller, (edge.callee, []))[1].append(f"{edge.file}:{edge.line}")
+            if _wanted(edge_group(edge), kinds):
+                through.setdefault(edge.caller, (edge.callee, []))[1].append(f"{edge.file}:{edge.line}")
     reaching = [
         {**_describe(graph.symbols[caller]), "call_sites": sorted(set(lines)), "via_wrapper": wrapper}
         for caller, (wrapper, lines) in sorted(through.items())
@@ -204,26 +244,38 @@ def callers(graph: Graph, query: str, profile: LanguageProfile | None = None) ->
     return {"symbol": found["symbol"], "count": len(listed), "callers": listed, "through_wrapper": reaching}
 
 
-def callees(graph: Graph, query: str) -> dict:
+def _sites(found: list[tuple[str, str]], unique: bool = True) -> dict:
+    """An entry's `call_sites` (a callee lists a site once for each call written there), and when one of its edges is a
+    JSX edge, `edge_kinds` and `sites_by_kind` (the sites of each kind)."""
+    entry: dict = {"call_sites": sorted({site for site, _ in found} if unique else [site for site, _ in found])}
+    labelled = _edge_kinds({group for _, group in found})
+    if labelled:
+        entry["edge_kinds"] = labelled
+        entry["sites_by_kind"] = {k: sorted({site for site, group in found if group == k}) for k in labelled}
+    return entry
+
+
+def callees(graph: Graph, query: str, kinds=None) -> dict:
     found = find_symbol(graph, query)
     if "symbol" not in found:
         return found
     symbol_id = found["symbol"]
-    sites: dict[str, list[str]] = {}
+    sites: dict[str, list[tuple[str, str]]] = {}
     for edge in graph.callees_index.get(symbol_id, []):
-        sites.setdefault(edge.callee, []).append(f"{edge.file}:{edge.line}")
-    listed = [
-        {**_describe(graph.symbols[callee]), "call_sites": sorted(lines)} for callee, lines in sorted(sites.items())
-    ]
+        if _wanted(edge_group(edge), kinds):
+            sites.setdefault(edge.callee, []).append((f"{edge.file}:{edge.line}", edge_group(edge)))
+    listed = [{**_describe(graph.symbols[callee]), **_sites(here, unique=False)} for callee, here in sorted(sites.items())]
     unresolved = [
         {"call": u.text, "location": f"{u.file}:{u.line}", "reason": u.reason}
         for u in graph.unresolved
-        if u.caller == symbol_id
+        if u.caller == symbol_id and _wanted(_unresolved_group(u), kinds)
     ]
     return {"symbol": symbol_id, "callees": listed, "unresolved": unresolved}
 
 
-def impact(graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED, profile: LanguageProfile | None = None) -> dict:
+def impact(
+    graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED, profile: LanguageProfile | None = None, kinds=None
+) -> dict:
     """Everything that transitively calls the symbol, up to depth hops away.
 
     Tests that reach it are listed with their pytest node ids (what you
@@ -234,6 +286,10 @@ def impact(graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED, pr
     say when more were found. possible_missed_callers are call sites ripple
     could not resolve that use the same name: static analysis cannot prove
     they reach the symbol, but a human should look.
+
+    kinds (None: all) says which edges are followed: `calls`, `renders` (a function that writes <Symbol />, so
+    changing the symbol can break it) and `renderer` (the component React runs it inside). A caller reached through
+    a JSX edge carries edge_kinds, the kinds of the edges that reached it.
     """
     found = find_symbol(graph, query)
     if "symbol" not in found:
@@ -242,14 +298,17 @@ def impact(graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED, pr
     targets = _targets(graph, symbol_id, profile)
     distance: dict[str, int] = {}
     via_wrapper: dict[str, str] = {}  # caller -> the wrapper it reached the symbol through, when it names a decorated function
+    reached: dict[str, set[str]] = {}  # caller -> the kinds of the edges that reached it at its distance
     seen = {(target, "") for target in targets}
     frontier = set(seen)
     for hop in range(1, depth + 1):
         next_frontier = set()
         for target, context in frontier:
             for edge in graph.callers_index.get(target, []):
-                if edge.caller in targets or not _continues(edge, context):
+                if edge.caller in targets or not _continues(edge, context) or not _wanted(edge_group(edge), kinds):
                     continue
+                if distance.get(edge.caller, hop) == hop:
+                    reached.setdefault(edge.caller, set()).add(edge_group(edge))
                 state = (edge.caller, edge.via if edge.kind == "wrapped" else "")
                 if state not in seen:
                     seen.add(state)
@@ -260,7 +319,10 @@ def impact(graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED, pr
                     next_frontier.add(state)
         frontier = next_frontier
     more_beyond_depth = any(
-        edge.caller not in distance and edge.caller not in targets and _continues(edge, context)
+        edge.caller not in distance
+        and edge.caller not in targets
+        and _continues(edge, context)
+        and _wanted(edge_group(edge), kinds)
         for target, context in frontier
         for edge in graph.callers_index.get(target, [])
     )
@@ -273,6 +335,9 @@ def impact(graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED, pr
         entry = {"symbol": sid, "line": symbol.line, "distance": distance[sid]}
         if sid in via_wrapper:
             entry["via_wrapper"] = via_wrapper[sid]
+        labelled = _edge_kinds(reached.get(sid, ()))
+        if labelled:
+            entry["edge_kinds"] = labelled
         node_ids = collection.node_ids(sid)
         for node_id in node_ids:
             tests.append({"node_id": node_id, **entry, "file": node_id.split("::")[0]})
@@ -286,7 +351,7 @@ def impact(graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED, pr
     missed = [
         {"caller": u.caller, "call": u.text, "location": f"{u.file}:{u.line}"}
         for u in graph.unresolved
-        if u.text.rsplit(".", 1)[-1] == name
+        if u.text.rsplit(".", 1)[-1] == name and _unresolved_group(u) != "renderer" and _wanted(_unresolved_group(u), kinds)
     ]
     omitted_callers, omitted_tests = max(0, len(code) - limit), max(0, len(tests) - limit)
     return {
@@ -306,8 +371,11 @@ def impact(graph: Graph, query: str, depth: int = 5, limit: int = MAX_LISTED, pr
     }
 
 
-def path(graph: Graph, source: str, target: str, max_depth: int = 12, profile: LanguageProfile | None = None) -> dict:
-    """The shortest call chain from source to target (breadth-first search)."""
+def path(
+    graph: Graph, source: str, target: str, max_depth: int = 12, profile: LanguageProfile | None = None, kinds=None
+) -> dict:
+    """The shortest call chain from source to target (breadth-first search), along the kinds of edge asked for
+    (None: all). A hop that is a JSX edge carries edge_kinds, the kinds of the edges between its two symbols."""
     start, goal = find_symbol(graph, source), find_symbol(graph, target)
     for found in (start, goal):
         if "symbol" not in found:
@@ -323,6 +391,8 @@ def path(graph: Graph, source: str, target: str, max_depth: int = 12, profile: L
         if hops >= max_depth:
             continue
         for edge in graph.callees_index.get(current[0], []):
+            if not _wanted(edge_group(edge), kinds):
+                continue
             if edge.kind == "wrapped" and not _continues(edge, current[1]):
                 continue  # this wrapper was entered for another decorated function
             step = (edge.callee, edge.via)
@@ -338,7 +408,17 @@ def path(graph: Graph, source: str, target: str, max_depth: int = 12, profile: L
     chain, node = [], end
     while node is not None:
         step = came_from[node]
-        chain.append({**_describe(graph.symbols[node[0]]), "called_at": step[1] if step else None})
+        hop = {**_describe(graph.symbols[node[0]]), "called_at": step[1] if step else None}
+        if step:
+            between = {
+                edge_group(e)
+                for e in graph.callees_index.get(step[0][0], [])
+                if e.callee == node[0] and _wanted(edge_group(e), kinds)
+            }
+            labelled = _edge_kinds(between)
+            if labelled:
+                hop["edge_kinds"] = labelled
+        chain.append(hop)
         node = step[0] if step else None
     result["path"] = chain[::-1]
     return result

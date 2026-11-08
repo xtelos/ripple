@@ -1,12 +1,14 @@
 """Command-line entry point: the same queries as the MCP tools, for humans.
 
     ripple index <repo> [--reasons] [--lang auto|python|typescript]
-    ripple callers|callees <symbol> [--repo DIR] [--json] [--lang L]
-    ripple impact <symbol> [--depth N] [--limit N] [--repo DIR] [--json] [--lang L]
-    ripple path <source> <target> [--repo DIR] [--json] [--lang L]
+    ripple callers|callees <symbol> [--repo DIR] [--json] [--kinds K] [--lang L]
+    ripple impact <symbol> [--depth N] [--limit N] [--repo DIR] [--json] [--kinds K] [--lang L]
+    ripple path <source> <target> [--repo DIR] [--json] [--kinds K] [--lang L]
     ripple check [TEST ...] [--repo DIR] [--test-command CMD] [--lang L]
     ripple serve [--repo DIR] [--test-command CMD] [--lang L]
 
+--kinds (default all) picks the edges a question follows: calls, renders and renderer, comma separated. renders is
+a function that writes <Child /> (TypeScript JSX), renderer the component React runs Child inside, proven or left out.
 --lang (default auto, or RIPPLE_LANG) picks the language the repo is read as; auto looks at its files and
 reads a repo that has both as both. Exit status: 0 done, 1 not found or the tests failed, 2 refused
 (no such repo, nothing to read, a missing parser, a command that is not allowed), 3 answered, but part of
@@ -106,10 +108,20 @@ def format_index(repo: str, result: RepoGraph, reasons: bool = False) -> str:
     return "\n".join(lines)
 
 
+KIND_WORDS = {"calls": "called", "renders": "renders", "renderer": "renderer"}
+
+
+def format_sites(entry: dict) -> str:
+    """Where an edge is written. An entry with a JSX edge says which kind each site is; any other is as it always was."""
+    if "sites_by_kind" not in entry:
+        return f"called at {', '.join(entry['call_sites'])}"
+    return "; ".join(f"{KIND_WORDS[kind]} at {', '.join(sites)}" for kind, sites in entry["sites_by_kind"].items())
+
+
 def format_symbols(title: str, entries: list[dict]) -> list[str]:
     lines = [f"{title} ({len(entries)}):"]
     for e in entries:
-        lines.append(f"  {e['symbol']}  {e['location']}  called at {', '.join(e['call_sites'])}")
+        lines.append(f"  {e['symbol']}  {e['location']}  {format_sites(e)}")
     return lines
 
 
@@ -119,6 +131,7 @@ def format_impact(result: dict) -> str:
         lines.append(f"  {file}")
         for e in entries:
             through = f"  through the wrapper {e['via_wrapper']}" if "via_wrapper" in e else ""
+            through += f"  via {', '.join(e['edge_kinds'])}" if "edge_kinds" in e else ""
             lines.append(f"    {e['symbol']}  line {e['line']}  ({e['distance']} hop{'s' * (e['distance'] > 1)}){through}")
     if result["omitted_callers"]:
         lines.append(MORE.format(n=result["omitted_callers"], what="callers"))
@@ -155,8 +168,30 @@ def format_result(command: str, result: dict) -> str:
         return "\n".join(lines)
     if result["path"] is None:
         return f"no call chain from {result['from']} to {result['to']}"
-    hops = [f"  {h['symbol']}  {h['location']}" + (f"  (called at {h['called_at']})" if h["called_at"] else "") for h in result["path"]]
+    hops = [
+        f"  {h['symbol']}  {h['location']}"
+        + (f"  ({'/'.join(h['edge_kinds']) if 'edge_kinds' in h else 'called'} at {h['called_at']})" if h["called_at"] else "")
+        for h in result["path"]
+    ]
     return "\n".join([f"call chain ({len(hops) - 1} hops):"] + hops)
+
+
+def kinds_argument(value: str):
+    try:
+        return queries.parse_kinds(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(str(error)) from error
+
+
+def add_kinds(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--kinds",
+        type=kinds_argument,
+        default=None,
+        metavar="KINDS",
+        help="the edges to follow, comma separated: calls, renders, renderer, or all (default). renders: a function that "
+        "writes <Child /> (changing Child can break it); renderer: the component React runs Child inside, when proven",
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -176,6 +211,7 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument("symbol")
         p.add_argument("--repo", default=".")
         p.add_argument("--json", action="store_true", help="print the raw result as JSON")
+        add_kinds(p)
         if name == "impact":
             p.add_argument("--depth", type=int, default=5)
             p.add_argument("--limit", type=int, default=queries.MAX_LISTED, help="most callers and tests to list")
@@ -185,6 +221,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("target")
     p.add_argument("--repo", default=".")
     p.add_argument("--json", action="store_true")
+    add_kinds(p)
 
     for name, help_text in (("check", "run the test command once"), ("serve", "run the MCP server on stdio")):
         p = sub.add_parser(name, help=help_text)
@@ -243,11 +280,11 @@ def run(args: argparse.Namespace) -> int:
 
     graph = loaded.graph
     if args.command == "path":
-        result = queries.path(graph, args.source, args.target)
+        result = queries.path(graph, args.source, args.target, kinds=args.kinds)
     elif args.command == "impact":
-        result = queries.impact(graph, args.symbol, depth=args.depth, limit=args.limit)
+        result = queries.impact(graph, args.symbol, depth=args.depth, limit=args.limit, kinds=args.kinds)
     else:
-        result = getattr(queries, args.command)(graph, args.symbol)
+        result = getattr(queries, args.command)(graph, args.symbol, kinds=args.kinds)
 
     # What the answer does not cover goes with it: in the JSON, and on stderr beside the text.
     if "error" in result or not args.json:

@@ -80,6 +80,19 @@ class LanguageProfile:
     # init, and `xs.map(f, thisArg)` never thisArg). Empty: ripple does not follow functions passed on.
     synchronous_callbacks: frozenset[str]
 
+    # JSX. The names, as the dotted ids they resolve to, of what wraps a function into a component without changing
+    # which function renders (memo, forwardRef), of what wraps one that is loaded later (lazy: ripple cannot see it),
+    # and of the base classes whose `render` method React calls. Empty: the language has no components.
+    component_wrappers: frozenset[str]
+    lazy_wrappers: frozenset[str]
+    component_bases: frozenset[str]
+    # Built-in components that render their children where they stand (Fragment, Suspense): what is inside one is
+    # rendered by whatever renders it, as inside a <div>.
+    fragment_components: frozenset[str]
+    # React functions that may replace the children of an element they are given (cloneElement, Children.map, ...), so
+    # what an element passed to one holds is not known to be rendered.
+    child_replacers: frozenset[str]
+
     # What calling a class runs (the member looked up in its bases), the member that may hand back an
     # instance of another class (so a class that defines it is not "exactly" itself), the base every
     # class has without writing it, and whether a name is a member every object has.
@@ -161,6 +174,11 @@ PYTHON = LanguageProfile(
     wraps_names=frozenset({"functools.wraps"}),
     package_imports=True,
     synchronous_callbacks=frozenset(),
+    component_wrappers=frozenset(),
+    lazy_wrappers=frozenset(),
+    component_bases=frozenset(),
+    fragment_components=frozenset(),
+    child_replacers=frozenset(),
     constructor_name="__init__",
     allocator_name="__new__",
     implicit_base="object",
@@ -266,6 +284,16 @@ TYPESCRIPT = LanguageProfile(
             "findLastIndex", "some", "every", "flatMap", "sort", "toSorted",
         }
     ),  # fmt: skip
+    # React, as an import from the package "react" resolves (pkg:react.memo): the wrappers a component may be
+    # written through, and the classes whose `render` method React calls.
+    component_wrappers=frozenset({"pkg:react.memo", "pkg:react.forwardRef"}),
+    lazy_wrappers=frozenset({"pkg:react.lazy"}),
+    component_bases=frozenset({"pkg:react.Component", "pkg:react.PureComponent"}),
+    fragment_components=frozenset({f"pkg:react.{name}" for name in ("Fragment", "StrictMode", "Suspense", "Profiler")}),
+    child_replacers=frozenset(
+        {f"pkg:react.{name}" for name in ("cloneElement", "createElement", "isValidElement")}
+        | {f"pkg:react.Children.{name}" for name in ("map", "forEach", "toArray", "only", "count")}
+    ),
     constructor_name="constructor",
     allocator_name="",  # no member to look for: ripple does not read a constructor that returns another object
     implicit_base="",  # a class with no `extends` has no base to name
