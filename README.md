@@ -407,7 +407,8 @@ How to read this honestly:
 
 The benchmark checks that ripple's answers are right. The eval checks whether a coding agent does
 better with them: nineteen refactoring tasks (ten on small fixtures, nine on real repositories), each run by Claude
-Code in headless mode, once with a ripple MCP server and once without, three times each.
+Code in headless mode, once with a ripple MCP server and once without, three times each. Nine more, over
+TypeScript repositories, are set up but not yet run (see "TypeScript tasks" below).
 
 - **The tasks** (`eval/tasks/`) are renames and signature changes where grep is noisy or
   incomplete: a method named `total` on four classes, a function reached only through a package
@@ -508,6 +509,95 @@ Each batch writes `eval/results/<date>-<time>-<id>.json` (unless `--out` says ot
 table and a `-diffs/` directory beside it, and refuses to overwrite an earlier batch's files.
 
 It calls the `claude` CLI on whatever account it is logged in to, so it never runs in CI.
+
+### TypeScript tasks
+
+Nine more tasks (`eval/tasks/20-*` to `28-*`) run over four pinned TypeScript repositories. **No agent has run on
+them yet.** The harness is wired and proven with a fake agent (see below), but spending on a real run is a separate
+decision, and the Results table below has no TypeScript row until one exists. The grader (`eval/check_node.py`)
+is the same design as the Python one: the repo's own runner over the agent's source with the reference's tests put
+back, plus a hidden TypeScript test.
+
+| Task | Repo (runner) | What is renamed | What makes it ambiguous |
+|---|---|---|---|
+| 20 | neverthrow (vitest) | static `ResultAsync.combine` | `Result.combine` keeps its name; 49 of the 54 calls are in a file only `tsc` reads |
+| 21 | neverthrow (vitest) | instance `ResultAsync.orElse` | three look-alike `orElse` methods; the receiver's type is the only clue |
+| 22 | superstruct (vitest) | exported function `assert` | `Struct.assert` keeps its name; most uses are in typing tests and examples no test run reads |
+| 23 | superstruct (vitest) | exported function `create` | a method and a boolean `create` flag in 19 fixtures share the name |
+| 24 | tsyringe (jest) | interface member `Transform.transform` | `TransformDescriptor.transform` keeps its name, in the same expression; some implementers never write `implements` |
+| 25 | tsyringe (jest) | decorator `registry` | applied as `@registry(...)`, never called by name; module paths and a `registry` variable keep the word |
+| 26 | react-pro-sidebar (vitest) | component `SubMenu` | 237 identifiers plus code samples the website builds as strings; the module and test titles keep it |
+| 27 | react-pro-sidebar (vitest) | hook `useMediaQuery` | a test names the export in a string (`vi.spyOn(..., 'useMediaQuery')`); module specifiers keep it |
+| 28 | react-pro-sidebar (vitest) | the `Menu` prop `transitionDuration` | seven properties of that name; only the Menu's changes |
+
+**What ripple answers on them**, from the task `why` fields and the checks made when the tasks were written (not
+re-measured when the harness was wired). Where it falls short is part of what the eval can show:
+
+- 20 and 21: complete on the symbols checked.
+- 22: 77 of the 83 calls, with no false one. The 6 it misses are in `examples/*.js`, which import the package by
+  its own name. 23: 4 of 5.
+- 24: callers resolved 0 of 6. The member is declared on an interface, which ripple does not index, and the calls
+  inside a class expression a decorator returns are skipped. The list of unresolved same-name calls found 3 of the 6.
+- 25: callers and impact return 0, with an empty same-name list and no warning, because a decoration is not
+  recorded as a call.
+- 26: `renders` finds 84 of the 108 elements with precision 1.000 (the website demos import the package by name);
+  `renderer` finds 0 of 108. 27: 6 of 6.
+- 28: a prop rename. ripple does not index props.
+
+**Fetch.** `python -m eval.fetch neverthrow tsyringe superstruct react-pro-sidebar` (or no names, for every repo)
+needs git, node and npm and the network. It installs each repo's dependencies with `npm ci --ignore-scripts` from the
+lockfile vendored under `eval/lockfiles/`, into a read-only cache outside this repository.
+
+**Run.** `--runtime` picks the tasks and defaults to `python`, so a plain `python -m eval.run` is the same 19 tasks,
+the same command line and the same cost it always was. `--runtime node` selects tasks 20 to 28, `all` selects both,
+and `--tasks` runs exactly the ids it names (a node task by id needs no `--runtime`; a mixed list is fine). For
+the with-ripple arm on a node task, `--ripple-python PATH` names an interpreter that has ripple with the `typescript`
+extra (`pip install 'ripple-code[typescript]'`, which brings tree-sitter); it starts the server for the node tasks
+only. A Python task in the same batch always starts the `ripple` next to the interpreter running `eval.run`, as it
+always has, and a batch with no node task ignores the flag (one line says so, and the results file records it under
+`ripple_python` with `ripple_python_ignored`). The default is the interpreter running `eval.run`, and a node run that
+cannot index TypeScript with it is refused. `--dry` prints the plan and runs the readiness checks without
+starting an agent or calling a model:
+
+```sh
+.venv/bin/python -m eval.run --runtime node --ripple-python /path/to/venv/bin/python --dry
+.venv/bin/python -m eval.run --runtime node --ripple-python /path/to/venv/bin/python --repeats 1 --out /tmp/ts-smoke.json
+.venv/bin/python -m eval.run --tasks 20-neverthrow-rename-resultasync-combine,24-tsyringe-rename-transform --modes without --dry
+```
+
+**What the agent has.** The same shape as the Python runs, with node's commands. The shell allows exactly the
+repo's runner (`vitest` or `jest`) and `tsc`, and each is a small script in the run's own directory, not the binary:
+- The runner script runs what the grader runs (`RepoSpec.node_argv`, in the same environment: the repo's own binaries
+  first on `PATH`, `CI=true`, no colour, vitest with `--no-cache` because before vitest 4 it writes a cache into the
+  read-only `node_modules`). With no arguments it runs the repo's whole suite exactly as the grader does, so the
+  agent sees the pass count the grader sees; with file paths or `-t` they go after the same flags. Snapshot updates,
+  report files, coverage output, watch mode and `init` are refused.
+- `tsc` is for the type check only: `--noEmit` is forced and only `-p`/`--project` and a few read-only flags pass,
+  so it cannot emit, build, init a config or write a build-info file. neverthrow's 49 `ResultAsync.combine` calls
+  live in a file that only `tsc` reads, so `tsc` is the only way the agent can compile-check that task's stale calls.
+- `npm test`, `npx`, `npm run`, `npm exec` and `node` are not allowed: each can run any script or any code, which
+  reopens the sed, xargs and `node -e` rewrite channels the Python run closes. The repos' own `npm test` scripts also
+  differ and some write (superstruct's builds into `dist/` first, tsyringe's runs `yarn lint`, neverthrow's runs `tsc`
+  after vitest, and none passes `--no-cache`).
+- The prompt's first paragraph is the node version of the Python one (it names `vitest run` or `jest` and `tsc
+  --noEmit -p <tsconfig>`, and says to edit with the Edit or Write tool), the same in both arms.
+- With ripple, the server is started with `--lang typescript` and a `--test-command` that is the runner script, so
+  the `check` tool runs the same command; a TypeScript repo has no default test command and `check` would otherwise
+  refuse. The ripple index skips `node_modules`, which is a link to the cache in the agent's copy.
+- `changed_files` and the saved diff for a node task cover `.ts .tsx .js .jsx .mts .cts .mjs .cjs .json .md .mdx`
+  files, never `node_modules`.
+- A with-ripple node run whose server did not connect is invalid, as for Python.
+
+**Checked before any agent starts** (in `--dry` too): node and the runner's and `tsc`'s binaries are in the install; and,
+when the with-ripple arm is selected, the ripple interpreter imports ripple, tree-sitter and its TypeScript grammar,
+and for each node repo the server (started with the config the runs use, on a scratch copy) lists its five tools and
+answers a query without a `warnings` list. Any failure stops the batch with a message and nothing started.
+
+What this does not prove: the shell rules were tested through the scripts and a model of Claude Code's
+`Bash(prefix:*)` matching, not against a live agent, so how the CLI treats shell redirections under those rules is
+assumed to match the Python runs. The fake-agent tests apply each task's reference solution through the same scripts,
+`PATH`, linked `node_modules` and diff recording a real agent gets, and the grader marks them successes; that shows
+the environment works, not that an agent can use it.
 
 ### Results
 
