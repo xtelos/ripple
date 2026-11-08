@@ -18,6 +18,10 @@
 
 Tests run with ripple's own checker conventions (ripple/checker.py): pytest's
 summary line and the failing test ids rather than the whole log.
+
+A task over a node repository (vitest or jest, spec.is_node) is graded the same way by eval/check_node.py:
+the functions below that differ for it (run_suite, neutralize, restore_tests, weakened_tests, run_hidden) hand
+over to it first, and check_task gives the graded copy its node_modules link. Python tasks never reach it.
 """
 
 from __future__ import annotations
@@ -34,7 +38,8 @@ from pathlib import Path
 
 from ripple.checker import MAX_FAILURES, SUMMARY, clip, run_check
 
-from .loader import IGNORE, TASKS_DIR, Task, apply_solution, copy_fixture
+from . import check_node
+from .loader import IGNORE, TASKS_DIR, Task, apply_solution, copy_fixture, remove
 from .repos import RepoSpec
 
 HIDDEN_DIR = "_eval_check"
@@ -98,7 +103,10 @@ def run_pytest(command: list[str], cwd: Path, timeout: float) -> tuple[int | Non
 def run_suite(task: Task, repo: Path, python: str | None, timeout: float) -> tuple[dict, frozenset[str]]:
     """The task's whole suite in repo: a verdict like ripple's run_check, and the ids of the tests
     that ran to a pass. An id that holds the repo's own path (a parametrized tmp path) is written
-    with a placeholder, so the same test has the same id in two copies."""
+    with a placeholder, so the same test has the same id in two copies. A node task is run by the
+    repo's own runner (check_node)."""
+    if task.is_node:
+        return check_node.run_node_suite(task, repo, timeout)
     command = pytest_command(python or task.python, task.tests_dir, repo, task.spec, ("-rfEp",))
     code, output = run_pytest(command, repo, timeout)
     lines = [line.rstrip() for line in output.splitlines()]
@@ -109,14 +117,6 @@ def run_suite(task: Task, repo: Path, python: str | None, timeout: float) -> tup
     passed = frozenset(i.replace(here[0], "<repo>").replace(here[1], "<repo>") for i in ids)
     verdict = {"passed": code == 0, "summary": clip(summary), "failures": failures[:MAX_FAILURES]}
     return verdict, passed
-
-
-def remove(path: Path) -> None:
-    """Delete a file, a link (never what it points at) or a directory tree."""
-    if path.is_symlink() or path.is_file():
-        path.unlink()
-    elif path.is_dir():
-        shutil.rmtree(path)
 
 
 def is_guarded(name: str) -> bool:
@@ -151,7 +151,9 @@ def neutralize(task: Task, graded: Path, reference: Path, python: str | None = N
     """Put everything outside the tests directory that can change what pytest reports back to the
     reference's: conftest.py files, pytest and packaging config, sitecustomize, and any module
     added at the root of a source path that has the name of one pytest or the standard library
-    uses. The agent's source files are left alone."""
+    uses. The agent's source files are left alone. A node task has its own list (check_node)."""
+    if task.is_node:
+        return check_node.neutralize_node(task, graded, reference)
     skip = task.tests_dir.rstrip("/")
     for rel in guarded_paths(graded, skip):
         remove(graded / rel)
@@ -172,7 +174,9 @@ def neutralize(task: Task, graded: Path, reference: Path, python: str | None = N
 
 def restore_tests(task: Task, graded: Path, reference: Path) -> None:
     """Replace the tests directory with the reference's. If the agent made it a link, the link
-    goes and what it pointed at is left alone."""
+    goes and what it pointed at is left alone. A node task also gets back every co-located test file."""
+    if task.is_node:
+        return check_node.restore_tests_node(task, graded, reference)
     target = graded / task.tests_dir
     remove(target)
     shutil.copytree(reference / task.tests_dir, target, symlinks=True, ignore=IGNORE)
@@ -217,6 +221,8 @@ def weakened_tests(task: Task, agent: Path, reference: Path) -> list[str]:
     agent that deletes it, or keeps its name and drops that use, has not done what it was asked in
     that file. A test function the reference changed must still use every identifier the change
     added to it. Empty when the agent's tests carry the same changes."""
+    if task.is_node:
+        return check_node.weakened_tests_node(task, agent, reference)
     weak = []
     tests = reference / task.tests_dir
     for path in sorted(tests.rglob("*.py")) if tests.is_dir() else []:
@@ -262,6 +268,8 @@ def reference_ids(task: Task) -> tuple[frozenset[str], str]:
 def run_hidden(task: Task, repo: Path, python: str | None = None, timeout: float | None = None) -> dict:
     """Copy the hidden test into repo and run just it, with no conftest loaded. Called only after
     the agent has finished and its own suite has run, so the agent never sees it."""
+    if task.is_node:
+        return check_node.run_hidden_node(task, Path(repo), timeout)
     repo = Path(repo)
     hidden_dir = repo / HIDDEN_DIR
     hidden_dir.mkdir(exist_ok=True)
@@ -284,6 +292,8 @@ def check_task(task: Task, repo: Path, python: str | None = None, timeout: float
     with tempfile.TemporaryDirectory() as scratch:
         graded = Path(scratch) / "graded"
         shutil.copytree(repo, graded, symlinks=True, ignore=IGNORE)
+        if task.is_node:
+            task.spec.link_deps(graded)  # IGNORE dropped any node_modules the agent had; this one is the cached install
         reference = copy_fixture(task, Path(scratch) / "reference")
         apply_solution(task, reference)
         neutralize(task, graded, reference, python)
@@ -292,7 +302,7 @@ def check_task(task: Task, repo: Path, python: str | None = None, timeout: float
         weak = weakened_tests(task, graded, reference)
         restore_tests(task, graded, reference)
         suite, passed = run_suite(task, graded, python, timeout)
-    tests_passed = count_passed(suite["summary"])
+    tests_passed = suite["tests_passed"] if "tests_passed" in suite else count_passed(suite["summary"])
     lost = (sorted(required - passed) if required else [why]) + weak
     suite_ok = suite["passed"] and tests_passed >= task.min_tests and not lost
     return {
