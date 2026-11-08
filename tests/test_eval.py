@@ -57,7 +57,8 @@ def test_nineteen_tasks_with_unique_ids_and_prompts():
 
 def test_real_repo_tasks_are_pinned_and_each_has_a_patch_solution():
     repos = load_repos()
-    assert set(repos) == {t.spec.name for t in REAL} == {"rich", "werkzeug", "sqlglot"}
+    python_repos = {name for name, r in repos.items() if r.runtime == "python"}
+    assert python_repos == {t.spec.name for t in REAL} == {"rich", "werkzeug", "sqlglot"}  # node repos have no tasks yet
     assert all(len(r.sha) == 40 and r.url.startswith("https://") for r in repos.values())
     assert all(t.solution_patch.is_file() and not t.solution.exists() for t in REAL)
     assert all(t.fixture.name == f"{t.spec.name}-{t.spec.sha[:12]}" for t in REAL)
