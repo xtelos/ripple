@@ -905,6 +905,7 @@ RENAMES = {
     "21-neverthrow-rename-resultasync-orelse": ("orElse", "recoverWith"),
     "22-superstruct-rename-assert": ("assert", "assertValid"),
     "23-superstruct-rename-create": ("create", "createFrom"),
+    "24-tsyringe-rename-transform": ("transform", "convert"),
 }
 RENAME_PARAMS = [
     pytest.param(tid, old, new, id=tid, marks=pytest.mark.skipif(tid not in TASKS or not TASKS[tid].available, reason="needs the pinned repository: python -m eval.fetch"))
