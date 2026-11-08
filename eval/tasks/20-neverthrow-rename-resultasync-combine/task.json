@@ -1,0 +1,7 @@
+{
+  "id": "20-neverthrow-rename-resultasync-combine",
+  "repo": "neverthrow",
+  "prompt": "Rename the static method `ResultAsync.combine` (in src/result-async.ts) to `ResultAsync.gather`. Update every call to it anywhere in the repository. `Result.combine` (the synchronous one, in src/result.ts) is a different function and keeps its name, and so does `ResultAsync.combineWithAllErrors`. Do not keep `combine` as an alias on `ResultAsync`. The test suite must pass when you are done.",
+  "min_tests": 115,
+  "why": "`combine` is two functions: 3 declarations and 53 calls of the synchronous Result.combine, which keeps its name, among 3 declarations and 54 calls of ResultAsync.combine (5 in tests/index.test.ts, 49 in tests/typecheck-tests.ts), so grep for `combine` cannot tell them apart. 49 of the 54 are in tests/typecheck-tests.ts, which vitest never collects (only `tsc` reads it), so the suite passes with every one of them stale. combineWithAllErrors, combineResultAsyncList and the describe titles that say `ResultAsync.combine` are look-alikes that keep their text. ripple resolves the receiver's class."
+}
