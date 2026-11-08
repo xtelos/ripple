@@ -21,8 +21,9 @@ runs at once never share a copy. The one lockfile pins everything: the tracer re
 API, and the runners come from the same install. Do not run `install` while a trace is running.
 
 To score ripple's TypeScript graph against the truth (no node needed, only the `typescript` extra), run
-`python -m bench.ts_score`: precision and recall of the `calls` edges, every expected edge ripple missed with its
-reason, and an exit code of 1 below `bench/baseline_ts.json`. The JSX kinds are reported as not yet indexed.
+`python -m bench.ts_score`: precision and recall of the `calls`, `renders` and `renderer` edges, every expected edge
+ripple missed with its reason, and an exit code of 1 below `bench/baseline_ts.json`. A `renderer` edge is ripple's only
+where the source proves it, so a renderer it leaves unresolved is recall lost, never an error.
 
 `tests/test_ts_trace.py` runs the trace and compares it with the truth. It skips, with the reason in the
 `-rs` output, when `node` is missing or `install` has not been run, so CI without node stays green.
