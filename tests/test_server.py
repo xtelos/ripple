@@ -73,3 +73,20 @@ def test_check_runs_the_configured_command(tmp_path):
         assert "not a test path or node id" in reply["result"]["content"][0]["text"]
     finally:
         assert c.close() == 0
+
+
+def test_kinds_is_an_optional_argument_of_each_query_and_a_python_answer_does_not_change(client):
+    tools = {t["name"]: t for t in client.request("tools/list")["result"]["tools"]}
+    for name in READ_ONLY:
+        assert "kinds" in tools[name]["inputSchema"]["properties"]
+        assert "kinds" not in tools[name]["inputSchema"]["required"]
+    first = client.request("tools/call", {"name": "impact", "arguments": {"symbol": "tax_for"}})
+    second = client.request("tools/call", {"name": "impact", "arguments": {"symbol": "tax_for", "kinds": "calls"}})
+    assert first["result"]["content"][0]["text"] == second["result"]["content"][0]["text"]
+    assert "edge_kinds" not in first["result"]["content"][0]["text"]
+
+
+def test_an_unknown_kind_is_an_error_the_agent_can_read(client):
+    reply = client.request("tools/call", {"name": "callers", "arguments": {"symbol": "tax_for", "kinds": "render"}})
+    assert reply["result"]["isError"] is True
+    assert "unknown edge kind 'render'" in reply["result"]["content"][0]["text"]

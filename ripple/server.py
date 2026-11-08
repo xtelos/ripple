@@ -37,7 +37,10 @@ computed keys, interface-typed values and decorators ripple cannot read are
 not followed. A decorated Python function is called by its wrapper; callers
 also lists, under through_wrapper, the lines that write its name. impact
 lists same-named call sites it could not resolve under possible_missed_callers;
-check those by hand. If a result has a warnings list, part of the repository
+check those by hand. In a TypeScript repo, JSX makes two more kinds of edge: renders (a function that writes
+<Child />, so changing Child can break it) and renderer (the component React runs Child inside, only when the
+source proves it). Every answer follows all kinds by default; pass kinds (calls, renders, renderer, comma
+separated) to follow some, and an entry that has a JSX edge says which kinds in edge_kinds. If a result has a warnings list, part of the repository
 was left out (TypeScript without a parser that loads, or ids both languages
 define): the answer covers only the rest, and the warning says what and why.
 """
@@ -53,6 +56,12 @@ def build_server(repo: str, test_command: str | None = None, timeout: float = 30
     index = RepoIndex(repo, lang=lang)
     server = MCPServer("ripple", version=__version__, instructions=INSTRUCTIONS)
 
+    def parse_kinds(kinds: str):
+        try:
+            return queries.parse_kinds(kinds)
+        except ValueError as error:
+            raise ToolError(str(error)) from error
+
     def answer(query, *args, **kwargs) -> dict:
         """A query's result, with a `warnings` list when part of the repo was not indexed."""
         try:
@@ -67,21 +76,24 @@ def build_server(repo: str, test_command: str | None = None, timeout: float = 30
             "List the functions and methods that directly call a symbol, with the file:line of each "
             "call site. A decorated function is called by its wrapper, so the lines that write its name "
             "are listed apart, under through_wrapper. symbol: a Python dotted path, a TypeScript path:member id "
-            "(src/util/math:clamp), a Class.method suffix, or a bare name."
+            "(src/util/math:clamp), a Class.method suffix, or a bare name. kinds: which edges to list, comma "
+            "separated, from calls, renders (a function that writes <Symbol /> in JSX) and renderer (the component "
+            "React runs the symbol inside, when proven); default all. An entry with a JSX edge has edge_kinds."
         ),
     )
-    def callers(symbol: str) -> dict:
-        return answer(queries.callers, symbol)
+    def callers(symbol: str, kinds: str = "all") -> dict:
+        return answer(queries.callers, symbol, kinds=parse_kinds(kinds))
 
     @server.tool(
         annotations=READ_ONLY,
         description=(
             "List what a function or method calls: resolved callees with call sites, plus the calls "
-            "ripple could not resolve statically and why."
+            "ripple could not resolve statically and why. kinds is as for callers; a TypeScript component's "
+            "children are renders edges, and the elements whose renderer is not proven are listed as unresolved."
         ),
     )
-    def callees(symbol: str) -> dict:
-        return answer(queries.callees, symbol)
+    def callees(symbol: str, kinds: str = "all") -> dict:
+        return answer(queries.callees, symbol, kinds=parse_kinds(kinds))
 
     @server.tool(
         annotations=READ_ONLY,
@@ -90,21 +102,24 @@ def build_server(repo: str, test_command: str | None = None, timeout: float = 30
             "hops, grouped by file, with the Python tests that reach it listed separately (each with the pytest "
             "node_id to pass to check; TypeScript tests are not collected, so their callers are listed as code). "
             "At most limit callers and limit tests are listed; truncated and omitted_callers / omitted_tests say how many more were found. Also lists unresolved call "
-            "sites with the same name, which static analysis cannot rule out."
+            "sites with the same name, which static analysis cannot rule out. Follows every edge kind by default: a "
+            "TypeScript component that writes <Symbol /> is affected too (it can break when the symbol changes), and a "
+            "caller reached through one carries edge_kinds; pass kinds (calls, renders, renderer) to follow fewer."
         ),
     )
-    def impact(symbol: str, depth: int = 5, limit: int = queries.MAX_LISTED) -> dict:
-        return answer(queries.impact, symbol, depth=max(1, min(depth, 20)), limit=max(1, min(limit, 1000)))
+    def impact(symbol: str, depth: int = 5, limit: int = queries.MAX_LISTED, kinds: str = "all") -> dict:
+        return answer(queries.impact, symbol, depth=max(1, min(depth, 20)), limit=max(1, min(limit, 1000)), kinds=parse_kinds(kinds))
 
     @server.tool(
         annotations=READ_ONLY,
         description=(
             "Find the shortest call chain from one symbol to another, e.g. from a test or entry point "
-            "to the function you are changing. Returns each hop with the file:line it is called from."
+            "to the function you are changing. Returns each hop with the file:line it is called from, and edge_kinds "
+            "on a hop that is a JSX render edge. kinds (default all) limits the edges followed, as for callers."
         ),
     )
-    def path(source: str, target: str) -> dict:
-        return answer(queries.path, source, target)
+    def path(source: str, target: str, kinds: str = "all") -> dict:
+        return answer(queries.path, source, target, kinds=parse_kinds(kinds))
 
     @server.tool(
         annotations=RUNS_CODE,
