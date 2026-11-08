@@ -55,6 +55,10 @@ or a bare name (`price_order`); in TypeScript it is a path and a member (`src/ut
 The four graph tools advertise `readOnlyHint: true`, which lets a client run them without prompting.
 `check` is marked destructive instead, because a test suite can do anything its tests do.
 
+`callers`, `callees`, `impact` and `path` also take `kinds` (`--kinds` on the command line): which edges to follow,
+from `calls`, `renders` and `renderer`, comma separated, default `all`. Only a TypeScript repo with JSX has the last
+two (see [JSX](#jsx)); in a Python repo every edge is a call and nothing is labelled.
+
 `impact` lists at most `limit` callers and `limit` tests (100 by default, up to 1000 over MCP). When
 it found more, it says so: `truncated` is true and `omitted_callers` / `omitted_tests` give the
 counts (the CLI prints "... and N more callers not listed"). Each test comes with its pytest node id
@@ -148,10 +152,82 @@ so the false-edge rate is below about 1.2%, not zero); recall of the pairs that 
 not be recorded: 138 edges were indexed and 15 of them checked by hand, all correct, and it is in none of those
 figures.
 
-**Not yet:** JSX (`renders` edges between components), and jest or vitest collection. `impact` lists every
+**Not yet:** jest or vitest collection. `impact` lists every
 TypeScript caller, tests included, as code to update, so its `tests` list is empty, and `check` refuses a
 TypeScript-only repo until it is given the command (`--test-command` or `RIPPLE_TEST_COMMAND`, for example
 `npx vitest run`), with the refusal as an ordinary error. In a mixed repo `check` runs pytest by default.
+
+### JSX
+
+A component element in a `.tsx` file (`<Child />`) is not a call, so it makes two other kinds of edge, and they
+answer different questions:
+
+- **`renders`, the creator.** The function whose body writes `<Child />`: who is running when the element is made.
+  The tag is read the way a call's callee is (block scopes, imports, barrels, a namespace import `<ui.Panel />`),
+  so a local `Child` hides the import. An element written in an arrow, a `.map` callback or a render prop belongs to
+  the named function around it, as a call does. Host tags (`<div />`, anything that starts with a lowercase
+  letter, `<svg:rect />`) are never components and make no edge. A tag that is a variable of unknown value, or a
+  member of `this`, is unresolved. A component from outside the repo is counted as outside the repo.
+- **`renderer`, the component React was rendering when it ran Child.** For `<Layout><Child /></Layout>` written in
+  `Page`, `Page` creates `Child` and `Layout` renders it. A `renderer` edge is reported only when the source proves
+  it, and otherwise the element is listed as unresolved with the reason, so a missing renderer edge costs recall
+  and never makes a wrong one. It is proven when
+  - the element is part of what a component returns, through host elements, fragments (`<>`, React's `Fragment`,
+    `Suspense`, `StrictMode`, `Profiler`), `cond && <X />`, `||`, `??`, conditionals, and the callback of a `.map`
+    on a value known to be an array: that component is the renderer, and also the creator;
+  - the element is a child of `<P>...</P>`, and `P` is a function component that puts its `children` prop (`children`,
+    `props.children`, `{ children: kids }`) where it returns it the same way (or hands it to another component that
+    does): `P` is the renderer, not the component that wrote the child;
+  - the element is what a function written as a prop returns, `<List render={(row) => <Item />} />`, and `List` calls
+    that prop where it places the result (`{render(row)}`, `props.render(row)`): `List` is the renderer. A call in an
+    event handler or an effect is not render time and proves nothing.
+
+  A function is a component, so that what it returns is rendered inside it, when some element in the repo names it
+  and nothing in the repo calls it as a function or hands it on by name as a prop (`render={Home}`). Not proven, so
+  unresolved: the element passed to a function (`mount(<Page />)`), assigned or stored first, children given to a
+  wrapper from outside the repo (`styled.ul`), a context consumer, a component that does not place the prop, a
+  `.map` whose receiver is not known to be an array, and any file the parser had to recover from. The children of an
+  element that is itself an argument of `cloneElement`, `createElement` or `Children.map` (and `forEach`, `toArray`,
+  `only`) get no `renderer` edge, because those calls may replace them; the `renders` edges stay. A prop the
+  component assigns anywhere in its body, in any order (`children = x`, `props = { ...props }`, `props.children = x`,
+  `delete props.x`, `Object.assign(props, x)`, in a loop or in a function declared below), is not what the caller
+  passed, so nothing the component does with it is proven.
+
+  All of this is React's order of work: a component runs when React renders it, not when its element is made. A file
+  whose JSX is compiled by another runtime (a `@jsx h` or `@jsxImportSource` pragma that is not React's, or a
+  tsconfig `jsxFactory`, `jsxFragmentFactory` or `jsxImportSource` that is not) gets `renders` edges only, and its
+  elements are unresolved with a reason that names the runtime. A bundler's own JSX setting outside tsconfig is not read.
+
+Class components, `memo`, `forwardRef`, `lazy`, styled wrappers, `Context.Consumer` and `cloneElement` are not in
+the benchmark fixture, which has function components only, so they are checked only by small inline snippets
+(`tests/test_ts_jsx.py`), and implemented to resolve only what is provable. A class component's creator edges come
+from its `render` method (`Box.render -> Child`) and the renderer is the class React instantiates (`Box -> Child`),
+when it extends React's `Component` or `PureComponent` (imported as `Component`, `React.Component`, `* as React` or
+under an alias). That is the class a tag names, so a class that inherits `render` from a base is the renderer, never the
+base that defines it, and a class no element names, or whose `render` is called by hand (`this.render()`,
+`super.render()`, `card.render()`), is not proven. `memo`, `forwardRef` and `lazy` are named by the variable the tag uses:
+`const X = memo(f)` resolves to `f` when `f` is a function ripple can see (a function written inside the call is
+named `X`), and `lazy(...)` is never resolved. A wrapper from outside the repo between a parent and its child leaves the
+renderer unresolved, never the outer component.
+
+Every query follows all kinds by default, and an entry with a JSX edge says which kinds it has and where each was
+written (`edge_kinds`, and `sites_by_kind` in the JSON; in the text, `renders at a.tsx:3; renderer at a.tsx:3`). `ripple index` counts the JSX edges apart ("93 resolved calls, 21 JSX edges, ...") and only when there are some. A
+`renderer` edge is placed at the line where the element is written, which can be in another file than its caller.
+`impact` follows every kind: a function that writes `<Child />` is affected when `Child` changes (it can break what
+it renders), and so is the component that renders it. `--kinds calls` gives the answer without JSX, and
+`--kinds renders` the creators alone. Elements whose tag or renderer is unresolved are in the `unresolved` list of
+`callees` (and in the count of unresolved calls) with a reason that starts "the JSX tag is not a component ripple can
+name" or "the component that renders it is not proven"; `impact` does not list an unproven renderer as a possible
+missed caller, since its creator is already a caller.
+
+**Measured** on the fixture, against ground truth derived by hand from the source and checked against a React 19 run
+of its tests (`python -m bench.ts_score`): `renders` 12 expected, 12 reported, precision 1.000, recall 1.000;
+`renderer` 9 expected, 9 reported, precision 1.000, recall 1.000. The fixture has the cases where the two kinds
+differ on purpose (children placed by a wrapper, a render prop). Read by hand against the source, without a runtime
+recorder, on four real libraries (react-pro-sidebar, react-hot-toast, react-accessible-accordion,
+react-error-boundary): 69 `renderer` edges, grouped by the pattern each is written in, and well over 20 `renders` edges,
+none found false; the edges ripple left out there are the cost of not guessing, such as children handed to a
+component that spreads its props.
 
 **Both languages in one repo** are indexed each with its own profile and merged into one graph; the cache
 keeps one entry per language (the Python one is named as it always was, so a Python repo's cache and output
@@ -569,8 +645,8 @@ In every case ripple reports the call as unresolved with its reason and, for `im
 
 ## Next
 
-- **TypeScript, further**: JSX `renders` edges between components, and jest and vitest collection, so that
-  `impact` lists the tests that reach a symbol and `check` can run them.
+- **TypeScript, further**: jest and vitest collection, so that `impact` lists the tests that reach a symbol and
+  `check` can run them.
 
 ## Development
 
