@@ -908,6 +908,7 @@ RENAMES = {
     "24-tsyringe-rename-transform": ("transform", "convert"),
     "25-tsyringe-rename-registry": ("registry", "registerAll"),
     "26-react-pro-sidebar-rename-submenu": ("SubMenu", "MenuGroup"),
+    "27-react-pro-sidebar-rename-usemediaquery": ("useMediaQuery", "useMatchMedia"),
 }
 RENAME_PARAMS = [
     pytest.param(tid, old, new, id=tid, marks=pytest.mark.skipif(tid not in TASKS or not TASKS[tid].available, reason="needs the pinned repository: python -m eval.fetch"))
