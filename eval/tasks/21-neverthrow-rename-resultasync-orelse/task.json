@@ -1,0 +1,7 @@
+{
+  "id": "21-neverthrow-rename-resultasync-orelse",
+  "repo": "neverthrow",
+  "prompt": "Rename the instance method `ResultAsync.orElse` (in src/result-async.ts) to `ResultAsync.recoverWith`. Update every call to it anywhere in the repository, including tests/typecheck-tests.ts, which `npm run test-types` compiles. `Ok.orElse`, `Err.orElse` and the `orElse` of the `IResult` interface (all in src/result.ts) are different methods and keep their name. Do not keep `orElse` as an alias on `ResultAsync`. The test suite must pass when you are done.",
+  "min_tests": 117,
+  "why": "`orElse` is four methods: ResultAsync.orElse (4 declarations, 3 overload signatures and the implementation, and 11 calls: 3 in tests/index.test.ts, 8 in tests/typecheck-tests.ts) among Ok.orElse, Err.orElse and IResult.orElse (8 declarations and 10 calls) that keep their name. The receivers are variables and call chains, never a class name, so only the type tells them apart: `okVal.orElse` is an Ok in one describe block of tests/index.test.ts, an Err in the next and a ResultAsync in a third, and `initial.orElse` is an Err at tests/typecheck-tests.ts:385 and a ResultAsync at :1685. 8 of the 11 calls are in tests/typecheck-tests.ts, which vitest never collects (only `tsc` reads it), so the suite passes with every one of them stale. The describe titles that say `orElse` are look-alikes that keep their text. ripple resolves the receiver's type."
+}

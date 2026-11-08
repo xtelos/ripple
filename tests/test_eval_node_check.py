@@ -895,3 +895,45 @@ def test_the_agent_harness_refuses_a_node_task_until_its_environment_is_wired(tm
     with pytest.raises(SystemExit):
         run_mod.main(["--tasks", PILOT_ID, "--repeats", "1", "--out", str(tmp_path / "x.json")])
     assert "cannot run node tasks yet" in capsys.readouterr().err
+
+
+# ------------------------------------------------------------------ the rename tasks over node repos, one grade each way
+
+# task id -> (old name, new name): the rename the task asks for, which a text rename of the old name over every
+# source file would also apply to look-alikes the task says keep theirs
+RENAMES = {
+    "21-neverthrow-rename-resultasync-orelse": ("orElse", "recoverWith"),
+}
+RENAME_PARAMS = [
+    pytest.param(tid, old, new, id=tid, marks=pytest.mark.skipif(tid not in TASKS or not TASKS[tid].available, reason="needs the pinned repository: python -m eval.fetch"))
+    for tid, (old, new) in RENAMES.items()
+]
+
+
+def text_rename(repo: Path, old: str, new: str) -> int:
+    """What a sed over every source file does: each file that spells `old` as a word now spells `new`."""
+    changed = 0
+    for path in sorted(repo.rglob("*")):
+        if "node_modules" in path.relative_to(repo).parts or path.is_symlink() or not path.is_file():
+            continue
+        if re.search(r"\.[cm]?[jt]sx?$", path.name):
+            text = path.read_text()
+            out = re.sub(rf"\b{old}\b", new, text)
+            if out != text:
+                path.write_text(out)
+                changed += 1
+    return changed
+
+
+@pytest.mark.parametrize("tid, old, new", RENAME_PARAMS)
+@needs_node
+def test_a_rename_task_passes_with_the_reference_and_fails_untouched_and_under_a_text_rename(tid, old, new, tmp_path):
+    task = TASKS[tid]
+    reference = check_task(task, an_agent_copy(task, tmp_path, "reference"))
+    assert reference["success"] and reference["tests_passed"] >= task.min_tests and reference["tests_lost"] == 0, reference
+    untouched = check_task(task, an_agent_copy(task, tmp_path, "untouched", solved=False))
+    assert not untouched["success"] and not untouched["hidden_passed"], untouched
+    naive = an_agent_copy(task, tmp_path, "naive", solved=False)
+    assert text_rename(naive, old, new) > 0
+    verdict = check_task(task, naive)
+    assert not verdict["success"] and not verdict["hidden_passed"], verdict
