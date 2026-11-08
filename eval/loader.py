@@ -24,7 +24,7 @@ EVAL_DIR = Path(__file__).resolve().parent
 REPO_ROOT = EVAL_DIR.parent
 TASKS_DIR = EVAL_DIR / "tasks"
 REQUIRED = ("id", "prompt", "min_tests", "why")
-IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", ".pytest_cache")
+IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", ".pytest_cache", "node_modules")
 FIXTURE_TIMEOUT, REAL_TIMEOUT = 180, 900  # seconds for each of the two test runs in the check
 
 
@@ -123,6 +123,8 @@ def copy_fixture(task: Task, dest: Path) -> Path:
     if not task.available:
         raise FileNotFoundError(f"{task.id}: {task.fixture} is not there; run `python -m eval.fetch`")
     shutil.copytree(task.fixture, dest, symlinks=True, ignore=IGNORE)
+    if task.spec and task.spec.is_node:
+        task.spec.link_deps(dest)  # node_modules is a link to the read-only cached install, never a copy
     return dest
 
 

@@ -458,6 +458,14 @@ hierarchy overridden across dozens of modules). They are in `eval/tasks/11-*` to
   tzdata, pluggy and so on) resolve at fetch time and are not locked, so two fetches on different days
   can differ there. A venv counts as built only once its install finished (a `.ripple-ready` file in it),
   so re-run `python -m eval.fetch` after an interrupted fetch, or to upgrade an older cache.
+- **Node repos.** An entry with `"runtime": "node"` names a test runner (`vitest` or `jest`) and a
+  `package-lock.json` kept under `eval/lockfiles/<name>/`, because not every upstream commits one.
+  `python -m eval.fetch` copies that lockfile into the checkout and runs `npm ci --ignore-scripts` (no
+  package script ever runs) into `$RIPPLE_EVAL_CACHE/deps/<name>-<key>/`, where the key hashes the
+  lockfile, and then makes that directory read-only. A working copy gets `node_modules` as a symlink to it,
+  never a copy, and vitest runs with `--no-cache` because before vitest 4 it writes a results cache into
+  `node_modules`. Needs npm; `--verify` runs the suite from a scratch copy and prints the runner's
+  `Tests` line.
 - **Hard on grep.** Each task is a rename or a parameter rename whose true callers are known and spread
   over 4 to 20 files, and each goes through something that defeats grep: a same-named method on another
   class (`Style.parse` next to `Color.parse`), a decoy that must not change (`Dialect.format_time` and a
