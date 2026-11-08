@@ -189,7 +189,7 @@ class NoTestCollection:
 def _no_test_command(repo: Path) -> list[str]:
     raise ValueError(
         "ripple does not know how to run TypeScript tests yet: pass the command that runs them "
-        "(for example `npx vitest run`)"
+        "(`--test-command` or RIPPLE_TEST_COMMAND, for example `npx vitest run`)"
     )
 
 

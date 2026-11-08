@@ -68,7 +68,17 @@ def walk_repo(repo: Path, profile: LanguageProfile = PYTHON) -> tuple[list[Path]
     The skipped list is for reporting, so it leaves out hidden directories,
     __pycache__ and *.egg-info: they never hold source and would be noise.
     """
-    files, skipped = [], []
+    files, skipped = walk_languages(repo, [profile])
+    return files[profile.name], skipped
+
+
+def walk_languages(repo: Path, profiles: list[LanguageProfile]) -> tuple[dict[str, list[Path]], list[str]]:
+    """One walk of the repo for several languages: ({profile name: its source files}, the skipped directories).
+
+    The skipped directories do not depend on the language, so a repo that holds two is walked once.
+    """
+    files: dict[str, list[Path]] = {profile.name: [] for profile in profiles}
+    skipped = []
     for dirpath, dirnames, filenames in os.walk(repo):
         here = Path(dirpath)
         keep = []
@@ -82,12 +92,32 @@ def walk_repo(repo: Path, profile: LanguageProfile = PYTHON) -> tuple[list[Path]
         dirnames[:] = keep
         # isfile follows symlinks, so a dangling or looping link, a named pipe
         # (reading one blocks forever) and a directory called x.py are all left out.
-        files.extend(
-            here / f
-            for f in sorted(filenames)
-            if f.endswith(profile.source_suffixes) and not f.endswith(profile.excluded_suffixes) and _may_be_file(here / f)
-        )
+        for profile in profiles:
+            files[profile.name].extend(
+                here / f
+                for f in sorted(filenames)
+                if f.endswith(profile.source_suffixes)
+                and not f.endswith(profile.excluded_suffixes)
+                and _may_be_file(here / f)
+                and _reads_as_source(here / f, profile)
+            )
     return files, sorted(skipped)
+
+
+def _reads_as_source(path: Path, profile: LanguageProfile) -> bool:
+    """False for a `.ts` file that is not TypeScript, by its first bytes. The suffix is shared: a Qt Linguist
+    translation file is XML (`<?xml`, `<!DOCTYPE TS>` or `<TS`), and a transport stream (video) is
+    binary. Neither is read, counted or warned about. Any other file, and a file that cannot be opened (so
+    that reading it fails and is reported with the unparsable ones), counts as source."""
+    if profile.front_end != "typescript" or not path.name.endswith(".ts"):
+        return True
+    try:
+        with open(path, "rb") as handle:
+            head = handle.read(512)
+    except OSError:
+        return True
+    head = head.removeprefix(b"\xef\xbb\xbf").lstrip()
+    return b"\0" not in head and not head.startswith((b"<?xml", b"<!DOCTYPE TS", b"<TS"))
 
 
 def _holds_venv_or_is_locked(directory: Path) -> bool:

@@ -63,6 +63,7 @@ from .profile import TYPESCRIPT, LanguageProfile
 from .ts_modules import ModuleMap
 
 INSTALL_HINT = "pip install 'ripple-code[typescript]'"
+REINSTALL = f"it needs tree-sitter>=0.25,<0.27 and tree-sitter-typescript>=0.23.2,<0.24, which {INSTALL_HINT} installs"
 PACKAGE = "pkg:"  # what a module id never starts with: the target of an import from outside the repo
 
 THIS_REBOUND = "the receiver is `this` inside a function expression, which binds its own `this`"
@@ -93,11 +94,21 @@ def load_parsers() -> tuple:
         try:
             import tree_sitter_typescript as grammar
             from tree_sitter import Language, Parser
-        except ImportError as error:
+        except ModuleNotFoundError as error:
             raise TypeScriptNotInstalled(
                 f"TypeScript support is not installed (missing module: {error.name}); install it with: {INSTALL_HINT}"
             ) from error
-        _PARSERS = (Parser(Language(grammar.language_typescript())), Parser(Language(grammar.language_tsx())))
+        except ImportError as error:
+            raise TypeScriptNotInstalled(
+                f"TypeScript support cannot be loaded (a tree-sitter that does not fit: {error}); {REINSTALL}"
+            ) from error
+        try:
+            _PARSERS = (Parser(Language(grammar.language_typescript())), Parser(Language(grammar.language_tsx())))
+        except Exception as error:  # noqa: BLE001 (an ABI mismatch is a ValueError, an old API a TypeError, a bad library an OSError)
+            raise TypeScriptNotInstalled(
+                f"TypeScript support cannot be loaded (tree-sitter and its grammar do not fit: "
+                f"{type(error).__name__}: {error}); {REINSTALL}"
+            ) from error
     return _PARSERS
 
 

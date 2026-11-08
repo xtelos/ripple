@@ -1,11 +1,17 @@
 """Command-line entry point: the same queries as the MCP tools, for humans.
 
-    ripple index <repo> [--reasons]
-    ripple callers|callees <symbol> [--repo DIR] [--json]
-    ripple impact <symbol> [--depth N] [--limit N] [--repo DIR] [--json]
-    ripple path <source> <target> [--repo DIR] [--json]
-    ripple check [TEST ...] [--repo DIR] [--test-command CMD]
-    ripple serve [--repo DIR] [--test-command CMD]
+    ripple index <repo> [--reasons] [--lang auto|python|typescript]
+    ripple callers|callees <symbol> [--repo DIR] [--json] [--lang L]
+    ripple impact <symbol> [--depth N] [--limit N] [--repo DIR] [--json] [--lang L]
+    ripple path <source> <target> [--repo DIR] [--json] [--lang L]
+    ripple check [TEST ...] [--repo DIR] [--test-command CMD] [--lang L]
+    ripple serve [--repo DIR] [--test-command CMD] [--lang L]
+
+--lang (default auto, or RIPPLE_LANG) picks the language the repo is read as; auto looks at its files and
+reads a repo that has both as both. Exit status: 0 done, 1 not found or the tests failed, 2 refused
+(no such repo, nothing to read, a missing parser, a command that is not allowed), 3 answered, but part of
+the repo was left out (a language whose parser is not installed or cannot load, or ids both languages
+define): the output says which.
 """
 
 from __future__ import annotations
@@ -17,10 +23,12 @@ import sys
 from collections import Counter
 
 from . import queries
-from .cache import load_graph
+from .cache import load_repo
 from .checker import run_check
+from .languages import CHOICES, SHOWN_UNPARSABLE, RepoError, RepoGraph, check_profile, module_collisions, plural, with_warnings
 
 MORE = "  ... and {n} more {what} not listed; raise --limit to see them"
+PARTIAL_EXIT = 3
 
 
 def _print_lookup_error(result: dict) -> None:
@@ -39,26 +47,60 @@ def format_reasons(graph) -> list[str]:
     return lines
 
 
-def format_index(repo: str, graph, cached: bool, reasons: bool = False) -> str:
+def format_languages(result: RepoGraph) -> list[str]:
+    """Each language's files read (the unparsable ones among them, counted the same way for both languages),
+    when the repo has more than Python (a Python repo's report is as it was)."""
+    lines = ["languages:"]
+    for language in result.languages:
+        if language.skipped:
+            lines.append(f"  {language.label}: {plural(language.found, 'file')} found, not indexed")
+            continue
+        line = f"  {language.label}: {plural(language.files, 'file')}"
+        if language.parse_errors:
+            line += f" ({len(language.parse_errors)} could not be parsed)"
+        lines.append(line)
+    return lines
+
+
+def format_unparsable(result: RepoGraph, named: bool) -> list[str]:
+    """Each language's unparsable files, one per line, the first SHOWN_UNPARSABLE of them."""
+    lines = []
+    for language in result.languages:
+        errors = language.parse_errors
+        if not errors:
+            continue
+        where = f"{language.label}, " if named else ""
+        lines.append(f"could not parse ({where}{plural(len(errors), 'file')}):")
+        lines += [f"  {file}" for file in errors[:SHOWN_UNPARSABLE]]
+        if len(errors) > SHOWN_UNPARSABLE:
+            lines.append(f"  ... and {len(errors) - SHOWN_UNPARSABLE} more")
+    return lines
+
+
+def format_index(repo: str, result: RepoGraph, reasons: bool = False) -> str:
+    graph = result.graph
     stats = graph.stats()
     kinds = ", ".join(f"{n} {k}" for k, n in stats["symbols"].items())
     lines = [
         f"{repo}: {stats['files']} files, {kinds}",
         f"{stats['edges']} resolved calls, {stats['unresolved_calls']} unresolved calls, "
         f"{stats['external_calls']} calls to code outside the repo",
-        "(loaded from cache)" if cached else "(indexed)",
+        "(loaded from cache)" if result.cached else "(indexed)",
     ]
-    if graph.parse_errors:
-        lines.append("could not parse: " + ", ".join(graph.parse_errors))
+    named = any(language.name != "python" for language in result.languages)
+    if named:
+        lines += format_languages(result)
+    lines += format_unparsable(result, named)
     if graph.skipped_dirs:
         shown = ", ".join(graph.skipped_dirs[:10])
         more = f" and {len(graph.skipped_dirs) - 10} more" if len(graph.skipped_dirs) > 10 else ""
         lines.append(f"skipped directories (not indexed): {shown}{more}")
-    collisions = graph.module_collisions()
+    collisions = module_collisions(graph)
     if collisions:
         lines.append("warning: files share a module name, so their symbols share ids:")
         for module, files in collisions.items():
             lines.append(f"  {module}: {', '.join(files)}")
+    lines += [f"warning: {warning}" for warning in result.warnings]
     if reasons:
         lines += format_reasons(graph)
     return "\n".join(lines)
@@ -118,7 +160,7 @@ def format_result(command: str, result: dict) -> str:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="ripple", description="Call graph and impact analysis for Python repos.")
+    parser = argparse.ArgumentParser(prog="ripple", description="Call graph and impact analysis for Python and TypeScript repos.")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("index", help="index a repository and print what was found")
@@ -155,33 +197,51 @@ def build_parser() -> argparse.ArgumentParser:
             help="test command (default: python -m pytest -q, using the repo's .venv if present)",
         )
         p.add_argument("--timeout", type=float, default=300, help="seconds before the test run is killed")
+
+    for p in sub.choices.values():
+        p.add_argument(
+            "--lang",
+            choices=CHOICES,
+            default=os.environ.get("RIPPLE_LANG", "auto"),
+            help="language to read the repo as (default: auto, from the files it has; env RIPPLE_LANG)",
+        )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    try:
+        return run(args)
+    except RepoError as error:
+        # stderr: for `serve` stdout is the protocol channel, and an error is not an answer to a query
+        print(f"ripple: {error}", file=sys.stderr)
+        return 2
 
+
+def run(args: argparse.Namespace) -> int:
     if args.command == "serve":
         from .server import build_server  # imported here so the CLI starts fast without the SDK
 
-        build_server(args.repo, args.test_command, args.timeout).run("stdio")
+        build_server(args.repo, args.test_command, args.timeout, args.lang).run("stdio")
         return 0
 
     if args.command == "check":
+        profile = check_profile(args.repo, args.lang)
         try:
-            result = run_check(args.repo, command=args.test_command, timeout=args.timeout, tests=args.tests)
+            result = run_check(args.repo, command=args.test_command, timeout=args.timeout, tests=args.tests, profile=profile)
         except ValueError as error:
             print(error)
             return 2
         print(json.dumps(result, indent=2))
         return 0 if result["passed"] else 1
 
+    loaded = load_repo(args.repo, lang=args.lang)
+    exit_code = PARTIAL_EXIT if loaded.incomplete else 0
     if args.command == "index":
-        graph, cached = load_graph(args.repo)
-        print(format_index(args.repo, graph, cached, args.reasons))
-        return 0
+        print(format_index(args.repo, loaded, args.reasons))
+        return exit_code
 
-    graph, _ = load_graph(args.repo)
+    graph = loaded.graph
     if args.command == "path":
         result = queries.path(graph, args.source, args.target)
     elif args.command == "impact":
@@ -189,11 +249,15 @@ def main(argv: list[str] | None = None) -> int:
     else:
         result = getattr(queries, args.command)(graph, args.symbol)
 
+    # What the answer does not cover goes with it: in the JSON, and on stderr beside the text.
+    if "error" in result or not args.json:
+        for warning in loaded.warnings:
+            print(f"warning: {warning}", file=sys.stderr)
     if "error" in result:
         _print_lookup_error(result)
         return 1
-    print(json.dumps(result, indent=2) if args.json else format_result(args.command, result))
-    return 0
+    print(json.dumps(with_warnings(result, loaded.warnings), indent=2) if args.json else format_result(args.command, result))
+    return exit_code
 
 
 if __name__ == "__main__":

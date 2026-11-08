@@ -106,6 +106,17 @@ def find_symbol(graph: Graph, query: str) -> dict:
     is only one symbol's. More than one symbol is never picked between: they are listed.
     """
     query = query.strip()
+    found = _find(graph, query)
+    if found.get("symbol") in graph.ambiguous_ids:
+        files = ", ".join(graph.ambiguous_ids[found["symbol"]])
+        return {
+            "error": f"both languages define '{found['symbol']}' ({files}), so ripple cannot tell their callers "
+            "apart and does not answer for it; ask about a symbol inside one of the files",
+        }
+    return found
+
+
+def _find(graph: Graph, query: str) -> dict:
     if query in graph.symbols:
         return {"symbol": query}
     matches = _matches(graph, query)
