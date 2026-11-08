@@ -124,6 +124,9 @@ class TsConfig:
     paths: dict[str, list[str]] = field(default_factory=dict)
     problem: str = ""  # why the config could not be read, "" when it was (or was not there)
     files: list[str] = field(default_factory=list)
+    # why JSX is not compiled to React's calls, "" when it is (or nothing says otherwise): a jsxFactory, jsxFragmentFactory
+    # or jsxImportSource that names something else
+    jsx_runtime: str = ""
 
 
 def _inside(repo: Path, rel: str) -> bool:
@@ -169,6 +172,9 @@ def _read_options(repo: Path, rel: str, seen: list[str]) -> tuple[dict, str]:
         base = options.get("baseUrl")
         if isinstance(base, str):
             merged["baseUrl"] = posixpath.normpath(posixpath.join(here, base))
+        for name in ("jsxFactory", "jsxFragmentFactory", "jsxImportSource"):
+            if isinstance(options.get(name), str):
+                merged[name] = options[name]
         paths = options.get("paths")
         if isinstance(paths, dict):
             # a target is relative to baseUrl when there is one, else to the config that wrote paths
@@ -191,7 +197,11 @@ def load_tsconfig(repo: Path) -> TsConfig:
     paths = {}
     for pattern, targets in options.get("paths", {}).items():
         paths[pattern] = [posixpath.normpath(posixpath.join(root, t)) for t in targets]
-    return TsConfig(base_url=base, paths=paths, problem=problem, files=[f for f in seen if _inside(repo, f)])
+    runtime = ""
+    for name, react in (("jsxFactory", "React.createElement"), ("jsxFragmentFactory", "React.Fragment"), ("jsxImportSource", "react")):
+        if name in options and options[name] != react:
+            runtime = runtime or f"tsconfig.json sets {name} {options[name]}, not React's runtime, so when a component runs is not known"
+    return TsConfig(base_url=base, paths=paths, problem=problem, files=[f for f in seen if _inside(repo, f)], jsx_runtime=runtime)
 
 
 def config_files(repo: Path) -> list[str]:

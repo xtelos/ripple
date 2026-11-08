@@ -526,7 +526,7 @@ def test_a_test_function_imported_from_the_runner_is_still_a_test_and_a_repo_fun
 
 # ---- files
 
-def test_a_tsx_file_is_read_without_render_edges_and_calls_inside_jsx_are_found(make_repo):
+def test_a_tsx_file_is_read_calls_inside_jsx_are_found_and_an_element_is_a_render_edge_not_a_call(make_repo):
     graph = index(
         make_repo,
         {
@@ -542,7 +542,8 @@ def test_a_tsx_file_is_read_without_render_edges_and_calls_inside_jsx_are_found(
         },
     )
     assert graph.parse_errors == []
-    assert edges(graph) == {("src/ui:Row", "src/ui:pct")}  # <Badge/> is not a call
+    assert {(e.caller, e.callee) for e in graph.edges if e.kind == "call"} == {("src/ui:Row", "src/ui:pct")}  # <Badge/> is not a call
+    assert {(e.caller, e.callee) for e in graph.edges if e.kind == "renders"} == {("src/ui:Row", "src/ui:Badge")}
 
 
 def test_a_file_with_a_parse_error_contributes_what_it_can_and_is_listed_unparsable(make_repo):
