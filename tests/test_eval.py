@@ -49,9 +49,9 @@ def graded(tasks):
     return [pytest.param(t, id=t.id, marks=pytest.mark.skipif(not t.available, reason=NO_CACHE)) for t in tasks]
 
 
-def test_twenty_one_tasks_with_unique_ids_and_prompts():
-    assert len(TASKS) == 21 and len(REAL) == 11
-    assert len({t.id for t in TASKS}) == 21
+def test_twenty_two_tasks_with_unique_ids_and_prompts():
+    assert len(TASKS) == 22 and len(REAL) == 12
+    assert len({t.id for t in TASKS}) == 22
     assert all(t.prompt.strip() and t.why.strip() for t in TASKS)
 
 
@@ -59,7 +59,7 @@ def test_real_repo_tasks_are_pinned_and_each_has_a_patch_solution():
     repos = load_repos()
     python_repos = {name for name, r in repos.items() if r.runtime == "python"}
     assert python_repos == {t.spec.name for t in REAL if not t.is_node} == {"rich", "werkzeug", "sqlglot"}
-    assert {t.spec.name for t in REAL if t.is_node} == {"neverthrow"}  # the pilot; the other node repos have no tasks yet
+    assert {t.spec.name for t in REAL if t.is_node} == {"neverthrow", "superstruct"}  # tsyringe and react-pro-sidebar have no tasks yet
     assert all(len(r.sha) == 40 and r.url.startswith("https://") for r in repos.values())
     assert all(t.solution_patch.is_file() and not t.solution.exists() for t in REAL)
     assert all(t.fixture.name == f"{t.spec.name}-{t.spec.sha[:12]}" for t in REAL)
