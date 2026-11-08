@@ -29,6 +29,14 @@ passed by name is a call only to a builtin that runs it at once, and only as its
 not the `init` of `xs.reduce(f, init)`). A field, a parameter property or `this.x = ...` is an own property
 of the object: it hides a method of that name in a base class, and a call through it stays unresolved.
 
+JSX (.tsx) makes two more kinds of edge, `renders` and `renderer`, written by this front end as JsxElement facts
+(jsx_facts.py) and decided by jsx.py: `<Child />` written in a function is a fact of that function (an anonymous
+function inside it counts as it, as for calls), carrying the tag as a reference, read with the same scoping as a
+call's callee, and a Placement: where the element ends up in what React renders, read off the syntax around it. A
+component also records the placements of its own `children`, its other props, and of the calls of function props.
+A name that starts with a lowercase letter is a host element (<div />), never a component, and a member of `this` is
+not followed.
+
 Not supported (the call is unresolved or the code is skipped, never guessed): decorators (applied
 members are not resolved), class fields that hold an arrow function, class expressions, object literal
 methods, enums, namespaces, `require`, and a tsconfig `extends` that names a package.
@@ -52,12 +60,12 @@ from .facts import (
     VARIADIC,
     Binding,
     CallbackCall,
-    ExportingModule,
     RawCall,
     Scope,
     TypeRef,
     unknown_ref,
 )
+from .jsx_facts import JsxElement, JsxModule, JsxScope, Placement
 from .model import Graph
 from .profile import TYPESCRIPT, LanguageProfile
 from .ts_modules import ModuleMap
@@ -78,6 +86,8 @@ TYPE_DECLARED = "the receiver is named like an interface, type, enum or namespac
 OWN_NAME = "the receiver is the name of a function expression, which is the function itself"
 DESTRUCTURED = "the receiver is destructured from an object or array, whose type ripple does not follow"
 CALLBACK_PARAMETER = "the receiver is a parameter of an anonymous function, whose type ripple does not infer"
+THIS_TAG = "the tag is a member of `this`, which ripple does not follow for components"
+COMPUTED_TAG = "the tag is not a name or a dotted name"
 
 
 class TypeScriptNotInstalled(ImportError):
@@ -332,6 +342,24 @@ SKIPPED = {
     "identifier",
     "property_identifier",
 }
+WHERE_NOT_FOLLOWED = {
+    "arguments": "it is passed to a function, which may do anything with it",
+    "variable_declarator": "it is assigned to a variable",
+    "assignment_expression": "it is assigned",
+    "array": "it is an item of an array",
+    "pair": "it is the value of a property of an object",
+    "expression_statement": "it is a statement of its own",
+    "await_expression": "it is awaited",
+    "sequence_expression": "it is part of a sequence of expressions",
+    "template_substitution": "it is part of a string",
+    "spread_element": "it is spread",
+    "yield_expression": "it is yielded",
+}
+RETURNING_CALLBACKS = {"map", "flatMap"}  # the callback's result is an item of the array the call returns
+JSX_PRAGMA = re.compile(r"@(jsx|jsxImportSource|jsxFrag|jsxRuntime)[ \t]+([^\s*]+)")
+REACT_PRAGMAS = {"jsx": "React.createElement", "jsxImportSource": "react", "jsxFrag": "React.Fragment"}
+MUTATORS = (["Object", "assign"], ["Object", "defineProperty"], ["Object", "defineProperties"], ["Object", "setPrototypeOf"])
+HOST_TAG = re.compile(r"[a-z]")  # a JSX tag that starts with a lowercase letter is a host element, whatever it is called
 ACCESSOR_NAME = re.compile(r"\b(?:get|set)\s+#?([A-Za-z_$][\w$]*)\s*[(<]")
 
 
@@ -339,13 +367,15 @@ class FileBuilder:
     """Reads one parsed file and writes the Scope records of its module and everything inside."""
 
     def __init__(self, module: str, file: str, root, modules: ModuleMap, accessors: set, profile: LanguageProfile):
-        self.module = ExportingModule(module, "module", module, file, 1, max(root.end_point[0] + 1, 1), None)
+        self.module = JsxModule(module, "module", module, file, 1, max(root.end_point[0] + 1, 1), None)
         self.scopes: dict[str, Scope] = {module: self.module}
         self.stack: list[Scope] = [self.module]
         self.modules = modules
         self.accessors = accessors
         self.profile = profile
         self.file = file
+        self.damaged = root.has_error  # tree-sitter recovered from a syntax error: where an element is placed is not trusted
+        self.runtime = self._runtime_problem(root)  # why this file's JSX is not React's, "" when it is
         self.titles: list[str] = []  # the describe() titles whose callbacks are being read
         self.rebinds_this = 0  # inside a function expression, which has a `this` of its own
         self.exports: list[tuple[str, str]] = []  # (exported name, local name), settled when the file is read
@@ -354,6 +384,10 @@ class FileBuilder:
         self.counter = 0
         self.statics: dict[str, bool] = {}  # scope id -> whether it is a static member
         self.own_accessors: dict[str, set] = {}  # class id -> the names it declares with get or set
+        self.fn_nodes: dict[str, int] = {}  # scope id -> the tree-sitter id of the function node it is
+        self.call_nodes: dict[int, RawCall] = {}  # tree-sitter id of a call expression -> the call recorded for it
+        self.jsx_nodes: dict[int, JsxElement] = {}  # tree-sitter id of a component element -> its fact
+        self.props: dict[str, tuple[dict, str | None]] = {}  # scope id -> ({local name: prop key}, name of the props object)
         for node in named(root):
             self.visit(node)
         for exported, local in self.exports:
@@ -545,7 +579,7 @@ class FileBuilder:
                 sid = f"{self._child_id(parent, name)}#{n}"
         if existing is not None:
             return existing
-        scope = Scope(sid, kind, parent.module, parent.file, line_of(node), node.end_point[0] + 1, parent.id)
+        scope = JsxScope(sid, kind, parent.module, parent.file, line_of(node), node.end_point[0] + 1, parent.id)
         self.scopes[sid] = scope
         self.statics[sid] = static
         if scope_id is None:
@@ -751,6 +785,8 @@ class FileBuilder:
         """A named function, method or accessor: its scope, its parameters, its body."""
         parent = self.scope
         scope = self._enter(name, kind, node, variable=kind != "method", static=static)
+        self.fn_nodes[scope.id] = node.id
+        self.props[scope.id] = self._prop_names(node)
         hint = self._hint_name(annotation_type(field_of(node, "return_type")))
         annotated = field_of(node, "return_type") is not None
         # The same bookkeeping Python's def does: a getter is a def that is a property, a setter is a def that is
@@ -785,6 +821,7 @@ class FileBuilder:
         if scope.defs == 1:
             scope.params = names
         self._body(field_of(node, "body"))
+        self._drop_mutated_props(node, scope)
         self._pop()
         self.stack.pop()
         return scope
@@ -797,6 +834,7 @@ class FileBuilder:
                 self.visit(stmt)
         else:
             self.visit(body)
+            self._place_props(body)
 
     def _parameters(self, node, scope: Scope, defining: str) -> list[str]:
         """Bind the parameters in scope, visit their defaults there (a default runs in the callee), and
@@ -1087,6 +1125,8 @@ class FileBuilder:
             if value is not None and inner(value).type in FUNCTION_VALUES:
                 self._function(inner(value), name)  # const f = () => ...: the function is named f
                 return
+            if value is not None and inner(value).type == "call_expression" and self._wrapped_component(name, inner(value)):
+                return
             if value is not None:
                 self.visit(value)
             if type_node is not None:
@@ -1357,10 +1397,16 @@ class FileBuilder:
                     call = RawCall(None, short(func), line, special="computed", why=why)
         if call is not None:
             here.calls.append(call)
+            self.call_nodes[node.id] = call
             self._callbacks(call, func, args, here)
         self._visit_callee(func)
         if args is not None:
             self.generic(args)
+        key = self._prop_key(func)
+        if key is not None:  # render(row): the result of a function prop, wherever this component places it
+            placement = self._placement(node)
+            if placement.kind != "none":
+                self.scope.prop_calls.setdefault(key, []).append(placement)
 
     def _visit_callee(self, func) -> None:
         """What a callee expression itself calls or reads: a.b().c reads a.b's call, never `c` as a property."""
@@ -1409,6 +1455,396 @@ class FileBuilder:
             self.visit(constructor)
         if args is not None:
             self.generic(args)
+
+    # ---- JSX ------------------------------------------------------------------------------
+    #
+    # A component element is read as a JsxElement of the function around it, and what the front end writes
+    # down is syntax only: the tag as a reference, and where the element is placed (see jsx_facts.Placement).
+    # Nothing here says which component renders it: that needs the resolver (jsx.py).
+
+    def visit_jsx_element(self, node) -> None:
+        opening = field_of(node, "open_tag")
+        if opening is None:
+            return
+        self._element(node, opening)
+        self._attributes(opening)
+        for child in named(node):
+            if child.type not in ("jsx_opening_element", "jsx_closing_element"):
+                self.visit(child)
+
+    def visit_jsx_self_closing_element(self, node) -> None:
+        self._element(node, node)
+        self._attributes(node)
+
+    def visit_jsx_expression(self, node) -> None:
+        self.generic(node)
+        for child in named(node):
+            self._place_props(child)
+
+    def visit_return_statement(self, node) -> None:
+        self.generic(node)
+        for child in named(node):
+            self._place_props(child)
+
+    def _attributes(self, opening) -> None:
+        """What an element's attributes read and call; the tag name and its type arguments are not expressions."""
+        name = field_of(opening, "name")
+        for child in named(opening):
+            if (name is not None and child.id == name.id) or child.type == "type_arguments":
+                continue
+            if child.type == "jsx_attribute":
+                self._handed(child)
+            self.visit(child)
+
+    def _handed(self, attribute) -> None:
+        """`render={Home}`: a name handed on as a prop. Whatever receives it may call it as a function."""
+        kids = named(attribute)
+        value = kids[-1] if len(kids) > 1 else None
+        if value is not None and value.type == "jsx_expression" and named(value):
+            chain = dotted(named(value)[0])
+            if chain and chain[0] != "this":
+                self.scope.handed.append(self._ref(chain))
+
+    def _transparent(self, name) -> bool:
+        """A tag whose element renders its children where it stands: a host element, or React's Fragment and the like."""
+        if self._host(name):
+            return True
+        chain = dotted(name) if name.type in ("identifier", "member_expression") else None
+        return self._react_name(chain) in self.profile.fragment_components
+
+    def _host(self, name) -> bool:
+        """A tag that is a host element: <div />, <my-element />, <svg:rect />."""
+        return name.type == "jsx_namespace_name" or (name.type == "identifier" and HOST_TAG.match(text(name)) is not None)
+
+    def _element(self, node, opening) -> None:
+        name = field_of(opening, "name")
+        if name is None or self._transparent(name):
+            return  # a fragment, or a host element: it is never a component
+        why = ""
+        chain = None
+        if name.type in ("identifier", "member_expression"):
+            parts = dotted(name)
+            if parts is None:
+                why = COMPUTED_TAG
+            elif parts[0] == "this":
+                why = THIS_TAG
+            else:
+                chain = parts
+        else:
+            why = COMPUTED_TAG
+        written = ".".join(chain) if chain else short(name)
+        element = JsxElement(self._ref(chain) if chain else None, written, line_of(node), why=why)
+        self.jsx_nodes[node.id] = element
+        element.placement = self._placement(node)
+        self.scope.jsx.append(element)
+
+    # -- where a value is placed
+
+    def _none(self, why: str) -> Placement:
+        return Placement("none", why=why)
+
+    def _placement(self, start) -> Placement:
+        """Where `start` (an element, or `children`, or a call of a function prop) ends up, by walking out of it through
+        what keeps it in the tree of the component that holds it. See jsx_facts.Placement for the places it can end."""
+        found = self._walk(start)
+        found.runtime = self.runtime
+        return found
+
+    def _runtime_problem(self, root) -> str:
+        """Why the JSX of this file is not compiled to React's calls (a pragma or the tsconfig names another factory or
+        import source), else "". Under another runtime a component may run when its element is made, not when React
+        renders it, so nothing that depends on React's order can be proven."""
+        if b"@jsx" in root.text:
+            for kind, value in JSX_PRAGMA.findall(text(root)):
+                if kind in REACT_PRAGMAS and value != REACT_PRAGMAS[kind]:
+                    return f"the file says @{kind} {value}, not React's runtime, so when a component runs is not known"
+        return self.modules.config.jsx_runtime
+
+    def _walk(self, start) -> Placement:
+        if self.damaged:
+            return self._none("the file has a syntax error that the parser recovered from, so the tree around it is not trusted")
+        node, hosts = start, []
+        while True:
+            parent = node.parent
+            if parent is None:
+                return self._none("it is not inside a function")
+            t = parent.type
+            if t in ("parenthesized_expression", "non_null_expression", "satisfies_expression", "as_expression"):
+                node = parent
+            elif t == "binary_expression":
+                right, operator = field_of(parent, "right"), field_of(parent, "operator")
+                if right is None or right.id != node.id or operator is None or text(operator) not in ("&&", "||", "??"):
+                    return self._none("it is an operand of an operator that does not hand it on")
+                node = parent
+            elif t == "ternary_expression":
+                branches = {c.id for c in (field_of(parent, "consequence"), field_of(parent, "alternative")) if c is not None}
+                if node.id not in branches:
+                    return self._none("it is the condition of a conditional expression")
+                node = parent
+            elif t == "jsx_element" or (t == "jsx_expression" and parent.parent is not None and parent.parent.type == "jsx_element"):
+                element = parent if t == "jsx_element" else parent.parent
+                outcome = self._child_of(element, hosts)
+                if isinstance(outcome, Placement):
+                    return outcome
+                node = outcome
+            elif t in ("jsx_attribute",) or (t == "jsx_expression" and parent.parent is not None and parent.parent.type == "jsx_attribute"):
+                return self._attribute(parent if t == "jsx_attribute" else parent.parent, False, hosts)
+            elif t == "jsx_expression":
+                return self._none("it is spread into the props of an element")
+            elif t == "return_statement" or (t == "arrow_function" and self._is_body(parent, node)):
+                function = parent
+                while function is not None and function.type not in FUNCTION_NODES:
+                    function = function.parent
+                outcome = self._boundary(function, hosts)
+                if isinstance(outcome, Placement):
+                    return outcome
+                node = outcome
+            else:
+                found = self._none(WHERE_NOT_FOLLOWED.get(t) or f"it is in {t.replace('_', ' ')}, where ripple does not follow it")
+                if t == "arguments" and parent.parent is not None and parent.parent.type == "call_expression":
+                    func = field_of(parent.parent, "function")
+                    found.call = self._react_name(dotted(func) if func is not None else None) or ""
+                return found
+
+    def _is_body(self, function, node) -> bool:
+        body = field_of(function, "body")
+        return body is not None and body.id == node.id
+
+    def _child_of(self, element, hosts: list):
+        """The element a value is a child of: a Placement when that is a component, else the node to go on from."""
+        opening = field_of(element, "open_tag")
+        name = field_of(opening, "name") if opening is not None else None
+        if name is None or self._transparent(name):
+            return element  # a fragment or a host element holds it without being a component
+        fact = self.jsx_nodes.get(element.id)
+        if fact is None:
+            return self._none("it is a child of a tag ripple did not read")
+        return Placement("child", element=fact, hosts=hosts)
+
+    def _attribute(self, attribute, called: bool, hosts: list) -> Placement:
+        element = attribute.parent
+        if element is not None and element.type == "jsx_opening_element":
+            element = element.parent
+        fact = self.jsx_nodes.get(element.id) if element is not None else None
+        key = attribute.named_children[0] if attribute.named_children else None
+        if fact is None:
+            return self._none("it is a prop of a host element")
+        if key is None or key.type != "property_identifier":
+            return self._none("it is a prop with a name ripple does not read")
+        return Placement("attr", element=fact, key=text(key), called=called, hosts=hosts)
+
+    def _boundary(self, function, hosts: list):
+        """What the value a function returns is: the scope's own return, the result of a function prop (a render prop),
+        or the item of an array that `.map` builds (the node of that call, to go on from)."""
+        if function is None:
+            return self._none("it is not inside a function")
+        if self.fn_nodes.get(self.scope.id) == function.id:
+            return Placement("scope", scope=self.scope.id, hosts=hosts)
+        holder = function.parent
+        if holder is not None and holder.type == "jsx_expression" and holder.parent is not None and holder.parent.type == "jsx_attribute":
+            return self._attribute(holder.parent, True, hosts)
+        if holder is not None and holder.type == "arguments" and holder.parent is not None and holder.parent.type == "call_expression":
+            call, args = holder.parent, named(holder)
+            callee = inner(field_of(call, "function")) if field_of(call, "function") is not None else None
+            prop = field_of(callee, "property") if callee is not None and callee.type == "member_expression" else None
+            if args and args[0].id == function.id and prop is not None and text(prop) in RETURNING_CALLBACKS and call.id in self.call_nodes:
+                hosts.append(self.call_nodes[call.id])
+                return call
+        return self._none("it is returned by a function that is not what the component returns")
+
+    # -- what a component does with its props
+
+    def _prop_names(self, node) -> tuple[dict, str | None]:
+        """({local name: prop key}, name of the props object) of the first parameter: `({ children, render: draw })` or `props`."""
+        single = field_of(node, "parameter")
+        if single is not None:
+            return {}, text(single)
+        params = field_of(node, "parameters")
+        first = next((p for p in named(params) if p.type in ("required_parameter", "optional_parameter")), None) if params is not None else None
+        pattern = field_of(first, "pattern") if first is not None else None
+        if pattern is None:
+            return {}, None
+        if pattern.type == "identifier":
+            return {}, text(pattern)
+        names: dict[str, str] = {}
+        if pattern.type == "object_pattern":
+            for child in named(pattern):
+                if child.type == "shorthand_property_identifier_pattern":
+                    names[text(child)] = text(child)
+                elif child.type == "object_assignment_pattern":
+                    left = field_of(child, "left")
+                    if left is not None and left.type == "shorthand_property_identifier_pattern":
+                        names[text(left)] = text(left)
+                elif child.type == "pair_pattern":
+                    key, value = field_of(child, "key"), field_of(child, "value")
+                    if value is not None and value.type == "assignment_pattern":
+                        value = field_of(value, "left")
+                    if key is not None and key.type == "property_identifier" and value is not None and value.type == "identifier":
+                        names[text(value)] = text(key)
+        return names, None
+
+    def _prop_key(self, expression) -> str | None:
+        """The prop an expression reads: `children`, or `props.children`, in the function that receives them. A name that
+        something nearer declares, or that the function assigns again, is not the prop."""
+        props = self.props.get(self.scope.id)
+        if props is None:
+            return None
+        names, holder = props
+        expression = inner(expression)
+        if expression.type == "identifier":
+            name = text(expression)
+            if name in names and self._name(name) == name:
+                return names[name]
+        elif expression.type == "member_expression" and holder is not None:
+            owner, prop = inner(field_of(expression, "object")), field_of(expression, "property")
+            if (
+                owner.type == "identifier"
+                and text(owner) == holder
+                and self._name(holder) == holder
+                and prop is not None
+                and prop.type == "property_identifier"
+            ):
+                return text(prop)
+        return None
+
+    def _drop_mutated_props(self, node, scope) -> None:
+        """Once the whole function is read: a prop that is assigned anywhere in it (a loop, a function declared further down,
+        `children = x`, `props = {...props}`, `props.children = x`, `delete props.x`, `Object.assign(props, x)`) is not the
+        value the caller passed where the function runs first, so nothing it places is proven. Position does not matter."""
+        if not scope.slots and not scope.prop_calls:
+            return
+        names, holder = self.props.get(scope.id, ({}, None))
+        hit = self._mutated(node, set(names) | ({holder} if holder else set()), holder)
+        if holder in hit:
+            scope.slots.clear()
+            scope.prop_calls.clear()
+        for local in hit:
+            scope.slots.pop(names.get(local), None)
+            scope.prop_calls.pop(names.get(local), None)
+
+    def _mutated(self, node, watched: set, holder) -> set:
+        hit: set = set()
+        stack = [node]
+        while stack:
+            n = stack.pop()
+            t = n.type
+            if t in ("assignment_expression", "augmented_assignment_expression"):
+                hit |= self._written(field_of(n, "left"), watched, holder)
+            elif t == "update_expression":
+                hit |= self._written(field_of(n, "argument"), watched, holder)
+            elif t == "variable_declaration":  # `var props = ...` redeclares the parameter, hoisted
+                for declarator in named(n):
+                    target = field_of(declarator, "name") if declarator.type == "variable_declarator" else None
+                    if target is not None:
+                        hit |= set(self._pattern_names(target, visit_defaults=False)) & watched
+            elif t in FUNCTION_DECLARATIONS and field_of(n, "name") is not None:  # `function children() {}` replaces it too
+                hit |= {text(field_of(n, "name"))} & watched
+            elif t == "unary_expression" and field_of(n, "operator") is not None and text(field_of(n, "operator")) == "delete":
+                hit |= self._written(field_of(n, "argument"), watched, holder)
+            elif t == "for_in_statement" and field_of(n, "kind") is None:
+                hit |= self._written(field_of(n, "left"), watched, holder)
+            elif t == "call_expression" and field_of(n, "function") is not None and dotted(field_of(n, "function")) in MUTATORS:
+                args = field_of(n, "arguments")
+                if args is not None and named(args):
+                    hit |= self._written(named(args)[0], watched, holder)
+            stack.extend(n.children)
+        return hit
+
+    def _written(self, target, watched: set, holder) -> set:
+        """Which watched names a write to this target changes: the name itself, or anything of the props object."""
+        if target is None:
+            return set()
+        target = inner(target)
+        if target.type == "identifier":
+            return {text(target)} & watched
+        if target.type in ("member_expression", "subscript_expression"):
+            root = target
+            while root.type in ("member_expression", "subscript_expression"):
+                root = inner(field_of(root, "object")) if field_of(root, "object") is not None else root.children[0]
+            return {holder} if holder and root.type == "identifier" and text(root) == holder else set()
+        if target.type in ("object_pattern", "array_pattern"):
+            return set(self._pattern_names(target, visit_defaults=False)) & watched
+        return set()
+
+    def _leaves(self, expression) -> list:
+        """The values an expression can have as its result, where it hands one of two on: `a && b` is b, `c ? d : e` is d or e."""
+        expression = inner(expression)
+        if expression.type == "as_expression" and named(expression):
+            return self._leaves(named(expression)[0])
+        if expression.type == "binary_expression" and field_of(expression, "operator") is not None:
+            right = field_of(expression, "right")
+            if text(field_of(expression, "operator")) in ("&&", "||", "??") and right is not None:
+                return self._leaves(right)
+        if expression.type == "ternary_expression":
+            return [leaf for branch in ("consequence", "alternative") if field_of(expression, branch) is not None for leaf in self._leaves(field_of(expression, branch))]
+        return [expression]
+
+    def _place_props(self, expression) -> None:
+        """If a value this expression results in is one of the props of the function (`children`), record where it is placed."""
+        if self.scope.id not in self.props:
+            return
+        for leaf in self._leaves(expression):
+            key = self._prop_key(leaf)
+            if key is not None:
+                placement = self._placement(leaf)
+                if placement.kind != "none":
+                    self.scope.slots.setdefault(key, []).append(placement)
+
+    # -- memo, forwardRef and lazy
+
+    def _react_name(self, chain) -> str | None:
+        """The id of a name imported from a package, `pkg:react.memo` for `memo` and for `React.memo`, else None: decided from
+        how the name was imported, never from the name alone."""
+        if not chain or chain[0] == "this" or self._local(chain[0]):
+            return None
+        binding = self.module.names.get(chain[0])
+        if binding is None or not binding.target.startswith(PACKAGE):
+            return None
+        rest = "".join("." + part for part in chain[1:])
+        if binding.kind == "from" and binding.name != "default":
+            return f"{binding.target}.{binding.name}{rest}"  # import { Children as C }: C.map is pkg:react.Children.map
+        if rest and (binding.kind == "import" or (binding.kind == "from" and binding.name == "default")):
+            return f"{binding.target}{rest}"  # import React / import * as React: React.memo is pkg:react.memo
+        return None
+
+    def _wrapper_of(self, call) -> str | None:
+        """"wrap" for a call of React's memo or forwardRef, "lazy" for React's lazy, else None."""
+        func = field_of(call, "function")
+        ident = self._react_name(dotted(func) if func is not None else None)
+        if ident is None:
+            return None
+        if ident in self.profile.component_wrappers:
+            return "wrap"
+        return "lazy" if ident in self.profile.lazy_wrappers else None
+
+    def _wrapped_component(self, name: str, call) -> bool:
+        """`const X = memo(f)` and the like. A function written inside the call is named X, as `const X = () => ...` is;
+        a name is what X means when used as a tag; lazy is a component ripple cannot see. True when it was read."""
+        kind = self._wrapper_of(call)
+        if kind is None:
+            return False
+        args = field_of(call, "arguments")
+        rest = named(args) if args is not None else []
+        first = rest[0] if rest else None
+        while kind == "wrap" and first is not None and inner(first).type == "call_expression" and self._wrapper_of(inner(first)) == "wrap":
+            nested = field_of(inner(first), "arguments")  # memo(forwardRef(f)): the same function
+            rest = named(nested) if nested is not None else []
+            first = rest[0] if rest else None
+        if kind == "wrap" and first is not None and inner(first).type in FUNCTION_VALUES:
+            self._function(inner(first), name)
+            for other in rest[1:]:
+                self.visit(other)
+            return True
+        if kind == "lazy":
+            held = ("lazy", None)
+        else:
+            chain = dotted(first) if first is not None else None
+            held = ("wrap", self._ref(chain)) if chain and not (self.rebinds_this and chain[0] == "this") else ("unknown", None)
+        if args is not None:
+            self.generic(args)
+        self._bind(name, [unknown_ref(ASSIGNED_UNTYPED)])
+        self.scope.wrapped[self._name(name)] = held
+        return True
 
 
 def _accessor_names(source: bytes) -> set[str]:

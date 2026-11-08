@@ -163,6 +163,7 @@ class Resolver:
         # Resolving a base (`class X(self.Attr)`) can look a member up before every
         # class has its bases, so until the hierarchy exists a member that is missing
         # is unknown, and nothing computed meanwhile is kept.
+        self._tag_mode = False  # reading the tag of a JSX element, where `const X = memo(f)` means f (see jsx.py)
         self._building = True
         self.subclasses = self._direct_subclasses()
         self._building = False
@@ -218,6 +219,13 @@ class Resolver:
             if shape.function in direct_users:
                 reason = f"'{shape.param}' may also be a function passed straight to {shape.function}(...), not only one it decorates"
                 unresolved.append(Unresolved(scope.id, scope.file, call.line, call.text, reason))
+        if self.profile.component_bases:  # a language with JSX: its elements are edges too (see jsx.py)
+            from .jsx import JsxEdges
+
+            found, not_found, outside = JsxEdges(self, edges).run()
+            edges += found
+            unresolved += not_found
+            external_count += outside
         classes = [s.id for s in self.scopes.values() if s.kind == "class"]
         bases = {cls: self.base_classes(cls) for cls in classes}
         return Graph(
@@ -606,6 +614,9 @@ class Resolver:
         if binding.kind == "self":
             cls = self.enclosing_class(where)
             return Target("instance", cls) if cls else unknown("self outside a class")
+        # `let X = memo(A); X = B`: a name that is bound again is not the one thing it was first, here as for a call
+        if self._tag_mode and name and getattr(where, "wrapped", None) and name in where.wrapped and name not in where.rebound:
+            return self.wrapped_component(where, where.wrapped[name])
         held = self.function_held(where, binding, name)
         if held is not None:
             return held
@@ -616,6 +627,20 @@ class Resolver:
         if value.kind in ("instance", "foreign") and self.constructed(binding.evidence):
             value = replace(value, exact=True)
         return value
+
+    def wrapped_component(self, where: Scope, held: tuple) -> Target:
+        """What `const X = memo(f)` means as a JSX tag: f, when it is a function (or class) of the repo that ripple can name."""
+        kind, chain = held
+        if kind == "lazy":
+            return unknown("a lazy component is loaded when it first renders, so ripple cannot see which one")
+        if kind != "wrap":
+            return unknown("what memo or forwardRef is given is not a function ripple can see")
+        found = self.resolve_chain(where, chain)
+        if found.kind == "symbol" and self.scopes[found.value].kind in ("function", "class"):
+            return found
+        if found.kind == "unknown":
+            return unknown(f"what memo or forwardRef is given cannot be resolved: {found.reason}")
+        return unknown("what memo or forwardRef is given is not a function ripple can see")
 
     # -- functions held in names ---------------------------------------------
     #

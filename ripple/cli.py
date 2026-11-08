@@ -83,10 +83,11 @@ def format_index(repo: str, result: RepoGraph, reasons: bool = False) -> str:
     graph = result.graph
     stats = graph.stats()
     kinds = ", ".join(f"{n} {k}" for k, n in stats["symbols"].items())
+    jsx = sum(1 for e in graph.edges if e.kind in queries.JSX_KINDS)  # TypeScript JSX edges: not calls
     lines = [
         f"{repo}: {stats['files']} files, {kinds}",
-        f"{stats['edges']} resolved calls, {stats['unresolved_calls']} unresolved calls, "
-        f"{stats['external_calls']} calls to code outside the repo",
+        f"{stats['edges'] - jsx} resolved calls, " + (f"{jsx} JSX edges, " if jsx else "")
+        + f"{stats['unresolved_calls']} unresolved calls, {stats['external_calls']} calls to code outside the repo",
         "(loaded from cache)" if result.cached else "(indexed)",
     ]
     named = any(language.name != "python" for language in result.languages)

@@ -42,7 +42,7 @@ Edge = tuple[str, str]
 
 
 def predicted_edges(graph: Graph) -> set[Edge]:
-    return {(e.caller, e.callee) for e in graph.edges if e.caller != e.callee}
+    return {(e.caller, e.callee) for e in graph.edges if e.caller != e.callee and e.kind not in NOT_INDEXED}
 
 
 def miss_reason(graph: Graph, caller: str, callee: str) -> str:
