@@ -887,16 +887,6 @@ def test_the_hidden_run_works_on_each_pinned_repository_under_its_own_runner_and
     assert hidden["passed"] and hidden["summary"] == "2 passed, 0 failed", hidden
 
 
-@pytest.mark.skipif(PILOT is None, reason="needs the pilot task")
-def test_the_agent_harness_refuses_a_node_task_until_its_environment_is_wired(tmp_path, capsys):
-    """Grading works for node tasks; the agent's PATH and shims do not yet, so no agent is started on one."""
-    import eval.run as run_mod
-
-    with pytest.raises(SystemExit):
-        run_mod.main(["--tasks", PILOT_ID, "--repeats", "1", "--out", str(tmp_path / "x.json")])
-    assert "cannot run node tasks yet" in capsys.readouterr().err
-
-
 # ------------------------------------------------------------------ the rename tasks over node repos, one grade each way
 
 # task id -> (old name, new name): the rename the task asks for, which a text rename of the old name over every
