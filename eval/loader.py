@@ -6,6 +6,7 @@ Each task is a directory under eval/tasks/<id>/ holding:
                    "fixture" (a path from this repo's root) or "repo" (a name in eval/repos.json,
                    a pinned open-source repository fetched into a cache by `python -m eval.fetch`)
     check_test.py  the hidden test: the agent never sees it, it runs after the agent is done
+                   (check_test.ts for a task over a node repository, run by that repo's own runner)
     solution/      a reference edit, overlaid on the fixture, that proves the check can pass
 """
 
@@ -25,7 +26,15 @@ REPO_ROOT = EVAL_DIR.parent
 TASKS_DIR = EVAL_DIR / "tasks"
 REQUIRED = ("id", "prompt", "min_tests", "why")
 IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", ".pytest_cache", "node_modules")
-FIXTURE_TIMEOUT, REAL_TIMEOUT = 180, 900  # seconds for each of the two test runs in the check
+FIXTURE_TIMEOUT, REAL_TIMEOUT, NODE_TIMEOUT = 180, 900, 300  # seconds for each of the two test runs in the check
+
+
+def remove(path: Path) -> None:
+    """Delete a file, a link (never what it points at) or a directory tree."""
+    if path.is_symlink() or path.is_file():
+        path.unlink()
+    elif path.is_dir():
+        shutil.rmtree(path)
 
 
 @dataclass(frozen=True)
@@ -39,8 +48,17 @@ class Task:
     spec: RepoSpec | None = None  # set for a task over a pinned real repository
 
     @property
+    def is_node(self) -> bool:
+        return bool(self.spec and self.spec.is_node)
+
+    @property
+    def runtime(self) -> str:
+        return "node" if self.is_node else "python"
+
+    @property
     def hidden_test(self) -> Path:
-        return self.dir / "check_test.py"
+        """check_test.py, or check_test.ts for a task over a node repository."""
+        return self.dir / ("check_test.ts" if self.is_node else "check_test.py")
 
     @property
     def solution(self) -> Path:
@@ -56,7 +74,11 @@ class Task:
         return self.spec.available if self.spec else self.fixture.is_dir()
 
     @property
-    def python(self) -> str:
+    def python(self) -> str | None:
+        """The interpreter that runs this task's tests, or None for a node task (it has none: its
+        runner is spec.node_argv). A caller that needs one must branch on is_node first."""
+        if self.is_node:
+            return None
         return str(self.spec.venv_python) if self.spec else sys.executable
 
     @property
@@ -69,6 +91,8 @@ class Task:
 
     @property
     def check_timeout(self) -> int:
+        if self.is_node:
+            return NODE_TIMEOUT
         return REAL_TIMEOUT if self.spec else FIXTURE_TIMEOUT
 
 
@@ -102,7 +126,7 @@ def load_task(task_dir: Path, repos: dict[str, RepoSpec] | None = None) -> Task:
         spec=spec,
     )
     if not task.hidden_test.is_file():
-        raise ValueError(f"{task_dir.name}: no check_test.py")
+        raise ValueError(f"{task_dir.name}: no {task.hidden_test.name}")
     return task
 
 

@@ -400,7 +400,13 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
 
     tasks = load_tasks(only=args.tasks.split(",") if args.tasks else None)
-    missing = [t.id for t in tasks if not t.available]
+    # The grader handles node tasks (eval/check_node.py) but the agent side does not yet: no node/vitest on the
+    # agent's PATH, python shims written from task.python (None for them). Until it is wired, never start an agent on one.
+    node_tasks = [t.id for t in tasks if t.is_node]
+    if node_tasks and args.tasks:
+        parser.error(f"the agent harness cannot run node tasks yet (grading is wired, the agent's environment is not): {', '.join(node_tasks)}")
+    tasks = [t for t in tasks if not t.is_node]
+    missing =[t.id for t in tasks if not t.available]
     if missing:
         parser.error(f"these tasks need pinned repositories that are not fetched: {', '.join(missing)}\n"
                      "run `python -m eval.fetch`, or pick other tasks with --tasks")  # fmt: skip
