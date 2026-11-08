@@ -1,0 +1,83 @@
+diff -ruN a/examples/default-values.js b/examples/default-values.js
+--- a/examples/default-values.js
++++ b/examples/default-values.js
+@@ -1,6 +1,6 @@
+ import {
+   boolean,
+-  create,
++  createFrom,
+   date,
+   defaulted,
+   number,
+@@ -27,7 +27,7 @@
+ }
+ 
+ // Coerce the data during validation, using the struct's default values.
+-const user = create(data, User)
++const user = createFrom(data, User)
+ // {
+ //   id: 1,
+ //   name: 'Jane Smith',
+diff -ruN a/src/struct.ts b/src/struct.ts
+--- a/src/struct.ts
++++ b/src/struct.ts
+@@ -73,7 +73,7 @@
+    */
+ 
+   create(value: unknown, message?: string): T {
+-    return create(value, this, message)
++    return createFrom(value, this, message)
+   }
+ 
+   /**
+@@ -136,7 +136,7 @@
+  * Create a value with the coercion logic of struct and validate it.
+  */
+ 
+-export function create<T, S>(
++export function createFrom<T, S>(
+   value: unknown,
+   struct: Struct<T, S>,
+   message?: string
+diff -ruN a/test/api/create.test.ts b/test/api/create.test.ts
+--- a/test/api/create.test.ts
++++ b/test/api/create.test.ts
+@@ -2,7 +2,7 @@
+ import {
+   type,
+   optional,
+-  create,
++  createFrom,
+   string,
+   defaulted,
+   literal,
+@@ -12,7 +12,7 @@
+ describe('create', () => {
+   it('missing as helper', () => {
+     const S = defaulted(string(), 'default')
+-    expect(create(undefined, S)).toBe('default')
++    expect(createFrom(undefined, S)).toBe('default')
+   })
+ 
+   it('missing as method', () => {
+@@ -22,7 +22,7 @@
+ 
+   it('not missing as helper', () => {
+     const S = defaulted(string(), 'default')
+-    expect(create('string', S)).toBe('string')
++    expect(createFrom('string', S)).toBe('string')
+   })
+ 
+   it('not missing as method', () => {
+diff -ruN a/test/index.test.ts b/test/index.test.ts
+--- a/test/index.test.ts
++++ b/test/index.test.ts
+@@ -4,7 +4,7 @@
+ import { describe, expect, it } from 'vitest'
+ import {
+   assert as assertValue,
+-  create as createValue,
++  createFrom as createValue,
+   StructError,
+ } from '../src'
+ describe('superstruct', () => {
