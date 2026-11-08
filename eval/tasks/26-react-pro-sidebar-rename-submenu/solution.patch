@@ -1,0 +1,1620 @@
+diff -ruN a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -61,14 +61,14 @@
+ ## Usage
+ 
+ ```jsx
+-import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
++import { Sidebar, Menu, MenuItem, MenuGroup } from 'react-pro-sidebar';
+ 
+ <Sidebar>
+   <Menu>
+-    <SubMenu label="Charts">
++    <MenuGroup label="Charts">
+       <MenuItem> Pie charts </MenuItem>
+       <MenuItem> Line charts </MenuItem>
+-    </SubMenu>
++    </MenuGroup>
+     <MenuItem> Documentation </MenuItem>
+     <MenuItem> Calendar </MenuItem>
+   </Menu>
+diff -ruN a/src/components/SubMenu.tsx b/src/components/SubMenu.tsx
+--- a/src/components/SubMenu.tsx
++++ b/src/components/SubMenu.tsx
+@@ -504,4 +504,4 @@
+     </StyledSubMenu>
+   );
+ };
+-export const SubMenu = React.forwardRef<HTMLLIElement, SubMenuProps>(SubMenuFR);
++export const MenuGroup = React.forwardRef<HTMLLIElement, SubMenuProps>(SubMenuFR);
+diff -ruN a/storybook/Playground.tsx b/storybook/Playground.tsx
+--- a/storybook/Playground.tsx
++++ b/storybook/Playground.tsx
+@@ -1,5 +1,5 @@
+ import React from 'react';
+-import { Sidebar, Menu, MenuItem, SubMenu, menuClasses, MenuItemStyles } from '../src';
++import { Sidebar, Menu, MenuItem, MenuGroup, menuClasses, MenuItemStyles } from '../src';
+ import { Switch } from './components/Switch';
+ import { SidebarHeader } from './components/SidebarHeader';
+ import { Diamond } from './icons/Diamond';
+@@ -149,7 +149,7 @@
+               </Typography>
+             </div>
+             <Menu menuItemStyles={menuItemStyles} popover={popover}>
+-              <SubMenu
++              <MenuGroup
+                 label="Charts"
+                 icon={<BarChart />}
+                 suffix={
+@@ -161,32 +161,32 @@
+                 <MenuItem> Pie charts</MenuItem>
+                 <MenuItem> Line charts</MenuItem>
+                 <MenuItem> Bar charts</MenuItem>
+-              </SubMenu>
+-              <SubMenu label="Maps" icon={<Global />}>
++              </MenuGroup>
++              <MenuGroup label="Maps" icon={<Global />}>
+                 <MenuItem> Google maps</MenuItem>
+                 <MenuItem> Open street maps</MenuItem>
+-              </SubMenu>
+-              <SubMenu label="Theme" icon={<InkBottle />}>
++              </MenuGroup>
++              <MenuGroup label="Theme" icon={<InkBottle />}>
+                 <MenuItem> Dark</MenuItem>
+                 <MenuItem> Light</MenuItem>
+-              </SubMenu>
+-              <SubMenu label="Components" icon={<Diamond />}>
++              </MenuGroup>
++              <MenuGroup label="Components" icon={<Diamond />}>
+                 <MenuItem> Grid</MenuItem>
+                 <MenuItem> Layout</MenuItem>
+-                <SubMenu label="Forms">
++                <MenuGroup label="Forms">
+                   <MenuItem> Input</MenuItem>
+                   <MenuItem> Select</MenuItem>
+-                  <SubMenu label="More">
++                  <MenuGroup label="More">
+                     <MenuItem> CheckBox</MenuItem>
+                     <MenuItem> Radio</MenuItem>
+-                  </SubMenu>
+-                </SubMenu>
+-              </SubMenu>
+-              <SubMenu label="E-commerce" icon={<ShoppingCart />}>
++                  </MenuGroup>
++                </MenuGroup>
++              </MenuGroup>
++              <MenuGroup label="E-commerce" icon={<ShoppingCart />}>
+                 <MenuItem> Product</MenuItem>
+                 <MenuItem> Orders</MenuItem>
+                 <MenuItem> Credit card</MenuItem>
+-              </SubMenu>
++              </MenuGroup>
+             </Menu>
+ 
+             <div style={{ padding: '0 24px', marginBottom: '8px', marginTop: '32px' }}>
+diff -ruN a/storybook/stories/Menu.stories.tsx b/storybook/stories/Menu.stories.tsx
+--- a/storybook/stories/Menu.stories.tsx
++++ b/storybook/stories/Menu.stories.tsx
+@@ -1,6 +1,6 @@
+ import React from 'react';
+ import type { Meta, StoryFn } from '@storybook/react';
+-import { Menu, menuClasses, MenuItem, Sidebar, SubMenu } from '../../src';
++import { Menu, menuClasses, MenuItem, Sidebar, MenuGroup } from '../../src';
+ import { Icon } from '../icons/Icon';
+ 
+ const StoryParams: Meta<typeof Menu> = {
+@@ -50,11 +50,11 @@
+   <div style={{ display: 'flex', height: '100%' }}>
+     <Sidebar>
+       <Menu renderExpandIcon={({ open }) => <span>{open ? '-' : '+'}</span>}>
+-        <SubMenu label="Charts">
+-          <MenuItem> Pie charts</MenuItem>
+-          <MenuItem> Line charts</MenuItem>
+-          <MenuItem> Bar charts</MenuItem>
+-        </SubMenu>
++        <MenuGroup label="Charts">
++          <MenuItem> Pie charts</MenuItem>
++          <MenuItem> Line charts</MenuItem>
++          <MenuItem> Bar charts</MenuItem>
++        </MenuGroup>
+         <MenuItem> Calendar</MenuItem>
+         <MenuItem> E-commerce</MenuItem>
+         <MenuItem> Examples</MenuItem>
+@@ -80,11 +80,11 @@
+           },
+         }}
+       >
+-        <SubMenu defaultOpen label="Charts" icon={<Icon name="bar-chart" />}>
+-          <MenuItem> Pie charts</MenuItem>
+-          <MenuItem> Line charts</MenuItem>
+-          <MenuItem> Bar charts</MenuItem>
+-        </SubMenu>
++        <MenuGroup defaultOpen label="Charts" icon={<Icon name="bar-chart" />}>
++          <MenuItem> Pie charts</MenuItem>
++          <MenuItem> Line charts</MenuItem>
++          <MenuItem> Bar charts</MenuItem>
++        </MenuGroup>
+         <MenuItem active icon={<Icon name="calendar" />}>
+           Calendar (active)
+         </MenuItem>
+@@ -103,11 +103,11 @@
+   <div style={{ display: 'flex', height: '100%' }}>
+     <Sidebar>
+       <Menu transitionDuration={1000}>
+-        <SubMenu label="Charts">
+-          <MenuItem> Pie charts</MenuItem>
+-          <MenuItem> Line charts</MenuItem>
+-          <MenuItem> Bar charts</MenuItem>
+-        </SubMenu>
++        <MenuGroup label="Charts">
++          <MenuItem> Pie charts</MenuItem>
++          <MenuItem> Line charts</MenuItem>
++          <MenuItem> Bar charts</MenuItem>
++        </MenuGroup>
+         <MenuItem> Calendar</MenuItem>
+         <MenuItem> E-commerce</MenuItem>
+         <MenuItem> Examples</MenuItem>
+@@ -122,11 +122,11 @@
+   <div style={{ display: 'flex', height: '100%' }}>
+     <Sidebar collapsed>
+       <Menu closeOnClick>
+-        <SubMenu label="Charts">
+-          <MenuItem> Pie charts</MenuItem>
+-          <MenuItem> Line charts</MenuItem>
+-          <MenuItem> Bar charts</MenuItem>
+-        </SubMenu>
++        <MenuGroup label="Charts">
++          <MenuItem> Pie charts</MenuItem>
++          <MenuItem> Line charts</MenuItem>
++          <MenuItem> Bar charts</MenuItem>
++        </MenuGroup>
+         <MenuItem> Calendar</MenuItem>
+         <MenuItem> E-commerce</MenuItem>
+         <MenuItem> Examples</MenuItem>
+@@ -148,11 +148,11 @@
+           },
+         }}
+       >
+-        <SubMenu label="Charts" icon={<Icon name="bar-chart" />}>
+-          <MenuItem> Pie charts</MenuItem>
+-          <MenuItem> Line charts</MenuItem>
+-          <MenuItem> Bar charts</MenuItem>
+-        </SubMenu>
++        <MenuGroup label="Charts" icon={<Icon name="bar-chart" />}>
++          <MenuItem> Pie charts</MenuItem>
++          <MenuItem> Line charts</MenuItem>
++          <MenuItem> Bar charts</MenuItem>
++        </MenuGroup>
+         <MenuItem active icon={<Icon name="calendar" />}>
+           Calendar (active)
+         </MenuItem>
+@@ -171,20 +171,20 @@
+   <div style={{ display: 'flex', height: '100%' }}>
+     <Sidebar>
+       <Menu accordion>
+-        <SubMenu label="Charts" icon={<Icon name="bar-chart" />}>
+-          <MenuItem> Pie charts</MenuItem>
+-          <MenuItem> Line charts</MenuItem>
+-          <MenuItem> Bar charts</MenuItem>
+-        </SubMenu>
+-        <SubMenu label="E-commerce" icon={<Icon name="shopping-cart" />}>
++        <MenuGroup label="Charts" icon={<Icon name="bar-chart" />}>
++          <MenuItem> Pie charts</MenuItem>
++          <MenuItem> Line charts</MenuItem>
++          <MenuItem> Bar charts</MenuItem>
++        </MenuGroup>
++        <MenuGroup label="E-commerce" icon={<Icon name="shopping-cart" />}>
+           <MenuItem> Orders</MenuItem>
+           <MenuItem> Products</MenuItem>
+           <MenuItem> Customers</MenuItem>
+-        </SubMenu>
+-        <SubMenu label="Calendar" icon={<Icon name="calendar" />}>
++        </MenuGroup>
++        <MenuGroup label="Calendar" icon={<Icon name="calendar" />}>
+           <MenuItem> Schedule</MenuItem>
+           <MenuItem> Events</MenuItem>
+-        </SubMenu>
++        </MenuGroup>
+         <MenuItem icon={<Icon name="service" />}> Documentation</MenuItem>
+       </Menu>
+     </Sidebar>
+@@ -197,15 +197,15 @@
+   <div style={{ display: 'flex', height: '100%' }}>
+     <Sidebar>
+       <Menu popover>
+-        <SubMenu label="Charts" icon={<Icon name="bar-chart" />}>
+-          <MenuItem> Pie charts</MenuItem>
+-          <MenuItem> Line charts</MenuItem>
+-          <MenuItem> Bar charts</MenuItem>
+-        </SubMenu>
+-        <SubMenu label="E-commerce" icon={<Icon name="shopping-cart" />}>
++        <MenuGroup label="Charts" icon={<Icon name="bar-chart" />}>
++          <MenuItem> Pie charts</MenuItem>
++          <MenuItem> Line charts</MenuItem>
++          <MenuItem> Bar charts</MenuItem>
++        </MenuGroup>
++        <MenuGroup label="E-commerce" icon={<Icon name="shopping-cart" />}>
+           <MenuItem> Orders</MenuItem>
+           <MenuItem> Products</MenuItem>
+-        </SubMenu>
++        </MenuGroup>
+         <MenuItem icon={<Icon name="calendar" />}> Calendar</MenuItem>
+         <MenuItem icon={<Icon name="service" />}> Documentation</MenuItem>
+       </Menu>
+diff -ruN a/storybook/stories/SubMenu.stories.tsx b/storybook/stories/SubMenu.stories.tsx
+--- a/storybook/stories/SubMenu.stories.tsx
++++ b/storybook/stories/SubMenu.stories.tsx
+@@ -1,33 +1,33 @@
+ import React from 'react';
+ import type { Meta, StoryFn } from '@storybook/react';
+-import { Menu, menuClasses, MenuItem, Sidebar, SubMenu } from '../../src';
++import { Menu, menuClasses, MenuItem, Sidebar, MenuGroup } from '../../src';
+ import { Icon } from '../icons/Icon';
+ 
+-const StoryParams: Meta<typeof SubMenu> = {
++const StoryParams: Meta<typeof MenuGroup> = {
+   title: 'SubMenu',
+-  component: SubMenu,
++  component: MenuGroup,
+   argTypes: {},
+ };
+ 
+ export default StoryParams;
+ 
+-export const Basic: StoryFn<typeof SubMenu> = ({ ...props }) => (
+-  <div style={{ display: 'flex', height: '100%' }}>
+-    <Sidebar>
+-      <Menu>
+-        <SubMenu {...props} label="Charts">
++export const Basic: StoryFn<typeof MenuGroup> = ({ ...props }) => (
++  <div style={{ display: 'flex', height: '100%' }}>
++    <Sidebar>
++      <Menu>
++        <MenuGroup {...props} label="Charts">
+           <MenuItem> Pie charts</MenuItem>
+           <MenuItem> Line charts</MenuItem>
+           <MenuItem> Bar charts</MenuItem>
+-        </SubMenu>
+-        <SubMenu label="Maps">
++        </MenuGroup>
++        <MenuGroup label="Maps">
+           <MenuItem> Google maps</MenuItem>
+           <MenuItem> Open street maps</MenuItem>
+-        </SubMenu>
+-        <SubMenu label="Theme">
++        </MenuGroup>
++        <MenuGroup label="Theme">
+           <MenuItem> Dark</MenuItem>
+           <MenuItem> Light</MenuItem>
+-        </SubMenu>
++        </MenuGroup>
+       </Menu>
+     </Sidebar>
+   </div>
+@@ -64,24 +64,24 @@
+   },
+ };
+ 
+-export const WithIcon: StoryFn<typeof SubMenu> = () => (
+-  <div style={{ display: 'flex', height: '100%' }}>
+-    <Sidebar>
+-      <Menu>
+-        <Menu>
+-          <SubMenu icon={<Icon name="bar-chart" />} label="Charts">
+-            <MenuItem> Pie charts</MenuItem>
+-            <MenuItem> Line charts</MenuItem>
+-            <MenuItem> Bar charts</MenuItem>
+-          </SubMenu>
+-          <SubMenu icon={<Icon name="global" />} label="Maps">
+-            <MenuItem> Google maps</MenuItem>
+-            <MenuItem> Open street maps</MenuItem>
+-          </SubMenu>
+-          <SubMenu icon={<Icon name="ink-bottle" />} label="Theme">
+-            <MenuItem> Dark</MenuItem>
+-            <MenuItem> Light</MenuItem>
+-          </SubMenu>
++export const WithIcon: StoryFn<typeof MenuGroup> = () => (
++  <div style={{ display: 'flex', height: '100%' }}>
++    <Sidebar>
++      <Menu>
++        <Menu>
++          <MenuGroup icon={<Icon name="bar-chart" />} label="Charts">
++            <MenuItem> Pie charts</MenuItem>
++            <MenuItem> Line charts</MenuItem>
++            <MenuItem> Bar charts</MenuItem>
++          </MenuGroup>
++          <MenuGroup icon={<Icon name="global" />} label="Maps">
++            <MenuItem> Google maps</MenuItem>
++            <MenuItem> Open street maps</MenuItem>
++          </MenuGroup>
++          <MenuGroup icon={<Icon name="ink-bottle" />} label="Theme">
++            <MenuItem> Dark</MenuItem>
++            <MenuItem> Light</MenuItem>
++          </MenuGroup>
+         </Menu>
+       </Menu>
+     </Sidebar>
+@@ -90,24 +90,24 @@
+ 
+ WithIcon.storyName = 'icon';
+ 
+-export const Prefix: StoryFn<typeof SubMenu> = () => (
+-  <div style={{ display: 'flex', height: '100%' }}>
+-    <Sidebar>
+-      <Menu>
+-        <Menu>
+-          <SubMenu prefix="🔥" label="Charts">
+-            <MenuItem> Pie charts</MenuItem>
+-            <MenuItem> Line charts</MenuItem>
+-            <MenuItem> Bar charts</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Maps">
+-            <MenuItem> Google maps</MenuItem>
+-            <MenuItem> Open street maps</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Theme">
+-            <MenuItem> Dark</MenuItem>
+-            <MenuItem> Light</MenuItem>
+-          </SubMenu>
++export const Prefix: StoryFn<typeof MenuGroup> = () => (
++  <div style={{ display: 'flex', height: '100%' }}>
++    <Sidebar>
++      <Menu>
++        <Menu>
++          <MenuGroup prefix="🔥" label="Charts">
++            <MenuItem> Pie charts</MenuItem>
++            <MenuItem> Line charts</MenuItem>
++            <MenuItem> Bar charts</MenuItem>
++          </MenuGroup>
++          <MenuGroup label="Maps">
++            <MenuItem> Google maps</MenuItem>
++            <MenuItem> Open street maps</MenuItem>
++          </MenuGroup>
++          <MenuGroup label="Theme">
++            <MenuItem> Dark</MenuItem>
++            <MenuItem> Light</MenuItem>
++          </MenuGroup>
+         </Menu>
+       </Menu>
+     </Sidebar>
+@@ -115,24 +115,24 @@
+ );
+ Prefix.storyName = 'prefix';
+ 
+-export const Suffix: StoryFn<typeof SubMenu> = () => (
+-  <div style={{ display: 'flex', height: '100%' }}>
+-    <Sidebar>
+-      <Menu>
+-        <Menu>
+-          <SubMenu suffix="🔥" label="Charts">
+-            <MenuItem> Pie charts</MenuItem>
+-            <MenuItem> Line charts</MenuItem>
+-            <MenuItem> Bar charts</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Maps">
+-            <MenuItem> Google maps</MenuItem>
+-            <MenuItem> Open street maps</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Theme">
+-            <MenuItem> Dark</MenuItem>
+-            <MenuItem> Light</MenuItem>
+-          </SubMenu>
++export const Suffix: StoryFn<typeof MenuGroup> = () => (
++  <div style={{ display: 'flex', height: '100%' }}>
++    <Sidebar>
++      <Menu>
++        <Menu>
++          <MenuGroup suffix="🔥" label="Charts">
++            <MenuItem> Pie charts</MenuItem>
++            <MenuItem> Line charts</MenuItem>
++            <MenuItem> Bar charts</MenuItem>
++          </MenuGroup>
++          <MenuGroup label="Maps">
++            <MenuItem> Google maps</MenuItem>
++            <MenuItem> Open street maps</MenuItem>
++          </MenuGroup>
++          <MenuGroup label="Theme">
++            <MenuItem> Dark</MenuItem>
++            <MenuItem> Light</MenuItem>
++          </MenuGroup>
+         </Menu>
+       </Menu>
+     </Sidebar>
+@@ -140,20 +140,20 @@
+ );
+ Suffix.storyName = 'suffix';
+ 
+-export const Active: StoryFn<typeof SubMenu> = () => (
+-  <div style={{ display: 'flex', height: '100%' }}>
+-    <Sidebar>
+-      <Menu>
+-        <SubMenu label="Settings" defaultOpen>
+-          <SubMenu label="Account" defaultOpen>
++export const Active: StoryFn<typeof MenuGroup> = () => (
++  <div style={{ display: 'flex', height: '100%' }}>
++    <Sidebar>
++      <Menu>
++        <MenuGroup label="Settings" defaultOpen>
++          <MenuGroup label="Account" defaultOpen>
+             <MenuItem active> Profile (active)</MenuItem>
+             <MenuItem> Password</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Notifications">
++          </MenuGroup>
++          <MenuGroup label="Notifications">
+             <MenuItem> Email</MenuItem>
+             <MenuItem> Push</MenuItem>
+-          </SubMenu>
+-        </SubMenu>
++          </MenuGroup>
++        </MenuGroup>
+       </Menu>
+     </Sidebar>
+   </div>
+@@ -161,24 +161,24 @@
+ 
+ Active.storyName = 'active';
+ 
+-export const Disabled: StoryFn<typeof SubMenu> = () => (
+-  <div style={{ display: 'flex', height: '100%' }}>
+-    <Sidebar>
+-      <Menu>
+-        <Menu>
+-          <SubMenu disabled label="Charts (disabled)">
+-            <MenuItem> Pie charts</MenuItem>
+-            <MenuItem> Line charts</MenuItem>
+-            <MenuItem> Bar charts</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Maps">
+-            <MenuItem> Google maps</MenuItem>
+-            <MenuItem> Open street maps</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Theme">
+-            <MenuItem> Dark</MenuItem>
+-            <MenuItem> Light</MenuItem>
+-          </SubMenu>
++export const Disabled: StoryFn<typeof MenuGroup> = () => (
++  <div style={{ display: 'flex', height: '100%' }}>
++    <Sidebar>
++      <Menu>
++        <Menu>
++          <MenuGroup disabled label="Charts (disabled)">
++            <MenuItem> Pie charts</MenuItem>
++            <MenuItem> Line charts</MenuItem>
++            <MenuItem> Bar charts</MenuItem>
++          </MenuGroup>
++          <MenuGroup label="Maps">
++            <MenuItem> Google maps</MenuItem>
++            <MenuItem> Open street maps</MenuItem>
++          </MenuGroup>
++          <MenuGroup label="Theme">
++            <MenuItem> Dark</MenuItem>
++            <MenuItem> Light</MenuItem>
++          </MenuGroup>
+         </Menu>
+       </Menu>
+     </Sidebar>
+@@ -190,35 +190,35 @@
+   <div style={{ display: 'flex', height: '100%' }}>
+     <Sidebar>
+       <Menu>
+-        <SubMenu defaultOpen label="Charts" component="div">
++        <MenuGroup defaultOpen label="Charts" component="div">
+           <MenuItem> Pie charts</MenuItem>
+           <MenuItem> Line charts</MenuItem>
+           <MenuItem> Bar charts</MenuItem>
+-        </SubMenu>
++        </MenuGroup>
+       </Menu>
+     </Sidebar>
+   </div>
+ );
+ Component.storyName = 'component';
+ 
+-export const DefaultOpen: StoryFn<typeof SubMenu> = () => (
+-  <div style={{ display: 'flex', height: '100%' }}>
+-    <Sidebar>
+-      <Menu>
+-        <Menu>
+-          <SubMenu defaultOpen label="Charts">
+-            <MenuItem> Pie charts</MenuItem>
+-            <MenuItem> Line charts</MenuItem>
+-            <MenuItem> Bar charts</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Maps">
+-            <MenuItem> Google maps</MenuItem>
+-            <MenuItem> Open street maps</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Theme">
+-            <MenuItem> Dark</MenuItem>
+-            <MenuItem> Light</MenuItem>
+-          </SubMenu>
++export const DefaultOpen: StoryFn<typeof MenuGroup> = () => (
++  <div style={{ display: 'flex', height: '100%' }}>
++    <Sidebar>
++      <Menu>
++        <Menu>
++          <MenuGroup defaultOpen label="Charts">
++            <MenuItem> Pie charts</MenuItem>
++            <MenuItem> Line charts</MenuItem>
++            <MenuItem> Bar charts</MenuItem>
++          </MenuGroup>
++          <MenuGroup label="Maps">
++            <MenuItem> Google maps</MenuItem>
++            <MenuItem> Open street maps</MenuItem>
++          </MenuGroup>
++          <MenuGroup label="Theme">
++            <MenuItem> Dark</MenuItem>
++            <MenuItem> Light</MenuItem>
++          </MenuGroup>
+         </Menu>
+       </Menu>
+     </Sidebar>
+@@ -226,7 +226,7 @@
+ );
+ DefaultOpen.storyName = 'defaultOpen';
+ 
+-export const Open: StoryFn<typeof SubMenu> = () => {
++export const Open: StoryFn<typeof MenuGroup> = () => {
+   const [open, setOpen] = React.useState<'charts' | 'maps' | 'theme' | undefined>();
+ 
+   const handleOpenSubMenu = (key: 'charts' | 'maps' | 'theme') => {
+@@ -242,7 +242,7 @@
+       <Sidebar>
+         <Menu>
+           <Menu>
+-            <SubMenu
++            <MenuGroup
+               onClick={() => handleOpenSubMenu('charts')}
+               open={open === 'charts'}
+               label="Charts"
+@@ -250,19 +250,19 @@
+               <MenuItem> Pie charts</MenuItem>
+               <MenuItem> Line charts</MenuItem>
+               <MenuItem> Bar charts</MenuItem>
+-            </SubMenu>
+-            <SubMenu onClick={() => handleOpenSubMenu('maps')} open={open === 'maps'} label="Maps">
++            </MenuGroup>
++            <MenuGroup onClick={() => handleOpenSubMenu('maps')} open={open === 'maps'} label="Maps">
+               <MenuItem> Google maps</MenuItem>
+               <MenuItem> Open street maps</MenuItem>
+-            </SubMenu>
+-            <SubMenu
++            </MenuGroup>
++            <MenuGroup
+               onClick={() => handleOpenSubMenu('theme')}
+               open={open === 'theme'}
+               label="Theme"
+             >
+               <MenuItem> Dark</MenuItem>
+               <MenuItem> Light</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Menu>
+       </Sidebar>
+@@ -276,7 +276,7 @@
+     <Sidebar>
+       <Menu>
+         <Menu>
+-          <SubMenu
++          <MenuGroup
+             defaultOpen
+             label="Charts"
+             rootStyles={{
+@@ -295,15 +295,15 @@
+             <MenuItem> Pie charts</MenuItem>
+             <MenuItem> Line charts</MenuItem>
+             <MenuItem> Bar charts</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Maps">
+-            <MenuItem> Google maps</MenuItem>
+-            <MenuItem> Open street maps</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Theme">
+-            <MenuItem> Dark</MenuItem>
+-            <MenuItem> Light</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
++          <MenuGroup label="Maps">
++            <MenuItem> Google maps</MenuItem>
++            <MenuItem> Open street maps</MenuItem>
++          </MenuGroup>
++          <MenuGroup label="Theme">
++            <MenuItem> Dark</MenuItem>
++            <MenuItem> Light</MenuItem>
++          </MenuGroup>
+         </Menu>
+       </Menu>
+     </Sidebar>
+@@ -311,32 +311,32 @@
+ );
+ RootStyles.storyName = 'rootStyles';
+ 
+-export const Accordion: StoryFn<typeof SubMenu> = () => (
+-  <div style={{ display: 'flex', height: '100%' }}>
+-    <Sidebar>
+-      <Menu>
+-        <SubMenu label="Settings" accordion defaultOpen>
+-          <SubMenu label="Account">
++export const Accordion: StoryFn<typeof MenuGroup> = () => (
++  <div style={{ display: 'flex', height: '100%' }}>
++    <Sidebar>
++      <Menu>
++        <MenuGroup label="Settings" accordion defaultOpen>
++          <MenuGroup label="Account">
+             <MenuItem> Profile</MenuItem>
+             <MenuItem> Password</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Notifications">
++          </MenuGroup>
++          <MenuGroup label="Notifications">
+             <MenuItem> Email</MenuItem>
+             <MenuItem> Push</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Privacy">
++          </MenuGroup>
++          <MenuGroup label="Privacy">
+             <MenuItem> Data</MenuItem>
+             <MenuItem> Sharing</MenuItem>
+-          </SubMenu>
+-        </SubMenu>
+-        <SubMenu label="Tools" defaultOpen>
+-          <SubMenu label="Editor">
++          </MenuGroup>
++        </MenuGroup>
++        <MenuGroup label="Tools" defaultOpen>
++          <MenuGroup label="Editor">
+             <MenuItem> Theme</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Terminal">
++          </MenuGroup>
++          <MenuGroup label="Terminal">
+             <MenuItem> Shell</MenuItem>
+-          </SubMenu>
+-        </SubMenu>
++          </MenuGroup>
++        </MenuGroup>
+       </Menu>
+     </Sidebar>
+   </div>
+diff -ruN a/tests/Menu.test.tsx b/tests/Menu.test.tsx
+--- a/tests/Menu.test.tsx
++++ b/tests/Menu.test.tsx
+@@ -4,7 +4,7 @@
+ import { Sidebar } from '../src/components/Sidebar';
+ import { Menu } from '../src/components/Menu';
+ import { MenuItem } from '../src/components/MenuItem';
+-import { SubMenu } from '../src/components/SubMenu';
++import { MenuGroup } from '../src/components/SubMenu';
+ import { menuClasses, sidebarClasses } from '../src/utils/utilityClasses';
+ 
+ describe('Menu', () => {
+@@ -12,7 +12,7 @@
+     customRender(
+       <Sidebar collapsed>
+         <Menu>
+-          <SubMenu label="Charts"></SubMenu>
++          <MenuGroup label="Charts"></MenuGroup>
+         </Menu>
+       </Sidebar>,
+     );
+@@ -84,9 +84,9 @@
+       customRender(
+         <Sidebar>
+           <Menu>
+-            <SubMenu label="Charts" defaultOpen>
++            <MenuGroup label="Charts" defaultOpen>
+               <MenuItem>Pie</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -98,9 +98,9 @@
+       customRender(
+         <Sidebar collapsed>
+           <Menu>
+-            <SubMenu label="Charts">
++            <MenuGroup label="Charts">
+               <MenuItem>Pie</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -112,9 +112,9 @@
+       customRender(
+         <Sidebar>
+           <Menu>
+-            <SubMenu label="Charts">
++            <MenuGroup label="Charts">
+               <MenuItem>Pie</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -126,9 +126,9 @@
+       customRender(
+         <Sidebar>
+           <Menu>
+-            <SubMenu label="Charts">
++            <MenuGroup label="Charts">
+               <MenuItem>Pie</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -140,9 +140,9 @@
+       customRender(
+         <Sidebar>
+           <Menu>
+-            <SubMenu label="Charts" defaultOpen>
++            <MenuGroup label="Charts" defaultOpen>
+               <MenuItem>Pie</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -154,9 +154,9 @@
+       customRender(
+         <Sidebar>
+           <Menu>
+-            <SubMenu label="Charts">
++            <MenuGroup label="Charts">
+               <MenuItem>Pie</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+diff -ruN a/tests/SubMenu.test.tsx b/tests/SubMenu.test.tsx
+--- a/tests/SubMenu.test.tsx
++++ b/tests/SubMenu.test.tsx
+@@ -4,17 +4,17 @@
+ import { Sidebar } from '../src/components/Sidebar';
+ import { Menu } from '../src/components/Menu';
+ import { MenuItem } from '../src/components/MenuItem';
+-import { SubMenu } from '../src/components/SubMenu';
++import { MenuGroup } from '../src/components/SubMenu';
+ import { menuClasses } from '../src/utils/utilityClasses';
+ 
+ const renderSubMenu = (subMenuProps = {}, menuProps = {}, sidebarProps = {}) =>
+   customRender(
+     <Sidebar {...sidebarProps}>
+       <Menu {...menuProps}>
+-        <SubMenu label="Charts" {...subMenuProps}>
++        <MenuGroup label="Charts" {...subMenuProps}>
+           <MenuItem>Pie</MenuItem>
+           <MenuItem>Line</MenuItem>
+-        </SubMenu>
++        </MenuGroup>
+       </Menu>
+     </Sidebar>,
+   );
+@@ -70,9 +70,9 @@
+     const { rerender } = customRender(
+       <Sidebar>
+         <Menu>
+-          <SubMenu label="Charts" open={false} onOpenChange={onOpenChange}>
++          <MenuGroup label="Charts" open={false} onOpenChange={onOpenChange}>
+             <MenuItem>Pie</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+         </Menu>
+       </Sidebar>,
+     );
+@@ -89,9 +89,9 @@
+     rerender(
+       <Sidebar>
+         <Menu>
+-          <SubMenu label="Charts" open onOpenChange={onOpenChange}>
++          <MenuGroup label="Charts" open onOpenChange={onOpenChange}>
+             <MenuItem>Pie</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+         </Menu>
+       </Sidebar>,
+     );
+@@ -110,9 +110,9 @@
+       customRender(
+         <Sidebar>
+           <Menu>
+-            <SubMenu label="Parent" defaultOpen>
++            <MenuGroup label="Parent" defaultOpen>
+               <MenuItem active>Child</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -123,11 +123,11 @@
+       customRender(
+         <Sidebar>
+           <Menu>
+-            <SubMenu label="Top" defaultOpen>
+-              <SubMenu label="Mid" defaultOpen>
++            <MenuGroup label="Top" defaultOpen>
++              <MenuGroup label="Mid" defaultOpen>
+                 <MenuItem active>Leaf</MenuItem>
+-              </SubMenu>
+-            </SubMenu>
++              </MenuGroup>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -139,9 +139,9 @@
+       customRender(
+         <Sidebar>
+           <Menu>
+-            <SubMenu label="Parent" defaultOpen>
++            <MenuGroup label="Parent" defaultOpen>
+               <MenuItem>Child</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -152,9 +152,9 @@
+       const tree = (active: boolean) => (
+         <Sidebar>
+           <Menu>
+-            <SubMenu label="Parent" defaultOpen>
++            <MenuGroup label="Parent" defaultOpen>
+               <MenuItem active={active}>Child</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>
+       );
+@@ -171,12 +171,12 @@
+       customRender(
+         <Sidebar>
+           <Menu accordion>
+-            <SubMenu label="A">
++            <MenuGroup label="A">
+               <MenuItem>A1</MenuItem>
+-            </SubMenu>
+-            <SubMenu label="B">
++            </MenuGroup>
++            <MenuGroup label="B">
+               <MenuItem>B1</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -201,14 +201,14 @@
+       customRender(
+         <Sidebar>
+           <Menu accordion>
+-            <SubMenu label="Top">
+-              <SubMenu label="X">
++            <MenuGroup label="Top">
++              <MenuGroup label="X">
+                 <MenuItem>X1</MenuItem>
+-              </SubMenu>
+-              <SubMenu label="Y">
++              </MenuGroup>
++              <MenuGroup label="Y">
+                 <MenuItem>Y1</MenuItem>
+-              </SubMenu>
+-            </SubMenu>
++              </MenuGroup>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -228,14 +228,14 @@
+       customRender(
+         <Sidebar>
+           <Menu>
+-            <SubMenu label="Group" accordion>
+-              <SubMenu label="X">
++            <MenuGroup label="Group" accordion>
++              <MenuGroup label="X">
+                 <MenuItem>X1</MenuItem>
+-              </SubMenu>
+-              <SubMenu label="Y">
++              </MenuGroup>
++              <MenuGroup label="Y">
+                 <MenuItem>Y1</MenuItem>
+-              </SubMenu>
+-            </SubMenu>
++              </MenuGroup>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -258,12 +258,12 @@
+       customRender(
+         <Sidebar>
+           <Menu accordion>
+-            <SubMenu label="A" defaultOpen>
++            <MenuGroup label="A" defaultOpen>
+               <MenuItem>A1</MenuItem>
+-            </SubMenu>
+-            <SubMenu label="B" defaultOpen>
++            </MenuGroup>
++            <MenuGroup label="B" defaultOpen>
+               <MenuItem>B1</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -282,12 +282,12 @@
+       customRender(
+         <Sidebar>
+           <Menu accordion>
+-            <SubMenu label="A" open>
++            <MenuGroup label="A" open>
+               <MenuItem>A1</MenuItem>
+-            </SubMenu>
+-            <SubMenu label="B">
++            </MenuGroup>
++            <MenuGroup label="B">
+               <MenuItem>B1</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -352,11 +352,11 @@
+       customRender(
+         <Sidebar>
+           <Menu popover>
+-            <SubMenu label="Top">
+-              <SubMenu label="Nested">
++            <MenuGroup label="Top">
++              <MenuGroup label="Nested">
+                 <MenuItem>Leaf</MenuItem>
+-              </SubMenu>
+-            </SubMenu>
++              </MenuGroup>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+diff -ruN a/tests/a11y.test.tsx b/tests/a11y.test.tsx
+--- a/tests/a11y.test.tsx
++++ b/tests/a11y.test.tsx
+@@ -5,7 +5,7 @@
+ import { Sidebar } from '../src/components/Sidebar';
+ import { Menu } from '../src/components/Menu';
+ import { MenuItem } from '../src/components/MenuItem';
+-import { SubMenu } from '../src/components/SubMenu';
++import { MenuGroup } from '../src/components/SubMenu';
+ 
+ describe('accessibility (axe)', () => {
+   it('Sidebar with a basic menu has no violations', async () => {
+@@ -37,10 +37,10 @@
+     const { container } = customRender(
+       <Sidebar>
+         <Menu>
+-          <SubMenu label="Charts">
++          <MenuGroup label="Charts">
+             <MenuItem>Pie</MenuItem>
+             <MenuItem>Line</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+         </Menu>
+       </Sidebar>,
+     );
+@@ -51,10 +51,10 @@
+     const { container } = customRender(
+       <Sidebar>
+         <Menu>
+-          <SubMenu label="Charts" defaultOpen>
++          <MenuGroup label="Charts" defaultOpen>
+             <MenuItem>Pie</MenuItem>
+             <MenuItem>Line</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+         </Menu>
+       </Sidebar>,
+     );
+@@ -65,9 +65,9 @@
+     const { container } = customRender(
+       <Sidebar collapsed>
+         <Menu>
+-          <SubMenu label="Charts">
++          <MenuGroup label="Charts">
+             <MenuItem>Pie</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+           <MenuItem>Documentation</MenuItem>
+         </Menu>
+       </Sidebar>,
+diff -ruN a/website/components/PlaygroundClient.tsx b/website/components/PlaygroundClient.tsx
+--- a/website/components/PlaygroundClient.tsx
++++ b/website/components/PlaygroundClient.tsx
+@@ -3,7 +3,7 @@
+   Sidebar,
+   Menu,
+   MenuItem,
+-  SubMenu,
++  MenuGroup,
+   menuClasses,
+   type MenuItemStyles,
+ } from 'react-pro-sidebar';
+@@ -360,7 +360,7 @@
+               accordion={accordion}
+               closeOnClick={closeOnClick}
+             >
+-              <SubMenu
++              <MenuGroup
+                 label={t.charts}
+                 icon={<BarChart />}
+                 suffix={
+@@ -372,32 +372,32 @@
+                 <MenuItem>{t.pieCharts}</MenuItem>
+                 <MenuItem>{t.lineCharts}</MenuItem>
+                 <MenuItem>{t.barCharts}</MenuItem>
+-              </SubMenu>
+-              <SubMenu label={t.maps} icon={<Global />}>
++              </MenuGroup>
++              <MenuGroup label={t.maps} icon={<Global />}>
+                 <MenuItem>{t.googleMaps}</MenuItem>
+                 <MenuItem>{t.openStreetMaps}</MenuItem>
+-              </SubMenu>
+-              <SubMenu label={t.theme} icon={<InkBottle />}>
++              </MenuGroup>
++              <MenuGroup label={t.theme} icon={<InkBottle />}>
+                 <MenuItem>{t.dark}</MenuItem>
+                 <MenuItem>{t.light}</MenuItem>
+-              </SubMenu>
+-              <SubMenu label={t.components} icon={<Diamond />}>
++              </MenuGroup>
++              <MenuGroup label={t.components} icon={<Diamond />}>
+                 <MenuItem>{t.grid}</MenuItem>
+                 <MenuItem>{t.layout}</MenuItem>
+-                <SubMenu label={t.forms}>
++                <MenuGroup label={t.forms}>
+                   <MenuItem>{t.input}</MenuItem>
+                   <MenuItem>{t.select}</MenuItem>
+-                  <SubMenu label={t.more}>
++                  <MenuGroup label={t.more}>
+                     <MenuItem>{t.checkbox}</MenuItem>
+                     <MenuItem>{t.radio}</MenuItem>
+-                  </SubMenu>
+-                </SubMenu>
+-              </SubMenu>
+-              <SubMenu label={t.ecommerce} icon={<ShoppingCart />}>
++                  </MenuGroup>
++                </MenuGroup>
++              </MenuGroup>
++              <MenuGroup label={t.ecommerce} icon={<ShoppingCart />}>
+                 <MenuItem>{t.product}</MenuItem>
+                 <MenuItem>{t.orders}</MenuItem>
+                 <MenuItem>{t.creditCard}</MenuItem>
+-              </SubMenu>
++              </MenuGroup>
+             </Menu>
+ 
+             <div style={{ padding: '0 24px', marginBottom: 8, marginTop: 32 }}>
+diff -ruN a/website/components/demos/ExampleDemos.tsx b/website/components/demos/ExampleDemos.tsx
+--- a/website/components/demos/ExampleDemos.tsx
++++ b/website/components/demos/ExampleDemos.tsx
+@@ -3,7 +3,7 @@
+   Sidebar,
+   Menu,
+   MenuItem,
+-  SubMenu,
++  MenuGroup,
+   menuClasses,
+   type MenuItemStyles,
+ } from 'react-pro-sidebar';
+@@ -46,11 +46,11 @@
+             Overview
+           </MenuItem>
+           <MenuItem icon={<BarChart />}>Analytics</MenuItem>
+-          <SubMenu label="E-commerce" icon={<Global />}>
++          <MenuGroup label="E-commerce" icon={<Global />}>
+             <MenuItem>Products</MenuItem>
+             <MenuItem>Orders</MenuItem>
+             <MenuItem>Customers</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+           <MenuItem icon={<Calendar />}>Calendar</MenuItem>
+           <MenuItem icon={<Book />}>Documentation</MenuItem>
+         </Menu>
+@@ -245,10 +245,10 @@
+           <MenuItem icon={<Diamond />} active>
+             Dashboard
+           </MenuItem>
+-          <SubMenu label="Charts" icon={<BarChart />} defaultOpen>
++          <MenuGroup label="Charts" icon={<BarChart />} defaultOpen>
+             <MenuItem>Pie</MenuItem>
+             <MenuItem>Line</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+           <MenuItem icon={<InkBottle />}>Theme</MenuItem>
+           <MenuItem icon={<Calendar />}>Calendar</MenuItem>
+         </Menu>
+diff -ruN a/website/components/demos/SidebarDemos.tsx b/website/components/demos/SidebarDemos.tsx
+--- a/website/components/demos/SidebarDemos.tsx
++++ b/website/components/demos/SidebarDemos.tsx
+@@ -1,5 +1,5 @@
+ import React from 'react';
+-import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
++import { Sidebar, Menu, MenuItem, MenuGroup } from 'react-pro-sidebar';
+ import { Switch } from '../playground/ui';
+ import { BarChart, Diamond, Calendar, Book } from '../playground/icons';
+ import { useDemoColors } from './useDemoColors';
+@@ -232,10 +232,10 @@
+         <Sidebar rtl={rtl} backgroundColor={c.sidebarBg} rootStyles={c.sidebarRootStyles}>
+           <Menu menuItemStyles={c.menuItemStyles}>
+             <MenuItem icon={<Diamond />}>Dashboard</MenuItem>
+-            <SubMenu label="Charts" icon={<BarChart />}>
++            <MenuGroup label="Charts" icon={<BarChart />}>
+               <MenuItem>Pie</MenuItem>
+               <MenuItem>Line</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>
+         <div className="rps-demo-main">
+@@ -336,14 +336,14 @@
+     <Card>
+       <Sidebar backgroundColor={c.sidebarBg} rootStyles={c.sidebarRootStyles}>
+         <Menu popover={popover} menuItemStyles={c.menuItemStyles}>
+-          <SubMenu label="Charts" icon={<BarChart />}>
++          <MenuGroup label="Charts" icon={<BarChart />}>
+             <MenuItem>Pie</MenuItem>
+             <MenuItem>Line</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Components" icon={<Diamond />}>
++          </MenuGroup>
++          <MenuGroup label="Components" icon={<Diamond />}>
+             <MenuItem>Grid</MenuItem>
+             <MenuItem>Layout</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+         </Menu>
+       </Sidebar>
+       <div className="rps-demo-main">
+@@ -368,17 +368,17 @@
+     <Card>
+       <Sidebar backgroundColor={c.sidebarBg} rootStyles={c.sidebarRootStyles}>
+         <Menu accordion={accordion} menuItemStyles={c.menuItemStyles}>
+-          <SubMenu label="Charts" icon={<BarChart />} defaultOpen>
++          <MenuGroup label="Charts" icon={<BarChart />} defaultOpen>
+             <MenuItem>Pie</MenuItem>
+             <MenuItem>Line</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Components" icon={<Diamond />}>
++          </MenuGroup>
++          <MenuGroup label="Components" icon={<Diamond />}>
+             <MenuItem>Grid</MenuItem>
+             <MenuItem>Layout</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Calendar" icon={<Calendar />}>
++          </MenuGroup>
++          <MenuGroup label="Calendar" icon={<Calendar />}>
+             <MenuItem>Events</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+         </Menu>
+       </Sidebar>
+       <div className="rps-demo-main">
+@@ -419,10 +419,10 @@
+           <MenuItem icon={<Diamond />} active>
+             Dashboard
+           </MenuItem>
+-          <SubMenu label="Charts" icon={<BarChart />}>
++          <MenuGroup label="Charts" icon={<BarChart />}>
+             <MenuItem>Pie</MenuItem>
+             <MenuItem>Line</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+           <MenuItem icon={<Book />}>Docs</MenuItem>
+         </Menu>
+       </Sidebar>
+@@ -443,10 +443,10 @@
+     <Card>
+       <Sidebar collapsed backgroundColor={c.sidebarBg} rootStyles={c.sidebarRootStyles}>
+         <Menu closeOnClick={closeOnClick} menuItemStyles={c.menuItemStyles}>
+-          <SubMenu label="Charts" icon={<BarChart />}>
++          <MenuGroup label="Charts" icon={<BarChart />}>
+             <MenuItem>Pie</MenuItem>
+             <MenuItem>Line</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+         </Menu>
+       </Sidebar>
+       <div className="rps-demo-main">
+@@ -555,14 +555,14 @@
+     <Card>
+       <Sidebar backgroundColor={c.sidebarBg} rootStyles={c.sidebarRootStyles}>
+         <Menu menuItemStyles={c.menuItemStyles}>
+-          <SubMenu label="Charts" icon={<BarChart />} defaultOpen>
++          <MenuGroup label="Charts" icon={<BarChart />} defaultOpen>
+             <MenuItem>Pie</MenuItem>
+             <MenuItem>Line</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Components" icon={<Diamond />}>
++          </MenuGroup>
++          <MenuGroup label="Components" icon={<Diamond />}>
+             <MenuItem>Grid</MenuItem>
+             <MenuItem>Layout</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+         </Menu>
+       </Sidebar>
+       <div className="rps-demo-main">
+@@ -581,10 +581,10 @@
+     <Card>
+       <Sidebar backgroundColor={c.sidebarBg} rootStyles={c.sidebarRootStyles}>
+         <Menu menuItemStyles={c.menuItemStyles}>
+-          <SubMenu label="Charts" icon={<BarChart />} open={open} onOpenChange={setOpen}>
++          <MenuGroup label="Charts" icon={<BarChart />} open={open} onOpenChange={setOpen}>
+             <MenuItem>Pie</MenuItem>
+             <MenuItem>Line</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+         </Menu>
+       </Sidebar>
+       <div className="rps-demo-main">
+@@ -608,20 +608,20 @@
+     <Card>
+       <Sidebar backgroundColor={c.sidebarBg} rootStyles={c.sidebarRootStyles}>
+         <Menu menuItemStyles={c.menuItemStyles}>
+-          <SubMenu label="Components" icon={<Diamond />} accordion defaultOpen>
+-            <SubMenu label="Forms" defaultOpen>
++          <MenuGroup label="Components" icon={<Diamond />} accordion defaultOpen>
++            <MenuGroup label="Forms" defaultOpen>
+               <MenuItem>Input</MenuItem>
+               <MenuItem>Select</MenuItem>
+-            </SubMenu>
+-            <SubMenu label="Layout">
++            </MenuGroup>
++            <MenuGroup label="Layout">
+               <MenuItem>Grid</MenuItem>
+               <MenuItem>Stack</MenuItem>
+-            </SubMenu>
+-            <SubMenu label="Display">
++            </MenuGroup>
++            <MenuGroup label="Display">
+               <MenuItem>Card</MenuItem>
+               <MenuItem>List</MenuItem>
+-            </SubMenu>
+-          </SubMenu>
++            </MenuGroup>
++          </MenuGroup>
+         </Menu>
+       </Sidebar>
+       <div className="rps-demo-main">
+diff -ruN a/website/components/home/HeroCodePreview.tsx b/website/components/home/HeroCodePreview.tsx
+--- a/website/components/home/HeroCodePreview.tsx
++++ b/website/components/home/HeroCodePreview.tsx
+@@ -9,7 +9,7 @@
+  * inside `<pre>` (where whitespace is significant).
+  */
+ const html =
+-  '<span class="tok-kw">import</span> { Sidebar, Menu, MenuItem, SubMenu } <span class="tok-kw">from</span> <span class="tok-str">\'react-pro-sidebar\'</span>;\n' +
++  '<span class="tok-kw">import</span> { Sidebar, Menu, MenuItem, MenuGroup } <span class="tok-kw">from</span> <span class="tok-str">\'react-pro-sidebar\'</span>;\n' +
+   '<span class="tok-kw">import</span> { Diamond } <span class="tok-kw">from</span> <span class="tok-str">\'./icons\'</span>;\n\n' +
+   '<span class="tok-kw">export default function</span> <span class="tok-fn">App</span>() {\n' +
+   '  <span class="tok-kw">return</span> (\n' +
+@@ -18,10 +18,10 @@
+   '        &lt;<span class="tok-tag">MenuItem</span> <span class="tok-attr">icon</span>={&lt;<span class="tok-tag">Diamond</span> /&gt;}&gt;\n' +
+   '          Dashboard\n' +
+   '        &lt;/<span class="tok-tag">MenuItem</span>&gt;\n' +
+-  '        &lt;<span class="tok-tag">SubMenu</span> <span class="tok-attr">label</span>=<span class="tok-str">"Charts"</span>&gt;\n' +
++  '        &lt;<span class="tok-tag">MenuGroup</span> <span class="tok-attr">label</span>=<span class="tok-str">"Charts"</span>&gt;\n' +
+   '          &lt;<span class="tok-tag">MenuItem</span>&gt;Pie&lt;/<span class="tok-tag">MenuItem</span>&gt;\n' +
+   '          &lt;<span class="tok-tag">MenuItem</span>&gt;Line&lt;/<span class="tok-tag">MenuItem</span>&gt;\n' +
+-  '        &lt;/<span class="tok-tag">SubMenu</span>&gt;\n' +
++  '        &lt;/<span class="tok-tag">MenuGroup</span>&gt;\n' +
+   '      &lt;/<span class="tok-tag">Menu</span>&gt;\n' +
+   '    &lt;/<span class="tok-tag">Sidebar</span>&gt;\n' +
+   '  );\n' +
+diff -ruN a/website/components/playground/generateCode.ts b/website/components/playground/generateCode.ts
+--- a/website/components/playground/generateCode.ts
++++ b/website/components/playground/generateCode.ts
+@@ -79,7 +79,7 @@
+   Sidebar,
+   Menu,
+   MenuItem,
+-  SubMenu,
++  MenuGroup,
+   type MenuItemStyles,
+ } from 'react-pro-sidebar';
+ 
+@@ -99,10 +99,10 @@
+   return (
+     ${sidebarOpen.replace(/\n/g, '\n    ')}
+       ${menuOpen.replace(/\n/g, '\n      ')}
+-        <SubMenu label="Charts">
++        <MenuGroup label="Charts">
+           <MenuItem>Pie charts</MenuItem>
+           <MenuItem>Line charts</MenuItem>
+-        </SubMenu>
++        </MenuGroup>
+         <MenuItem>Calendar</MenuItem>
+         <MenuItem>Documentation</MenuItem>
+       </Menu>
+diff -ruN a/website/pages/docs/components/menu.mdx b/website/pages/docs/components/menu.mdx
+--- a/website/pages/docs/components/menu.mdx
++++ b/website/pages/docs/components/menu.mdx
+@@ -24,14 +24,14 @@
+ "Extras" sections — see the [Playground](/playground)).
+ 
+ ```jsx
+-import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
++import { Sidebar, Menu, MenuItem, MenuGroup } from 'react-pro-sidebar';
+ 
+ <Sidebar>
+   <Menu>
+-    <SubMenu label="Charts">
++    <MenuGroup label="Charts">
+       <MenuItem>Pie</MenuItem>
+       <MenuItem>Line</MenuItem>
+-    </SubMenu>
++    </MenuGroup>
+     <MenuItem>Documentation</MenuItem>
+   </Menu>
+ </Sidebar>;
+@@ -63,7 +63,7 @@
+ 
+ ```jsx
+ <Menu popover>
+-  <SubMenu label="Charts">…</SubMenu>
++  <MenuGroup label="Charts">…</MenuGroup>
+ </Menu>
+ ```
+ 
+@@ -81,8 +81,8 @@
+ 
+ ```jsx
+ <Menu accordion>
+-  <SubMenu label="Charts">…</SubMenu>
+-  <SubMenu label="Components">…</SubMenu>
++  <MenuGroup label="Charts">…</MenuGroup>
++  <MenuGroup label="Components">…</MenuGroup>
+ </Menu>
+ ```
+ 
+diff -ruN a/website/pages/docs/components/sub-menu.mdx b/website/pages/docs/components/sub-menu.mdx
+--- a/website/pages/docs/components/sub-menu.mdx
++++ b/website/pages/docs/components/sub-menu.mdx
+@@ -21,10 +21,10 @@
+ 
+ ```jsx
+ <Menu>
+-  <SubMenu label="Charts" icon={<ChartIcon />} defaultOpen>
++  <MenuGroup label="Charts" icon={<ChartIcon />} defaultOpen>
+     <MenuItem>Pie</MenuItem>
+     <MenuItem>Line</MenuItem>
+-  </SubMenu>
++  </MenuGroup>
+ </Menu>
+ ```
+ 
+@@ -38,8 +38,8 @@
+ - **Default:** `–`
+ 
+ ```jsx
+-<SubMenu label="Charts">…</SubMenu>
+-<SubMenu label={<span>Charts <Badge>6</Badge></span>}>…</SubMenu>
++<MenuGroup label="Charts">…</MenuGroup>
++<MenuGroup label={<span>Charts <Badge>6</Badge></span>}>…</MenuGroup>
+ ```
+ 
+ ### `icon`
+@@ -50,9 +50,9 @@
+ - **Default:** `–`
+ 
+ ```jsx
+-<SubMenu label="Charts" icon={<ChartIcon />}>
+-  …
+-</SubMenu>
++<MenuGroup label="Charts" icon={<ChartIcon />}>
++  …
++</MenuGroup>
+ ```
+ 
+ ### `defaultOpen`
+@@ -65,9 +65,9 @@
+ <DefaultOpenDemo />
+ 
+ ```jsx
+-<SubMenu label="Charts" defaultOpen>
+-  …
+-</SubMenu>
++<MenuGroup label="Charts" defaultOpen>
++  …
++</MenuGroup>
+ ```
+ 
+ ### `open`
+@@ -83,9 +83,9 @@
+ ```jsx
+ const [open, setOpen] = useState(false);
+ 
+-<SubMenu label="Charts" open={open} onOpenChange={setOpen}>
+-  …
+-</SubMenu>;
++<MenuGroup label="Charts" open={open} onOpenChange={setOpen}>
++  …
++</MenuGroup>;
+ ```
+ 
+ ### `active`
+@@ -98,9 +98,9 @@
+ - **Default:** `false`
+ 
+ ```jsx
+-<SubMenu label="Charts" active>
+-  …
+-</SubMenu>
++<MenuGroup label="Charts" active>
++  …
++</MenuGroup>
+ ```
+ 
+ ### `disabled`
+@@ -111,9 +111,9 @@
+ - **Default:** `false`
+ 
+ ```jsx
+-<SubMenu label="Charts" disabled>
+-  …
+-</SubMenu>
++<MenuGroup label="Charts" disabled>
++  …
++</MenuGroup>
+ ```
+ 
+ ### `prefix`
+@@ -133,9 +133,9 @@
+ - **Default:** `–`
+ 
+ ```jsx
+-<SubMenu label="Charts" suffix={<Badge>6</Badge>}>
+-  …
+-</SubMenu>
++<MenuGroup label="Charts" suffix={<Badge>6</Badge>}>
++  …
++</MenuGroup>
+ ```
+ 
+ ### `accordion`
+@@ -151,11 +151,11 @@
+ <SubMenuAccordionDemo />
+ 
+ ```jsx
+-<SubMenu label="Components" accordion>
+-  <SubMenu label="Forms">…</SubMenu>
+-  <SubMenu label="Layout">…</SubMenu>
+-  <SubMenu label="Display">…</SubMenu>
+-</SubMenu>
++<MenuGroup label="Components" accordion>
++  <MenuGroup label="Forms">…</MenuGroup>
++  <MenuGroup label="Layout">…</MenuGroup>
++  <MenuGroup label="Display">…</MenuGroup>
++</MenuGroup>
+ ```
+ 
+ ### `onOpenChange`
+@@ -166,9 +166,9 @@
+ - **Default:** `–`
+ 
+ ```jsx
+-<SubMenu label="Charts" onOpenChange={(open) => console.log('charts open:', open)}>
+-  …
+-</SubMenu>
++<MenuGroup label="Charts" onOpenChange={(open) => console.log('charts open:', open)}>
++  …
++</MenuGroup>
+ ```
+ 
+ ### `component`
+@@ -180,9 +180,9 @@
+ - **Default:** `–`
+ 
+ ```jsx
+-<SubMenu label="Charts" component="div">
+-  …
+-</SubMenu>
++<MenuGroup label="Charts" component="div">
++  …
++</MenuGroup>
+ ```
+ 
+ ### `rootStyles`
+@@ -193,9 +193,9 @@
+ - **Default:** `–`
+ 
+ ```jsx
+-<SubMenu label="Charts" rootStyles={{ borderTop: '1px solid #eee' }}>
+-  …
+-</SubMenu>
++<MenuGroup label="Charts" rootStyles={{ borderTop: '1px solid #eee' }}>
++  …
++</MenuGroup>
+ ```
+ 
+ ## All props
+diff -ruN a/website/pages/docs/examples/dashboard-layout.mdx b/website/pages/docs/examples/dashboard-layout.mdx
+--- a/website/pages/docs/examples/dashboard-layout.mdx
++++ b/website/pages/docs/examples/dashboard-layout.mdx
+@@ -17,7 +17,7 @@
+ 
+ ```jsx
+ import React from 'react';
+-import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
++import { Sidebar, Menu, MenuItem, MenuGroup } from 'react-pro-sidebar';
+ import { Diamond, BarChart, Global, Calendar, Book } from './icons';
+ 
+ export default function Dashboard() {
+@@ -49,11 +49,11 @@
+             Overview
+           </MenuItem>
+           <MenuItem icon={<BarChart />}>Analytics</MenuItem>
+-          <SubMenu label="E-commerce" icon={<Global />}>
++          <MenuGroup label="E-commerce" icon={<Global />}>
+             <MenuItem>Products</MenuItem>
+             <MenuItem>Orders</MenuItem>
+             <MenuItem>Customers</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+           <MenuItem icon={<Calendar />}>Calendar</MenuItem>
+           <MenuItem icon={<Book />}>Documentation</MenuItem>
+         </Menu>
+diff -ruN a/website/pages/docs/examples/theme-customization.mdx b/website/pages/docs/examples/theme-customization.mdx
+--- a/website/pages/docs/examples/theme-customization.mdx
++++ b/website/pages/docs/examples/theme-customization.mdx
+@@ -23,7 +23,7 @@
+ ## Code
+ 
+ ```jsx
+-import { Sidebar, Menu, MenuItem, SubMenu, menuClasses, type MenuItemStyles } from 'react-pro-sidebar';
++import { Sidebar, Menu, MenuItem, MenuGroup, menuClasses, type MenuItemStyles } from 'react-pro-sidebar';
+ 
+ const themes = {
+   light: { bg: '#ffffff', text: '#0d3b66', icon: '#0098e5', hoverBg: '#cfe7ff', hoverText: '#0d3b66' },
+@@ -56,10 +56,10 @@
+     >
+       <Menu menuItemStyles={menuItemStyles}>
+         <MenuItem active>Dashboard</MenuItem>
+-        <SubMenu label="Charts">
++        <MenuGroup label="Charts">
+           <MenuItem>Pie</MenuItem>
+           <MenuItem>Line</MenuItem>
+-        </SubMenu>
++        </MenuGroup>
+       </Menu>
+     </Sidebar>
+   );
+diff -ruN a/website/pages/docs/installation.mdx b/website/pages/docs/installation.mdx
+--- a/website/pages/docs/installation.mdx
++++ b/website/pages/docs/installation.mdx
+@@ -43,7 +43,7 @@
+ ## Basic usage
+ 
+ ```jsx
+-import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
++import { Sidebar, Menu, MenuItem, MenuGroup } from 'react-pro-sidebar';
+ 
+ export default function App() {
+   return (
+@@ -51,10 +51,10 @@
+       <Sidebar>
+         <Menu>
+           <MenuItem> Dashboard </MenuItem>
+-          <SubMenu label="Charts">
++          <MenuGroup label="Charts">
+             <MenuItem> Pie charts </MenuItem>
+             <MenuItem> Line charts </MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+           <MenuItem> Documentation </MenuItem>
+           <MenuItem> Calendar </MenuItem>
+         </Menu>
