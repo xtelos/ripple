@@ -944,3 +944,108 @@ def test_a_rename_task_passes_with_the_reference_and_fails_untouched_and_under_a
     assert text_rename(naive, old, new) > 0
     verdict = check_task(task, naive)
     assert not verdict["success"] and not verdict["hidden_passed"], verdict
+
+
+# ------------------------------------------- the control: a correct solution that also adds tests using the new name
+
+SIDEBAR_JSX = "customRender(\n      <Sidebar>\n        <Menu{props}>\n          <{tag} label=\"G\">\n            <MenuItem>I</MenuItem>\n          </{tag}>\n        </Menu>\n      </Sidebar>,\n    );"
+SIDEBAR_IMPORTS = (
+    "import React from 'react';\nimport { describe, it, expect } from 'vitest';\nimport { customRender, screen } from './testUtils';\n"
+    "import { Sidebar } from '../src/components/Sidebar';\nimport { Menu } from '../src/components/Menu';\nimport { MenuItem } from '../src/components/MenuItem';\n"
+)
+
+
+def sidebar_case(title: str, tag: str, props: str = "") -> str:
+    body = SIDEBAR_JSX.replace("{tag}", tag).replace("{props}", props)
+    return f"describe('{title}', () => {{\n  it('{title} renders', () => {{\n    {body}\n    expect(screen.getByText('G')).toBeTruthy();\n  }});\n}});\n"
+
+
+# task id -> files a careful agent adds on top of the reference: ("new", path, text) is a new test file in the tests
+# directory, ("append", path, text) is a test added at the end of an existing one. Each uses the new name, and none is
+# ever run by the grade (the suite restores the reference's tests) but the hidden checks scan and type-check them.
+CONTROLS = {
+    "21-neverthrow-rename-resultasync-orelse": [
+        ("new", "tests/agent-extra.test.ts",
+         "import { describe, expect, it } from 'vitest'\nimport { errAsync, okAsync } from '../src'\n"
+         "describe('agent', () => {\n  it('recovers', async () => {\n    const r = await errAsync<number, string>('x').recoverWith((e) => okAsync(e.length))\n    expect(r.isOk()).toBe(true)\n  })\n})\n"),
+        ("append", "tests/index.test.ts",
+         "\ndescribe('agent addition', () => {\n  it('recovers too', async () => {\n    const r = await errAsync<number, string>('xy').recoverWith((e) => okAsync(e.length))\n    expect(r._unsafeUnwrap()).toBe(2)\n  })\n})\n"),
+    ],
+    "22-superstruct-rename-assert": [
+        ("new", "test/api/agent-extra.test.ts",
+         "import { describe, expect, it } from 'vitest'\nimport { assertValid, string } from '../../src'\n"
+         "describe('agent', () => {\n  it('asserts', () => {\n    expect(() => assertValid('a', string())).not.toThrow()\n    expect(() => string().assert('a')).not.toThrow()\n  })\n})\n"),
+        ("append", "test/api/assert.test.ts",
+         "\ndescribe('agent addition', () => {\n  it('asserts twice', () => {\n    expect(() => assertValid('v', string())).not.toThrow()\n    expect(() => string().assert(1)).toThrow(StructError)\n  })\n})\n"),
+    ],
+    "23-superstruct-rename-create": [
+        ("new", "test/api/agent-extra.test.ts",
+         "import { describe, expect, it } from 'vitest'\nimport { createFrom, string } from '../../src'\n"
+         "describe('agent', () => {\n  it('creates', () => {\n    expect(createFrom('a', string())).toBe('a')\n    expect(string().create('b')).toBe('b')\n  })\n})\n"),
+        ("append", "test/api/create.test.ts",
+         "\ndescribe('agent addition', () => {\n  it('creates once more', () => {\n    expect(createFrom('c', string())).toBe('c')\n    expect(string().create('d')).toBe('d')\n  })\n})\n"),
+    ],
+    "24-tsyringe-rename-transform": [
+        ("new", "src/__tests__/agent-extra.test.ts",
+         'import {container} from "..";\nimport {injectable} from "../decorators";\nimport injectWithTransform from "../decorators/inject-with-transform";\nimport Transform from "../types/transform";\n\n'
+         'class Shout implements Transform<string, string> {\n  public convert(value: string): string {\n    return value.toUpperCase();\n  }\n}\n\n'
+         'test("agent: a transformer with convert", () => {\n  container.register("word", {useValue: "hi"});\n  @injectable()\n  class Uses {\n    constructor(@injectWithTransform("word", Shout) public value: string) {}\n  }\n'
+         '  expect(container.resolve(Uses).value).toBe("HI");\n  expect(new Shout().convert("a")).toBe("A");\n  container.reset();\n});\n'),
+        ("append", "src/__tests__/transform.test.ts",
+         '\ntest("agent addition: a transformer", () => {\n  class Twice implements Transform<number, number> {\n    public convert(n: number): number {\n      return n * 2;\n    }\n  }\n  expect(new Twice().convert(2)).toBe(4);\n});\n'),
+    ],
+    "25-tsyringe-rename-registry": [
+        ("new", "src/__tests__/agent-extra.test.ts",
+         'import {container} from "..";\nimport {registerAll} from "../decorators";\n\n'
+         'test("agent: registerAll registers", () => {\n  @registerAll([{token: "agent-token", useValue: 42}])\n  class Holder {}\n  expect(container.resolve("agent-token")).toBe(42);\n  expect(typeof Holder).toBe("function");\n  container.reset();\n});\n'),
+        ("append", "src/__tests__/global-container.test.ts",
+         '\ntest("agent addition: registerAll again", () => {\n  @registerAll([{token: "agent-two", useValue: 1}])\n  class Again {}\n  expect(typeof Again).toBe("function");\n});\n'),
+    ],
+    "26-react-pro-sidebar-rename-submenu": [
+        ("new", "tests/agent-extra.test.tsx",
+         SIDEBAR_IMPORTS + "import { MenuGroup } from '../src/components/SubMenu';\n\n" + sidebar_case("agent group", "MenuGroup")),
+        ("append", "tests/Menu.test.tsx", "\n" + sidebar_case("agent addition group", "MenuGroup")),
+    ],
+    "27-react-pro-sidebar-rename-usemediaquery": [
+        ("new", "tests/agent-extra.test.tsx",
+         "import { describe, it, expect, vi } from 'vitest';\nimport { renderHook } from '@testing-library/react';\nimport { useMatchMedia } from '../src/hooks/useMediaQuery';\n\n"
+         "describe('useMatchMedia', () => {\n  it('useMatchMedia reads a query', () => {\n    window.matchMedia = vi.fn().mockImplementation(() => ({\n      matches: true,\n      media: '',\n"
+         "      addEventListener: vi.fn(),\n      removeEventListener: vi.fn(),\n    })) as unknown as typeof window.matchMedia;\n    const { result } = renderHook(() => useMatchMedia('(max-width: 600px)'));\n    expect(result.current).toBe(true);\n  });\n});\n"),
+        ("append", "tests/hooks.test.tsx",
+         "\ndescribe('agent addition', () => {\n  it('useMatchMedia answers with a boolean', () => {\n    const { result } = renderHook(() => useMatchMedia('(min-width: 1px)'));\n    expect(typeof result.current).toBe('boolean');\n  });\n});\n"),
+        ("append", "tests/Sidebar.test.tsx",
+         "\ndescribe('agent addition: a spy', () => {\n  it('breaks when the hook says so', () => {\n    vi.spyOn(mediaQueryHook, 'useMatchMedia').mockImplementation(() => true);\n    const onBreakPoint = vi.fn();\n"
+         "    customRender(\n      <Sidebar breakPoint=\"md\" onBreakPoint={onBreakPoint}>\n        S\n      </Sidebar>,\n    );\n    expect(onBreakPoint).toHaveBeenCalledWith(true);\n  });\n});\n"),
+    ],
+    "28-react-pro-sidebar-rename-menu-slideduration": [
+        ("new", "tests/agent-extra.test.tsx",
+         SIDEBAR_IMPORTS + "import { SubMenu } from '../src/components/SubMenu';\n\n" + sidebar_case("slides with slideDuration", "SubMenu", " slideDuration={500}")),
+        ("append", "tests/Menu.test.tsx", "\n" + sidebar_case("agent addition slide", "SubMenu", " slideDuration={700}")),
+        ("append", "tests/hooks.test.tsx",
+         "\ndescribe('agent addition', () => {\n  it('hands on a slideDuration', () => {\n    const value = { slideDuration: 500, closeOnClick: true };\n"
+         "    const wrapper = ({ children }: { children: React.ReactNode }) => (\n      <MenuContext.Provider value={value}>{children}</MenuContext.Provider>\n    );\n"
+         "    const { result } = renderHook(() => useMenu(), { wrapper });\n    expect(result.current).toEqual(value);\n  });\n});\n"),
+    ],
+}
+CONTROL_PARAMS = [
+    pytest.param(tid, id=tid, marks=pytest.mark.skipif(tid not in TASKS or not TASKS[tid].available, reason="needs the pinned repository: python -m eval.fetch"))
+    for tid in CONTROLS
+]
+
+
+@pytest.mark.parametrize("tid", CONTROL_PARAMS)
+@needs_node
+def test_a_correct_solution_that_also_tests_the_new_name_in_a_new_file_and_an_old_one_is_graded_success(tid, tmp_path):
+    """The reference's edits and then more: a new test file and a test appended to an existing one, each using the new name
+    (task 20 is the pilot's control above). The hidden checks see these files, since they run before the tests are put back."""
+    task = TASKS[tid]
+    repo = an_agent_copy(task, tmp_path)
+    for how, rel, text in CONTROLS[tid]:
+        path = repo / rel
+        if how == "new":
+            assert not path.exists(), rel
+            path.write_text(text)
+        else:
+            path.write_text(path.read_text() + text)
+    verdict = check_task(task, repo)
+    assert verdict["success"] and verdict["tests_lost"] == 0 and verdict["hidden_passed"], verdict
