@@ -1,7 +1,8 @@
 """Run the agent A/B eval: every task, with and without ripple, N times each.
 
-    python -m eval.run                          19 tasks x 2 modes x 3 repeats
+    python -m eval.run                          19 Python tasks x 2 modes x 3 repeats
     python -m eval.run --tasks 01-shop-tax-args --repeats 1 --out /tmp/smoke.json
+    python -m eval.run --runtime node --dry     the TypeScript tasks' plan and readiness checks, no model call
 
 Each run copies the task's fixture to a fresh directory under /tmp, runs
 Claude Code headless there, then runs the check (eval/check.py). The two
@@ -43,10 +44,19 @@ from pathlib import Path
 
 from .check import check_task
 from .loader import EVAL_DIR, REPO_ROOT, Task, copy_fixture, load_tasks
+from .node_agent import (
+    node_allowed_tools,
+    node_files,
+    node_preamble,
+    node_problems,
+    ripple_problems,
+    write_node_shims,
+)
 from .report import MODES, summarize, table
 
 RIPPLE_BIN = Path(sys.executable).parent / "ripple"
 RESULTS_DIR = EVAL_DIR / "results"
+RUNTIMES = ("python", "node", "all")
 # The agent may edit files (acceptEdits) and run the tests; anything else that
 # would need permission is refused, since nobody is there to answer.
 TEST_COMMANDS = ["Bash(python -m pytest:*)", "Bash(python3 -m pytest:*)", "Bash(pytest:*)"]
@@ -80,31 +90,56 @@ SECRET = re.compile(
 )
 
 
-def build_prompt(task_prompt: str, mode: str) -> str:
-    """What the agent is told: the shared preamble, in with-ripple the ripple line, then the task."""
-    parts = [PREAMBLE] + ([WITH_RIPPLE_LINE] if mode == "with-ripple" else []) + [task_prompt]
+def build_prompt(task_prompt: str, mode: str, task: Task | None = None) -> str:
+    """What the agent is told: the shared preamble (the node variant for a node task), in with-ripple the
+    ripple line, then the task."""
+    preamble = node_preamble(task.spec) if task is not None and task.is_node else PREAMBLE
+    parts = [preamble] + ([WITH_RIPPLE_LINE] if mode == "with-ripple" else []) + [task_prompt]
     return "\n\n".join(parts)
 
 
-def mcp_config(mode: str, repo: Path, cache_dir: Path) -> dict:
+def ripple_launch(ripple_python: str | None = None) -> tuple[str, list[str]]:
+    """The command and leading arguments that start the ripple MCP server. By default the `ripple` script next
+    to this interpreter (what every Python run has always used); with --ripple-python, that interpreter's
+    `-m ripple` (isolated, so a directory the agent works in cannot shadow the package). mcp_config passes it for a
+    node task only: a Python task is always started by the default."""
+    if ripple_python is None:
+        return str(RIPPLE_BIN), []
+    return ripple_python, ["-I", "-m", "ripple"]
+
+
+def mcp_config(
+    mode: str,
+    repo: Path,
+    cache_dir: Path,
+    task: Task | None = None,
+    ripple_python: str | None = None,
+    bin_dir: Path | None = None,
+) -> dict:
     if mode == "without":
         return {"mcpServers": {}}
-    return {
-        "mcpServers": {
-            "ripple": {
-                "command": str(RIPPLE_BIN),
-                "args": ["serve", "--repo", str(repo)],
-                "env": {"RIPPLE_CACHE_DIR": str(cache_dir)},
-            }
-        }
+    # --ripple-python is for the node tasks (a TypeScript index needs tree-sitter): a Python task's server never changes
+    command, lead = ripple_launch(ripple_python if task is not None and task.is_node else None)
+    entry = {
+        "command": command,
+        "args": [*lead, "serve", "--repo", str(repo)],
+        "env": {"RIPPLE_CACHE_DIR": str(cache_dir)},
     }
+    if task is not None and task.is_node:
+        # A TypeScript repo has no default test command, so the `check` tool needs one: the runner shim, which
+        # runs what the grader runs (and, started by this server, needs node on its PATH).
+        runner = shlex.join([f"{bin_dir}/{task.spec.runner}", *(["run"] if task.spec.runner == "vitest" else [])])
+        entry["args"] += ["--lang", "typescript", "--test-command", runner]
+        entry["env"]["PATH"] = os.environ.get("PATH", "")
+    return {"mcpServers": {"ripple": entry}}
 
 
-def allowed_tools(mode: str) -> list[str]:
-    return TEST_COMMANDS + (["mcp__ripple"] if mode == "with-ripple" else [])
+def allowed_tools(mode: str, task: Task | None = None) -> list[str]:
+    shell = node_allowed_tools(task.spec) if task is not None and task.is_node else TEST_COMMANDS
+    return shell + (["mcp__ripple"] if mode == "with-ripple" else [])
 
 
-def agent_command(prompt: str, mode: str, mcp_file: Path, model: str) -> list[str]:
+def agent_command(prompt: str, mode: str, mcp_file: Path, model: str, task: Task | None = None) -> list[str]:
     """The claude invocation. --setting-sources project,local leaves out the
     user's own settings, and with them their hooks and plugins; the temp
     directory has no project settings, so the agent runs on defaults."""
@@ -114,7 +149,7 @@ def agent_command(prompt: str, mode: str, mcp_file: Path, model: str) -> list[st
         "--setting-sources", "project,local",
         "--no-session-persistence",
         "--permission-mode", "acceptEdits",
-        "--allowedTools", ",".join(allowed_tools(mode)),
+        "--allowedTools", ",".join(allowed_tools(mode, task)),
         "--mcp-config", str(mcp_file), "--strict-mcp-config",
         "--model", model,
     ]  # fmt: skip
@@ -233,16 +268,19 @@ def py_files(root: Path) -> dict[str, Path]:
     }
 
 
-def diff_trees(before: Path, after: Path) -> tuple[list[str], str]:
-    """Which .py files the agent changed, and the unified diff."""
-    old, new = py_files(before), py_files(after)
+def diff_trees(before: Path, after: Path, node: bool = False) -> tuple[list[str], str]:
+    """Which code files the agent changed, and the unified diff: .py files, or for a node task (node=True) the
+    TypeScript, JavaScript, JSON and Markdown files (eval/node_agent.py node_files), never node_modules."""
+    files = node_files if node else py_files
+    old, new = files(before), files(after)
     changed, chunks = [], []
     for rel in sorted(set(old) | set(new)):
         if rel in old and rel in new and filecmp.cmp(old[rel], new[rel], shallow=False):
             continue
         changed.append(rel)
-        a = old[rel].read_text().splitlines(keepends=True) if rel in old else []
-        b = new[rel].read_text().splitlines(keepends=True) if rel in new else []
+        errors = "replace" if node else "strict"
+        a = old[rel].read_text(errors=errors).splitlines(keepends=True) if rel in old else []
+        b = new[rel].read_text(errors=errors).splitlines(keepends=True) if rel in new else []
         chunks.append("".join(difflib.unified_diff(a, b, f"a/{rel}", f"b/{rel}")))
     return changed, "".join(chunks)
 
@@ -290,15 +328,19 @@ def run_one(task: Task, mode: str, repeat: int, root: Path, bin_dir: Path, args)
         # A real repository needs its own venv's python and its test settings; the shims are
         # per run because they name this run's copy (the repo is never installed).
         bin_dir = run_dir / "bin"
-        write_python_shims(bin_dir, task.python, task.spec.env(repo))
+        if task.is_node:
+            write_node_shims(bin_dir, task.spec, repo)  # the runner and tsc, nothing else (eval/node_agent.py)
+        else:
+            write_python_shims(bin_dir, task.python, task.spec.env(repo))
     cache_dir = run_dir / "cache"
     mcp_file = run_dir / "mcp.json"
-    mcp_file.write_text(json.dumps(mcp_config(mode, repo, cache_dir)))
+    ripple_python = getattr(args, "ripple_python", None)
+    mcp_file.write_text(json.dumps(mcp_config(mode, repo, cache_dir, task, ripple_python, bin_dir)))
     stdout_path, stderr_path = run_dir / "stream.jsonl", run_dir / "stderr.txt"
     started = time.monotonic()
     with open(stdout_path, "wb") as out, open(stderr_path, "wb") as err:
         proc = subprocess.Popen(
-            agent_command(build_prompt(task.prompt, mode), mode, mcp_file, args.model),
+            agent_command(build_prompt(task.prompt, mode, task), mode, mcp_file, args.model, task),
             cwd=repo,
             env=child_env(dict(os.environ), bin_dir, cache_dir),
             stdin=subprocess.DEVNULL,
@@ -328,7 +370,7 @@ def run_one(task: Task, mode: str, repeat: int, root: Path, bin_dir: Path, args)
     }
     if is_rate_limited(parsed, stderr):
         return {**record, "aborted": True, "success": False, "stderr_tail": stderr}
-    record["changed_files"], record["diff"] = diff_trees(task.fixture, repo)
+    record["changed_files"], record["diff"] = diff_trees(task.fixture, repo, node=task.is_node)
     record.update(check_task(task, repo))
     if not parsed["got_result"]:
         record["stderr_tail"] = stderr
@@ -383,6 +425,87 @@ def save(out: Path, meta: dict, runs: list[dict]) -> None:
     out.with_suffix(".md").write_text(table(summary) + "\n")
 
 
+def select_tasks(tasks: list[Task], runtime: str | None, named: bool) -> list[Task]:
+    """The tasks a batch runs. Tasks named with --tasks are run as named, whatever their runtime (naming one is
+    asking for it); otherwise --runtime picks, and its default python is the nineteen tasks every batch ran before
+    the node tasks existed, so spending on a node task is always a choice."""
+    if named:
+        return tasks
+    runtime = runtime or "python"
+    return [t for t in tasks if runtime == "all" or t.runtime == runtime]
+
+
+def ripple_entry(task: Task, repo: Path, cache_dir: Path, bin_dir: Path, ripple_python: str | None) -> dict:
+    """The server entry a with-ripple run of this task gets, as the readiness check starts it."""
+    return mcp_config("with-ripple", repo, cache_dir, task, ripple_python, bin_dir)["mcpServers"]["ripple"]
+
+
+def readiness_problems(tasks: list[Task], modes: list[str], ripple_python: str | None) -> list[str]:
+    """What stops a node task from running, found before any agent starts (none of it calls a model). Python tasks
+    have no such checks: their environment is this interpreter and the cached venvs, which `available` covers."""
+    node = [t for t in tasks if t.is_node]
+    problems: list[str] = []
+    for spec in {t.spec.name: t.spec for t in node}.values():
+        problems += node_problems(spec)
+    if node and "with-ripple" in modes:
+        problems += ripple_problems(
+            node,
+            ripple_python or sys.executable,
+            lambda task, repo, cache, bin_dir: ripple_entry(task, repo, cache, bin_dir, ripple_python),
+            copy_fixture,
+        )
+    return problems
+
+
+def describe_plan(tasks: list[Task], modes: list[str], args, problems: list[str]) -> str:
+    """The --dry output: what a batch would do, as text. It calls nothing that costs."""
+    runs = len(tasks) * len(modes) * args.repeats
+    lines = [
+        "dry run: no agent is started, no model is called, nothing is written",
+        f"tasks ({len(tasks)}):",
+        *(f"  {t.id}  [{t.runtime}" + (f", {t.spec.name}, {t.spec.runner}" if t.is_node else "") + "]" for t in tasks),
+        f"modes: {', '.join(modes)}",
+        f"runs: {len(tasks)} tasks x {len(modes)} modes x {args.repeats} repeats = {runs}",
+    ]
+    if "with-ripple" in modes:
+        python_tasks = [t for t in tasks if not t.is_node]
+        if python_tasks:
+            command, lead = ripple_launch(None)
+            lines.append(f"ripple server{' (Python tasks)' if len(python_tasks) < len(tasks) else ''}: {shlex.join([command, *lead, 'serve'])}")
+        if len(python_tasks) < len(tasks):
+            command, lead = ripple_launch(args.ripple_python)
+            lines.append(
+                f"ripple server{' (node tasks)' if python_tasks else ''}: {shlex.join([command, *lead, 'serve'])} "
+                f"(the interpreter checked for node tasks: {args.ripple_python or sys.executable})"
+            )
+    seen = set()
+    for task in tasks:
+        key = (task.runtime, task.spec.runner if task.is_node else "")
+        if key in seen:
+            continue
+        seen.add(key)
+        label = f"{task.runtime}" + (f", {task.spec.runner}" if task.is_node else "")
+        lines.append(f"[{label}] shell preamble: {build_prompt('<task prompt>', 'without', task).split(chr(10) * 2)[0]}")
+        for mode in modes:
+            command = agent_command("<task prompt>", mode, Path("<mcp.json>"), args.model, task)
+            lines.append(f"[{label}] agent command, {mode}: {shlex.join(command)}")
+            if mode == "with-ripple":
+                entry = mcp_config(mode, Path("/path/to/repo"), Path("/path/to/cache"), task, args.ripple_python, Path("/path/to/bin"))
+                entry = entry["mcpServers"]["ripple"]
+                lines.append(
+                    f"[{label}] ripple server config: {shlex.join([entry['command'], *entry['args']])} (env set: {', '.join(entry['env'])})"
+                )
+    node = [t for t in tasks if t.is_node]
+    lines.append("readiness (node and the runner's binaries" + (", the ripple interpreter and a server handshake per repo" if node and "with-ripple" in modes else "") + "):")
+    if not node:
+        lines.append("  nothing to check: no node task is selected")
+    elif problems:
+        lines += [f"  PROBLEM {p}" for p in problems]
+    else:
+        lines.append("  ok")
+    return "\n".join(lines)
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="python -m eval.run", description=__doc__.split("\n\n")[0])
     parser.add_argument("--tasks", help="comma-separated task ids (default: all)")
@@ -397,16 +520,27 @@ def main(argv=None) -> int:
         help=f"default: {RESULTS_DIR.relative_to(REPO_ROOT)}/<date>-<time>-<id>.json; never overwritten",
     )
     parser.add_argument("--keep", action="store_true", help="keep the temp directories")
+    parser.add_argument(
+        "--runtime",
+        choices=RUNTIMES,
+        help="which tasks to run: python (the default: tasks 01 to 19), node (the TypeScript tasks) or all. "
+        "Ignored when --tasks names the tasks, which runs exactly those whatever their runtime",
+    )
+    parser.add_argument(
+        "--ripple-python",
+        help="the interpreter that runs the ripple server for the node tasks in the with-ripple arm (default: this one). "
+        "A TypeScript task needs one that has ripple's typescript extra (tree-sitter); the run is refused before it "
+        "starts if not. Python tasks never use it: they always start the ripple next to this interpreter",
+    )
+    parser.add_argument(
+        "--dry",
+        action="store_true",
+        help="print the plan (tasks, runs, the agent command, the readiness checks) and stop: no agent, no model call, nothing written",
+    )
     args = parser.parse_args(argv)
 
-    tasks = load_tasks(only=args.tasks.split(",") if args.tasks else None)
-    # The grader handles node tasks (eval/check_node.py) but the agent side does not yet: no node/vitest on the
-    # agent's PATH, python shims written from task.python (None for them). Until it is wired, never start an agent on one.
-    node_tasks = [t.id for t in tasks if t.is_node]
-    if node_tasks and args.tasks:
-        parser.error(f"the agent harness cannot run node tasks yet (grading is wired, the agent's environment is not): {', '.join(node_tasks)}")
-    tasks = [t for t in tasks if not t.is_node]
-    missing =[t.id for t in tasks if not t.available]
+    tasks = select_tasks(load_tasks(only=args.tasks.split(",") if args.tasks else None), args.runtime, bool(args.tasks))
+    missing = [t.id for t in tasks if not t.available]
     if missing:
         parser.error(f"these tasks need pinned repositories that are not fetched: {', '.join(missing)}\n"
                      "run `python -m eval.fetch`, or pick other tasks with --tasks")  # fmt: skip
@@ -415,6 +549,15 @@ def main(argv=None) -> int:
         parser.error(f"modes must be among {', '.join(MODES)}")
     if args.out and any(p.exists() for p in result_paths(args.out)):
         parser.error(f"{args.out} (or its .md or -diffs) already exists; pick a new --out")
+    no_node = not any(t.is_node for t in tasks)
+    if args.ripple_python and no_node:
+        print(f"--ripple-python {args.ripple_python} is ignored: no node task is selected (Python tasks always start this interpreter's ripple)")
+    problems = readiness_problems(tasks, modes, args.ripple_python)
+    if args.dry:
+        print(describe_plan(tasks, modes, args, problems))
+        return 1 if problems else 0
+    if problems:
+        parser.error("not ready, nothing was started:\n  " + "\n  ".join(problems))
     out = args.out or default_out(RESULTS_DIR)
     version = subprocess.run(["claude", "--version"], capture_output=True, text=True).stdout.strip()
     meta = {
@@ -429,6 +572,19 @@ def main(argv=None) -> int:
         "with_ripple_line": WITH_RIPPLE_LINE,
         "command": agent_command("<task prompt>", "with-ripple", Path("<mcp.json>"), args.model),
     }
+    if any(t.is_node for t in tasks):
+        # What differs for the node tasks, which have their own shell rules and note on it: recorded only for a
+        # batch that has them, so a Python-only batch's meta is what it always was.
+        node = [t for t in tasks if t.is_node]
+        meta["node_prompt_preambles"] = {t.spec.runner: node_preamble(t.spec) for t in node}
+        meta["node_commands"] = {
+            t.spec.runner: agent_command("<task prompt>", "with-ripple", Path("<mcp.json>"), args.model, t) for t in node
+        }
+        meta["ripple_python"] = args.ripple_python or sys.executable
+    if args.ripple_python and no_node:
+        # given and not used: the results file says which interpreter was named and that no run was started by it
+        meta["ripple_python"] = args.ripple_python
+        meta["ripple_python_ignored"] = True
     # Repeat-major order, both modes of a task back to back, so a batch cut
     # short by a rate limit still holds matched pairs.
     plan = [(t, m, r) for r in range(1, args.repeats + 1) for t in tasks for m in modes]
