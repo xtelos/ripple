@@ -6,18 +6,26 @@
 
 For each repo this fetches exactly the pinned commit (a shallow `git fetch`
 of the SHA, then a check that HEAD is that SHA), copies the tree without .git
-into the cache directory (see eval/repos.py), and builds a virtualenv holding
-the test dependencies, pinned to exact versions. The repository itself is never
-installed or imported by this script: it is plain files until a test run, which
-is the one thing --verify does, in the venv, from the cache copy.
+into the cache directory (see eval/repos.py), and builds what its suite runs in:
+a virtualenv holding the test dependencies, pinned to exact versions, for a
+Python repo; for a node repo the vendored package-lock.json (eval/lockfiles/) is
+copied into the checkout and `npm ci --ignore-scripts` installs node_modules into
+a read-only directory beside the checkout. The repository itself is never
+installed or imported by this script, and no package's lifecycle script ever
+runs: it is plain files until a test run, which is the one thing --verify does,
+from a scratch copy of the cache copy.
 
-Needs git and uv. Safe to re-run: a repo already in the cache is left alone.
+Needs git, and uv (Python repos) or npm (node repos). Safe to re-run: a repo
+already in the cache is left alone.
 """
 
 from __future__ import annotations
 
 import argparse
+import os
+import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -75,8 +83,89 @@ def build_venv(spec: RepoSpec) -> None:
     print(f"  venv: {len(spec.deps)} pinned packages -> {spec.venv}")
 
 
+def place_lockfile(spec: RepoSpec) -> None:
+    """Copy the vendored package-lock.json into the checkout, where `npm ci` and a person reading
+    the repo expect it. Upstream's own lockfile, if the pin has one, must be the same bytes."""
+    target = spec.lockfile_in_repo
+    if target.is_file():
+        if target.read_bytes() != spec.lockfile.read_bytes():
+            raise RuntimeError(f"{spec.name}: the checkout's package-lock.json differs from eval/lockfiles/{spec.name}/")
+        return
+    shutil.copyfile(spec.lockfile, target)
+    print(f"  lockfile: eval/lockfiles/{spec.name}/package-lock.json -> {target}")
+
+
+def _chmod(path: Path, add: int = 0, drop: int = 0) -> None:
+    if not path.is_symlink():  # a link's own mode is not settable, and chmod would follow it out of the tree
+        path.chmod((stat.S_IMODE(path.stat().st_mode) | add) & ~drop)
+
+
+def make_writable(root: Path) -> None:
+    """Undo lock_down, so an unfinished install can be removed."""
+    _chmod(root, add=0o700)
+    for dirpath, dirnames, filenames in os.walk(root):  # topdown: a directory is opened before it is listed
+        for name in dirnames:
+            _chmod(Path(dirpath) / name, add=0o700)
+        for name in filenames:
+            _chmod(Path(dirpath) / name, add=0o200)
+
+
+def lock_down(spec: RepoSpec) -> None:
+    """Make the finished install read-only, then write the ready marker, then close the directory
+    that holds it. An agent editing node_modules through its working copy's link cannot change
+    what every other run reads. The marker comes last, so a half-locked directory is not ready."""
+    for dirpath, dirnames, filenames in os.walk(spec.deps_dir):
+        for name in (*dirnames, *filenames):
+            _chmod(Path(dirpath) / name, drop=0o222)
+    spec.deps_ready.write_text(f"{spec.manager} ci --ignore-scripts\n{spec.lockfile.name}\n")
+    _chmod(spec.deps_ready, drop=0o222)
+    _chmod(spec.deps_dir, drop=0o222)
+
+
+def build_deps(spec: RepoSpec) -> None:
+    if spec.deps_ready.is_file():
+        print(f"  deps: already at {spec.deps_dir}")
+        return
+    spec.deps_dir.parent.mkdir(parents=True, exist_ok=True)
+    if spec.deps_dir.exists():
+        # With no ready marker nothing finished here: a partial install, maybe a partly locked one.
+        make_writable(spec.deps_dir)
+        shutil.rmtree(spec.deps_dir)
+    spec.deps_dir.mkdir()
+    # npm installs beside a package.json and its lockfile. These are copies, so the checkout never gains a node_modules.
+    shutil.copyfile(spec.checkout / "package.json", spec.deps_dir / "package.json")
+    shutil.copyfile(spec.lockfile, spec.deps_dir / "package-lock.json")
+    run(["npm", "ci", "--ignore-scripts", "--no-audit", "--no-fund"], cwd=spec.deps_dir)
+    lock_down(spec)
+    count = len(list(spec.node_modules.glob("*/package.json"))) + len(list(spec.node_modules.glob("@*/*/package.json")))
+    print(f"  deps: {count} top-level packages from the lockfile -> {spec.node_modules}")
+
+
+# vitest prints "Tests  74 passed (74)", jest "Tests:       133 passed, 133 total" (on stderr)
+SUMMARY = re.compile(r"^\s*Tests:?\s+\d.*$", re.MULTILINE)
+
+
+def verify_node(spec: RepoSpec) -> bool:
+    """The repo's own suite from a scratch copy whose node_modules is the cache's link, as every other run sees it."""
+    with tempfile.TemporaryDirectory() as scratch:
+        work = Path(scratch) / "repo"
+        shutil.copytree(spec.checkout, work, symlinks=True, ignore=shutil.ignore_patterns("node_modules"))
+        spec.link_deps(work)
+        env = {**os.environ, **spec.env(work)}
+        done = subprocess.run(spec.node_argv(), cwd=work, env=env, capture_output=True, text=True, timeout=1800)
+    output = done.stdout + "\n" + done.stderr
+    summary = SUMMARY.findall(output)
+    tail = summary[-1].strip() if summary else ([line for line in output.splitlines() if line.strip()][-1:] or ["(no output)"])[0]
+    print(f"  tests: exit {done.returncode}: {tail}")
+    if done.returncode or not summary:
+        print("\n".join(output.splitlines()[-25:]))
+    return done.returncode == 0 and bool(summary)
+
+
 def verify(spec: RepoSpec) -> bool:
     """Run the repo's own suite from the cache copy, in a scratch copy so the cache stays pristine."""
+    if spec.is_node:
+        return verify_node(spec)
     from .check import pytest_command
 
     with tempfile.TemporaryDirectory() as scratch:
@@ -107,7 +196,11 @@ def main(argv=None) -> int:
         print(name)
         try:
             fetch_source(specs[name])
-            build_venv(specs[name])
+            if specs[name].is_node:
+                place_lockfile(specs[name])
+                build_deps(specs[name])
+            else:
+                build_venv(specs[name])
             if args.verify:
                 ok = verify(specs[name]) and ok
         except RuntimeError as err:
