@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ripple-code"
 version = "0.1.0"
-description = "An MCP server that tells a coding agent what breaks before it edits Python code."
+description = "An MCP server that tells a coding agent what breaks before it edits Python or TypeScript code."
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "Dylan Fodor" }]
