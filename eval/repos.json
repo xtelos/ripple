@@ -33,5 +33,46 @@
       "tests/test_optimizer.py::TestOptimizer::test_unnest_subqueries"
     ],
     "deps": ["pytest==8.4.2", "duckdb==1.4.1", "pandas==2.3.3", "python-dateutil==2.9.0.post0", "pytz==2025.2", "typing-extensions==4.15.0"]
+  },
+  "neverthrow": {
+    "runtime": "node",
+    "url": "https://github.com/supermacro/neverthrow.git",
+    "sha": "5ef3a018bda74fb960e44b68fc3672635ee8037d",
+    "describe": "8.2.0",
+    "manager": "npm",
+    "runner": "vitest",
+    "tests": "tests",
+    "lockfile": "lockfiles/neverthrow/package-lock.json"
+  },
+  "tsyringe": {
+    "runtime": "node",
+    "url": "https://github.com/microsoft/tsyringe.git",
+    "sha": "78222334f49265ea2874fac2c73284345c1124d9",
+    "describe": "4.10.0",
+    "manager": "npm",
+    "runner": "jest",
+    "tests": "src/__tests__",
+    "config": "test/jest.config.js",
+    "lockfile": "lockfiles/tsyringe/package-lock.json"
+  },
+  "superstruct": {
+    "runtime": "node",
+    "url": "https://github.com/ianstormtaylor/superstruct.git",
+    "sha": "e414c8afd3b69f6bc0173b8ee25f71d8e5694f01",
+    "describe": "2.0.2",
+    "manager": "npm",
+    "runner": "vitest",
+    "tests": "test",
+    "lockfile": "lockfiles/superstruct/package-lock.json"
+  },
+  "react-pro-sidebar": {
+    "runtime": "node",
+    "url": "https://github.com/azouaoui-med/react-pro-sidebar.git",
+    "sha": "31b6ff3d015de7dce7fc917632632f61d16736ea",
+    "describe": "2.0.0-alpha.1",
+    "manager": "npm",
+    "runner": "vitest",
+    "tests": "tests",
+    "lockfile": "lockfiles/react-pro-sidebar/package-lock.json"
   }
 }
