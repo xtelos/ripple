@@ -1,7 +1,7 @@
 # ripple
 
 **Know what breaks before you change it.** ripple is an MCP server that gives a coding agent
-(Claude Code, Cursor, anything that speaks MCP) the call graph of a Python repository, so the agent
+(Claude Code, Cursor, anything that speaks MCP) the call graph of a Python or TypeScript repository, so the agent
 can ask "who calls this, and which tests reach it?" before it edits, and run just those tests after.
 
 ## Why
@@ -49,7 +49,8 @@ Or from a terminal: `ripple index .`, then `ripple impact price_order`.
 | `check(tests=None)` | Runs the test command (default `python -m pytest -q`, using the repo's `.venv` if present), or just the given tests, and returns pass/fail, the summary line and the first failures, never the full log | no, it runs code |
 
 A symbol can be a full dotted path (`shop.pricing.price_order`), a suffix (`OrderService.place_order`)
-or a bare name (`price_order`). An ambiguous name returns the candidates rather than picking one.
+or a bare name (`price_order`); in TypeScript it is a path and a member (`src/util/math:clamp`, see
+[TypeScript](#typescript)). An ambiguous name returns the candidates rather than picking one.
 
 The four graph tools advertise `readOnlyHint: true`, which lets a client run them without prompting.
 `check` is marked destructive instead, because a test suite can do anything its tests do.
@@ -94,9 +95,88 @@ $ ripple check tests/test_pricing.py::test_percent_discount_and_tax --repo bench
   ...
 ```
 
+## TypeScript
+
+TypeScript is read by tree-sitter, which is an optional extra: it adds `tree-sitter` and
+`tree-sitter-typescript` and nothing else (the base install needs only the `mcp` SDK).
+
+```sh
+uv tool install "ripple-code[typescript] @ git+https://github.com/xtelos/ripple"   # or pip install 'ripple-code[typescript]'
+```
+
+`--lang auto|python|typescript` (default `auto`; `RIPPLE_LANG` sets it for every command, and
+`build_server` takes a `lang` argument) chooses how the repo is read. `auto` looks at the file names: `.py`
+for Python, `.ts`, `.tsx`, `.mts` and `.cts` for TypeScript, skipping `.d.ts`, `node_modules` and virtualenvs.
+A repo with neither, or one that does not exist, is an error (exit status 2), not "0 files".
+
+**Symbols** are the file's path without the extension, a colon and the member: `src/util/math:clamp`,
+`src/cart/cart:Cart.add` (an `index` file is its directory, a second declaration of a name under one parent
+gets `#2`, a test callback is `tests/a.test:suite > case`). Any of these finds it, when it names one
+symbol: that id, the path with its extension (`src/util/math.ts:clamp`), the tail of the path (`math:clamp`),
+`Class.method` or the bare member. A path is read through the id the indexer gave that file, never folded by
+a rule (with `src/a.ts` beside `src/a/index.ts`, the index file is `src/a/index`); `src/util/` is the index
+file of that directory. More than one match returns the candidates; ripple never picks.
+
+```
+$ ripple impact clamp --repo bench/fixtures/ts/warehouse-ts --limit 4
+impact of src/util/math:clamp (depth 5): 16 callers
+  src/models/item.ts
+    src/models/item:normalise  line 7  (1 hop)
+    src/models/item:Item.quantity  line 22  (2 hops)
+  ...
+  ... and 12 more callers not listed; raise --limit to see them
+tests that reach it (0):
+```
+
+**Resolved:** a name declared or imported (relative imports, `tsconfig` `baseUrl`, `paths` and a relative
+`extends`, barrels, `export *`), `this` and `super`, `new C()`, a value annotated with a class, a call result
+whose function has a return annotation, a namespace import, and a function passed by name as the first argument
+of `map`, `forEach` and the other array methods that run it at once.
+**Unresolved, with the reason:** an interface-typed value, `table[key]()`, a method chosen by name, a loop
+variable, a value of no stated type, decorators, `require` and a `tsconfig` that extends a package. Class fields
+holding arrow functions, class expressions, object literal methods, enums and namespaces are not supported:
+their calls stay unresolved, or the code is skipped. A call ripple cannot prove is listed as unresolved, never guessed, and `impact` lists the
+same-named ones under `possible_missed_callers` as it does for Python.
+
+**Measured**, the same way as the Python benchmark (`python -m bench.ts_score`): on the fixture
+(`bench/fixtures/ts/warehouse-ts`, ground truth from a run of its jest and vitest tests) precision 1.000,
+recall 0.967 (88 of 91 calls). Held out, on seven real libraries the indexer was never developed against
+(neverthrow, tsyringe, superstruct, react-accessible-accordion, react-error-boundary, react-hot-toast and
+react-pro-sidebar), recorded at runtime: 328 library edges, 312 seen at runtime, none false (precision 312 of 312,
+so the false-edge rate is below about 1.2%, not zero); recall of the pairs that ran is 0.84 (302 of 359), and
+45 percent of call sites stay unresolved. That is the honest cost of not guessing. An eighth, ts-pattern, could
+not be recorded: 138 edges were indexed and 15 of them checked by hand, all correct, and it is in none of those
+figures.
+
+**Not yet:** JSX (`renders` edges between components), and jest or vitest collection. `impact` lists every
+TypeScript caller, tests included, as code to update, so its `tests` list is empty, and `check` refuses a
+TypeScript-only repo until it is given the command (`--test-command` or `RIPPLE_TEST_COMMAND`, for example
+`npx vitest run`), with the refusal as an ordinary error. In a mixed repo `check` runs pytest by default.
+
+**Both languages in one repo** are indexed each with its own profile and merged into one graph; the cache
+keeps one entry per language (the Python one is named as it always was, so a Python repo's cache and output
+are what they were), and an edit to one language rebuilds only that language's graph. Python ids are dotted
+and TypeScript ids are paths, so nearly always no symbol or edge can be confused with the other language's.
+But any id can be defined by both: a root `app.config.ts` is the dotted module `app.config`, the id of `def
+config` in `app.py`, and `util.py` and `util.ts` are both `util`. For such an id ripple keeps the Python symbol
+and its edges, leaves out the TypeScript symbol and every TypeScript call that names it (so no chain runs from
+one language into the other through it), and no query answers for the id. The ids are counted and the first
+few named in the warnings. A `.ts` file that is Qt Linguist XML or binary (a video) is not TypeScript, and
+does not make a Python project mixed. `ripple index` prints each language's files read, with how many of them
+could not be parsed in brackets (the same for both languages), and the unparsable files one per line (the
+first 10, then a count).
+When part of the repo is left out, every result says so: the CLI exits 3 and prints the warning on stderr (a
+`warnings` list in `--json`), and each MCP tool result carries the same `warnings` list. That happens for ids
+both languages define, and when TypeScript cannot be indexed: a TypeScript-only repo is then refused with the
+install command and the reason, and a mixed repo is indexed as Python. The parser is "unavailable" whether it is
+missing or installed but does not fit (an ABI or version mismatch), and the reason is in the message. A result
+with no `warnings` key covers everything the repo has.
+
 ## How it works
 
-Two passes over the standard library `ast` module, no other parser.
+The core has no parser dependency: the Python front end reads files with the standard library `ast`
+module, and the base install needs only the `mcp` SDK. The TypeScript front end (`ripple/ts_indexer.py`)
+writes the same per-file facts from a tree-sitter parse, so one resolver builds both graphs.
 
 1. **Collect** (`ripple/indexer.py`): each file is read on its own. For every module, class and
    function it records what names are bound (defs, imports, assignments and what they suggest about
@@ -489,13 +569,15 @@ In every case ripple reports the call as unresolved with its reason and, for `im
 
 ## Next
 
-- **TypeScript**, the other language agents spend most of their time in.
+- **TypeScript, further**: JSX `renders` edges between components, and jest and vitest collection, so that
+  `impact` lists the tests that reach a symbol and `check` can run them.
 
 ## Development
 
 ```sh
-uv venv && uv pip install -e ".[dev]"
-.venv/bin/python -m pytest -q      # unit tests, plus the ground truth against its runtime trace
+uv venv && uv pip install -e ".[dev,typescript]"
+.venv/bin/python -m pytest -q      # unit tests, plus the ground truth against its runtime trace;
+                                   # the TypeScript tests are skipped, with the reason, without the extra
 .venv/bin/python -m bench          # the benchmark; --write-baseline after a deliberate change
 ```
 
