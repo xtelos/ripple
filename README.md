@@ -140,7 +140,7 @@ tests that reach it (0):
 ```
 
 **Resolved:** a name declared or imported (relative imports, `tsconfig` `baseUrl`, `paths` and a relative
-`extends`, barrels, `export *`), `this` and `super`, `new C()`, a value annotated with a class, a call result
+`extends`, barrels, `export *`, with the tsconfig scoping below), `this` and `super`, `new C()`, a value annotated with a class, a call result
 whose function has a return annotation, a namespace import, and a function passed by name as the first argument
 of `map`, `forEach` and the other array methods that run it at once.
 **Unresolved, with the reason:** an interface-typed value, `table[key]()`, a method chosen by name, a loop
@@ -148,6 +148,32 @@ variable, a value of no stated type, `require` and a `tsconfig` that extends a p
 holding arrow functions, object literal methods, enums and namespaces are not supported: their calls stay
 unresolved, or the code is skipped. A call ripple cannot prove is listed as unresolved, never guessed, and `impact`
 lists the same-named ones under `possible_missed_callers` as it does for Python.
+
+**Which tsconfig a file gets.** A config's `baseUrl` and `paths` are the aliases of the files it governs and of no
+other. Every `tsconfig.json` above an indexed file is read, and a file belongs to the nearest one whose `files`,
+`include` and `exclude` cover it, read the way the compiler reads them: with neither `files` nor `include`, every
+source file under the config's directory; `exclude` removes files (its `**` reaches hidden directories, which an
+include's `**` and the default include do not), a `\` in a path a config writes is a `/` as it is for the compiler,
+and when `exclude` is not written it defaults to `node_modules`, `bower_components`, `jspm_packages` and `outDir`.
+When a nested config (an app's) governs a file, its
+`paths` decide and the root's are not consulted. A relative `extends` contributes `paths`, `baseUrl`, `files`,
+`include` and `exclude`, each pattern relative to the config that wrote it, and a list the extending config writes
+replaces the base's. `references` are followed: a config that does not cover a file hands it to the first project it
+references that does (the layout of a Vite or shadcn app, where the root `tsconfig.json` is `"files": []` plus
+references to `tsconfig.app.json` and the like), and that project's `paths` and `baseUrl` apply. A reference is a path
+relative to the config that lists it: a `.json` path is that config and any other is a directory holding a
+`tsconfig.json`. References are read four levels down, each config once (so a cycle ends), a path that names no
+config is ignored, and a config does not inherit the references of one it extends. A file no config governs has no
+aliases, so a bare import in it is a package, never a file of the repo, with one exception: when a config above the
+file lists references and a config in that tree maps the specifier (a `paths` entry it matches, or a repo file its
+`baseUrl` reaches), the import is left unresolved with the reason (which project owns the file is the open question),
+and a call through it is listed as an unresolved call, not counted as code outside the repo. That is the
+case that matters in a monorepo: an app the root `include` leaves out, which depends on a published copy of a package
+the root `paths` maps to its own source, is not given the source (the app runs the published copy). The same rule
+leaves a workspace package that an app names by its package name (`"pkg": "workspace:*"`) unresolved, since ripple
+does not read `package.json` dependencies; that costs those edges, and none is guessed. A config that cannot be read
+governs everything under it with no aliases and is listed with the files that did not parse. The JSX settings
+(`jsxFactory` and the others, under JSX) are read from the root config only.
 
 **Decorators.** A decorator (`@tag`, `@route("/x")`) written on a class, a method, a property or a parameter is not a
 call edge: what it does to the thing it decorates is not followed, and a member it decorates is never resolved. It

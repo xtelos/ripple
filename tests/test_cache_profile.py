@@ -58,7 +58,7 @@ def test_the_cache_for_the_python_profile_is_exactly_what_it_was(make_repo, tmp_
     [written] = list(cache_dir.iterdir())
     assert written.name == f"{repo.name}-{key}.json"
     assert cache_file(repo.resolve(), cache_dir) == written
-    expected = {"format": f"{__version__}-10", "files": fingerprint(repo), "graph": graph.to_dict()}
+    expected = {"format": f"{__version__}-12", "files": fingerprint(repo), "graph": graph.to_dict()}
     assert written.read_text() == json.dumps(expected)
     # a profile with the same values is the same profile: same file, served from it
     assert load_graph(repo, cache_dir, profile=replace(PYTHON))[1] is True
@@ -68,7 +68,7 @@ def test_the_cache_for_the_python_profile_is_exactly_what_it_was(make_repo, tmp_
 def test_a_cache_written_before_profiles_existed_still_loads(make_repo, tmp_path_factory):
     repo = make_repo({"m.py": FOO})
     cache_dir = tmp_path_factory.mktemp("cache")
-    old = {"format": f"{__version__}-10", "files": fingerprint(repo), "graph": build_graph(repo).to_dict()}
+    old = {"format": f"{__version__}-12", "files": fingerprint(repo), "graph": build_graph(repo).to_dict()}
     cache_file(repo.resolve(), cache_dir).write_text(json.dumps(old))
     graph, cached = load_graph(repo, cache_dir)
     assert cached is True and "m.Foo" in graph.symbols

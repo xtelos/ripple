@@ -396,6 +396,7 @@ class FileBuilder:
         self.titles: list[str] = []  # the describe() titles whose callbacks are being read
         self.rebinds_this = 0  # inside a function expression, which has a `this` of its own
         self.exports: list[tuple[str, str]] = []  # (exported name, local name), settled when the file is read
+        self.not_known: dict[str, str] = {}  # specifier -> why an import of it is not known to be a package or a file
         self._methods: dict = {}
         self.frames: list[dict[str, str]] = []  # the names each enclosing block or function declares (see _push)
         self.counter = 0
@@ -677,12 +678,20 @@ class FileBuilder:
         kind, value = self.modules.resolve(spec, self.file)
         if kind == "repo":
             return value, spec
+        if kind == "unresolved":
+            self.not_known[spec] = value
         return (PACKAGE + spec if kind == "package" else None), spec
+
+    def _bad_import(self, spec: str) -> TypeRef:
+        """Why a name from an import that names no file is unknown: with the reason when the import is an alias that no
+        config covering this file gives it (so it is not claimed to be a package)."""
+        why = self.not_known.get(spec)
+        return unknown_ref(f"{BAD_IMPORT}: {why}" if why else BAD_IMPORT)
 
     def _imported(self, local: str, target: str | None, member: str | None, spec: str) -> None:
         """Bind an imported name in the module: a member of target, or the whole module when member is None."""
         if target is None:
-            self.module.bind(local, Binding("var", evidence=[unknown_ref(BAD_IMPORT)]))
+            self.module.bind(local, Binding("var", evidence=[self._bad_import(spec)]))
         elif member is None:
             self.module.bind(local, Binding("import", target))
         else:
@@ -755,13 +764,13 @@ class FileBuilder:
                         continue
                     exported = text(alias or name)
                     if target is None:
-                        self.module.exports[exported] = Binding("var", evidence=[unknown_ref(BAD_IMPORT)])
+                        self.module.exports[exported] = Binding("var", evidence=[self._bad_import(spec)])
                     else:
                         self.module.exports[exported] = Binding("from", target, text(name))
             elif namespace is not None:  # export * as ns from "m"
                 ns = next((c for c in named(namespace) if c.type == "identifier"), None)
                 if ns is not None:
-                    bound = Binding("var", evidence=[unknown_ref(BAD_IMPORT)]) if target is None else Binding("import", target)
+                    bound = Binding("var", evidence=[self._bad_import(spec)]) if target is None else Binding("import", target)
                     self.module.exports[text(ns)] = bound
             elif target is not None:  # export * from "m"
                 self.module.star_imports.append(target)
@@ -1966,8 +1975,7 @@ def collect_scopes(
     # listed with the files that did not parse cleanly, as is a tsconfig.json that could not be read: both
     # change what ripple can say, and neither may be silent.
     errors += [rel for rel in modules.shadowed if rel in {p.relative_to(repo).as_posix() for p in readable}]
-    if modules.config.problem:
-        errors.append("tsconfig.json")
+    errors += modules.problems  # the configs (the root one is tsconfig.json) that could not be read
     for path in readable:
         rel = path.relative_to(repo).as_posix()
         try:
