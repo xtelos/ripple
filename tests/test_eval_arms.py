@@ -358,6 +358,13 @@ def test_the_restrict_search_help_admits_the_test_file_channel(capsys):
     assert "writing a test file" in " ".join(capsys.readouterr().out.split())
 
 
+def test_the_readme_says_restricted_runs_keep_a_search_channel_and_where_it_shows():
+    text = " ".join((Path(run_mod.__file__).resolve().parent.parent / "README.md").read_text().split())
+    assert "Known open channel" in text and "does not remove search" in text
+    assert "write a test file" in text and "`bash_commands`" in text and "changed-files list" in text
+    assert "symbol you are renaming" not in text
+
+
 def test_the_table_names_the_arm_on_a_line_above_the_first_table():
     summary = summarize([a_record(TASKS[PY], "without", 1)])
     for label in ("base", "forced+restricted"):

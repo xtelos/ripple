@@ -608,7 +608,8 @@ hierarchy overridden across dozens of modules). They are in `eval/tasks/11-*` to
 ```
 
 Each batch writes `eval/results/<date>-<time>-<id>.json` (unless `--out` says otherwise), a `.md`
-table and a `-diffs/` directory beside it, and refuses to overwrite an earlier batch's files.
+table (headed by an `arm: <label>` line, as is the printed summary; a results file from before the arm existed has
+none) and a `-diffs/` directory beside it, and refuses to overwrite an earlier batch's files.
 
 It calls the `claude` CLI on whatever account it is logged in to, so it never runs in CI.
 
@@ -696,6 +697,42 @@ repo's runner (`vitest` or `jest`) and `tsc`, and each is a small script in the 
 - `changed_files` and the saved diff for a node task cover `.ts .tsx .js .jsx .mts .cts .mjs .cjs .json .md .mdx`
   files, never `node_modules`.
 - A with-ripple node run whose server did not connect is invalid, as for Python.
+
+**What a run records of ripple.** Besides the counts (`tool_calls`, `ripple_calls`), every run record carries
+`ripple_exchanges`: for each `mcp__ripple__*` call its tool, its input (clipped like a denied tool's) and, from the
+matching result, `is_error`, `result_chars` (the whole text) and `result_head` (the first 2000 characters). A call the
+run ended before answering has `null` for those three. `toolsearch_queries` lists the inputs of every `ToolSearch`
+call. The two share a 40 KB cap, the first ones kept, and `ripple_exchanges_truncated` says when it cut. The batch
+table gains a "runs with a ripple error" column when the runs recorded exchanges. These keys are what shows whether
+an agent that called ripple got an answer it could use (the earlier TypeScript batches recorded counts only).
+
+**Test arms.** Three flags, all off by default; with none set a batch is exactly what it was
+(`tests/test_eval_arms_pins.py` pins the command, prompts, tool lists, mcp config, shims and record to literals from
+before they existed). They combine, and the arm is a label (`base`, `forced`, `hard`, `restricted`, joined with `+`
+in that order) in the results `meta` and in every run record, so a results file says which arm it is. `--dry` prints
+the arm, the text the agent is told before the task for each runtime and mode, and the allowed and disallowed tools.
+Code in `eval/arms.py`.
+- `--forced-use`: the with-ripple prompt gains one paragraph after the line that says the server is connected: "Before
+  editing, call the ripple `callers` tool on the symbol you are changing and use the call sites it returns." The
+  without arm is unchanged. Python and node tasks (not every Python task is a rename, so the sentence says
+  "changing").
+- `--hard-prompts`: each task's `hard_prompt` (an optional `task.json` field; tasks 20 to 28 have one) replaces its
+  prompt, in both arms. It is the same task with no file paths, no lists or counts of sites and no hint of where uses
+  live, but every rule about what keeps its name, "update every use", the no-alias rule and the suite rule are kept,
+  and the four tasks whose hidden check reads documentation (24, 25, 26, 28) still say, in general words, that the
+  documentation is part of the rename. A Python task selected with it is refused before anything starts.
+  `tests/test_eval_hard_prompts.py` lists, per task, the phrases a hard prompt must keep and bans paths and counts.
+- `--restrict-search`: both arms lose the Grep and Glob tools, `LS`, the web tools and the shell commands that search
+  (`grep`, `rg`, `find`, `git grep`, ...: Claude Code lets read-only shell commands through without a rule, so denying
+  the tools alone leaves the shell as a search channel; a deny rule beats the allow rules). A node task also loses
+  its `tsc` script and `Bash(tsc:*)` rule, so the shell holds the runner only. The preamble names only the runner
+  (`pytest` for Python) and says search is not available. A restricted run lists its shell commands under
+  `bash_commands` (the first 60, 160 characters each), so a search that got through shows in the record.
+  **Known open channel:** the arm does not remove search. The runner stays allowed and the agent can Write, so it can
+  write a test file that walks the tree and prints the lines it wants, then run that file with `pytest`, `vitest` or
+  `jest`. Nothing here stops it. It shows only after the fact: `bash_commands` lists a runner call on a file the agent
+  just made, and the changed-files list holds that new test file. Read both before treating a restricted run as one
+  that did not search.
 
 **Checked before any agent starts** (in `--dry` too): node and the runner's and `tsc`'s binaries are in the install; and,
 when the with-ripple arm is selected, the ripple interpreter imports ripple, tree-sitter and its TypeScript grammar,
