@@ -41,7 +41,7 @@ from .facts import (
     Table,
     TypeRef,
 )
-from .model import Edge, Graph, Symbol, Unresolved
+from .model import Decoration, Edge, Graph, Symbol, Unresolved
 from .profile import PYTHON, LanguageProfile
 
 MAX_IMPORT_HOPS = 8
@@ -179,12 +179,19 @@ class Resolver:
             s.id: Symbol(s.id, s.kind, s.file, s.line, s.end_line) for s in self.scopes.values()
         }
         edges, unresolved, external_count = [], [], 0
+        decorations: list[Decoration] = []
         wrappers = self.wrappers()
         direct_users: set[str] = set()  # callees of an ordinary call, to spot a decorator also called as D(f)
         wrapper_calls = []
         for scope in self.scopes.values():
             wrapper = wrappers.get(scope.id)
             for call in scope.calls:
+                if call.kind == "decoration":
+                    # Applied when the class is defined. Never an edge: what it does to the decorated thing is not
+                    # followed, so it stays an unresolved call, and where its name is written is kept apart.
+                    unresolved.append(Unresolved(scope.id, scope.file, call.line, call.text, call.why))
+                    decorations += self.decoration_sites(scope, call)
+                    continue
                 if call.special in EFFECT_SPECIALS:
                     # A property read or write, or a function passed by name: an edge when proven, and never
                     # an unresolved call or an outside one (most properties are plain values).
@@ -236,7 +243,36 @@ class Resolver:
             bases={cls: found for cls, found in bases.items() if found},
             external_bases={cls: self._external_bases[cls] for cls in classes if cls in self._external_bases},
             external_reasons=dict(sorted(self.external_reasons.items())),
+            decorations=decorations,
         )
+
+    def decoration_sites(self, scope: Scope, call: RawCall) -> list[Decoration]:
+        """The Decoration of a decorator written in scope: what its name resolves to, if it resolves to repo symbols.
+
+        A name proven to come from outside the repo, or one that is no name (`@(a ? b : c)`), gives none: neither
+        can be about a symbol of the repo. A name that does not resolve gives one with no target, so a symbol of
+        that name can list it as a possible site.
+        """
+        if not call.chain:
+            return []
+        try:
+            outcome = self.resolve_chain(scope, call.chain)
+        except RecursionError:
+            outcome = unknown("too deeply nested to follow")
+        if outcome.kind == "external":
+            return []
+        name = re.sub(r"#\d+$", "", call.chain[-1])  # a block-local head is keyed `name#N` (see the TypeScript front end)
+        if outcome.kind == "each":
+            targets = outcome.members
+        elif outcome.kind == "bound" and self.scopes[outcome.value].kind != "class":
+            # A method on a receiver that may be a subclass: a call of it reaches the overrides too (an edge of kind
+            # override), so a decoration is a site of each of them. Never an edge: only listed, as for the method.
+            targets = tuple(dict.fromkeys(target for target, _ in self._edge_targets(outcome, call)))
+        elif outcome.kind in ("symbol", "bound"):
+            targets = (outcome.value,)
+        else:
+            targets = ("",)
+        return [Decoration(scope.id, scope.file, call.line, call.text, name, target) for target in targets or ("",)]
 
     def calls_what_it_wraps(self, scope: Scope, call: RawCall, shape: Shape) -> bool:
         """Whether this call, inside a wrapper, is the call of the decorator's parameter: fn(...)."""

@@ -37,7 +37,7 @@ from .profile import PYTHON, LanguageProfile
 
 # Bump when the graph format or the resolution rules change, so old caches
 # are ignored rather than served.
-CACHE_FORMAT = f"{__version__}-8"
+CACHE_FORMAT = f"{__version__}-9"
 
 
 def default_cache_dir() -> Path:

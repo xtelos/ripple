@@ -76,6 +76,26 @@ class Unresolved:
     reason: str
 
 
+@dataclass(frozen=True)
+class Decoration:
+    """A decorator written on a class, a member or a parameter (TypeScript): `@tag`, `@route("/x")`, `@ns.tag()`.
+
+    It is not an edge. What a decorator does to what it decorates is not modelled, so the decorator is not shown as
+    called by anyone; this records only where its name is written, so a question about it can say so. holder is
+    the symbol that holds the class (the decorator is written there, and runs when the class is defined), text is
+    the decorator as written, name its last name (`route` for `@ns.route()`), and target the id of the repo
+    symbol the name resolved to, empty when it did not resolve (a name proven to be from outside the repo is
+    never recorded: it cannot be a symbol of the repo).
+    """
+
+    holder: str
+    file: str
+    line: int
+    text: str
+    name: str
+    target: str = ""
+
+
 @dataclass
 class Graph:
     symbols: dict[str, Symbol] = field(default_factory=dict)
@@ -91,6 +111,8 @@ class Graph:
     # Ids that a Python file and a TypeScript file of one repo both define, with the files (see languages.merge_graphs).
     # Held in memory only: a merged graph is never cached, each language's graph is.
     ambiguous_ids: dict[str, list[str]] = field(default_factory=dict)
+    # Where a TypeScript decorator is written, whatever it resolved to (see Decoration). Empty for Python.
+    decorations: list[Decoration] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self._index()
@@ -136,7 +158,7 @@ class Graph:
         return {module: sorted(fs) for module, fs in sorted(files.items()) if len(fs) > 1}
 
     def to_dict(self) -> dict:
-        return {
+        data = {
             "symbols": [asdict(s) for s in self.symbols.values()],
             "edges": [asdict(e) for e in self.edges],
             "unresolved": [asdict(u) for u in self.unresolved],
@@ -148,6 +170,9 @@ class Graph:
             "external_bases": self.external_bases,
             "external_reasons": self.external_reasons,
         }
+        if self.decorations:  # only a graph that has some carries the key, so a Python graph is written as it always was
+            data["decorations"] = [asdict(d) for d in self.decorations]
+        return data
 
     @classmethod
     def from_dict(cls, data: dict) -> Graph:
@@ -162,4 +187,5 @@ class Graph:
             bases=data["bases"],
             external_bases=data["external_bases"],
             external_reasons=data.get("external_reasons", {}),
+            decorations=[Decoration(**d) for d in data.get("decorations", [])],
         )

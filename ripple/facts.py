@@ -108,7 +108,9 @@ class RawCall:
     "builtin" (a method on a literal such as "-".join) or "decorator_result"
     (applying what a decorator factory returned). kind "decorator" and
     "annotation" say where the call is written; decorates is the id of the
-    function a decorator call decorates.
+    function a decorator call decorates. kind "decoration" (TypeScript) is a decorator written on a class, member or
+    parameter, and is never a call: chain is its name (None when it is not a name), why says what is not followed,
+    and the resolver makes it an unresolved call and, where the name resolves, a model.Decoration.
 
     Three more specials are for a language where reading or writing a property can run code.
     "access" (chain or path ends in the property read) and "assign" (the property written) are an

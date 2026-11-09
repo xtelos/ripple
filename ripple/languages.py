@@ -151,7 +151,7 @@ def merge_graphs(graphs: list[Graph]) -> Graph:
     if len(graphs) == 1:
         return graphs[0]
     symbols, owners = {}, {}
-    merged = {"edges": [], "unresolved": [], "parse_errors": [], "modules": {}, "bases": {}, "external_bases": {}}
+    merged = {"edges": [], "unresolved": [], "decorations": [], "parse_errors": [], "modules": {}, "bases": {}, "external_bases": {}}
     skipped_dirs, external_calls, reasons = set(), 0, {}
     for graph in graphs:
         drop = {sid for sid in graph.symbols if sid in symbols}
@@ -162,6 +162,7 @@ def merge_graphs(graphs: list[Graph]) -> Graph:
                 symbols[sid] = symbol
         merged["edges"] += [e for e in graph.edges if not drop & {e.caller, e.callee, e.via}]
         merged["unresolved"] += [u for u in graph.unresolved if u.caller not in drop]
+        merged["decorations"] += [d for d in graph.decorations if not drop & {d.holder, d.target}]
         merged["parse_errors"] += graph.parse_errors
         merged["modules"].update(graph.modules)
         for cls, bases in graph.bases.items():

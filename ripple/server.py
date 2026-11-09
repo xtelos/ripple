@@ -37,7 +37,9 @@ computed keys, interface-typed values and decorators ripple cannot read are
 not followed. A decorated Python function is called by its wrapper; callers
 also lists, under through_wrapper, the lines that write its name. impact
 lists same-named call sites it could not resolve under possible_missed_callers;
-check those by hand. In a TypeScript repo, JSX makes two more kinds of edge: renders (a function that writes
+check those by hand. A TypeScript decorator is not a call edge: callers, impact and path list each place the
+symbol is written as a decorator under decorations (and, where the name did not resolve, possible_decorations),
+with a note that what a decorator does to what it decorates is not modelled. In a TypeScript repo, JSX makes two more kinds of edge: renders (a function that writes
 <Child />, so changing Child can break it) and renderer (the component React runs Child inside, only when the
 source proves it). Every answer follows all kinds by default; pass kinds (calls, renders, renderer, comma
 separated) to follow some, and an entry that has a JSX edge says which kinds in edge_kinds. If a result has a warnings list, part of the repository
@@ -75,7 +77,7 @@ def build_server(repo: str, test_command: str | None = None, timeout: float = 30
         description=(
             "List the functions and methods that directly call a symbol, with the file:line of each "
             "call site. A decorated function is called by its wrapper, so the lines that write its name "
-            "are listed apart, under through_wrapper. symbol: a Python dotted path, a TypeScript path:member id "
+            "are listed apart, under through_wrapper. Where a TypeScript symbol is written as a decorator, those places are listed under decorations (not calls; what a decorator does is not modelled). symbol: a Python dotted path, a TypeScript path:member id "
             "(src/util/math:clamp), a Class.method suffix, or a bare name. kinds: which edges to list, comma "
             "separated, from calls, renders (a function that writes <Symbol /> in JSX) and renderer (the component "
             "React runs the symbol inside, when proven); default all. An entry with a JSX edge has edge_kinds."
@@ -102,7 +104,7 @@ def build_server(repo: str, test_command: str | None = None, timeout: float = 30
             "hops, grouped by file, with the Python tests that reach it listed separately (each with the pytest "
             "node_id to pass to check; TypeScript tests are not collected, so their callers are listed as code). "
             "At most limit callers and limit tests are listed; truncated and omitted_callers / omitted_tests say how many more were found. Also lists unresolved call "
-            "sites with the same name, which static analysis cannot rule out. Follows every edge kind by default: a "
+            "sites with the same name, which static analysis cannot rule out, and where a TypeScript symbol is written as a decorator (decorations, not calls). Follows every edge kind by default: a "
             "TypeScript component that writes <Symbol /> is affected too (it can break when the symbol changes), and a "
             "caller reached through one carries edge_kinds; pass kinds (calls, renders, renderer) to follow fewer."
         ),
