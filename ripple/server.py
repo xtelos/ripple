@@ -103,8 +103,8 @@ def build_server(repo: str, test_command: str | None = None, timeout: float = 30
             "Answer 'what breaks if I change this?': every transitive caller of a symbol up to depth "
             "hops, grouped by file, with the Python tests that reach it listed separately (each with the pytest "
             "node_id to pass to check; TypeScript tests are not collected, so their callers are listed as code). "
-            "At most limit callers and limit tests are listed; truncated and omitted_callers / omitted_tests say how many more were found. Also lists unresolved call "
-            "sites with the same name, which static analysis cannot rule out, and where a TypeScript symbol is written as a decorator (decorations, not calls). Follows every edge kind by default: a "
+            "At most limit callers and limit tests are listed; truncated and omitted_callers / omitted_tests say how many more were found (decorator sites are cut too: decorations_omitted, and truncated counts them). Also lists unresolved call "
+            "sites with the same name, which static analysis cannot rule out, and where a TypeScript symbol is written as a decorator (decorations, not calls), including where a caller it found is itself a decorator (decorations_of_callers: the reach continues past those sites). Follows every edge kind by default: a "
             "TypeScript component that writes <Symbol /> is affected too (it can break when the symbol changes), and a "
             "caller reached through one carries edge_kinds; pass kinds (calls, renders, renderer) to follow fewer."
         ),

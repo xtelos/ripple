@@ -59,9 +59,16 @@ The four graph tools advertise `readOnlyHint: true`, which lets a client run the
 from `calls`, `renders` and `renderer`, comma separated, default `all`. Only a TypeScript repo with JSX has the last
 two (see [JSX](#jsx)); in a Python repo every edge is a call and nothing is labelled.
 
+A TypeScript symbol that is applied as a decorator also lists where, apart from its callers (see
+[TypeScript](#typescript)), and `callers` and `impact` of a symbol that a class ripple does not read may call say so.
+
 `impact` lists at most `limit` callers and `limit` tests (100 by default, up to 1000 over MCP). When
 it found more, it says so: `truncated` is true and `omitted_callers` / `omitted_tests` give the
-counts (the CLI prints "... and N more callers not listed"). Each test comes with its pytest node id
+counts (the CLI prints "... and N more callers not listed"). Decorator sites are bounded the same way:
+`decorations_omitted` and `decorations_of_callers_omitted` give how many sites were found and not listed (the CLI
+prints "... and N more decorator sites not listed"), and `impact` counts them in `truncated` too, so a true `truncated` with both
+`omitted_*` counts at zero means decorator sites were left out. `callers` and `path` have no `truncated`: they carry
+`decorations_omitted` alone. Each test comes with its pytest node id
 (`tests/test_x.py::test_y`, or `tests/test_x.py::TestZ::test_y` for a method), found by pytest's
 default collection rules: `test*` functions at module level in `test_*.py` and `*_test.py` files,
 `test*` methods of `Test*` classes that have no `__init__`, and every `test*` method of a
@@ -137,10 +144,47 @@ tests that reach it (0):
 whose function has a return annotation, a namespace import, and a function passed by name as the first argument
 of `map`, `forEach` and the other array methods that run it at once.
 **Unresolved, with the reason:** an interface-typed value, `table[key]()`, a method chosen by name, a loop
-variable, a value of no stated type, decorators, `require` and a `tsconfig` that extends a package. Class fields
-holding arrow functions, class expressions, object literal methods, enums and namespaces are not supported:
-their calls stay unresolved, or the code is skipped. A call ripple cannot prove is listed as unresolved, never guessed, and `impact` lists the
-same-named ones under `possible_missed_callers` as it does for Python.
+variable, a value of no stated type, `require` and a `tsconfig` that extends a package. Class fields
+holding arrow functions, object literal methods, enums and namespaces are not supported: their calls stay
+unresolved, or the code is skipped. A call ripple cannot prove is listed as unresolved, never guessed, and `impact`
+lists the same-named ones under `possible_missed_callers` as it does for Python.
+
+**Decorators.** A decorator (`@tag`, `@route("/x")`) written on a class, a method, a property or a parameter is not a
+call edge: what it does to the thing it decorates is not followed, and a member it decorates is never resolved. It
+stays an unresolved call of the scope that holds the class. When its name resolves to a symbol of the repo,
+`callers`, `impact` and `path` for that symbol list each place it is applied under `decorations`, with a note that
+these are not calls and are not modelled. A decorator written through a receiver typed as a base class (`@reg.add()`
+with `reg: Base`) is listed for the subclass methods that override `add` too, as a call through that receiver gets an
+override edge. A name that did not resolve but ends the way the symbol's does goes under
+`possible_decorations`, and a name proven to come from outside the repo is never listed. `callees` of the scope that
+writes the decorators lists them under `applies_decorators`, naming the decorator only when its name resolved.
+`impact` also lists, under `decorations_of_callers`, each place where one of the callers it found is itself applied as
+a decorator (with `decorator`, the caller it applies, and its `distance`): such a caller runs again each time a
+decorated class is defined, so the reach of the change continues past it. The decorated classes are not followed or
+counted as callers, `affected` and `more_beyond_depth` are unchanged, and only sites whose name resolved to the caller
+are listed. The
+keys exist only when there is something to list, and the callers and `affected` count of a symbol are what the call
+edges prove, whatever its decorations. A factory call `@registry(args)` is one of these sites. The call of
+`registry` does run when the class is defined, but the benchmark fixture has no decorator for its ground truth to
+confirm an edge, so it is only listed. A call inside a decorator's arguments is an ordinary call, made by
+the scope that holds the class (the module, or the function or method the class is written in). When the class is
+written inside another class (a field initializer, a static block, a method of an object literal), the scope that
+runs the call is not provable, so no edge is made: the call is an unresolved call with the reason "a decorator on a
+class written inside another class", and `callers` and `impact` of what it calls list it under `possible_missed_callers`.
+
+**Class expressions** (the class a decorator returns) and `export default class {}` are not read. Each call written
+inside one is an unresolved call of the scope around it, with the reason "inside a class that ripple does not read".
+`impact` lists the same-named ones under `possible_missed_callers` with that reason, and `callers`, which lists no
+unresolved calls of its own, lists exactly these under the same key. In a repo of both languages, a decoration
+or a class-expression call is only ever listed for a TypeScript symbol, never for a Python one of the same name.
+
+```
+$ ripple callers src/decorators/registry:registry --repo tsyringe
+callers of src/decorators/registry:registry (0):
+applied as a decorator (12), not calls; what a decorator does is not modelled:
+  src/__tests__/global-container.test:doesn't blow up with empty args  src/__tests__/global-container.test.ts:577  written @registry()
+  ...
+```
 
 **Measured**, the same way as the Python benchmark (`python -m bench.ts_score`): on the fixture
 (`bench/fixtures/ts/warehouse-ts`, ground truth from a run of its jest and vitest tests) precision 1.000,
@@ -150,7 +194,10 @@ react-pro-sidebar), recorded at runtime: 328 library edges, 312 seen at runtime,
 so the false-edge rate is below about 1.2%, not zero); recall of the pairs that ran is 0.84 (302 of 359), and
 45 percent of call sites stay unresolved. That is the honest cost of not guessing. An eighth, ts-pattern, could
 not be recorded: 138 edges were indexed and 15 of them checked by hand, all correct, and it is in none of those
-figures.
+figures. The held-out figures were recorded before ripple read parameter decorators and flagged the calls inside
+class expressions, and were not recorded again. On tsyringe those changes add two edges (`delay(...)` written in the
+argument of a parameter decorator, now made by the module that holds the class) and 43 unresolved calls, and
+remove or change none. The fixture figures above are measured on the current code.
 
 **Not yet:** jest or vitest collection. `impact` lists every
 TypeScript caller, tests included, as code to update, so its `tests` list is empty, and `check` refuses a
@@ -531,15 +578,23 @@ back, plus a hidden TypeScript test.
 | 28 | react-pro-sidebar (vitest) | the `Menu` prop `transitionDuration` | seven properties of that name; only the Menu's changes |
 
 **What ripple answers on them**, from the task `why` fields and the checks made when the tasks were written (not
-re-measured when the harness was wired). Where it falls short is part of what the eval can show:
+re-measured when the harness was wired; 24 and 25 were measured again on the pinned checkout after ripple began
+to flag decorations and the calls inside class expressions). Where it falls short is part of what the eval can show:
 
 - 20 and 21: complete on the symbols checked.
 - 22: 77 of the 83 calls, with no false one. The 6 it misses are in `examples/*.js`, which import the package by
   its own name. 23: 4 of 5.
-- 24: callers resolved 0 of 6. The member is declared on an interface, which ripple does not index, and the calls
-  inside a class expression a decorator returns are skipped. The list of unresolved same-name calls found 3 of the 6.
-- 25: callers and impact return 0, with an empty same-name list and no warning, because a decoration is not
-  recorded as a call.
+- 24: callers resolved 0 of 6. The member is declared on an interface, which ripple does not index, so no symbol
+  has that name to ask about: `transform` is ambiguous between the methods of the classes that act as transformers.
+  Three of the six calls are inside the class expression `autoInjectable` returns, which is not read. Those three used to
+  be absent from every answer, and the same-name list found 3 of the 6. Now the 20 calls in that body are unresolved
+  calls, and `impact` of a transformer's `transform` method lists all 6 under `possible_missed_callers`, the three
+  from the class expression marked "inside a class ripple does not read" (`callers` lists those three). No call is
+  resolved from that body, so callers still resolve 0 of 6.
+- 25: `callers` and `impact` of `registry` return 0 callers, which is right: it is never called by name. They now
+  also list the 12 places it is written as `@registry(...)` (3 files: 10 in `global-container.test.ts`, 2 test
+  fixtures), under `decorations` with the note that a decorator's effect is not modelled. The word still appears
+  in module paths, a `registry` variable and the README, which ripple does not index.
 - 26: `renders` finds 84 of the 108 elements with precision 1.000 (the website demos import the package by name);
   `renderer` finds 0 of 108. 27: 6 of 6.
 - 28: a prop rename. ripple does not index props.
