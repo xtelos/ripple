@@ -9,7 +9,7 @@
    test therefore changes nothing: the agent's source is judged by known-good tests.
    Every test the reference solution passes must pass, and at least task.min_tests run.
    An agent that deleted or hollowed out a test the reference edited is also marked down
-   (weakened_tests), though its version is never run.
+   (weakened_tests), though its version is never run; one that only renamed it is not.
 2. The task's hidden test passes. The agent never sees it. It checks that the
    change was made (the new name exists, the old one is gone) and that every
    caller still works end to end, which is the part a missed caller breaks. It
@@ -215,12 +215,24 @@ def function_names(source: str) -> dict[str, frozenset[str]]:
     return found
 
 
+def without_own_name(key: str, names: frozenset[str]) -> frozenset[str]:
+    """The identifiers a test function carries less its own name (`Class::name` is keyed with its class): a
+    function's name is among them, and a renamed test has another."""
+    return names - {key.rsplit("::", 1)[-1]}
+
+
+def is_test_name(key: str) -> bool:
+    """Whether a function key (`Class::name` or `name`) is one pytest collects by default: its name starts with `test`."""
+    return key.rsplit("::", 1)[-1].startswith("test")
+
+
 def weakened_tests(task: Task, agent: Path, reference: Path) -> list[str]:
     """Tests the agent hollowed out. The grade never runs the agent's tests (they are replaced), but
     a test the reference solution edited was edited to use something the task introduced, and an
     agent that deletes it, or keeps its name and drops that use, has not done what it was asked in
     that file. A test function the reference changed must still use every identifier the change
-    added to it. Empty when the agent's tests carry the same changes."""
+    added to it. One the agent renamed (the prompt allows it) is found again by what it uses, not by
+    its name. Empty when the agent's tests carry the same changes."""
     if task.is_node:
         return check_node.weakened_tests_node(task, agent, reference)
     weak = []
@@ -238,10 +250,39 @@ def weakened_tests(task: Task, agent: Path, reference: Path) -> list[str]:
             mine = function_names((agent / rel).read_text())
         except (OSError, SyntaxError, UnicodeDecodeError, ValueError):
             mine = {}
+        # A test function can be renamed along with the calls in it (a test named for the function the task renames),
+        # so one the agent no longer has by name is taken to be an unclaimed test of the agent's, in this file, that
+        # carries every identifier it carries bar its own name, one agent test per reference test at most. A name
+        # that is still there is never second-guessed.
+        spare = [k for k in mine if k not in wanted]
+        missing: dict[str, tuple[frozenset[str], list[str]]] = {}  # reference test -> what it added, the agent tests that could be it
         for name, names in wanted.items():
             added = names - before.get(name, names)
-            if added and not added <= mine.get(name, frozenset()):
-                weak.append(f"{rel.as_posix()}::{name} (dropped {', '.join(sorted(added - mine.get(name, frozenset())))})")
+            if not added:
+                continue
+            if name in mine:
+                if not added <= mine[name]:
+                    weak.append(f"{rel.as_posix()}::{name} (dropped {', '.join(sorted(added - mine[name]))})")
+            else:
+                needs = without_own_name(name, names)
+                fits = [k for k in spare if needs <= without_own_name(k, mine[k])]
+                if is_test_name(name):  # only a test stands in for a test, never a fixture or a helper
+                    fits = [k for k in fits if is_test_name(k)]
+                missing[name] = (added, fits)
+        taken: dict[str, str] = {}  # agent test -> the reference test it stands in for
+
+        def stand_in(name: str, seen: set[str]) -> bool:
+            """Give `name` an agent test, moving one already given away to another it fits if that frees it."""
+            for candidate in missing[name][1]:
+                if candidate in seen:
+                    continue
+                seen.add(candidate)
+                if candidate not in taken or stand_in(taken[candidate], seen):
+                    taken[candidate] = name
+                    return True
+            return False
+
+        weak += [f"{rel.as_posix()}::{name} (dropped {', '.join(sorted(added))})" for name, (added, _) in missing.items() if not stand_in(name, set())]
     return weak
 
 
