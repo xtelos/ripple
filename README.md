@@ -249,8 +249,9 @@ answer different questions:
     `Suspense`, `StrictMode`, `Profiler`), `cond && <X />`, `||`, `??`, conditionals, and the callback of a `.map`
     on a value known to be an array: that component is the renderer, and also the creator;
   - the element is a child of `<P>...</P>`, and `P` is a function component that puts its `children` prop (`children`,
-    `props.children`, `{ children: kids }`) where it returns it the same way (or hands it to another component that
-    does): `P` is the renderer, not the component that wrote the child;
+    `props.children`, `{ children: kids }`) where it returns it the same way: `P` is the renderer, not the component
+    that wrote the child. When `P` hands its `children` to another component `Q` that places them (`<Q>{children}</Q>`),
+    `Q` is the renderer and `P` is not (`P` is the renderer of `Q`);
   - the element is what a function written as a prop returns, `<List render={(row) => <Item />} />`, and `List` calls
     that prop where it places the result (`{render(row)}`, `props.render(row)`): `List` is the renderer. A call in an
     event handler or an effect is not render time and proves nothing.
@@ -296,11 +297,39 @@ missed caller, since its creator is already a caller.
 **Measured** on the fixture, against ground truth derived by hand from the source and checked against a React 19 run
 of its tests (`python -m bench.ts_score`): `renders` 12 expected, 12 reported, precision 1.000, recall 1.000;
 `renderer` 9 expected, 9 reported, precision 1.000, recall 1.000. The fixture has the cases where the two kinds
-differ on purpose (children placed by a wrapper, a render prop). Read by hand against the source, without a runtime
-recorder, on four real libraries (react-pro-sidebar, react-hot-toast, react-accessible-accordion,
+differ on purpose (children placed by a wrapper, a render prop). Read by hand against the source, with no runtime
+recorder behind it, on four real libraries (react-pro-sidebar, react-hot-toast, react-accessible-accordion,
 react-error-boundary): 69 `renderer` edges, grouped by the pattern each is written in, and well over 20 `renders` edges,
 none found false; the edges ripple left out there are the cost of not guessing, such as children handed to a
-component that spreads its props.
+component that spreads its props. That reading is evidence of the patterns it covers and nothing more.
+
+**At runtime, on a library outside the fixture.** react-day-picker v10.0.2 (commit `1bfd4f0`): its tests, and a smoke
+test that renders every example, ran under a recorder of which component React was rendering for each element.
+Before the paths fix above, ripple stated 446 JSX edges there: 445 true and 1 false, and the
+false one was that defect (an app that pins a published `react-day-picker` was resolved to the repo's own
+`DayPicker`; the same defect gave false `calls` edges). In detail:
+
+- `renderer`: 87 of 87 true. 80 were seen at runtime, and at each stated element line every runtime instance had
+  ripple's component as its renderer; 7 are in the website app and were read by hand.
+- `renders`: 358 of 359 pairs true. 277 were seen at runtime (every stated site observed) and 82 were read by hand.
+  The fix removes two pairs, the false one and a true one (the app that depends on the package as `workspace:*`,
+  which ripple now leaves unresolved). That is arithmetic on the judgments above, not a second run.
+- Following `references` (the shadcn apps' `tsconfig.json` is `"files": []` plus references to their `tsconfig.app.json`)
+  adds 68 edges after that fix, all inside `apps/shadcn-app-v9` and `apps/shadcn-app-workspace`, 34 in each (31
+  `calls`, 2 `renders`, 1 `renderer`): an app's `@/components/ui/button` and `@/lib/utils` now resolve to its own
+  files. None reaches `packages/react-day-picker`. They were read neither by hand nor at runtime, so they are not in
+  the figures above.
+- Recall in the tested scope (`packages`, `examples`, `test`): `renders` 277 of 314 pairs and `renderer` 80 of 163. The
+  misses are mostly `<components.X />` tags, members of an object a caller can override, which ripple does not resolve.
+- 28 synthetic React 18.3.1 cases of render props and of children handed to a second component produced no false
+  edge: ripple stated 70 `renderer` edges and all 70 agreed with runtime. The cases were written by the person who
+  measured, so they test the rules as stated, not shapes found in other code.
+
+The limits: one library, and it had been read from source once before (a later commit, with no false edge found), so
+it is not a library nobody had looked at; the runtime was React 19.2.5, which the recorder was not validated on (it
+agreed at the element line everywhere it was checked); the website app was not run, so its 7 `renderer` and 76
+`renders` edges are hand-judged. One false edge in 446 is 0.2 percent for this library and a weak guide to another
+library's configuration, which is where the false edge came from.
 
 **Both languages in one repo** are indexed each with its own profile and merged into one graph; the cache
 keeps one entry per language (the Python one is named as it always was, so a Python repo's cache and output
