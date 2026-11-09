@@ -3,6 +3,7 @@
     python -m eval.run                          19 Python tasks x 2 modes x 3 repeats
     python -m eval.run --tasks 01-shop-tax-args --repeats 1 --out /tmp/smoke.json
     python -m eval.run --runtime node --dry     the TypeScript tasks' plan and readiness checks, no model call
+    python -m eval.run --runtime node --forced-use --restrict-search --dry     the test arms (eval/arms.py), also off by default
 
 Each run copies the task's fixture to a fresh directory under /tmp, runs
 Claude Code headless there, then runs the check (eval/check.py). The two
@@ -42,6 +43,7 @@ from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+from .arms import FORCED_USE_LINE, RESTRICTED_DISALLOWED, RESTRICTED_PREAMBLE, Arms, arms_of
 from .check import check_task
 from .loader import EVAL_DIR, REPO_ROOT, Task, copy_fixture, load_tasks
 from .node_agent import (
@@ -49,6 +51,7 @@ from .node_agent import (
     node_files,
     node_preamble,
     node_problems,
+    node_restricted_preamble,
     ripple_problems,
     write_node_shims,
 )
@@ -86,6 +89,7 @@ MAX_DENIALS_LISTED, MAX_INPUT_CHARS = 20, 300
 # What a run's record keeps of its ripple tool calls (and ToolSearch queries): each result's first
 # MAX_RESULT_HEAD characters, and at most MAX_RECORDED_BYTES of JSON for all of them together.
 MAX_RESULT_HEAD, MAX_RECORDED_BYTES = 2000, 40_000
+MAX_SHELL_COMMANDS, MAX_SHELL_CHARS = 60, 160  # the shell log of a --restrict-search run
 SECRET = re.compile(
     r"sk-[A-Za-z0-9_-]{10,}|gh[pousr]_[A-Za-z0-9]{6,}|AKIA[0-9A-Z]{12,}|"
     r"((?:API|ACCESS|AUTH|SECRET)[_-]?KEY|TOKEN|SECRET|PASSWORD|PASSWD)\w*=\S+",
@@ -93,12 +97,21 @@ SECRET = re.compile(
 )
 
 
-def build_prompt(task_prompt: str, mode: str, task: Task | None = None) -> str:
+def preamble_for(task: Task | None, arms: Arms | None = None) -> str:
+    """The shared note on the shell: the node variant for a node task, the restricted variant (no tsc, search tools
+    gone) when --restrict-search is on."""
+    restricted = arms is not None and arms.restrict_search
+    if task is not None and task.is_node:
+        return node_restricted_preamble(task.spec) if restricted else node_preamble(task.spec)
+    return RESTRICTED_PREAMBLE if restricted else PREAMBLE
+
+
+def build_prompt(task_prompt: str, mode: str, task: Task | None = None, arms: Arms | None = None) -> str:
     """What the agent is told: the shared preamble (the node variant for a node task), in with-ripple the
-    ripple line, then the task."""
-    preamble = node_preamble(task.spec) if task is not None and task.is_node else PREAMBLE
-    parts = [preamble] + ([WITH_RIPPLE_LINE] if mode == "with-ripple" else []) + [task_prompt]
-    return "\n\n".join(parts)
+    ripple line (and under --forced-use the sentence that tells it to call `callers`), then the task."""
+    forced = arms is not None and arms.forced_use
+    ripple = [WITH_RIPPLE_LINE] + ([FORCED_USE_LINE] if forced else []) if mode == "with-ripple" else []
+    return "\n\n".join([preamble_for(task, arms), *ripple, task_prompt])
 
 
 def ripple_launch(ripple_python: str | None = None) -> tuple[str, list[str]]:
@@ -137,22 +150,26 @@ def mcp_config(
     return {"mcpServers": {"ripple": entry}}
 
 
-def allowed_tools(mode: str, task: Task | None = None) -> list[str]:
-    shell = node_allowed_tools(task.spec) if task is not None and task.is_node else TEST_COMMANDS
+def allowed_tools(mode: str, task: Task | None = None, arms: Arms | None = None) -> list[str]:
+    restricted = arms is not None and arms.restrict_search
+    shell = node_allowed_tools(task.spec, restricted) if task is not None and task.is_node else TEST_COMMANDS
     return shell + (["mcp__ripple"] if mode == "with-ripple" else [])
 
 
-def agent_command(prompt: str, mode: str, mcp_file: Path, model: str, task: Task | None = None) -> list[str]:
+def agent_command(prompt: str, mode: str, mcp_file: Path, model: str, task: Task | None = None, arms: Arms | None = None) -> list[str]:
     """The claude invocation. --setting-sources project,local leaves out the
     user's own settings, and with them their hooks and plugins; the temp
-    directory has no project settings, so the agent runs on defaults."""
+    directory has no project settings, so the agent runs on defaults. Under
+    --restrict-search a --disallowedTools list follows the allowed one."""
+    denied = ["--disallowedTools", ",".join(RESTRICTED_DISALLOWED)] if arms is not None and arms.restrict_search else []
     return [
         "claude", "-p", prompt,
         "--output-format", "stream-json", "--verbose",
         "--setting-sources", "project,local",
         "--no-session-persistence",
         "--permission-mode", "acceptEdits",
-        "--allowedTools", ",".join(allowed_tools(mode, task)),
+        "--allowedTools", ",".join(allowed_tools(mode, task, arms)),
+        *denied,
         "--mcp-config", str(mcp_file), "--strict-mcp-config",
         "--model", model,
     ]  # fmt: skip
@@ -232,7 +249,7 @@ def cap_records(records: list[tuple[str, dict]]) -> tuple[list[dict], list[dict]
     return exchanges, queries, False
 
 
-def parse_stream(text: str) -> dict:
+def parse_stream(text: str, shell_log: bool = False) -> dict:
     """Pick the numbers out of claude's stream-json output: the init event
     (model, which MCP servers connected, which tools it had), every tool call,
     and the final result event (turns, tokens, cost, errors). Besides the counts it
@@ -240,9 +257,12 @@ def parse_stream(text: str) -> dict:
     clipped input, and from the matching tool_result its error flag, size and first
     MAX_RESULT_HEAD characters; None for all three when the run ended before one came)
     and what it searched the deferred tools for (`toolsearch_queries`), together
-    capped at MAX_RECORDED_BYTES (`ripple_exchanges_truncated` says it was cut)."""
+    capped at MAX_RECORDED_BYTES (`ripple_exchanges_truncated` says it was cut). With
+    shell_log (a --restrict-search run) the first MAX_SHELL_COMMANDS shell commands are
+    listed too (`bash_commands`), so a search that got through the denied list shows."""
     tools: Counter = Counter()
     init, result = {}, None
+    shell: list[str] = []
     records: list[tuple[str, dict]] = []
     waiting: dict[str, dict] = {}  # tool_use id -> its exchange, until the result arrives
     for line in text.splitlines():
@@ -264,6 +284,9 @@ def parse_stream(text: str) -> dict:
                             waiting[str(block["id"])] = exchange
                     elif name == "ToolSearch":
                         records.append(("query", clip_input(block.get("input"))))
+                    elif name == "Bash" and shell_log and len(shell) < MAX_SHELL_COMMANDS:
+                        command = (block.get("input") or {}).get("command") if isinstance(block.get("input"), dict) else None
+                        shell.append(clip_input(str(command), MAX_SHELL_CHARS))
         elif event.get("type") == "user":
             content = (event.get("message") or {}).get("content")
             for block in content if isinstance(content, list) else []:
@@ -288,6 +311,8 @@ def parse_stream(text: str) -> dict:
         "ripple_exchanges_truncated": cut,
         "got_result": result is not None,
     }
+    if shell_log:
+        parsed["bash_commands"] = shell
     if result:
         parsed.update(
             {
@@ -380,6 +405,7 @@ def blocked_reason(parsed: dict, changed_files: list[str]) -> str | None:
 
 
 def run_one(task: Task, mode: str, repeat: int, root: Path, bin_dir: Path, args) -> dict:
+    arms = arms_of(args)
     run_dir = new_run_dir(root)
     repo = copy_fixture(task, run_dir / "repo")
     if task.spec:
@@ -387,7 +413,8 @@ def run_one(task: Task, mode: str, repeat: int, root: Path, bin_dir: Path, args)
         # per run because they name this run's copy (the repo is never installed).
         bin_dir = run_dir / "bin"
         if task.is_node:
-            write_node_shims(bin_dir, task.spec, repo)  # the runner and tsc, nothing else (eval/node_agent.py)
+            # the runner and tsc, nothing else (eval/node_agent.py); the runner only under --restrict-search
+            write_node_shims(bin_dir, task.spec, repo, restricted=arms.restrict_search)
         else:
             write_python_shims(bin_dir, task.python, task.spec.env(repo))
     cache_dir = run_dir / "cache"
@@ -398,7 +425,7 @@ def run_one(task: Task, mode: str, repeat: int, root: Path, bin_dir: Path, args)
     started = time.monotonic()
     with open(stdout_path, "wb") as out, open(stderr_path, "wb") as err:
         proc = subprocess.Popen(
-            agent_command(build_prompt(task.prompt, mode, task), mode, mcp_file, args.model, task),
+            agent_command(build_prompt(task.prompt, mode, task, arms), mode, mcp_file, args.model, task, arms),
             cwd=repo,
             env=child_env(dict(os.environ), bin_dir, cache_dir),
             stdin=subprocess.DEVNULL,
@@ -414,12 +441,13 @@ def run_one(task: Task, mode: str, repeat: int, root: Path, bin_dir: Path, args)
             proc.wait()
             timed_out = True
     wall = round(time.monotonic() - started, 1)
-    parsed = parse_stream(stdout_path.read_text(errors="replace"))
+    parsed = parse_stream(stdout_path.read_text(errors="replace"), shell_log=arms.restrict_search)
     stderr = stderr_path.read_text(errors="replace")[-2000:]
     record = {
         "task": task.id,
         "mode": mode,
         "repeat": repeat,
+        "arm": arms.label,
         "run_dir": run_dir.name,
         "wall_s": wall,
         "timed_out": timed_out,
@@ -480,7 +508,7 @@ def save(out: Path, meta: dict, runs: list[dict]) -> None:
     summary = summarize(slim)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps({"meta": meta, "summary": summary, "runs": slim}, indent=2) + "\n")
-    out.with_suffix(".md").write_text(table(summary) + "\n")
+    out.with_suffix(".md").write_text(table(summary, meta.get("arm")) + "\n")
 
 
 def select_tasks(tasks: list[Task], runtime: str | None, named: bool) -> list[Task]:
@@ -517,6 +545,7 @@ def readiness_problems(tasks: list[Task], modes: list[str], ripple_python: str |
 
 def describe_plan(tasks: list[Task], modes: list[str], args, problems: list[str]) -> str:
     """The --dry output: what a batch would do, as text. It calls nothing that costs."""
+    arms = arms_of(args)
     runs = len(tasks) * len(modes) * args.repeats
     lines = [
         "dry run: no agent is started, no model is called, nothing is written",
@@ -524,6 +553,7 @@ def describe_plan(tasks: list[Task], modes: list[str], args, problems: list[str]
         *(f"  {t.id}  [{t.runtime}" + (f", {t.spec.name}, {t.spec.runner}" if t.is_node else "") + "]" for t in tasks),
         f"modes: {', '.join(modes)}",
         f"runs: {len(tasks)} tasks x {len(modes)} modes x {args.repeats} repeats = {runs}",
+        f"arm: {arms.label}",
     ]
     if "with-ripple" in modes:
         python_tasks = [t for t in tasks if not t.is_node]
@@ -543,10 +573,17 @@ def describe_plan(tasks: list[Task], modes: list[str], args, problems: list[str]
             continue
         seen.add(key)
         label = f"{task.runtime}" + (f", {task.spec.runner}" if task.is_node else "")
-        lines.append(f"[{label}] shell preamble: {build_prompt('<task prompt>', 'without', task).split(chr(10) * 2)[0]}")
+        lines.append(f"[{label}] shell preamble: {build_prompt('<task prompt>', 'without', task, arms).split(chr(10) * 2)[0]}")
         for mode in modes:
-            command = agent_command("<task prompt>", mode, Path("<mcp.json>"), args.model, task)
+            command = agent_command("<task prompt>", mode, Path("<mcp.json>"), args.model, task, arms)
             lines.append(f"[{label}] agent command, {mode}: {shlex.join(command)}")
+            if arms.label != "base":
+                # an armed batch spells out what the agent is told before the task and which tools it has
+                before = build_prompt("<task prompt>", mode, task, arms).split(chr(10) * 2)[:-1]
+                lines.append(f"[{label}] prompt before the task, {mode}:")
+                lines += [f"    {paragraph}" for paragraph in before]
+                lines.append(f"[{label}] allowed tools, {mode}: {','.join(allowed_tools(mode, task, arms))}")
+                lines.append(f"[{label}] disallowed tools, {mode}: {','.join(RESTRICTED_DISALLOWED) if arms.restrict_search else '(none)'}")
             if mode == "with-ripple":
                 entry = mcp_config(mode, Path("/path/to/repo"), Path("/path/to/cache"), task, args.ripple_python, Path("/path/to/bin"))
                 entry = entry["mcpServers"]["ripple"]
@@ -591,6 +628,19 @@ def main(argv=None) -> int:
         "starts if not. Python tasks never use it: they always start the ripple next to this interpreter",
     )
     parser.add_argument(
+        "--forced-use",
+        action="store_true",
+        help="test arm: tell the with-ripple agent, in the prompt, to call ripple's `callers` tool on the symbol it is "
+        f"changing before editing ({FORCED_USE_LINE!r}). The without arm is unchanged",
+    )
+    parser.add_argument(
+        "--restrict-search",
+        action="store_true",
+        help="test arm: for both arms, deny the Grep and Glob tools, the web tools and the shell commands that search "
+        "(grep, find, rg, ...), and for a node task leave tsc out of the shell (the runner only); the preamble says so. Not airtight: an agent can still search by writing a test file "
+        "and running it with the runner; the record's bash_commands and changed files show that after the fact",
+    )
+    parser.add_argument(
         "--dry",
         action="store_true",
         help="print the plan (tasks, runs, the agent command, the readiness checks) and stop: no agent, no model call, nothing written",
@@ -605,6 +655,9 @@ def main(argv=None) -> int:
     modes = args.modes.split(",")
     if any(m not in MODES for m in modes):
         parser.error(f"modes must be among {', '.join(MODES)}")
+    if args.forced_use and "with-ripple" not in modes:
+        parser.error("--forced-use changes the with-ripple arm only, and --modes does not include it: nothing would differ")
+    args.arms = Arms(forced_use=args.forced_use, restrict_search=args.restrict_search)
     if args.out and any(p.exists() for p in result_paths(args.out)):
         parser.error(f"{args.out} (or its .md or -diffs) already exists; pick a new --out")
     no_node = not any(t.is_node for t in tasks)
@@ -618,6 +671,7 @@ def main(argv=None) -> int:
         parser.error("not ready, nothing was started:\n  " + "\n  ".join(problems))
     out = args.out or default_out(RESULTS_DIR)
     version = subprocess.run(["claude", "--version"], capture_output=True, text=True).stdout.strip()
+    arms = args.arms
     meta = {
         "started": dt.datetime.now().isoformat(timespec="seconds"),
         "ripple_commit": git_head(),
@@ -626,17 +680,25 @@ def main(argv=None) -> int:
         "repeats": args.repeats,
         "timeout_s": args.timeout,
         "jobs": args.jobs,
-        "prompt_preamble": PREAMBLE,
+        "prompt_preamble": preamble_for(None, arms),
         "with_ripple_line": WITH_RIPPLE_LINE,
-        "command": agent_command("<task prompt>", "with-ripple", Path("<mcp.json>"), args.model),
+        "command": agent_command("<task prompt>", "with-ripple", Path("<mcp.json>"), args.model, None, arms),
+        "arm": arms.label,
     }
+    if arms.label != "base":
+        # the arm, spelled out, so a results file says what its batch was given
+        meta["arm_flags"] = arms.flags
+        if arms.forced_use:
+            meta["forced_use_line"] = FORCED_USE_LINE
+        if arms.restrict_search:
+            meta["disallowed_tools"] = list(RESTRICTED_DISALLOWED)
     if any(t.is_node for t in tasks):
         # What differs for the node tasks, which have their own shell rules and note on it: recorded only for a
         # batch that has them, so a Python-only batch's meta is what it always was.
         node = [t for t in tasks if t.is_node]
-        meta["node_prompt_preambles"] = {t.spec.runner: node_preamble(t.spec) for t in node}
+        meta["node_prompt_preambles"] = {t.spec.runner: preamble_for(t, arms) for t in node}
         meta["node_commands"] = {
-            t.spec.runner: agent_command("<task prompt>", "with-ripple", Path("<mcp.json>"), args.model, t) for t in node
+            t.spec.runner: agent_command("<task prompt>", "with-ripple", Path("<mcp.json>"), args.model, t, arms) for t in node
         }
         meta["ripple_python"] = args.ripple_python or sys.executable
     if args.ripple_python and no_node:
@@ -683,7 +745,7 @@ def main(argv=None) -> int:
     meta.update({"finished": dt.datetime.now().isoformat(timespec="seconds"), "stopped_early": stop.is_set()})
     save(out, meta, runs)
     print()
-    print(table(summarize(runs)))
+    print(table(summarize(runs), meta.get("arm")))
     print(f"\nresults: {out}")
     invalid = Counter(r["invalid"] for r in runs if r.get("invalid") and not r.get("aborted"))
     if invalid:

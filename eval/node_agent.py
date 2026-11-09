@@ -75,9 +75,19 @@ def node_preamble(spec: RepoSpec) -> str:
     )
 
 
-def node_allowed_tools(spec: RepoSpec) -> list[str]:
-    """The permission rules for the agent's shell: the repo's runner and tsc, which are the shims."""
-    return [f"Bash({spec.runner}:*)", "Bash(tsc:*)"]
+def node_restricted_preamble(spec: RepoSpec) -> str:
+    """The shell note for the restricted arm (--restrict-search): the runner only, since tsc is not there, and the
+    search tools are said to be gone. The same words in both modes."""
+    return (
+        f"The shell is there for running the tests (`{runner_phrase(spec)}`, optionally with file paths): do not use it "
+        "to edit files (sed, scripted rewrites, node -e). Make every edit with the Edit or Write tool. "
+        "The Grep and Glob tools, shell search commands (grep, find) and web access are not available."
+    )
+
+
+def node_allowed_tools(spec: RepoSpec, restricted: bool = False) -> list[str]:
+    """The permission rules for the agent's shell: the repo's runner and tsc, which are the shims; the runner only when restricted."""
+    return [f"Bash({spec.runner}:*)"] + ([] if restricted else ["Bash(tsc:*)"])
 
 
 # ------------------------------------------------------------------------------------------- the shims
@@ -161,10 +171,12 @@ def tsc_shim(repo: Path, spec: RepoSpec) -> str:
     ) + "\n"
 
 
-def write_node_shims(bin_dir: Path, spec: RepoSpec, repo: Path) -> None:
-    """The runner and tsc for the agent of one run, shell scripts that name this run's copy of the repo."""
+def write_node_shims(bin_dir: Path, spec: RepoSpec, repo: Path, restricted: bool = False) -> None:
+    """The runner and tsc for the agent of one run, shell scripts that name this run's copy of the repo; with
+    restricted (--restrict-search) the runner only."""
     bin_dir.mkdir(parents=True, exist_ok=True)
-    for name, text in ((spec.runner, runner_shim(repo, spec)), ("tsc", tsc_shim(repo, spec))):
+    shims = [(spec.runner, runner_shim(repo, spec))] + ([] if restricted else [("tsc", tsc_shim(repo, spec))])
+    for name, text in shims:
         shim = bin_dir / name
         shim.write_text(text)
         shim.chmod(0o755)
