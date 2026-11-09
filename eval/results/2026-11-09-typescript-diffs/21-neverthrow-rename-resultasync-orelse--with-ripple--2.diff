@@ -1,0 +1,153 @@
+--- a/README.md
++++ b/README.md
+@@ -55,7 +55,7 @@
+     - [`ResultAsync.mapErr` (method)](#resultasyncmaperr-method)
+     - [`ResultAsync.unwrapOr` (method)](#resultasyncunwrapor-method)
+     - [`ResultAsync.andThen` (method)](#resultasyncandthen-method)
+-    - [`ResultAsync.orElse` (method)](#resultasyncorelse-method)
++    - [`ResultAsync.recoverWith` (method)](#resultasyncrecoverwith-method)
+     - [`ResultAsync.match` (method)](#resultasyncmatch-method)
+     - [`ResultAsync.andTee` (method)](#resultasyncandtee-method)
+     - [`ResultAsync.orTee` (method)](#resultasyncortee-method)
+@@ -1222,7 +1222,7 @@
+ 
+ ---
+ 
+-#### `ResultAsync.orElse` (method)
++#### `ResultAsync.recoverWith` (method)
+ 
+ Takes an `Err` value and maps it to a `ResultAsync<T, SomeNewType>`. This is useful for error recovery.
+ 
+@@ -1230,7 +1230,7 @@
+ 
+ ```typescript
+ class ResultAsync<T, E> {
+-  orElse<U, A>(
++  recoverWith<U, A>(
+     callback: (error: E) => Result<U, A> | ResultAsync<U, A>
+   ): ResultAsync<U | T, A> { ... }
+ }
+--- a/src/result-async.ts
++++ b/src/result-async.ts
+@@ -179,15 +179,15 @@
+     )
+   }
+ 
+-  orElse<R extends Result<unknown, unknown>>(
++  recoverWith<R extends Result<unknown, unknown>>(
+     f: (e: E) => R,
+   ): ResultAsync<InferOkTypes<R> | T, InferErrTypes<R>>
+-  orElse<R extends ResultAsync<unknown, unknown>>(
++  recoverWith<R extends ResultAsync<unknown, unknown>>(
+     f: (e: E) => R,
+   ): ResultAsync<InferAsyncOkTypes<R> | T, InferAsyncErrTypes<R>>
+-  orElse<U, A>(f: (e: E) => Result<U, A> | ResultAsync<U, A>): ResultAsync<U | T, A>
++  recoverWith<U, A>(f: (e: E) => Result<U, A> | ResultAsync<U, A>): ResultAsync<U | T, A>
+   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+-  orElse(f: any): any {
++  recoverWith(f: any): any {
+     return new ResultAsync(
+       this._promise.then(async (res: Result<T, E>) => {
+         if (res.isErr()) {
+--- a/tests/index.test.ts
++++ b/tests/index.test.ts
+@@ -1119,7 +1119,7 @@
+       const okVal = okAsync(12)
+       const errorCallback = vitest.fn((_errVal) => errAsync<number, string>('It is now a string'))
+ 
+-      const result = await okVal.orElse(errorCallback)
++      const result = await okVal.recoverWith(errorCallback)
+ 
+       expect(result).toEqual(ok(12))
+ 
+@@ -1130,7 +1130,7 @@
+       const myResult = errAsync('BOOOM!')
+       const errorCallback = vitest.fn((_errVal) => errAsync(true))
+ 
+-      const result = await myResult.orElse(errorCallback)
++      const result = await myResult.recoverWith(errorCallback)
+ 
+       expect(result).toEqual(err(true))
+       expect(errorCallback).toHaveBeenCalledTimes(1)
+@@ -1140,7 +1140,7 @@
+       const myResult = errAsync('BOOOM!')
+       const errorCallback = vitest.fn((_errVal) => err(true))
+ 
+-      const result = await myResult.orElse(errorCallback)
++      const result = await myResult.recoverWith(errorCallback)
+ 
+       expect(result).toEqual(err(true))
+       expect(errorCallback).toHaveBeenCalledTimes(1)
+--- a/tests/typecheck-tests.ts
++++ b/tests/typecheck-tests.ts
+@@ -1583,7 +1583,7 @@
+       type Expectation = string
+ 
+       const result = okAsync<number, string>(123)
+-        .orElse((val: Expectation) => {
++        .recoverWith((val: Expectation) => {
+           switch (val) {
+             case '2':
+               return errAsync(1)
+@@ -1598,7 +1598,7 @@
+       type Expectation = ResultAsync<number, number>
+ 
+       const result: Expectation = okAsync<number, string>(123)
+-        .orElse((val) => {
++        .recoverWith((val) => {
+           switch (val) {
+             case '2':
+               return errAsync(1)
+@@ -1612,7 +1612,7 @@
+       type Expectation = ResultAsync<number, number | string>
+ 
+       const result: Expectation = okAsync<number, string>(123)
+-        .orElse((val) => {
++        .recoverWith((val) => {
+           switch (val) {
+             case '2':
+               return errAsync(1)
+@@ -1626,7 +1626,7 @@
+       type Expectation = ResultAsync<number, number | string>
+ 
+       const result: Expectation = okAsync<number, string>(123)
+-        .orElse((val) => {
++        .recoverWith((val) => {
+           switch (val) {
+             case '1':
+               return okAsync(1)
+@@ -1642,7 +1642,7 @@
+       type Expectation = ResultAsync<number, number | string>
+ 
+       const result: Expectation = okAsync<number, string>(123)
+-        .orElse<number, number | string>((val) => {
++        .recoverWith<number, number | string>((val) => {
+           switch (val) {
+             case '1':
+               return ok(1)
+@@ -1658,14 +1658,14 @@
+       type Expectation = ResultAsync<string | number, boolean>
+ 
+       const result: Expectation = errAsync<string, boolean[]>([true])
+-          .orElse((val) => ok<string, boolean>('recovered!'))
++          .recoverWith((val) => ok<string, boolean>('recovered!'))
+     });
+ 
+     (function it(_ = 'Infers ok type when returning disjoint types') {
+       type Expectation = ResultAsync<string | number | boolean, unknown>
+ 
+       const result: Expectation = errAsync<string, number>(123)
+-          .orElse((val) => {
++          .recoverWith((val) => {
+             switch (val) {
+               case 1:
+                 return okAsync('yoooooo dude' + val)
+@@ -1682,7 +1682,7 @@
+       type Expectation = ResultAsync<string | true, false>
+ 
+       const result: Expectation = initial
+-          .orElse((val) => {
++          .recoverWith((val) => {
+             switch (val) {
+               case 1:
+                 return err(false as const)

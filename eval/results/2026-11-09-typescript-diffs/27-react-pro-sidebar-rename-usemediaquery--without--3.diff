@@ -1,0 +1,165 @@
+--- a/src/components/Sidebar.tsx
++++ b/src/components/Sidebar.tsx
+@@ -1,7 +1,7 @@
+ import React from 'react';
+ import styled, { CSSObject } from '@emotion/styled';
+ import classnames from 'classnames';
+-import { useMediaQuery } from '../hooks/useMediaQuery';
++import { useMatchMedia } from '../hooks/useMediaQuery';
+ import { sidebarClasses } from '../utils/utilityClasses';
+ import { StyledBackdrop } from '../styles/StyledBackdrop';
+ 
+@@ -249,7 +249,7 @@
+     };
+ 
+     const breakpointMediaQuery = getBreakpointValue();
+-    const broken = useMediaQuery(breakpointMediaQuery);
++    const broken = useMatchMedia(breakpointMediaQuery);
+ 
+     const collapsedValue = collapsed;
+     const toggledValue = toggled;
+--- a/src/hooks/useMediaQuery.tsx
++++ b/src/hooks/useMediaQuery.tsx
+@@ -6,7 +6,7 @@
+ const useIsomorphicLayoutEffect =
+   typeof window !== 'undefined' ? React.useLayoutEffect : React.useEffect;
+ 
+-export const useMediaQuery = (breakpoint?: string): boolean => {
++export const useMatchMedia = (breakpoint?: string): boolean => {
+   // Always start `false` so the server render and the first client render
+   // agree. Reading `window.matchMedia` in the initializer would make the
+   // hydration render disagree with the server; React would keep the server
+--- a/tests/Sidebar.test.tsx
++++ b/tests/Sidebar.test.tsx
+@@ -84,7 +84,7 @@
+   });
+ 
+   it('should sidebar have a correct positioning when broken', () => {
+-    vi.spyOn(mediaQueryHook, 'useMediaQuery').mockImplementation(() => true);
++    vi.spyOn(mediaQueryHook, 'useMatchMedia').mockImplementation(() => true);
+ 
+     customRender(<Sidebar breakPoint="all">Sidebar</Sidebar>);
+ 
+@@ -99,7 +99,7 @@
+   });
+ 
+   it('should sidebar have a correct positioning when broken and collapsed', () => {
+-    vi.spyOn(mediaQueryHook, 'useMediaQuery').mockImplementation(() => true);
++    vi.spyOn(mediaQueryHook, 'useMatchMedia').mockImplementation(() => true);
+ 
+     customRender(
+       <Sidebar breakPoint="all" collapsed>
+@@ -115,7 +115,7 @@
+   });
+ 
+   it('should display overlay position sidebar to the left when broken and toggled', () => {
+-    vi.spyOn(mediaQueryHook, 'useMediaQuery').mockImplementation(() => true);
++    vi.spyOn(mediaQueryHook, 'useMatchMedia').mockImplementation(() => true);
+ 
+     customRender(
+       <Sidebar breakPoint="all" toggled>
+@@ -132,7 +132,7 @@
+   });
+ 
+   it('should position and hide sidebar to the right when rtl is true and broken', () => {
+-    vi.spyOn(mediaQueryHook, 'useMediaQuery').mockImplementation(() => true);
++    vi.spyOn(mediaQueryHook, 'useMatchMedia').mockImplementation(() => true);
+ 
+     customRender(
+       <Sidebar rtl breakPoint="all">
+@@ -147,7 +147,7 @@
+   });
+ 
+   it('should display and position sidebar to the right when rtl is true and broken and toggled', () => {
+-    vi.spyOn(mediaQueryHook, 'useMediaQuery').mockImplementation(() => true);
++    vi.spyOn(mediaQueryHook, 'useMatchMedia').mockImplementation(() => true);
+ 
+     customRender(
+       <Sidebar rtl breakPoint="all" toggled>
+@@ -163,7 +163,7 @@
+ 
+   describe('backdrop', () => {
+     const renderBroken = () => {
+-      vi.spyOn(mediaQueryHook, 'useMediaQuery').mockImplementation(() => true);
++      vi.spyOn(mediaQueryHook, 'useMatchMedia').mockImplementation(() => true);
+       const onBackdropClick = vi.fn();
+       customRender(
+         <Sidebar breakPoint="all" toggled onBackdropClick={onBackdropClick}>
+@@ -208,7 +208,7 @@
+ 
+     it('should not close on Escape when not an overlay', () => {
+       const onBackdropClick = vi.fn();
+-      vi.spyOn(mediaQueryHook, 'useMediaQuery').mockImplementation(() => false);
++      vi.spyOn(mediaQueryHook, 'useMatchMedia').mockImplementation(() => false);
+       customRender(<Sidebar onBackdropClick={onBackdropClick}>Sidebar</Sidebar>);
+       fireEvent.keyDown(document, { key: 'Escape' });
+       expect(onBackdropClick).not.toHaveBeenCalled();
+@@ -218,7 +218,7 @@
+   describe('onBreakPoint', () => {
+     it('does not announce the default (non-broken) state on mount', () => {
+       const onBreakPoint = vi.fn();
+-      vi.spyOn(mediaQueryHook, 'useMediaQuery').mockImplementation(() => false);
++      vi.spyOn(mediaQueryHook, 'useMatchMedia').mockImplementation(() => false);
+       customRender(
+         <Sidebar breakPoint="md" onBreakPoint={onBreakPoint}>
+           Sidebar
+@@ -230,7 +230,7 @@
+ 
+     it('announces the broken state once when it becomes broken', () => {
+       const onBreakPoint = vi.fn();
+-      vi.spyOn(mediaQueryHook, 'useMediaQuery').mockImplementation(() => true);
++      vi.spyOn(mediaQueryHook, 'useMatchMedia').mockImplementation(() => true);
+       customRender(
+         <Sidebar breakPoint="md" onBreakPoint={onBreakPoint}>
+           Sidebar
+--- a/tests/hooks.test.tsx
++++ b/tests/hooks.test.tsx
+@@ -3,7 +3,7 @@
+ import { renderHook, act } from '@testing-library/react';
+ import { createPopper } from '@popperjs/core';
+ import { useMenu } from '../src/hooks/useMenu';
+-import { useMediaQuery } from '../src/hooks/useMediaQuery';
++import { useMatchMedia } from '../src/hooks/useMediaQuery';
+ import { usePopper } from '../src/hooks/usePopper';
+ import { MenuContext } from '../src/components/Menu';
+ 
+@@ -53,26 +53,26 @@
+   });
+ 
+   it('returns false when no breakpoint is provided', () => {
+-    const { result } = renderHook(() => useMediaQuery());
++    const { result } = renderHook(() => useMatchMedia());
+     expect(result.current).toBe(false);
+   });
+ 
+   it('does not query matchMedia when no breakpoint is set', () => {
+     const spy = vi.fn();
+     window.matchMedia = spy as unknown as typeof window.matchMedia;
+-    renderHook(() => useMediaQuery());
++    renderHook(() => useMatchMedia());
+     expect(spy).not.toHaveBeenCalled();
+   });
+ 
+   it('returns true when the media query matches', () => {
+     mockMatchMedia(true);
+-    const { result } = renderHook(() => useMediaQuery('(max-width: 600px)'));
++    const { result } = renderHook(() => useMatchMedia('(max-width: 600px)'));
+     expect(result.current).toBe(true);
+   });
+ 
+   it('updates when the media query changes', () => {
+     const mql = mockMatchMedia(false);
+-    const { result } = renderHook(() => useMediaQuery('(max-width: 600px)'));
++    const { result } = renderHook(() => useMatchMedia('(max-width: 600px)'));
+     expect(result.current).toBe(false);
+ 
+     act(() => mql.dispatchChange(true));
+@@ -100,7 +100,7 @@
+       .fn()
+       .mockImplementation(() => mql) as unknown as typeof window.matchMedia;
+ 
+-    const { result } = renderHook(() => useMediaQuery('(max-width: 600px)'));
++    const { result } = renderHook(() => useMatchMedia('(max-width: 600px)'));
+     expect(addEventListener).toHaveBeenCalledTimes(1);
+ 
+     act(() => mql.dispatchChange(true));
