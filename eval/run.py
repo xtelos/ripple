@@ -83,6 +83,9 @@ WITH_RIPPLE_LINE = (
 EDIT_TOOLS = frozenset({"Edit", "Write", "MultiEdit", "NotebookEdit"})
 BLOCKED = "no file changed and an edit tool was refused by the permissions"
 MAX_DENIALS_LISTED, MAX_INPUT_CHARS = 20, 300
+# What a run's record keeps of its ripple tool calls (and ToolSearch queries): each result's first
+# MAX_RESULT_HEAD characters, and at most MAX_RECORDED_BYTES of JSON for all of them together.
+MAX_RESULT_HEAD, MAX_RECORDED_BYTES = 2000, 40_000
 SECRET = re.compile(
     r"sk-[A-Za-z0-9_-]{10,}|gh[pousr]_[A-Za-z0-9]{6,}|AKIA[0-9A-Z]{12,}|"
     r"((?:API|ACCESS|AUTH|SECRET)[_-]?KEY|TOKEN|SECRET|PASSWORD|PASSWD)\w*=\S+",
@@ -202,12 +205,46 @@ def denied_tools(denials) -> list[dict]:
     ]
 
 
+def result_text(content) -> str:
+    """The text of a tool_result's content, which is a string or a list of content blocks (a text block's text; any
+    other block as its JSON, so it still counts toward the size)."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "".join(
+            str(b.get("text", "")) if isinstance(b, dict) and b.get("type") == "text" else b if isinstance(b, str) else json.dumps(b, default=str)
+            for b in content
+        )
+    return "" if content is None else str(content)
+
+
+def cap_records(records: list[tuple[str, dict]]) -> tuple[list[dict], list[dict], bool]:
+    """The ripple exchanges and ToolSearch queries (in stream order) that fit MAX_RECORDED_BYTES of JSON together, and
+    whether anything was left out. The first ones are kept: once one does not fit, it and every later one is dropped."""
+    exchanges: list[dict] = []
+    queries: list[dict] = []
+    used = 0
+    for kind, item in records:
+        used += len(json.dumps(item)) + 2  # the ", " (or brackets) it costs in the record's JSON list
+        if used > MAX_RECORDED_BYTES:
+            return exchanges, queries, True
+        (exchanges if kind == "exchange" else queries).append(item)
+    return exchanges, queries, False
+
+
 def parse_stream(text: str) -> dict:
     """Pick the numbers out of claude's stream-json output: the init event
     (model, which MCP servers connected, which tools it had), every tool call,
-    and the final result event (turns, tokens, cost, errors)."""
+    and the final result event (turns, tokens, cost, errors). Besides the counts it
+    records what the agent asked ripple and was answered (`ripple_exchanges`: the
+    clipped input, and from the matching tool_result its error flag, size and first
+    MAX_RESULT_HEAD characters; None for all three when the run ended before one came)
+    and what it searched the deferred tools for (`toolsearch_queries`), together
+    capped at MAX_RECORDED_BYTES (`ripple_exchanges_truncated` says it was cut)."""
     tools: Counter = Counter()
     init, result = {}, None
+    records: list[tuple[str, dict]] = []
+    waiting: dict[str, dict] = {}  # tool_use id -> its exchange, until the result arrives
     for line in text.splitlines():
         try:
             event = json.loads(line)
@@ -218,9 +255,27 @@ def parse_stream(text: str) -> dict:
         elif event.get("type") == "assistant":
             for block in (event.get("message") or {}).get("content") or []:
                 if block.get("type") == "tool_use":
-                    tools[block.get("name", "?")] += 1
+                    name = block.get("name", "?")
+                    tools[name] += 1
+                    if name.startswith("mcp__ripple__"):
+                        exchange = {"tool": name, "input": clip_input(block.get("input")), "is_error": None, "result_chars": None, "result_head": None}
+                        records.append(("exchange", exchange))
+                        if block.get("id") is not None:
+                            waiting[str(block["id"])] = exchange
+                    elif name == "ToolSearch":
+                        records.append(("query", clip_input(block.get("input"))))
+        elif event.get("type") == "user":
+            content = (event.get("message") or {}).get("content")
+            for block in content if isinstance(content, list) else []:
+                exchange = waiting.pop(str(block.get("tool_use_id")), None) if isinstance(block, dict) and block.get("type") == "tool_result" else None
+                if exchange is not None:
+                    answer = result_text(block.get("content"))
+                    exchange.update(
+                        {"is_error": bool(block.get("is_error")), "result_chars": len(answer), "result_head": SECRET.sub("[redacted]", answer[:MAX_RESULT_HEAD])}
+                    )
         elif event.get("type") == "result":
             result = event
+    exchanges, queries, cut = cap_records(records)
     parsed = {
         "got_init": bool(init),
         "model": init.get("model"),
@@ -228,6 +283,9 @@ def parse_stream(text: str) -> dict:
         "mcp_tools": sorted(t for t in init.get("tools", []) if t.startswith("mcp__")),
         "tool_calls": dict(tools),
         "ripple_calls": sum(n for name, n in tools.items() if name.startswith("mcp__ripple__")),
+        "ripple_exchanges": exchanges,
+        "toolsearch_queries": queries,
+        "ripple_exchanges_truncated": cut,
         "got_result": result is not None,
     }
     if result:
