@@ -1,6 +1,8 @@
 """The test arms of the agent eval: optional changes to what the agent is told or given, each off by default.
 
     --forced-use       the with-ripple agent is told to call `callers` on the symbol it changes before editing
+    --hard-prompts     a task's `hard_prompt` (task.json; the TypeScript tasks 20 to 28 have one) replaces its prompt:
+                       the same task with no paths, no lists or counts of sites and no hint of where uses live
     --restrict-search  both agents lose their search channels (Grep, Glob, web, and the search commands the shell
                        would let through); for a node task the shell also loses `tsc`
 
@@ -46,17 +48,23 @@ RESTRICTED_DISALLOWED = (
 @dataclass(frozen=True)
 class Arms:
     forced_use: bool = False
+    hard_prompts: bool = False
     restrict_search: bool = False
 
     @property
     def label(self) -> str:
-        """`base`, or the flags that are on in a fixed order, joined with `+`: forced, restricted."""
-        names = [name for name, on in (("forced", self.forced_use), ("restricted", self.restrict_search)) if on]
-        return "+".join(names) or "base"
+        """`base`, or the flags that are on in a fixed order, joined with `+`: forced, hard, restricted."""
+        flags = (("forced", self.forced_use), ("hard", self.hard_prompts), ("restricted", self.restrict_search))
+        return "+".join(name for name, on in flags if on) or "base"
 
     @property
     def flags(self) -> dict:
-        return {"forced_use": self.forced_use, "restrict_search": self.restrict_search}
+        return {"forced_use": self.forced_use, "hard_prompts": self.hard_prompts, "restrict_search": self.restrict_search}
+
+
+def task_prompt(task, arms: Arms | None = None) -> str:
+    """What the task asks: its hard prompt under --hard-prompts if it has one, else its own prompt."""
+    return task.hard_prompt if arms is not None and arms.hard_prompts and task.hard_prompt else task.prompt
 
 
 def arms_of(args) -> Arms:
