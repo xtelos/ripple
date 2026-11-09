@@ -5,6 +5,10 @@ import pytest
 from conftest import FIXTURES
 from stdio_client import StdioClient
 
+from ripple.checker import check_tests, default_test_command
+from ripple.languages import check_profile
+from ripple.profile import PYTHON, TYPESCRIPT
+
 READ_ONLY = {"callers", "callees", "impact", "path"}
 
 
@@ -31,6 +35,41 @@ def test_lists_exactly_five_tools_with_honest_annotations(client):
     assert set(tools["path"]["inputSchema"]["required"]) == {"source", "target"}
     for tool in tools.values():
         assert len(tool["description"]) > 40
+    # check is for both languages: it names each one's default and which ids each takes
+    # (test_check_description_says_what_check_does pins each claim against what check does)
+    check = tools["check"]["description"]
+    assert "TypeScript profile" in check and "python -m pytest -q" in check
+    assert "pytest node ids" in check and "the form the runner takes" not in check
+
+
+def test_check_description_says_what_check_does(client, make_repo, tmp_path_factory):
+    """Each claim the `check` description makes about its default command and its test ids, against the code that decides it.
+    Tool definitions are pinned by hash by some clients, so a change to the text is a change to re-approve."""
+    check = {t["name"]: t for t in client.request("tools/list")["result"]["tools"]}["check"]["description"]
+    mixed = make_repo({"a.py": "def f():\n    pass\n", "b.ts": "export function g() { return 1; }\n"})
+    typescript_only = tmp_path_factory.mktemp("tsonly")
+    (typescript_only / "b.ts").write_text("export function g() { return 1; }\n")
+    # "with none, the Python profile (a repo with any Python file, or --lang python) runs python -m pytest -q ... the
+    # TypeScript profile (a repo with only TypeScript files, or --lang typescript) has no default and refuses"
+    assert "a repo with any Python file, or --lang python" in check
+    assert "a repo with only TypeScript files, or --lang typescript" in check
+    assert check_profile(mixed, "auto") is PYTHON and check_profile(mixed, "python") is PYTHON
+    assert check_profile(typescript_only, "auto") is TYPESCRIPT and check_profile(mixed, "typescript") is TYPESCRIPT
+    assert default_test_command(mixed, PYTHON)[-3:] == ["-m", "pytest", "-q"]
+    with pytest.raises(ValueError, match="does not know how to run TypeScript tests"):
+        default_test_command(mixed, TYPESCRIPT)
+    # "the repo's .venv or venv if it has one"
+    assert ".venv or venv" in check
+    # "test file or directory paths inside the repo ... pytest node ids (path::name) for Python ... a TypeScript id
+    # (ripple's own, or a runner's line filter) is refused: pass the file"
+    assert "for Python pytest node ids (path::name" in check and "A TypeScript test id" in check and "is refused" in check
+    (mixed / "tests").mkdir()
+    (mixed / "tests" / "a.test.ts").write_text("test('x', () => {});\n")
+    (mixed / "tests" / "test_a.py").write_text("def test_x():\n    pass\n")
+    check_tests(mixed.resolve(), ["tests/a.test.ts", "tests", "tests/test_a.py::test_x"])
+    for refused in ("tests/a.test:suite > case", "tests/a.test.ts:12"):
+        with pytest.raises(ValueError, match="is not a file or directory"):
+            check_tests(mixed.resolve(), [refused])
 
 
 def test_impact_round_trip(client):
