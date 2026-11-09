@@ -43,7 +43,7 @@ from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from .arms import FORCED_USE_LINE, RESTRICTED_DISALLOWED, RESTRICTED_PREAMBLE, Arms, arms_of
+from .arms import FORCED_USE_LINE, RESTRICTED_DISALLOWED, RESTRICTED_PREAMBLE, Arms, arms_of, task_prompt
 from .check import check_task
 from .loader import EVAL_DIR, REPO_ROOT, Task, copy_fixture, load_tasks
 from .node_agent import (
@@ -425,7 +425,7 @@ def run_one(task: Task, mode: str, repeat: int, root: Path, bin_dir: Path, args)
     started = time.monotonic()
     with open(stdout_path, "wb") as out, open(stderr_path, "wb") as err:
         proc = subprocess.Popen(
-            agent_command(build_prompt(task.prompt, mode, task, arms), mode, mcp_file, args.model, task, arms),
+            agent_command(build_prompt(task_prompt(task, arms), mode, task, arms), mode, mcp_file, args.model, task, arms),
             cwd=repo,
             env=child_env(dict(os.environ), bin_dir, cache_dir),
             stdin=subprocess.DEVNULL,
@@ -555,6 +555,8 @@ def describe_plan(tasks: list[Task], modes: list[str], args, problems: list[str]
         f"runs: {len(tasks)} tasks x {len(modes)} modes x {args.repeats} repeats = {runs}",
         f"arm: {arms.label}",
     ]
+    if arms.hard_prompts:
+        lines.append(f"hard prompts: {sum(1 for t in tasks if t.hard_prompt)} of {len(tasks)} selected tasks have one (a task without one runs its normal prompt)")
     if "with-ripple" in modes:
         python_tasks = [t for t in tasks if not t.is_node]
         if python_tasks:
@@ -634,6 +636,12 @@ def main(argv=None) -> int:
         f"changing before editing ({FORCED_USE_LINE!r}). The without arm is unchanged",
     )
     parser.add_argument(
+        "--hard-prompts",
+        action="store_true",
+        help="test arm: run each task's `hard_prompt` (task.json) instead of its prompt: the same task with no file "
+        "paths, no lists or counts of sites and no hint of where uses live. Only the TypeScript tasks 20 to 28 have one",
+    )
+    parser.add_argument(
         "--restrict-search",
         action="store_true",
         help="test arm: for both arms, deny the Grep and Glob tools, the web tools and the shell commands that search "
@@ -648,6 +656,14 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
 
     tasks = select_tasks(load_tasks(only=args.tasks.split(",") if args.tasks else None), args.runtime, bool(args.tasks))
+    if args.hard_prompts:
+        no_hard = [t.id for t in tasks if not t.hard_prompt and not t.is_node]
+        if no_hard:
+            shown = ", ".join(no_hard[:3]) + (f" and {len(no_hard) - 3} more" if len(no_hard) > 3 else "")
+            parser.error(
+                f"--hard-prompts: {shown} {'has' if len(no_hard) == 1 else 'have'} no hard prompt (hard prompts exist for "
+                "tasks 20 to 28 only, the TypeScript tasks); drop --hard-prompts, or pick node tasks with --runtime node or --tasks"
+            )
     missing = [t.id for t in tasks if not t.available]
     if missing:
         parser.error(f"these tasks need pinned repositories that are not fetched: {', '.join(missing)}\n"
@@ -657,7 +673,7 @@ def main(argv=None) -> int:
         parser.error(f"modes must be among {', '.join(MODES)}")
     if args.forced_use and "with-ripple" not in modes:
         parser.error("--forced-use changes the with-ripple arm only, and --modes does not include it: nothing would differ")
-    args.arms = Arms(forced_use=args.forced_use, restrict_search=args.restrict_search)
+    args.arms = Arms(forced_use=args.forced_use, hard_prompts=args.hard_prompts, restrict_search=args.restrict_search)
     if args.out and any(p.exists() for p in result_paths(args.out)):
         parser.error(f"{args.out} (or its .md or -diffs) already exists; pick a new --out")
     no_node = not any(t.is_node for t in tasks)
@@ -688,6 +704,8 @@ def main(argv=None) -> int:
     if arms.label != "base":
         # the arm, spelled out, so a results file says what its batch was given
         meta["arm_flags"] = arms.flags
+        if arms.hard_prompts:
+            meta["hard_prompt_tasks"] = [t.id for t in tasks if t.hard_prompt]
         if arms.forced_use:
             meta["forced_use_line"] = FORCED_USE_LINE
         if arms.restrict_search:

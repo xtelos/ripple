@@ -2,7 +2,8 @@
 
 Each task is a directory under eval/tasks/<id>/ holding:
 
-    task.json      id, prompt, min_tests, why, and where the starting repo comes from:
+    task.json      id, prompt, min_tests, why, an optional hard_prompt (the prompt with no paths, lists or counts of
+                   sites; run under --hard-prompts), and where the starting repo comes from:
                    "fixture" (a path from this repo's root) or "repo" (a name in eval/repos.json,
                    a pinned open-source repository fetched into a cache by `python -m eval.fetch`)
     check_test.py  the hidden test: the agent never sees it, it runs after the agent is done
@@ -46,6 +47,9 @@ class Task:
     why: str  # what makes the safe edit hard to find with grep alone
     dir: Path
     spec: RepoSpec | None = None  # set for a task over a pinned real repository
+    # the same task with no file paths, no lists or counts of sites and no hint of where uses live; run instead of
+    # `prompt` under --hard-prompts. Optional: only the TypeScript tasks (20 to 28) have one
+    hard_prompt: str | None = None
 
     @property
     def is_node(self) -> bool:
@@ -105,6 +109,9 @@ def load_task(task_dir: Path, repos: dict[str, RepoSpec] | None = None) -> Task:
         raise ValueError(f"{task_dir.name}: task.json says its id is {data['id']!r}")
     if ("fixture" in data) == ("repo" in data):
         raise ValueError(f"{task_dir.name}: task.json needs exactly one of fixture and repo")
+    hard = data.get("hard_prompt")
+    if hard is not None and not (isinstance(hard, str) and hard.strip()):
+        raise ValueError(f"{task_dir.name}: task.json hard_prompt must be a non-empty string when it is given")
     spec = None
     if "repo" in data:
         repos = load_repos() if repos is None else repos
@@ -124,6 +131,7 @@ def load_task(task_dir: Path, repos: dict[str, RepoSpec] | None = None) -> Task:
         why=data["why"],
         dir=task_dir,
         spec=spec,
+        hard_prompt=hard,
     )
     if not task.hidden_test.is_file():
         raise ValueError(f"{task_dir.name}: no {task.hidden_test.name}")

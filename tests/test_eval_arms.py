@@ -290,7 +290,7 @@ def test_the_default_meta_gains_only_the_arm(monkeypatch, tmp_path):
 
 def test_a_forced_batch_records_the_flag_and_the_sentence(monkeypatch, tmp_path):
     meta = meta_of(monkeypatch, ["--tasks", PY, "--repeats", "1", "--forced-use", "--out", str(tmp_path / "x.json")])
-    assert meta["arm"] == "forced" and meta["arm_flags"] == {"forced_use": True, "restrict_search": False}
+    assert meta["arm"] == "forced" and meta["arm_flags"] == {"forced_use": True, "hard_prompts": False, "restrict_search": False}
     assert meta["forced_use_line"] == FORCED_USE_LINE and meta["prompt_preamble"] == PREAMBLE
 
 
