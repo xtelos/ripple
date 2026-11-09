@@ -52,6 +52,32 @@ A symbol can be a full dotted path (`shop.pricing.price_order`), a suffix (`Orde
 or a bare name (`price_order`); in TypeScript it is a path and a member (`src/util/math:clamp`, see
 [TypeScript](#typescript)). An ambiguous name returns the candidates rather than picking one.
 
+A bare name (no dot, slash or colon) that matches a module is never answered as the module with no callers, with
+one exception below. What answers when:
+
+- The module declares a function or class of that name (`src/foo.ts` defining `foo`): that symbol.
+- The module exports the name as a `memo`, `forwardRef` or alias of a function or class
+  (`export const SubMenu = forwardRef(SubMenuFR)`, `export { Impl as Name }`, a barrel's `export { SubMenu as Menu }
+  from "./SubMenu"`): that function, and the `note` of the answer says how (`SubMenu is exported by
+  src/components/SubMenu as forwardRef(SubMenuFR); showing src/components/SubMenu:SubMenuFR`; a barrel's note names
+  each hop and the wrapper at the end of it), in the text, the `--json` output and the tool result.
+- Anything that leaves two readings of the name is ambiguous, and the answer lists them: a module that declares a
+  `render` and also exports `render` as something else (`export { renderV2 as render }`, or a wrapper ripple cannot
+  name) lists the declared symbol, the exported one when ripple can name it, and the module; two modules that export
+  or define the name as different symbols (a `Card` in `src/Card` and another in `src/legacy/Widgets`, wrapped or not)
+  list both, whatever the files are called; a module and a symbol of some other module list both.
+- The module has no symbol of that name: an error that lists what the module defines and exports and names the
+  full module id (`shop.tax`, `src/util/math`) to ask about the module itself. A full module id, or any path, is
+  answered as before.
+
+The exception is a module at the repo root, whose whole id is the bare name (`SubMenu.tsx` is the module `SubMenu`,
+`tax.py` is `tax`): the name cannot be told from a question about the module. If the module also defines or exports a
+symbol of that name, the answer is ambiguous and lists the module and the symbol (in Python too, as it already was for
+a module in a package, `shop/foo.py` defining `foo`); if it has none, the answer is about the module. A symbol that
+is not exported by name is not found by it: `export const Name = Inner` is not an alias, because ripple does not read a
+call of `Name` as a call of `Inner`, and `const Card = memo(Inner); export default Card` is not read either: the
+module's candidates list `Inner`.
+
 The four graph tools advertise `readOnlyHint: true`, which lets a client run them without prompting.
 `check` is marked destructive instead, because a test suite can do anything its tests do.
 
@@ -124,7 +150,8 @@ A repo with neither, or one that does not exist, is an error (exit status 2), no
 `src/cart/cart:Cart.add` (an `index` file is its directory, a second declaration of a name under one parent
 gets `#2`, a test callback is `tests/a.test:suite > case`). Any of these finds it, when it names one
 symbol: that id, the path with its extension (`src/util/math.ts:clamp`), the tail of the path (`math:clamp`),
-`Class.method` or the bare member. A path is read through the id the indexer gave that file, never folded by
+`Class.method` or the bare member (a bare name that is also a module's or a re-export's is answered as described
+above). A path is read through the id the indexer gave that file, never folded by
 a rule (with `src/a.ts` beside `src/a/index.ts`, the index file is `src/a/index`); `src/util/` is the index
 file of that directory. More than one match returns the candidates; ripple never picks.
 

@@ -240,11 +240,87 @@ class Resolver:
             edges,
             unresolved,
             external_count,
+            export_aliases=self.export_aliases(),
             bases={cls: found for cls, found in bases.items() if found},
             external_bases={cls: self._external_bases[cls] for cls in classes if cls in self._external_bases},
             external_reasons=dict(sorted(self.external_reasons.items())),
             decorations=decorations,
         )
+
+    def export_aliases(self) -> dict[str, list[str]]:
+        """{`module:Name`: [id, how]} for each name an ES module exports that is a function or class of the repo
+        declared under another name or in another module: `export const Name = forwardRef(Inner)` (read as a JSX
+        tag reads it), `export { Inner as Name }`, `export { Name } from "./x"`. how says which, in words a question
+        about the name quotes; a re-export of a name another module exports under a wrapper or alias says so too
+        (`a re-export of SubMenu from src/SubMenu, which exports it as forwardRef(SubMenuFR)`). A name that is the
+        symbol the module declares under that name is not listed (its id already names it), nor is a name that does
+        not resolve to one function or class: nothing is guessed.
+
+        One more is listed, with an empty id: a name the module declares as a function or class AND exports as
+        something else it cannot name (`function Card() {}` beside `export { Exported as Card }`). The declared
+        symbol is then not what an importer of the name gets, and a question about the name must not settle on it."""
+        if self.profile.package_imports:
+            return {}
+        found: dict[str, list[str]] = {}
+        sources: dict[str, tuple[str, str]] = {}  # a re-export -> the module and name it re-exports
+        self._tag_mode = True
+        try:
+            for scope in self.scopes.values():
+                for name, binding in getattr(scope, "exports", {}).items():
+                    key = f"{scope.id}:{name}"
+                    try:
+                        target = self.binding_target(scope, binding, 0, name)
+                    except RecursionError:
+                        continue
+                    if target.kind == "symbol" and target.value == key:
+                        continue
+                    how = self._export_how(scope, name, binding, target)
+                    if how is not None:
+                        found[key] = [target.value, how]
+                        if binding.kind == "from":
+                            sources[key] = (binding.target, binding.name)
+                    elif self._declared_elsewhere(scope, name, binding, key):
+                        found[key] = ["", "something ripple cannot name as one function or class"]
+        finally:
+            self._tag_mode = False
+        for key in sources:
+            self._name_the_chain(found, sources, key, ())
+        return found
+
+    def _export_how(self, scope: Scope, name: str, binding: Binding, target: Target) -> str | None:
+        """How an exported name came to be a function or class of the repo (see export_aliases), None when it did not."""
+        if target.kind != "symbol" or self.scopes[target.value].kind not in ("function", "class"):
+            return None
+        held = getattr(scope, "wrapped", {}).get(name)
+        if held and held[2] and name not in scope.rebound and scope.names.get(name) is binding:
+            return held[2]
+        if binding.kind == "def":
+            return f"an alias of {target.value.partition(':')[2]}"
+        if binding.kind == "from":
+            return f"a re-export of {target.value}"
+        return None
+
+    def _declared_elsewhere(self, scope: Scope, name: str, binding: Binding, key: str) -> bool:
+        """Whether the module declares a function or class `name` and exports the name as a different binding."""
+        declared = scope.names.get(name)
+        return (
+            key in self.scopes
+            and self.scopes[key].kind in ("function", "class")
+            and declared is not None
+            and declared is not binding
+            and declared.kind == "def"
+            and declared.target == key
+        )
+
+    def _name_the_chain(self, found: dict[str, list[str]], sources: dict[str, tuple[str, str]], key: str, seen: tuple) -> str:
+        """The how of a re-export, saying what the module it comes from exports the name as when that is a wrapper or an alias."""
+        module, name = sources[key]
+        inner = f"{module}:{name}"
+        if inner in found and inner not in seen and key not in seen and found[inner][0] == found[key][0]:
+            if inner in sources:
+                self._name_the_chain(found, sources, inner, (*seen, key))
+            found[key][1] = f"a re-export of {name} from {module}, which exports it as {found[inner][1]}"
+        return found[key][1]
 
     def decoration_sites(self, scope: Scope, call: RawCall) -> list[Decoration]:
         """The Decoration of a decorator written in scope: what its name resolves to, if it resolves to repo symbols.
@@ -666,7 +742,7 @@ class Resolver:
 
     def wrapped_component(self, where: Scope, held: tuple) -> Target:
         """What `const X = memo(f)` means as a JSX tag: f, when it is a function (or class) of the repo that ripple can name."""
-        kind, chain = held
+        kind, chain, _ = held
         if kind == "lazy":
             return unknown("a lazy component is loaded when it first renders, so ripple cannot see which one")
         if kind != "wrap":

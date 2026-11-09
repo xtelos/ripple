@@ -184,6 +184,12 @@ def format_impact(result: dict) -> str:
 
 
 def format_result(command: str, result: dict) -> str:
+    """The text of an answer; one that resolved its name through a module's export says how, first."""
+    text = format_answer(command, result)
+    return f"note: {result['note']}\n{text}" if "note" in result else text
+
+
+def format_answer(command: str, result: dict) -> str:
     if command == "impact":
         return format_impact(result)
     if command == "callers":

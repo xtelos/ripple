@@ -123,6 +123,12 @@ class Graph:
     ambiguous_ids: dict[str, list[str]] = field(default_factory=dict)
     # Where a TypeScript decorator is written, whatever it resolved to (see Decoration). Empty for Python.
     decorations: list[Decoration] = field(default_factory=list)
+    # TypeScript: `module:Name` -> [id, how] for a name a module exports that is a function or class declared under
+    # another name or in another module (`export const Name = forwardRef(Inner)`, `export { Inner as Name }`, a
+    # re-export): how says which. A bare name that is only a module's resolves through it. An empty id says the module
+    # declares a function or class of that name AND exports the name as something ripple cannot name, so a question
+    # about the name is ambiguous. Empty for Python.
+    export_aliases: dict[str, list[str]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self._index()
@@ -182,6 +188,8 @@ class Graph:
         }
         if self.decorations:  # only a graph that has some carries the key, so a Python graph is written as it always was
             data["decorations"] = [asdict(d) for d in self.decorations]
+        if self.export_aliases:  # likewise: a Python graph has no key
+            data["export_aliases"] = self.export_aliases
         return data
 
     @classmethod
@@ -198,4 +206,5 @@ class Graph:
             external_bases=data["external_bases"],
             external_reasons=data.get("external_reasons", {}),
             decorations=[Decoration(**d) for d in data.get("decorations", [])],
+            export_aliases=data.get("export_aliases", {}),
         )

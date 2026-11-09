@@ -1912,16 +1912,26 @@ class FileBuilder:
             return "wrap"
         return "lazy" if ident in self.profile.lazy_wrappers else None
 
+    def _wrapper_name(self, call) -> str:
+        """`memo` for `memo(f)` and for `React.memo(f)`: the name the wrapper is imported under, without its package."""
+        func = field_of(call, "function")
+        return (self._react_name(dotted(func) if func is not None else None) or "").rsplit(".", 1)[-1]
+
     def _wrapped_component(self, name: str, call) -> bool:
         """`const X = memo(f)` and the like. A function written inside the call is named X, as `const X = () => ...` is;
-        a name is what X means when used as a tag; lazy is a component ripple cannot see. True when it was read."""
+        a name is what X means when used as a tag; lazy is a component ripple cannot see. True when it was read.
+
+        What a name held is (kind, chain, how): how is the wrapping as written, `memo(forwardRef(f))`, which a question
+        about the module that exports X quotes when it answers with f."""
         kind = self._wrapper_of(call)
         if kind is None:
             return False
+        wrappers = [self._wrapper_name(call)]
         args = field_of(call, "arguments")
         rest = named(args) if args is not None else []
         first = rest[0] if rest else None
         while kind == "wrap" and first is not None and inner(first).type == "call_expression" and self._wrapper_of(inner(first)) == "wrap":
+            wrappers.append(self._wrapper_name(inner(first)))
             nested = field_of(inner(first), "arguments")  # memo(forwardRef(f)): the same function
             rest = named(nested) if nested is not None else []
             first = rest[0] if rest else None
@@ -1931,10 +1941,13 @@ class FileBuilder:
                 self.visit(other)
             return True
         if kind == "lazy":
-            held = ("lazy", None)
+            held = ("lazy", None, "")
         else:
             chain = dotted(first) if first is not None else None
-            held = ("wrap", self._ref(chain)) if chain and not (self.rebinds_this and chain[0] == "this") else ("unknown", None)
+            if chain and not (self.rebinds_this and chain[0] == "this"):
+                held = ("wrap", self._ref(chain), "(".join(wrappers) + "(" + ".".join(chain) + ")" * len(wrappers))
+            else:
+                held = ("unknown", None, "")
         if args is not None:
             self.generic(args)
         self._bind(name, [unknown_ref(ASSIGNED_UNTYPED)])
