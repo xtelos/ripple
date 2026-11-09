@@ -126,11 +126,15 @@ def build_server(repo: str, test_command: str | None = None, timeout: float = 30
     @server.tool(
         annotations=RUNS_CODE,
         description=(
-            "Run the repository's test command (default: python -m pytest -q; a TypeScript-only repo has no "
-            "default and must be started with a test command) and return pass or fail, "
-            "the summary line and the first failing tests, never the full log. tests: optional pytest "
-            "node ids or test paths inside the repo to run instead of the whole suite, e.g. the node_id "
-            "of each test impact listed. Options (anything starting with '-') are refused."
+            "Run the repository's test command and return pass or fail, the summary line and the first "
+            "failing tests, never the full log. The command is the one the server was started with; with none, "
+            "the Python profile (a repo with any Python file, or --lang python) runs python -m pytest -q (the "
+            "repo's .venv or venv if it has one) and the TypeScript profile (a repo with only TypeScript files, "
+            "or --lang typescript) has no default and refuses. tests: optional test file or directory paths "
+            "inside the repo, or for Python pytest node ids (path::name, e.g. the node_id of each test impact "
+            "listed), added to that command to run instead of the whole suite. A TypeScript test id (ripple's "
+            "own, or a runner's line filter such as a file path with :12) is refused: pass the file path. "
+            "Options (anything starting with '-') are refused."
         ),
     )
     def check(tests: list[str] | None = None) -> dict:

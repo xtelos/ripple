@@ -46,7 +46,7 @@ Or from a terminal: `ripple index .`, then `ripple impact price_order`.
 | `callees(symbol)` | What this calls, plus the calls ripple could not resolve and why | yes |
 | `impact(symbol, depth=5, limit=100)` | Every transitive caller grouped by file, the tests that reach it listed separately as pytest node ids, and same-named call sites ripple could not rule out | yes |
 | `path(source, target)` | The shortest call chain from one symbol to another | yes |
-| `check(tests=None)` | Runs the test command (default `python -m pytest -q`, using the repo's `.venv` if present), or just the given tests, and returns pass/fail, the summary line and the first failures, never the full log | no, it runs code |
+| `check(tests=None)` | Runs the test command (default `python -m pytest -q`, using the repo's `.venv` or `venv` if present, for a repo with Python files; a TypeScript-only repo, or `--lang typescript`, has no default), or just the given test paths (for Python, pytest node ids too), and returns pass/fail, the summary line and the first failures, never the full log | no, it runs code |
 
 A symbol can be a full dotted path (`shop.pricing.price_order`), a suffix (`OrderService.place_order`)
 or a bare name (`price_order`); in TypeScript it is a path and a member (`src/util/math:clamp`, see
@@ -255,7 +255,9 @@ remove or change none. The fixture figures above are measured on the current cod
 **Not yet:** jest or vitest collection. `impact` lists every
 TypeScript caller, tests included, as code to update, so its `tests` list is empty, and `check` refuses a
 TypeScript-only repo until it is given the command (`--test-command` or `RIPPLE_TEST_COMMAND`, for example
-`npx vitest run`), with the refusal as an ordinary error. In a mixed repo `check` runs pytest by default.
+`npx vitest run`), with the refusal as an ordinary error. In a mixed repo `check` runs pytest by default, unless
+the server was started with `--lang typescript`. It takes TypeScript test file paths only: ripple's own test ids
+(`tests/a.test:suite > case`) and a runner's line filter (`tests/a.test.ts:12`) are refused.
 
 ### JSX
 

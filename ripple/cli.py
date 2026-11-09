@@ -280,7 +280,7 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument(
             "--test-command",
             default=os.environ.get("RIPPLE_TEST_COMMAND"),
-            help="test command (default: python -m pytest -q, using the repo's .venv if present)",
+            help="test command (default: python -m pytest -q, using the repo's .venv or venv if present; a TypeScript-only repo, or --lang typescript, has no default)",
         )
         p.add_argument("--timeout", type=float, default=300, help="seconds before the test run is killed")
 
