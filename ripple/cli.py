@@ -126,6 +126,33 @@ def format_symbols(title: str, entries: list[dict]) -> list[str]:
     return lines
 
 
+def format_decorations(result: dict) -> list[str]:
+    """Where the symbol is written as a decorator, when it is. These are not calls and are never listed as callers."""
+    lines = []
+    if result.get("decorations"):
+        lines.append(f"applied as a decorator ({len(result['decorations'])}), not calls; what a decorator does is not modelled:")
+        lines += [f"  {d['in']}  {d['applied_at']}  written {d['written']}" for d in result["decorations"]]
+    if result.get("possible_decorations"):
+        lines.append(
+            f"applied as a decorator under a name ripple could not resolve ({len(result['possible_decorations'])}), check by hand:"
+        )
+        lines += [f"  {d['in']}  {d['applied_at']}  written {d['written']}" for d in result["possible_decorations"]]
+    if result.get("decorations_omitted"):
+        lines.append(MORE.format(n=result["decorations_omitted"], what="decorator sites"))
+    if result.get("decorations_of_callers"):
+        lines.append(
+            f"callers that are applied as decorators ({len(result['decorations_of_callers'])}), not calls; the reach continues "
+            "past these sites and what a decorator does is not modelled:"
+        )
+        lines += [
+            f"  {d['in']}  {d['applied_at']}  written {d['written']}  (the caller {d['decorator']})"
+            for d in result["decorations_of_callers"]
+        ]
+    if result.get("decorations_of_callers_omitted"):
+        lines.append(MORE.format(n=result["decorations_of_callers_omitted"], what="decorator sites of callers"))
+    return lines
+
+
 def format_impact(result: dict) -> str:
     lines = [f"impact of {result['symbol']} (depth {result['depth']}): {result['affected']} callers"]
     for file, entries in result["by_file"].items():
@@ -147,6 +174,7 @@ def format_impact(result: dict) -> str:
         lines.append(f"unresolved call sites with the same name ({result['possible_missed_total']}), check by hand:")
         for m in result["possible_missed_callers"]:
             lines.append(f"  {m['call']}  in {m['caller']}  {m['location']}")
+    lines += format_decorations(result)
     return "\n".join(lines)
 
 
@@ -161,20 +189,26 @@ def format_result(command: str, result: dict) -> str:
                 f"  {e['symbol']}  {e['location']}  called at {', '.join(e['call_sites'])}  via {e['via_wrapper']}"
                 for e in result["through_wrapper"]
             ]
-        return "\n".join(lines)
+        return "\n".join(lines + format_decorations(result))
     if command == "callees":
         lines = format_symbols(f"callees of {result['symbol']}", result["callees"])
         lines.append(f"unresolved ({len(result['unresolved'])}):")
         lines += [f"  {u['call']}  {u['location']}  {u['reason']}" for u in result["unresolved"]]
+        if result.get("applies_decorators"):
+            lines.append(f"applies decorators ({len(result['applies_decorators'])}), not calls; what a decorator does is not modelled:")
+            lines += [
+                f"  {d['decorator'] or 'a name ripple could not resolve'}  {d['applied_at']}  written {d['written']}"
+                for d in result["applies_decorators"]
+            ]
         return "\n".join(lines)
     if result["path"] is None:
-        return f"no call chain from {result['from']} to {result['to']}"
+        return "\n".join([f"no call chain from {result['from']} to {result['to']}"] + format_decorations(result))
     hops = [
         f"  {h['symbol']}  {h['location']}"
         + (f"  ({'/'.join(h['edge_kinds']) if 'edge_kinds' in h else 'called'} at {h['called_at']})" if h["called_at"] else "")
         for h in result["path"]
     ]
-    return "\n".join([f"call chain ({len(hops) - 1} hops):"] + hops)
+    return "\n".join([f"call chain ({len(hops) - 1} hops):"] + hops + format_decorations(result))
 
 
 def kinds_argument(value: str):

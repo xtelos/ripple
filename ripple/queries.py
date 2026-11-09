@@ -14,7 +14,7 @@ import re
 from collections import deque
 
 from .jsx_facts import JSX_NO_RENDERER, JSX_TAG_UNRESOLVED
-from .model import Edge, Graph, Symbol, Unresolved
+from .model import Decoration, Edge, Graph, Symbol, Unresolved
 from .profile import PYTHON, TYPESCRIPT, LanguageProfile
 from .pytest_collection import PytestCollection  # noqa: F401 (it was defined here)
 from .ts_modules import SUFFIXES, module_id  # no parser needed to read an id
@@ -63,6 +63,90 @@ def _edge_kinds(groups) -> list[str] | None:
     """The labelled kinds of a set of edges: None when none is a JSX edge (a plain call carries no label)."""
     found = [k for k in KINDS if k in groups]
     return found if any(k in JSX_KINDS for k in found) else None
+
+
+DECORATION_NOTE = (
+    "a decorator is applied when the class it is written on is defined. These are not calls, and what a decorator "
+    "does to what it decorates is not modelled, so changing this symbol can change each of them"
+)
+
+
+def _decoration_entry(d: Decoration) -> dict:
+    return {"in": d.holder, "applied_at": f"{d.file}:{d.line}", "written": d.text}
+
+
+def _decorations(graph: Graph, symbol_id: str, targets: set[str], kinds, limit: int = MAX_LISTED) -> dict:
+    """The places the symbol is written as a decorator, apart from its callers: `decorations` where the name resolved
+    to it, `possible_decorations` where a name that did not resolve ends the way its own does (a module is never
+    matched by name), each with where it is written and the note. Empty when there are none, so a symbol that is
+    never a decorator (and every Python symbol) is answered with exactly the keys it always had."""
+    if not graph.decorations or not _wanted("calls", kinds):
+        return {}
+    symbol = graph.symbols[symbol_id]
+    order = lambda d: (d.file, d.line, d.holder)  # noqa: E731
+    proven = sorted((d for d in graph.decorations if d.target in targets), key=order)
+    possible = (
+        []
+        if symbol.kind == "module"
+        else sorted((d for d in graph.decorations if not d.target and d.name == symbol.name and _same_language(d.file, symbol)), key=order)
+    )
+    found: dict = {}
+    if proven:
+        found["decorations"] = [_decoration_entry(d) for d in proven[:limit]]
+    if possible:
+        found["possible_decorations"] = [_decoration_entry(d) for d in possible[:limit]]
+    if found:
+        found["decoration_note"] = DECORATION_NOTE
+        omitted = max(0, len(proven) - limit) + max(0, len(possible) - limit)
+        if omitted:
+            found["decorations_omitted"] = omitted
+    return found
+
+
+DECORATIONS_OF_CALLERS_NOTE = (
+    "these callers are written as decorators at these sites, and a decorator is applied when the class it is written on "
+    "is defined. The sites are not calls and are not followed: what each decorator does to what it decorates is not "
+    "modelled, so the reach of the change continues beyond them. Only sites where the name resolved to the caller are "
+    "listed"
+)
+
+
+def _decorations_of_callers(graph: Graph, distance: dict[str, int], kinds, profile, limit: int) -> dict:
+    """Where the callers impact found are themselves applied as decorators. A caller that is a decorator runs, through
+    each site, whenever the class it decorates is defined, so the reach of a change does not end at it. The decorated
+    holders are not callers (never an edge, so not followed), and a decoration only by name is not listed: this is a
+    flag that the reach continues, not a second traversal. A class that is a decorator is found through its
+    constructor, the symbol a call of it reaches. Empty when there are none (and for every Python symbol)."""
+    if not graph.decorations or not distance or not _wanted("calls", kinds):
+        return {}
+    applied: dict[str, list[str]] = {}  # decoration target -> the affected symbols that are that decorator
+    for sid in distance:
+        applied.setdefault(sid, []).append(sid)
+        suffix = "." + _profile_of(graph.symbols[sid], profile).constructor_name
+        owner = sid[: -len(suffix)] if sid.endswith(suffix) else ""
+        if owner in graph.symbols and graph.symbols[owner].kind == "class":
+            applied.setdefault(owner, []).append(sid)
+    sites = sorted(
+        ((d, sid) for d in graph.decorations for sid in applied.get(d.target, ())),
+        key=lambda found: (distance[found[1]], found[1], found[0].file, found[0].line, found[0].holder),
+    )
+    if not sites:
+        return {}
+    found = {
+        "decorations_of_callers": [
+            {**_decoration_entry(d), "decorator": sid, "distance": distance[sid]} for d, sid in sites[:limit]
+        ],
+        "decorations_of_callers_note": DECORATIONS_OF_CALLERS_NOTE,
+    }
+    if len(sites) > limit:
+        found["decorations_of_callers_omitted"] = len(sites) - limit
+    return found
+
+
+def _same_language(file: str, symbol: Symbol) -> bool:
+    """Whether a file (where a decorator or a call is written) is in the language of the symbol's own file. Only
+    TypeScript front end reads decorators and class expressions, so a Python symbol is never the target of one."""
+    return file.endswith(TYPESCRIPT.source_suffixes) == symbol.file.endswith(TYPESCRIPT.source_suffixes)
 
 
 def _is_path_id(symbol_id: str) -> bool:
@@ -241,7 +325,9 @@ def callers(graph: Graph, query: str, profile: LanguageProfile | None = None, ki
         {**_describe(graph.symbols[caller]), "call_sites": sorted(set(lines)), "via_wrapper": wrapper}
         for caller, (wrapper, lines) in sorted(through.items())
     ]
-    return {"symbol": found["symbol"], "count": len(listed), "callers": listed, "through_wrapper": reaching}
+    result = {"symbol": found["symbol"], "count": len(listed), "callers": listed, "through_wrapper": reaching}
+    result.update(_decorations(graph, found["symbol"], _targets(graph, found["symbol"], profile), kinds))
+    return result
 
 
 def _sites(found: list[tuple[str, str]], unique: bool = True) -> dict:
@@ -270,7 +356,15 @@ def callees(graph: Graph, query: str, kinds=None) -> dict:
         for u in graph.unresolved
         if u.caller == symbol_id and _wanted(_unresolved_group(u), kinds)
     ]
-    return {"symbol": symbol_id, "callees": listed, "unresolved": unresolved}
+    result = {"symbol": symbol_id, "callees": listed, "unresolved": unresolved}
+    applied = [
+        {"decorator": d.target or None, "applied_at": f"{d.file}:{d.line}", "written": d.text}
+        for d in graph.decorations
+        if d.holder == symbol_id and _wanted("calls", kinds)
+    ]
+    if applied:  # not callees: the decorator is named only when its name resolved, and what it does is not modelled
+        result["applies_decorators"] = applied
+    return result
 
 
 def impact(
@@ -354,7 +448,7 @@ def impact(
         if u.text.rsplit(".", 1)[-1] == name and _unresolved_group(u) != "renderer" and _wanted(_unresolved_group(u), kinds)
     ]
     omitted_callers, omitted_tests = max(0, len(code) - limit), max(0, len(tests) - limit)
-    return {
+    result = {
         "symbol": symbol_id,
         "depth": depth,
         "affected": len(distance),
@@ -369,6 +463,11 @@ def impact(
         "possible_missed_callers": missed[:20],
         "possible_missed_total": len(missed),
     }
+    result.update(_decorations(graph, symbol_id, targets, kinds, limit))
+    result.update(_decorations_of_callers(graph, distance, kinds, profile, limit))
+    if result.get("decorations_omitted") or result.get("decorations_of_callers_omitted"):
+        result["truncated"] = True  # a decoration site left out is a thing found and not listed, as a caller is
+    return result
 
 
 def path(
@@ -403,6 +502,7 @@ def path(
                     break
                 queue.append((step, hops + 1))
     result = {"from": start["symbol"], "to": goal["symbol"], "path": None}
+    result.update(_decorations(graph, goal["symbol"], goals, kinds))  # a chain to it is not the only way it is reached
     if end is None:
         return result
     chain, node = [], end

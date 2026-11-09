@@ -37,9 +37,15 @@ component also records the placements of its own `children`, its other props, an
 A name that starts with a lowercase letter is a host element (<div />), never a component, and a member of `this` is
 not followed.
 
-Not supported (the call is unresolved or the code is skipped, never guessed): decorators (applied
-members are not resolved), class fields that hold an arrow function, class expressions, object literal
-methods, enums, namespaces, `require`, and a tsconfig `extends` that names a package.
+A decorator (`@tag`, `@route("/x")`, on a class, a member or a parameter) is never an edge, because what it does to
+what it decorates is not followed, and a member it decorates is not resolved. It is an unresolved call of the scope
+that holds the class and, when its name is a name or a dotted name, a model.Decoration: the resolver says which
+symbol the name resolves to, so a question about that symbol can list where it is applied. Calls in a decorator's
+arguments are read, as calls of that same scope.
+
+Not supported (the call is unresolved or the code is skipped, never guessed): what a decorator does, class fields that
+hold an arrow function, class expressions, object literal methods, enums, namespaces, `require`, and a tsconfig
+`extends` that names a package.
 """
 
 from __future__ import annotations
@@ -1039,6 +1045,7 @@ class FileBuilder:
             accessor = "get" if "get" in kids else "set" if "set" in kids else ""
             for d in [*decorators, *(c for c in member.children if c.type == "decorator")]:
                 self._decorator(d)
+            self._parameter_decorators(member)
             self._function(member, name, "method", accessor, static="static" in kids)
             if decorators or "decorator" in kids:
                 cls.names[name] = Binding("var", evidence=[unknown_ref(DECORATED)])
@@ -1098,14 +1105,38 @@ class FileBuilder:
 
     def _decorator(self, node) -> None:
         """A decorator is applied when the class is defined, by the scope that holds the class (never the
-        class itself): recorded as a call ripple does not resolve, whatever it is. Its arguments are read."""
+        class itself). Ripple does not follow what it does to what it decorates, so it is recorded as an
+        unresolved call whatever it is; its name, when it is a name or a dotted name, goes with it so the
+        resolver can say which symbol it names (a Decoration, never an edge). Its arguments are read."""
         holder = next((s for s in reversed(self.stack) if s.kind != "class"), self.module)
-        holder.calls.append(RawCall(None, short(node), line_of(node), special="computed", why=DECORATOR))
+        expression = next(iter(named(node)), None)
+        callee = inner(field_of(expression, "function") or expression) if expression is not None and expression.type == "call_expression" else expression
+        chain = dotted(callee) if callee is not None else None
+        if chain and self.rebinds_this and chain[0] == "this":
+            chain = None
+        holder.calls.append(
+            RawCall(self._ref(chain) if chain else None, short(node), line_of(node), kind="decoration", why=DECORATOR)
+        )
+        # The arguments are evaluated there too, where the class is defined, not in the class: a call in them is the
+        # holder's. (A decorator written on a member is met with the class on the stack.)
+        inside = []
+        while self.stack and self.stack[-1].kind == "class":
+            inside.append(self.stack.pop())
         for child in named(node):
             if child.type == "call_expression":
                 args = field_of(child, "arguments")
                 if args is not None:
                     self.visit(args)
+        self.stack.extend(reversed(inside))
+
+    def _parameter_decorators(self, node) -> None:
+        """The decorators written on the parameters of a method: applied with the class, by the scope that holds it
+        (so this runs before the method's own scope is entered)."""
+        params = field_of(node, "parameters")
+        for param in named(params) if params is not None else []:
+            for child in param.children:
+                if child.type == "decorator":
+                    self._decorator(child)
 
     # ---- declarations of variables --------------------------------------------------------
 
