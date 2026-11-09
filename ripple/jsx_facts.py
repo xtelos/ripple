@@ -72,7 +72,7 @@ class JsxFields:
     jsx are the component elements written in the scope (an anonymous function inside it counts as the scope).
     A function component receives its props as one parameter: slots[key] are the placements of the prop `key` itself
     (`children`, a node passed as a prop) and prop_calls[key] those of a call of the function the prop holds.
-    wrapped maps a name to the (wrapper chain, function chain) of `const X = memo(f)`. handed are the references (as
+    wrapped maps a name to the (kind, function chain, how it was wrapped) of `const X = memo(f)`. handed are the references (as
     chains, like a tag) written as the whole value of a prop, `<Route render={Home} />`: a function handed on by name is
     one the code that receives it may call as a function.
     """

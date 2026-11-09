@@ -265,10 +265,119 @@ def find_symbol(graph: Graph, query: str) -> dict:
     return found
 
 
+def _is_bare(query: str) -> bool:
+    """A query that is one name: no dot, slash or colon, so no part of an id and no path. Anything else says more."""
+    return not (":" in query or "/" in query or "." in query)
+
+
+def _members(graph: Graph, module: str) -> list[str]:
+    """What a module defines at its top level and what it exports under another name: the ids a question can be asked of."""
+    prefixes = (module + ":", module + ".")
+    found = {
+        sid
+        for sid, s in graph.symbols.items()
+        if s.kind != "module" and sid.startswith(prefixes) and not re.search(r"[.]| > ", sid[len(module) + 1 :])
+    }
+    found.update(alias[0] for key, alias in graph.export_aliases.items() if key.startswith(module + ":"))
+    return sorted(found)
+
+
+def _only_a_module(graph: Graph, query: str, module: str) -> dict:
+    members = _members(graph, module)
+    shown = members[:MAX_LISTED]
+    asked = f"pass one of the candidates, or the module id {module} to ask about the module"
+    if not members:
+        return {
+            "error": f"'{query}' is the module {module}, which has no symbol of that name and defines no function or class; "
+            f"pass the module id {module} to ask about the module",
+            "candidates": [],
+        }
+    more = f" (showing {len(shown)} of {len(members)})" if len(members) > len(shown) else ""
+    return {"error": f"'{query}' is the module {module}, which has no symbol of that name; {asked}{more}", "candidates": shown}
+
+
+def _declares_its_name(graph: Graph, module: str) -> bool:
+    """Whether a module defines or exports a function, class or export of its own id: `foo.ts` at the root with a `foo`,
+    `tax.py` at the root with a `tax`. (Only a root-level module has an id that is also a bare name.)"""
+    if f"{module}:{module}" in graph.symbols or f"{module}:{module}" in graph.export_aliases:
+        return True
+    member = graph.symbols.get(f"{module}.{module}")
+    return member is not None and member.kind != "module"
+
+
+def _settle_bare(graph: Graph, query: str, matches: list[str], whole_id: str = "") -> dict | None:
+    """The answer for a bare name that matched a module or that a module exports under another symbol, or None when
+    the usual rules apply (neither). whole_id is the module whose id is the bare name itself.
+
+    A module is the name of a file, not a thing that is called, so a bare name that is only a module is never answered
+    as the module (with no callers): that is a silent 0 about the thing the name usually means.
+      - the module declares a symbol of that name (foo.ts defines foo), or exports the name as a function or class
+        declared elsewhere (a barrel's `export { Button } from "./Button"`) that is already a match: the module adds
+        nothing and the symbol is the answer;
+      - the module exports the name as a wrapper or alias of a function or class the name does not match
+        (`SubMenu = forwardRef(SubMenuFR)`): that symbol is the answer, and a note says so;
+      - otherwise it is only the module: an error listing what the module defines and exports.
+    Never a pick between two things the name means, so these are the ambiguous answer, listing each:
+      - a module that declares the name AND exports it as something else (a private `render` beside
+        `export { renderV2 as render }`): the declared symbol, what the export is when ripple can name it, and the module;
+      - the name exported by more than one module as different targets, wrapped or not, whatever the modules are named;
+      - a module that is a candidate beside symbols of other modules;
+      - a bare name that is the whole id of a root-level module that also declares or exports a symbol of that name:
+        it cannot be told from a question about the module.
+    """
+    modules = [m for m in matches if graph.symbols[m].kind == "module"]
+    symbols = [m for m in matches if m not in modules]
+    added: list[str] = []
+    notes: list[str] = []
+    named: set[str] = set()  # the modules that are candidates themselves
+    for key, alias in sorted(graph.export_aliases.items()):
+        module, _, name = key.rpartition(":")
+        target = alias[0]
+        if name != query:
+            continue
+        if key in symbols:  # declares the name and exports it as something else
+            named.add(module)
+            if target and target not in added:
+                added.append(target)
+        elif target and target not in symbols:
+            if target not in added:
+                added.append(target)
+            notes.append(f"{query} is exported by {module} as {alias[1]}; showing {target}")
+    for module in modules:
+        if module == whole_id or not any(f"{module}:{query}" in table for table in (symbols, graph.export_aliases)):
+            named.add(module)
+    if not (modules or added or named):
+        return None
+    candidates = sorted({*symbols, *added, *named})
+    if len(candidates) == 1 and not named:
+        found = {"symbol": candidates[0]}
+        return {**found, "note": "; ".join(notes)} if notes else found
+    if len(named) == 1 and len(candidates) == 1:
+        return _only_a_module(graph, query, next(iter(named)))
+    return {"error": f"'{query}' is ambiguous; pass one of the candidates", "candidates": candidates}
+
+
+def _noted(result: dict, *founds: dict) -> dict:
+    """The result with the note of how a name was resolved (see _settle_bare), straight after the symbol or symbols it names."""
+    notes = list(dict.fromkeys(f["note"] for f in founds if "note" in f))
+    if not notes:
+        return result
+    items = list(result.items())
+    head = 2 if "from" in result else 1
+    return {**dict(items[:head]), "note": "; ".join(notes), **dict(items[head:])}
+
+
 def _find(graph: Graph, query: str) -> dict:
+    whole_id = ""
     if query in graph.symbols:
-        return {"symbol": query}
-    matches = _matches(graph, query)
+        if not (_is_bare(query) and graph.symbols[query].kind == "module" and _declares_its_name(graph, query)):
+            return {"symbol": query}
+        whole_id = query
+    matches = sorted({*_matches(graph, query), *([whole_id] if whole_id else [])})
+    if matches and _is_bare(query):
+        settled = _settle_bare(graph, query, matches, whole_id)
+        if settled is not None:
+            return settled
     if len(matches) == 1:
         return {"symbol": matches[0]}
     if matches:
@@ -352,7 +461,7 @@ def callers(graph: Graph, query: str, profile: LanguageProfile | None = None, ki
     result = {"symbol": found["symbol"], "count": len(listed), "callers": listed, "through_wrapper": reaching}
     result.update(_unread_class_calls(graph, found["symbol"], kinds))
     result.update(_decorations(graph, found["symbol"], _targets(graph, found["symbol"], profile), kinds))
-    return result
+    return _noted(result, found)
 
 
 def _sites(found: list[tuple[str, str]], unique: bool = True) -> dict:
@@ -389,7 +498,7 @@ def callees(graph: Graph, query: str, kinds=None) -> dict:
     ]
     if applied:  # not callees: the decorator is named only when its name resolved, and what it does is not modelled
         result["applies_decorators"] = applied
-    return result
+    return _noted(result, found)
 
 
 def impact(
@@ -495,7 +604,7 @@ def impact(
     result.update(_decorations_of_callers(graph, distance, kinds, profile, limit))
     if result.get("decorations_omitted") or result.get("decorations_of_callers_omitted"):
         result["truncated"] = True  # a decoration site left out is a thing found and not listed, as a caller is
-    return result
+    return _noted(result, found)
 
 
 def path(
@@ -532,7 +641,7 @@ def path(
     result = {"from": start["symbol"], "to": goal["symbol"], "path": None}
     result.update(_decorations(graph, goal["symbol"], goals, kinds))  # a chain to it is not the only way it is reached
     if end is None:
-        return result
+        return _noted(result, start, goal)
     chain, node = [], end
     while node is not None:
         step = came_from[node]
@@ -549,4 +658,4 @@ def path(
         chain.append(hop)
         node = step[0] if step else None
     result["path"] = chain[::-1]
-    return result
+    return _noted(result, start, goal)
