@@ -72,7 +72,7 @@ from .facts import (
     unknown_ref,
 )
 from .jsx_facts import JsxElement, JsxModule, JsxScope, Placement
-from .model import Graph
+from .model import DECORATOR_SCOPE, UNREAD_CLASS, Graph
 from .profile import TYPESCRIPT, LanguageProfile
 from .ts_modules import ModuleMap
 
@@ -141,6 +141,17 @@ def line_of(node) -> int:
 
 def short(node) -> str:
     return " ".join(text(node).split())[:80]
+
+
+def callee_text(callee) -> str:
+    """A callee as written, kept short but always ending in its own last name (`xs.a().b` is `... .b`), since a
+    question matches a call by the name it ends with."""
+    if callee.type == "member_expression":
+        prop = field_of(callee, "property")
+        obj = field_of(callee, "object")
+        if prop is not None and obj is not None:
+            return f"{short(obj)[:60].replace(' .', '.')}.{text(prop)}"
+    return short(callee)
 
 
 def field_of(node, name: str):
@@ -982,14 +993,45 @@ class FileBuilder:
         for child in node.children:
             if child.type == "decorator":
                 self._decorator(child)
-        if name is None:
-            return  # `export default class {}`: no name to give it, so its members are not read
+        if name is None:  # the grammar reads `export default class {}` as a class expression (visit_class), so this is a guard
+            self._unread_class(node)
+            return
         self._class(node, text(name))
 
     visit_abstract_class_declaration = visit_class_declaration
 
     def visit_class(self, node) -> None:
-        """A class expression: its members are not read, and nothing in it is guessed."""
+        """A class expression, and `export default class {}`: its members are not read, and nothing in it is guessed.
+        A decorator written on it (`export default @d class {}`) is still a decoration."""
+        for child in node.children:
+            if child.type == "decorator":
+                self._decorator(child)
+        self._unread_class(node)
+
+    def _unread_class(self, node) -> None:
+        """The body of a class that is not read still calls things. Each call written in it (a call, a `new`, at any
+        depth) is recorded as an unresolved call of the scope around the class, with the reason that names the skip,
+        so a question about what it calls lists it as a call ripple could not follow. None becomes an edge."""
+        body = field_of(node, "body")
+        self._unread_calls(body, self.scope, UNREAD_CLASS)
+
+    def _unread_calls(self, root, scope: Scope, why: str) -> None:
+        """Every call and `new` written under `root`, at any depth, as an unresolved call of `scope` with this reason."""
+        pending = [root] if root is not None else []
+        found = []
+        while pending:
+            current = pending.pop()
+            pending.extend(current.children)
+            if current.type == "call_expression":
+                callee = field_of(current, "function")
+            elif current.type == "new_expression":
+                callee = field_of(current, "constructor")
+            else:
+                continue
+            if callee is not None and inner(callee).type not in ("super", "import"):
+                found.append((line_of(current), inner(callee)))
+        for line, callee in sorted(found, key=lambda f: f[0]):
+            scope.calls.append(RawCall(None, callee_text(callee), line, special="computed", why=why))
 
     def _class(self, node, name: str) -> None:
         scope = self._enter(name, "class", node)
@@ -1044,8 +1086,8 @@ class FileBuilder:
             kids = {c.type for c in member.children}
             accessor = "get" if "get" in kids else "set" if "set" in kids else ""
             for d in [*decorators, *(c for c in member.children if c.type == "decorator")]:
-                self._decorator(d)
-            self._parameter_decorators(member)
+                self._decorator(d, cls)
+            self._parameter_decorators(member, cls)
             self._function(member, name, "method", accessor, static="static" in kids)
             if decorators or "decorator" in kids:
                 cls.names[name] = Binding("var", evidence=[unknown_ref(DECORATED)])
@@ -1075,7 +1117,7 @@ class FileBuilder:
         static = any(c.type == "static" for c in member.children)
         self._own_property(cls, name)
         for d in [*decorators, *(c for c in member.children if c.type == "decorator")]:
-            self._decorator(d)
+            self._decorator(d, cls)
         if decorators or any(c.type == "decorator" for c in member.children):
             cls.attr_types.setdefault(name, []).append(unknown_ref(DECORATED))
         elif not static:
@@ -1103,40 +1145,53 @@ class FileBuilder:
 
     # ---- decorators -----------------------------------------------------------------------
 
-    def _decorator(self, node) -> None:
+    def _decorator(self, node, owner: Scope | None = None) -> None:
         """A decorator is applied when the class is defined, by the scope that holds the class (never the
         class itself). Ripple does not follow what it does to what it decorates, so it is recorded as an
         unresolved call whatever it is; its name, when it is a name or a dotted name, goes with it so the
-        resolver can say which symbol it names (a Decoration, never an edge). Its arguments are read."""
-        holder = next((s for s in reversed(self.stack) if s.kind != "class"), self.module)
-        expression = next(iter(named(node)), None)
-        callee = inner(field_of(expression, "function") or expression) if expression is not None and expression.type == "call_expression" else expression
-        chain = dotted(callee) if callee is not None else None
-        if chain and self.rebinds_this and chain[0] == "this":
-            chain = None
-        holder.calls.append(
-            RawCall(self._ref(chain) if chain else None, short(node), line_of(node), kind="decoration", why=DECORATOR)
-        )
-        # The arguments are evaluated there too, where the class is defined, not in the class: a call in them is the
-        # holder's. (A decorator written on a member is met with the class on the stack.)
-        inside = []
-        while self.stack and self.stack[-1].kind == "class":
-            inside.append(self.stack.pop())
-        for child in named(node):
-            if child.type == "call_expression":
-                args = field_of(child, "arguments")
-                if args is not None:
-                    self.visit(args)
-        self.stack.extend(reversed(inside))
+        resolver can say which symbol it names (a Decoration, never an edge). Its arguments are read.
 
-    def _parameter_decorators(self, node) -> None:
+        `owner` is the class a member decorator is written in (a decorator on a method, a field or a parameter): that
+        one scope is the decorated class and is stepped out of. A decorator on a class itself has no owner: the scope
+        on top of the stack is already the one that holds the class. If that scope is a class (the class is written
+        in a field initializer, a static block or a method of an object literal, where a class stands in for the
+        constructor or for the scope that defines it), which scope runs the arguments is not provable: their calls
+        are unresolved, never an edge."""
+        stepped_out = owner is not None and self.stack[-1] is owner
+        if stepped_out:
+            self.stack.pop()
+        try:
+            holder = self.stack[-1] if self.stack else self.module
+            expression = next(iter(named(node)), None)
+            callee = inner(field_of(expression, "function") or expression) if expression is not None and expression.type == "call_expression" else expression
+            chain = dotted(callee) if callee is not None else None
+            if chain and self.rebinds_this and chain[0] == "this":
+                chain = None
+            holder.calls.append(
+                RawCall(self._ref(chain) if chain else None, short(node), line_of(node), kind="decoration", why=DECORATOR)
+            )
+            provable = holder.kind != "class" and (owner is None or stepped_out)
+            for child in named(node):
+                if child.type == "call_expression":
+                    args = field_of(child, "arguments")
+                    if args is None:
+                        continue
+                    if provable:
+                        self.visit(args)
+                    else:
+                        self._unread_calls(args, holder, DECORATOR_SCOPE)
+        finally:
+            if stepped_out:
+                self.stack.append(owner)
+
+    def _parameter_decorators(self, node, cls: Scope) -> None:
         """The decorators written on the parameters of a method: applied with the class, by the scope that holds it
         (so this runs before the method's own scope is entered)."""
         params = field_of(node, "parameters")
         for param in named(params) if params is not None else []:
             for child in param.children:
                 if child.type == "decorator":
-                    self._decorator(child)
+                    self._decorator(child, cls)
 
     # ---- declarations of variables --------------------------------------------------------
 

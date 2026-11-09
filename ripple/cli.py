@@ -153,6 +153,11 @@ def format_decorations(result: dict) -> list[str]:
     return lines
 
 
+def format_missed(m: dict) -> str:
+    inside = "  (inside a class ripple does not read)" if "reason" in m else ""
+    return f"  {m['call']}  in {m['caller']}  {m['location']}{inside}"
+
+
 def format_impact(result: dict) -> str:
     lines = [f"impact of {result['symbol']} (depth {result['depth']}): {result['affected']} callers"]
     for file, entries in result["by_file"].items():
@@ -173,7 +178,7 @@ def format_impact(result: dict) -> str:
     if result["possible_missed_callers"]:
         lines.append(f"unresolved call sites with the same name ({result['possible_missed_total']}), check by hand:")
         for m in result["possible_missed_callers"]:
-            lines.append(f"  {m['call']}  in {m['caller']}  {m['location']}")
+            lines.append(format_missed(m))
     lines += format_decorations(result)
     return "\n".join(lines)
 
@@ -183,6 +188,9 @@ def format_result(command: str, result: dict) -> str:
         return format_impact(result)
     if command == "callers":
         lines = format_symbols(f"callers of {result['symbol']}", result["callers"])
+        if result.get("possible_missed_callers"):
+            lines.append(f"calls with the same name inside classes ripple does not read ({result['possible_missed_total']}), check by hand:")
+            lines += [format_missed(m) for m in result["possible_missed_callers"]]
         if result["through_wrapper"]:
             lines.append(f"lines that call it by name, through its wrapper ({len(result['through_wrapper'])}):")
             lines += [

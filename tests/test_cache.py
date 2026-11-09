@@ -105,6 +105,23 @@ def test_cache_written_before_decorations_and_skipped_class_bodies_were_recorded
     assert "m.f" in graph.symbols
 
 
+def test_cache_written_before_class_expression_calls_were_flagged_is_rebuilt(make_repo, tmp_path_factory):
+    """Format 9: a TypeScript graph has no unresolved call for what a class expression's body calls, so a question
+    about a symbol that body calls would answer from it as if nothing hid there. It is rebuilt, never reused."""
+    repo = make_repo({"m.py": "def f():\n    pass\n"})
+    cache_dir = tmp_path_factory.mktemp("cache")
+    load_graph(repo, cache_dir)
+    path = cache_file(repo.resolve(), cache_dir)
+    saved = json.loads(path.read_text())
+    assert saved["format"] != f"{__version__}-9"
+    saved["format"] = f"{__version__}-9"
+    saved["graph"]["symbols"] = []
+    path.write_text(json.dumps(saved))
+    graph, cached = load_graph(repo, cache_dir)
+    assert cached is False
+    assert "m.f" in graph.symbols
+
+
 def test_repo_index_reuses_the_in_memory_graph(make_repo, tmp_path_factory):
     repo = make_repo({"m.py": "def f():\n    pass\n"})
     index = RepoIndex(repo, cache_dir=tmp_path_factory.mktemp("cache"))

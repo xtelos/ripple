@@ -65,6 +65,16 @@ class Edge:
     via: str = ""
 
 
+# Why a call written inside a class whose members the front end does not read is unresolved (TypeScript: a class
+# expression, `export default class {}`). Queries tell this reason from the others, so they can name it.
+UNREAD_CLASS = "the call is inside a class that ripple does not read (a class expression, or a default export with no name), so what it calls is not followed"
+
+# Why a call written in the arguments of a decorator is unresolved: the class the decorator is written on sits inside
+# another class (a field initializer, a static block), so which scope runs the call is not provable, and no edge is
+# made. Queries name this reason as they name UNREAD_CLASS.
+DECORATOR_SCOPE = "the call is in the arguments of a decorator on a class written inside another class (a field initializer, a static block), where ripple cannot prove which scope runs it, so what it calls is not followed"
+
+
 @dataclass(frozen=True)
 class Unresolved:
     """A call site ripple saw but will not guess a target for."""

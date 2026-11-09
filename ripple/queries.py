@@ -14,7 +14,7 @@ import re
 from collections import deque
 
 from .jsx_facts import JSX_NO_RENDERER, JSX_TAG_UNRESOLVED
-from .model import Decoration, Edge, Graph, Symbol, Unresolved
+from .model import DECORATOR_SCOPE, UNREAD_CLASS, Decoration, Edge, Graph, Symbol, Unresolved
 from .profile import PYTHON, TYPESCRIPT, LanguageProfile
 from .pytest_collection import PytestCollection  # noqa: F401 (it was defined here)
 from .ts_modules import SUFFIXES, module_id  # no parser needed to read an id
@@ -143,10 +143,34 @@ def _decorations_of_callers(graph: Graph, distance: dict[str, int], kinds, profi
     return found
 
 
+_MISSED_REASONS = (UNREAD_CLASS, DECORATOR_SCOPE)
+
+
 def _same_language(file: str, symbol: Symbol) -> bool:
     """Whether a file (where a decorator or a call is written) is in the language of the symbol's own file. Only
     TypeScript front end reads decorators and class expressions, so a Python symbol is never the target of one."""
     return file.endswith(TYPESCRIPT.source_suffixes) == symbol.file.endswith(TYPESCRIPT.source_suffixes)
+
+
+def _missed(u: Unresolved) -> dict:
+    """A same-name unresolved call as a question lists it. One inside a class ripple does not read says so."""
+    entry = {"caller": u.caller, "call": u.text, "location": f"{u.file}:{u.line}"}
+    return {**entry, "reason": u.reason} if u.reason in _MISSED_REASONS else entry
+
+
+def _unread_class_calls(graph: Graph, symbol_id: str, kinds) -> dict:
+    """The calls written inside classes ripple does not read that end with the symbol's name, for a question that
+    lists no unresolved calls of its own (callers). Only these: any other same-name call is impact's to list. A
+    module is never matched by name."""
+    symbol = graph.symbols[symbol_id]
+    if symbol.kind == "module" or not _wanted("calls", kinds):
+        return {}
+    found = [
+        _missed(u)
+        for u in graph.unresolved
+        if u.reason in _MISSED_REASONS and u.text.rsplit(".", 1)[-1] == symbol.name and _same_language(u.file, symbol)
+    ]
+    return {"possible_missed_callers": found[:20], "possible_missed_total": len(found)} if found else {}
 
 
 def _is_path_id(symbol_id: str) -> bool:
@@ -326,6 +350,7 @@ def callers(graph: Graph, query: str, profile: LanguageProfile | None = None, ki
         for caller, (wrapper, lines) in sorted(through.items())
     ]
     result = {"symbol": found["symbol"], "count": len(listed), "callers": listed, "through_wrapper": reaching}
+    result.update(_unread_class_calls(graph, found["symbol"], kinds))
     result.update(_decorations(graph, found["symbol"], _targets(graph, found["symbol"], profile), kinds))
     return result
 
@@ -443,9 +468,12 @@ def impact(
 
     name = graph.symbols[symbol_id].name
     missed = [
-        {"caller": u.caller, "call": u.text, "location": f"{u.file}:{u.line}"}
+        _missed(u)
         for u in graph.unresolved
-        if u.text.rsplit(".", 1)[-1] == name and _unresolved_group(u) != "renderer" and _wanted(_unresolved_group(u), kinds)
+        if u.text.rsplit(".", 1)[-1] == name
+        and _unresolved_group(u) != "renderer"
+        and _wanted(_unresolved_group(u), kinds)
+        and (u.reason not in _MISSED_REASONS or _same_language(u.file, graph.symbols[symbol_id]))
     ]
     omitted_callers, omitted_tests = max(0, len(code) - limit), max(0, len(tests) - limit)
     result = {
