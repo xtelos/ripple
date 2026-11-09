@@ -1,0 +1,1278 @@
+--- a/Readme.md
++++ b/Readme.md
+@@ -44,7 +44,7 @@
+ Superstruct allows you to define the shape of data you want to validate:
+ 
+ ```js
+-import { assert, object, number, string, array } from 'superstruct'
++import { assertValid, object, number, string, array } from 'superstruct'
+ 
+ const Article = object({
+   id: number(),
+@@ -64,7 +64,7 @@
+   },
+ }
+ 
+-assert(data, Article)
++assertValid(data, Article)
+ // This will throw an error when the data is invalid.
+ // If you'd rather not throw, you can use `is()` or `validate()`.
+ ```
+--- a/docs/guides/01-getting-started.md
++++ b/docs/guides/01-getting-started.md
+@@ -64,12 +64,12 @@
+ 
+ This `User` struct will expect an object with an `id` property that is a number, and `name` and `email` properties that are strings.
+ 
+-Now we can use our `User` struct to validate the data. The easiest way to do this is to use the [`assert`](../reference/core.md#assert) helper, like so:
++Now we can use our `User` struct to validate the data. The easiest way to do this is to use the [`assertValid`](../reference/core.md#assertvalid) helper, like so:
+ 
+ ```ts
+-import { assert } from 'superstruct'
++import { assertValid } from 'superstruct'
+ 
+-assert(data, User)
++assertValid(data, User)
+ ```
+ 
+ This will throw an error if the data is invalid. In this case, the data is valid, so no error is thrown.
+@@ -83,7 +83,7 @@
+   email: 'jane@example.com',
+ }
+ 
+-assert(data, User)
++assertValid(data, User)
+ // StructError: 'Expected a value of type "string" for `name` but received `false`.' {
+ //   type: 'string',
+ //   value: false,
+--- a/docs/guides/02-validating-data.md
++++ b/docs/guides/02-validating-data.md
+@@ -7,27 +7,27 @@
+ The simplest structs are ones that validate "primitive" values, like strings, numbers or booleans. For example:
+ 
+ ```ts
+-import { assert, string } from 'superstruct'
++import { assertValid, string } from 'superstruct'
+ 
+ const Struct = string()
+ 
+-assert('a string', Struct) // passes
+-assert(42, Struct) // throws!
++assertValid('a string', Struct) // passes
++assertValid(42, Struct) // throws!
+ ```
+ 
+-In this case, `assert` will throw an error if the input `data` is not a a string. So on any line after the assertion we're guaranteed to be dealing with a string input.
++In this case, `assertValid` will throw an error if the input `data` is not a a string. So on any line after the assertion we're guaranteed to be dealing with a string input.
+ 
+-> 🤖 Note: Superstruct works well with TypeScript guards and assertions, so after calling `assert` or `is` you can access your data in a type-safe way!
++> 🤖 Note: Superstruct works well with TypeScript guards and assertions, so after calling `assertValid` or `is` you can access your data in a type-safe way!
+ 
+ But Superstruct has simple structs like these for more than the primitive types. It has support out of the box for many of the common types you might need to validate—dates, functions, regexps, etc.
+ 
+ ```ts
+-import { assert, date } from 'superstruct'
++import { assertValid, date } from 'superstruct'
+ 
+ const Struct = date()
+ 
+-assert(new Date(), Struct) // passes
+-assert('a string', Struct) // throws!
++assertValid(new Date(), Struct) // passes
++assertValid('a string', Struct) // throws!
+ ```
+ 
+ Here we're ensuring that `data` is a valid `Date` object.
+@@ -39,7 +39,7 @@
+ In addition to simple, "flat" values, you can also compose structs into more complex shapes. The most common example of this is `object` structs:
+ 
+ ```ts
+-import { assert, number, object, string } from 'superstruct'
++import { assertValid, number, object, string } from 'superstruct'
+ 
+ const User = object({
+   id: number(),
+@@ -48,7 +48,7 @@
+ })
+ 
+ // passes
+-assert(
++assertValid(
+   {
+     id: 1,
+     email: 'jane@example.com',
+@@ -58,7 +58,7 @@
+ )
+ 
+ // throws! (id is invalid)
+-assert(
++assertValid(
+   {
+     id: '1',
+     email: 'jane@example.com',
+@@ -68,7 +68,7 @@
+ )
+ 
+ // also throws! (email is missing)
+-assert(
++assertValid(
+   {
+     id: 1,
+     name: 'Jane',
+@@ -82,13 +82,13 @@
+ You could also define a struct which represents a list of values that all match a specific type, using the `array` factory. For example:
+ 
+ ```ts
+-import { array, assert, number } from 'superstruct'
++import { array, assertValid, number } from 'superstruct'
+ 
+ const Struct = array(number())
+ 
+-assert([1, 2, 3], Struct) // passes!
+-assert(false, Struct) // throws!
+-assert(['a', 'b', 'c'], Struct) // throws! (invalid element)
++assertValid([1, 2, 3], Struct) // passes!
++assertValid(false, Struct) // throws!
++assertValid(['a', 'b', 'c'], Struct) // throws! (invalid element)
+ ```
+ 
+ These are only two examples, but Superstruct supports many complex structs—maps, sets, records, tuples, etc.
+@@ -187,7 +187,7 @@
+   email: 'jane',
+ }
+ 
+-assert(data, User) // throws! (invalid email)
++assertValid(data, User) // throws! (invalid email)
+ ```
+ 
+ And there you have it!
+--- a/docs/guides/03-coercing-data.md
++++ b/docs/guides/03-coercing-data.md
+@@ -29,7 +29,7 @@
+ 
+ Here the `user` object didn't default an `id` property. That's because any `undefined` values will be replaced with their default values instead.
+ 
+-Notice that we used [`create`](../reference/core.md#create) and not [`assert`](../reference/core.md#assert)! This is an important distinction because we want to receive the return value of the newly coerced data.
++Notice that we used [`create`](../reference/core.md#create) and not [`assertValid`](../reference/core.md#assertvalid)! This is an important distinction because we want to receive the return value of the newly coerced data.
+ 
+ The `defaults` helper also works with objects:
+ 
+@@ -58,7 +58,7 @@
+ const MyNumber = coerce(number(), string(), (value) => parseFloat(value))
+ ```
+ 
+-Now instead of using `assert()` or `is()` you can use `create()` to apply your custom coercion logic:
++Now instead of using `assertValid()` or `is()` you can use `create()` to apply your custom coercion logic:
+ 
+ ```ts
+ import { create } from 'superstruct'
+--- a/docs/guides/04-refining-validation.md
++++ b/docs/guides/04-refining-validation.md
+@@ -9,37 +9,37 @@
+ Superstruct has several [built-in refinements](../reference/refinements.md) for common use cases. For example, a common one is ensuring that a string matches a specific regular expression pattern:
+ 
+ ```ts
+-import { assert, pattern, string } from 'superstruct'
++import { assertValid, pattern, string } from 'superstruct'
+ 
+ const Section = pattern(string(), /\d+(\.\d+/)?/)
+ 
+-assert('2', Section) // passes
+-assert('2.1', Section) // passes
+-assert('string', Section) // throws!
++assertValid('2', Section) // passes
++assertValid('2.1', Section) // passes
++assertValid('string', Section) // throws!
+ ```
+ 
+ Or maybe that a string (or array, number, etc.) has a specific size:
+ 
+ ```ts
+-import { assert, size, string } from 'superstruct'
++import { assertValid, size, string } from 'superstruct'
+ 
+ const Name = size(string(), 1, 100)
+ 
+-assert('Alex', Name) // passes
+-assert('', Name) // throws!
++assertValid('Alex', Name) // passes
++assertValid('', Name) // throws!
+ ```
+ 
+ Another common use case is validating nonnegative integers (like indexes in an array) using the built-in `min` helper:
+ 
+ ```ts
+-import { assert, min, integer } from 'superstruct'
++import { assertValid, min, integer } from 'superstruct'
+ 
+ const Index = min(integer(), 0)
+ 
+-assert(42, Index) // passes
+-assert(0, Index) // passes
+-assert(3.14, Index) // throws!
+-assert(-1, Index) // throws!
++assertValid(42, Index) // passes
++assertValid(0, Index) // passes
++assertValid(3.14, Index) // throws!
++assertValid(-1, Index) // throws!
+ ```
+ 
+ These refinements don't change the inferred type of the data, but they do ensure that a slightly stricter validation is enforced at runtime.
+--- a/docs/guides/05-handling-errors.md
++++ b/docs/guides/05-handling-errors.md
+@@ -21,14 +21,14 @@
+   email: false,
+ }
+ 
+-assert(data, User)
++assertValid(data, User)
+ // StructError: At path: email -- Expected a string, but received: false
+ ```
+ 
+ You can also specify your own message for more clarity. In this case the original message will be preserved in [Error.cause](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/cause).
+ 
+ ```ts
+-assert(data, User, "The user is invalid!");
++assertValid(data, User, "The user is invalid!");
+ // StructError: The user is invalid!
+ ```
+ 
+@@ -63,7 +63,7 @@
+   const data = request.body
+ 
+   try {
+-    assert(data, User)
++    assertValid(data, User)
+   } catch (e) {
+     const { key, value, type } = e
+ 
+@@ -107,7 +107,7 @@
+ 
+ ```ts
+ try {
+-  assert(data, Struct)
++  assertValid(data, Struct)
+ } catch (error) {
+   for (const failure of error.failures()) {
+     // ...
+--- a/docs/guides/06-using-typescript.md
++++ b/docs/guides/06-using-typescript.md
+@@ -6,7 +6,7 @@
+ 
+ ## Narrowing Types
+ 
+-Whenever you use the `is` or `assert` helpers in Superstruct, TypeScript will infer information about your data and give you type safety. For example:
++Whenever you use the `is` or `assertValid` helpers in Superstruct, TypeScript will infer information about your data and give you type safety. For example:
+ 
+ ```ts
+ import { is, number, object, string } from 'superstruct'
+@@ -28,7 +28,7 @@
+ The same for goes assertions:
+ 
+ ```ts
+-assert(data, User)
++assertValid(data, User)
+ // After this point TypeScript knows that data is valid too!
+ ```
+ 
+--- a/docs/readme.md
++++ b/docs/readme.md
+@@ -9,7 +9,7 @@
+ Superstruct allows you to define the shape of data you want to validate:
+ 
+ ```js
+-import { assert, object, number, string, array } from 'superstruct'
++import { assertValid, object, number, string, array } from 'superstruct'
+ 
+ const Article = object({
+   id: number(),
+@@ -29,7 +29,7 @@
+   },
+ }
+ 
+-assert(data, Article)
++assertValid(data, Article)
+ // This will throw an error when the data is invalid.
+ // If you'd rather not throw, you can use `is()` or `validate()`.
+ ```
+--- a/docs/reference/core.md
++++ b/docs/reference/core.md
+@@ -1,16 +1,16 @@
+ # Core
+ 
+-### `assert`
++### `assertValid`
+ 
+-`assert<T>(value: unknown, struct: Struct<T>, message?: string) => asserts value is T`
++`assertValid<T>(value: unknown, struct: Struct<T>, message?: string) => asserts value is T`
+ 
+ ```ts
+-assert(value, User, 'The user is invalid!')
++assertValid(value, User, 'The user is invalid!')
+ ```
+ 
+ Assert that `value` is valid according to a `struct`. If the value is invalid a [`StructError`](./errors.md#structerror) will be thrown (the optional `message` parameter allows you to override error's message).
+ 
+-> 🤖 When using TypeScript `assert` acts as an [assertion function](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-7.html#assertion-functions), so you can ensure that after calling it the type of the `value` matches the shape of the struct.
++> 🤖 When using TypeScript `assertValid` acts as an [assertion function](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-7.html#assertion-functions), so you can ensure that after calling it the type of the `value` matches the shape of the struct.
+ 
+ ### `create`
+ 
+--- a/examples/basic-validation.js
++++ b/examples/basic-validation.js
+@@ -1,6 +1,6 @@
+ import {
+   array,
+-  assert,
++  assertValid,
+   boolean,
+   number,
+   object,
+@@ -28,4 +28,4 @@
+ }
+ 
+ // Validate the data. In this case, the data is valid, so it won't throw.
+-assert(data, User)
++assertValid(data, User)
+--- a/examples/composing-structs.js
++++ b/examples/composing-structs.js
+@@ -1,4 +1,4 @@
+-import { assert, object, number, string } from 'superstruct'
++import { assertValid, object, number, string } from 'superstruct'
+ 
+ // Define a `User` struct.
+ const User = object({
+@@ -27,4 +27,4 @@
+ }
+ 
+ // Validate the data. In this case, the data is valid, so it won't throw.
+-assert(data, Article)
++assertValid(data, Article)
+--- a/examples/custom-errors.js
++++ b/examples/custom-errors.js
+@@ -1,4 +1,4 @@
+-import { assert, number, object, string } from 'superstruct'
++import { assertValid, number, object, string } from 'superstruct'
+ 
+ // Define a struct to validate with.
+ const User = object({
+@@ -17,7 +17,7 @@
+ // Validate the data. In this case the `name` property is invalid, so an error
+ // will be thrown that you can catch and customize to your needs.
+ try {
+-  assert(data, User)
++  assertValid(data, User)
+ } catch (e) {
+   const { key, value, type } = e
+ 
+--- a/examples/custom-types.js
++++ b/examples/custom-types.js
+@@ -1,4 +1,4 @@
+-import { object, string, optional, define, assert } from 'superstruct'
++import { object, string, optional, define, assertValid } from 'superstruct'
+ import isEmail from 'is-email'
+ import isUuid from 'is-uuid'
+ import isUrl from 'is-url'
+@@ -37,4 +37,4 @@
+ }
+ 
+ // Validate the data. In this case the data is valid, so it won't throw.
+-assert(data, User)
++assertValid(data, User)
+--- a/examples/optional-values.js
++++ b/examples/optional-values.js
+@@ -1,4 +1,4 @@
+-import { assert, object, string, boolean, optional } from 'superstruct'
++import { assertValid, object, string, boolean, optional } from 'superstruct'
+ 
+ // Define a struct to validate with.
+ const User = object({
+@@ -14,4 +14,4 @@
+ }
+ 
+ // Validate the data. In this case `is_admin` is optional, so it won't throw.
+-assert(data, User)
++assertValid(data, User)
+--- a/examples/throwing-errors.js
++++ b/examples/throwing-errors.js
+@@ -1,4 +1,4 @@
+-import { object, number, string, assert } from 'superstruct'
++import { object, number, string, assertValid } from 'superstruct'
+ 
+ // Define a struct to validate with.
+ const User = object({
+@@ -16,4 +16,4 @@
+ 
+ // Validate the data with the `validate` method. In this case the `name`
+ // property is invalid, so an error will be thrown.
+-assert(data, User)
++assertValid(data, User)
+--- a/src/struct.ts
++++ b/src/struct.ts
+@@ -3,7 +3,7 @@
+ 
+ /**
+  * `Struct` objects encapsulate the validation logic for a specific type of
+- * values. Once constructed, you use the `assert`, `is` or `validate` helpers to
++ * values. Once constructed, you use the `assertValid`, `is` or `validate` helpers to
+  * validate unknown input data against the struct.
+  */
+ 
+@@ -65,7 +65,7 @@
+    */
+ 
+   assert(value: unknown, message?: string): asserts value is T {
+-    return assert(value, this, message)
++    return assertValid(value, this, message)
+   }
+ 
+   /**
+@@ -120,7 +120,7 @@
+  * Assert that a value passes a struct, throwing if it doesn't.
+  */
+ 
+-export function assert<T, S>(
++export function assertValid<T, S>(
+   value: unknown,
+   struct: Struct<T, S>,
+   message?: string
+--- a/src/structs/coercions.ts
++++ b/src/structs/coercions.ts
+@@ -10,7 +10,7 @@
+  * different formats, etc.
+  *
+  * Note: You must use `create(value, Struct)` on the value to have the coercion
+- * take effect! Using simply `assert()` or `is()` will not use coercion.
++ * take effect! Using simply `assertValid()` or `is()` will not use coercion.
+  */
+ 
+ export function coerce<T, S, C>(
+@@ -32,7 +32,7 @@
+  * Augment a struct to replace `undefined` values with a default.
+  *
+  * Note: You must use `create(value, Struct)` on the value to have the coercion
+- * take effect! Using simply `assert()` or `is()` will not use coercion.
++ * take effect! Using simply `assertValid()` or `is()` will not use coercion.
+  */
+ 
+ export function defaulted<T, S>(
+@@ -73,7 +73,7 @@
+  * Augment a struct to trim string inputs.
+  *
+  * Note: You must use `create(value, Struct)` on the value to have the coercion
+- * take effect! Using simply `assert()` or `is()` will not use coercion.
++ * take effect! Using simply `assertValid()` or `is()` will not use coercion.
+  */
+ 
+ export function trimmed<T, S>(struct: Struct<T, S>): Struct<T, S> {
+--- a/test/api/assert.test.ts
++++ b/test/api/assert.test.ts
+@@ -1,9 +1,9 @@
+ import { describe, expect, it } from 'vitest'
+-import { assert, string, StructError } from '../../src'
++import { assertValid, string, StructError } from '../../src'
+ 
+ describe('assert', () => {
+   it('valid as helper', () => {
+-    expect(() => assert('valid', string())).not.toThrow(StructError)
++    expect(() => assertValid('valid', string())).not.toThrow(StructError)
+   })
+ 
+   it('valid as method', () => {
+@@ -11,7 +11,7 @@
+   })
+ 
+   it('invalid as helper', () => {
+-    expect(() => assert(42, string())).toThrow(StructError)
++    expect(() => assertValid(42, string())).toThrow(StructError)
+   })
+ 
+   it('invalid as method', () => {
+--- a/test/deprecated.test.ts
++++ b/test/deprecated.test.ts
+@@ -1,18 +1,18 @@
+ import { describe, expect, it, vi } from 'vitest'
+-import { any, assert, deprecated } from '../src'
++import { any, assertValid, deprecated } from '../src'
+ 
+ describe('deprecated', () => {
+   it('does not log deprecated type if value is undefined', () => {
+     const spy = vi.fn()
+     expect(spy).not.toHaveBeenCalled()
+-    assert(undefined, deprecated(any(), spy))
++    assertValid(undefined, deprecated(any(), spy))
+     expect(spy).not.toHaveBeenCalled()
+   })
+ 
+   it('logs deprecated type to passed function if value is present', () => {
+     const spy = vi.fn()
+     expect(spy).not.toHaveBeenCalled()
+-    assert('present', deprecated(any(), spy))
++    assertValid('present', deprecated(any(), spy))
+     expect(spy).toHaveBeenCalledOnce()
+   })
+ })
+--- a/test/index.test.ts
++++ b/test/index.test.ts
+@@ -3,7 +3,7 @@
+ import { basename, extname, resolve } from 'path'
+ import { describe, expect, it } from 'vitest'
+ import {
+-  assert as assertValue,
++  assertValid as assertValue,
+   create as createValue,
+   StructError,
+ } from '../src'
+--- a/test/typings/any.ts
++++ b/test/typings/any.ts
+@@ -1,7 +1,7 @@
+-import { assert, any } from '../../src'
++import { assertValid, any } from '../../src'
+ import { test } from '..'
+ 
+ test<any>((x) => {
+-  assert(x, any())
++  assertValid(x, any())
+   return x
+ })
+--- a/test/typings/array.ts
++++ b/test/typings/array.ts
+@@ -1,12 +1,12 @@
+-import { assert, array, number } from '../../src'
++import { assertValid, array, number } from '../../src'
+ import { test } from '..'
+ 
+ test<Array<unknown>>((x) => {
+-  assert(x, array())
++  assertValid(x, array())
+   return x
+ })
+ 
+ test<Array<number>>((x) => {
+-  assert(x, array(number()))
++  assertValid(x, array(number()))
+   return x
+ })
+--- a/test/typings/assign.ts
++++ b/test/typings/assign.ts
+@@ -1,10 +1,10 @@
+-import { assert, assign, object, number, string } from '../../src'
++import { assertValid, assign, object, number, string } from '../../src'
+ import { test } from '..'
+ 
+ test<{
+   a: number
+   b: string
+ }>((x) => {
+-  assert(x, assign(object({ a: number() }), object({ b: string() })))
++  assertValid(x, assign(object({ a: number() }), object({ b: string() })))
+   return x
+ })
+--- a/test/typings/bigint.ts
++++ b/test/typings/bigint.ts
+@@ -1,7 +1,7 @@
+-import { assert, bigint } from '../../src'
++import { assertValid, bigint } from '../../src'
+ import { test } from '..'
+ 
+ test<bigint>((x) => {
+-  assert(x, bigint())
++  assertValid(x, bigint())
+   return x
+ })
+--- a/test/typings/boolean.ts
++++ b/test/typings/boolean.ts
+@@ -1,7 +1,7 @@
+-import { assert, boolean } from '../../src'
++import { assertValid, boolean } from '../../src'
+ import { test } from '..'
+ 
+ test<boolean>((x) => {
+-  assert(x, boolean())
++  assertValid(x, boolean())
+   return x
+ })
+--- a/test/typings/coerce.ts
++++ b/test/typings/coerce.ts
+@@ -1,8 +1,8 @@
+-import { assert, coerce, string, number } from '../../src'
++import { assertValid, coerce, string, number } from '../../src'
+ import { test } from '..'
+ 
+ test<number>((x) => {
+-  assert(
++  assertValid(
+     x,
+     coerce(number(), string(), (x) => parseFloat(x))
+   )
+--- a/test/typings/date.ts
++++ b/test/typings/date.ts
+@@ -1,7 +1,7 @@
+-import { assert, date } from '../../src'
++import { assertValid, date } from '../../src'
+ import { test } from '..'
+ 
+ test<Date>((x) => {
+-  assert(x, date())
++  assertValid(x, date())
+   return x
+ })
+--- a/test/typings/defaulted.ts
++++ b/test/typings/defaulted.ts
+@@ -1,7 +1,7 @@
+-import { assert, defaulted, string } from '../../src'
++import { assertValid, defaulted, string } from '../../src'
+ import { test } from '..'
+ 
+ test<string>((x) => {
+-  assert(x, defaulted(string(), 'Untitled'))
++  assertValid(x, defaulted(string(), 'Untitled'))
+   return x
+ })
+--- a/test/typings/deprecated.ts
++++ b/test/typings/deprecated.ts
+@@ -1,14 +1,14 @@
+-import { assert, object, deprecated, any, Context } from '../../src'
++import { assertValid, object, deprecated, any, Context } from '../../src'
+ import { test } from '..'
+ 
+ test<unknown>((x) => {
+   const log = (value: unknown, ctx: Context) => {}
+-  assert(x, deprecated(any(), log))
++  assertValid(x, deprecated(any(), log))
+   return x
+ })
+ 
+ test<{ a?: unknown }>((x) => {
+   const log = (value: unknown, ctx: Context) => {}
+-  assert(x, object({ a: deprecated(any(), log) }))
++  assertValid(x, object({ a: deprecated(any(), log) }))
+   return x
+ })
+--- a/test/typings/dynamic.ts
++++ b/test/typings/dynamic.ts
+@@ -1,8 +1,8 @@
+-import { assert, dynamic, string } from '../../src'
++import { assertValid, dynamic, string } from '../../src'
+ import { test } from '..'
+ 
+ test<string>((x) => {
+-  assert(
++  assertValid(
+     x,
+     dynamic(() => string())
+   )
+--- a/test/typings/empty.ts
++++ b/test/typings/empty.ts
+@@ -1,22 +1,22 @@
+-import { assert, empty, string, array, map, set } from '../../src'
++import { assertValid, empty, string, array, map, set } from '../../src'
+ import { test } from '..'
+ 
+ test<string>((x) => {
+-  assert(x, empty(string()))
++  assertValid(x, empty(string()))
+   return x
+ })
+ 
+ test<Array<unknown>>((x) => {
+-  assert(x, empty(array()))
++  assertValid(x, empty(array()))
+   return x
+ })
+ 
+ test<Set<unknown>>((x) => {
+-  assert(x, empty(set()))
++  assertValid(x, empty(set()))
+   return x
+ })
+ 
+ test<Map<unknown, unknown>>((x) => {
+-  assert(x, empty(map()))
++  assertValid(x, empty(map()))
+   return x
+ })
+--- a/test/typings/enums.ts
++++ b/test/typings/enums.ts
+@@ -1,24 +1,24 @@
+-import { assert, enums } from '../../src'
++import { assertValid, enums } from '../../src'
+ import { test } from '..'
+ 
+ test<'a' | 'b' | 'c'>((x) => {
+-  assert(x, enums(['a', 'b', 'c']))
++  assertValid(x, enums(['a', 'b', 'c']))
+   return x
+ })
+ 
+ test<1 | 2 | 3>((x) => {
+-  assert(x, enums([1, 2, 3]))
++  assertValid(x, enums([1, 2, 3]))
+   return x
+ })
+ 
+ test<1 | 2 | 3>((x) => {
+-  assert(x, enums([1, 2, 3] as const))
++  assertValid(x, enums([1, 2, 3] as const))
+   return x
+ })
+ 
+ test<number>((x) => {
+   let values = [1, 2, 3]
+-  assert(x, enums(values))
++  assertValid(x, enums(values))
+   return x
+ })
+ 
+--- a/test/typings/func.ts
++++ b/test/typings/func.ts
+@@ -1,7 +1,7 @@
+-import { assert, func } from '../../src'
++import { assertValid, func } from '../../src'
+ import { test } from '..'
+ 
+ test<Function>((x) => {
+-  assert(x, func())
++  assertValid(x, func())
+   return x
+ })
+--- a/test/typings/infer.ts
++++ b/test/typings/infer.ts
+@@ -1,10 +1,10 @@
+-import { Infer, object, number, string, assert } from '../../src'
++import { Infer, object, number, string, assertValid } from '../../src'
+ import { test } from '..'
+ 
+ const Struct = object()
+ type T = Infer<typeof Struct>
+ 
+ test<T>((x) => {
+-  assert(x, Struct)
++  assertValid(x, Struct)
+   return x
+ })
+--- a/test/typings/instance.ts
++++ b/test/typings/instance.ts
+@@ -1,7 +1,7 @@
+-import { assert, instance } from '../../src'
++import { assertValid, instance } from '../../src'
+ import { test } from '..'
+ 
+ test<Date>((x) => {
+-  assert(x, instance(Date))
++  assertValid(x, instance(Date))
+   return x
+ })
+--- a/test/typings/integer.ts
++++ b/test/typings/integer.ts
+@@ -1,7 +1,7 @@
+-import { assert, integer } from '../../src'
++import { assertValid, integer } from '../../src'
+ import { test } from '..'
+ 
+ test<number>((x) => {
+-  assert(x, integer())
++  assertValid(x, integer())
+   return x
+ })
+--- a/test/typings/intersection.ts
++++ b/test/typings/intersection.ts
+@@ -1,8 +1,8 @@
+-import { assert, intersection, object, string } from '../../src'
++import { assertValid, intersection, object, string } from '../../src'
+ import { test } from '..'
+ 
+ test<{ a: string; b: string }>((x) => {
+-  assert(x, intersection([object({ a: string() }), object({ b: string() })]))
++  assertValid(x, intersection([object({ a: string() }), object({ b: string() })]))
+   return x
+ })
+ 
+@@ -48,7 +48,7 @@
+   a38: string
+   a39: string
+ }>((x) => {
+-  assert(
++  assertValid(
+     x,
+     intersection([
+       object({ a1: string() }),
+--- a/test/typings/lazy.ts
++++ b/test/typings/lazy.ts
+@@ -1,8 +1,8 @@
+-import { assert, lazy, string } from '../../src'
++import { assertValid, lazy, string } from '../../src'
+ import { test } from '..'
+ 
+ test<string>((x) => {
+-  assert(
++  assertValid(
+     x,
+     lazy(() => string())
+   )
+--- a/test/typings/literal.ts
++++ b/test/typings/literal.ts
+@@ -1,22 +1,22 @@
+-import { assert, literal } from '../../src'
++import { assertValid, literal } from '../../src'
+ import { test } from '..'
+ 
+ test<true>((x) => {
+-  assert(x, literal(true))
++  assertValid(x, literal(true))
+   return x
+ })
+ 
+ test<'a'>((x) => {
+-  assert(x, literal('a'))
++  assertValid(x, literal('a'))
+   return x
+ })
+ 
+ test<42>((x) => {
+-  assert(x, literal(42))
++  assertValid(x, literal(42))
+   return x
+ })
+ 
+ test<Date>((x) => {
+-  assert(x, literal(new Date()))
++  assertValid(x, literal(new Date()))
+   return x
+ })
+--- a/test/typings/map.ts
++++ b/test/typings/map.ts
+@@ -1,7 +1,7 @@
+-import { assert, map, string, number } from '../../src'
++import { assertValid, map, string, number } from '../../src'
+ import { test } from '..'
+ 
+ test<Map<string, number>>((x) => {
+-  assert(x, map(string(), number()))
++  assertValid(x, map(string(), number()))
+   return x
+ })
+--- a/test/typings/max.ts
++++ b/test/typings/max.ts
+@@ -1,7 +1,7 @@
+-import { assert, number, max } from '../../src'
++import { assertValid, number, max } from '../../src'
+ import { test } from '..'
+ 
+ test<number>((x) => {
+-  assert(x, max(number(), 0))
++  assertValid(x, max(number(), 0))
+   return x
+ })
+--- a/test/typings/min.ts
++++ b/test/typings/min.ts
+@@ -1,7 +1,7 @@
+-import { assert, number, min } from '../../src'
++import { assertValid, number, min } from '../../src'
+ import { test } from '..'
+ 
+ test<number>((x) => {
+-  assert(x, min(number(), 0))
++  assertValid(x, min(number(), 0))
+   return x
+ })
+--- a/test/typings/never.ts
++++ b/test/typings/never.ts
+@@ -1,7 +1,7 @@
+-import { assert, never } from '../../src'
++import { assertValid, never } from '../../src'
+ import { test } from '..'
+ 
+ test<never>((x) => {
+-  assert(x, never())
++  assertValid(x, never())
+   return x
+ })
+--- a/test/typings/nonempty.ts
++++ b/test/typings/nonempty.ts
+@@ -1,22 +1,22 @@
+-import { assert, nonempty, string, array, map, set } from '../../src'
++import { assertValid, nonempty, string, array, map, set } from '../../src'
+ import { test } from '..'
+ 
+ test<string>((x) => {
+-  assert(x, nonempty(string()))
++  assertValid(x, nonempty(string()))
+   return x
+ })
+ 
+ test<Array<unknown>>((x) => {
+-  assert(x, nonempty(array()))
++  assertValid(x, nonempty(array()))
+   return x
+ })
+ 
+ test<Set<unknown>>((x) => {
+-  assert(x, nonempty(set()))
++  assertValid(x, nonempty(set()))
+   return x
+ })
+ 
+ test<Map<unknown, unknown>>((x) => {
+-  assert(x, nonempty(map()))
++  assertValid(x, nonempty(map()))
+   return x
+ })
+--- a/test/typings/nullable.ts
++++ b/test/typings/nullable.ts
+@@ -1,13 +1,13 @@
+-import { assert, nullable, string, object, enums } from '../../src'
++import { assertValid, nullable, string, object, enums } from '../../src'
+ import { test } from '..'
+ 
+ test<string | null>((x) => {
+-  assert(x, nullable(string()))
++  assertValid(x, nullable(string()))
+   return x
+ })
+ 
+ test<{ a: string | null }>((x) => {
+-  assert(x, object({ a: nullable(string()) }))
++  assertValid(x, object({ a: nullable(string()) }))
+   return x
+ })
+ 
+--- a/test/typings/number.ts
++++ b/test/typings/number.ts
+@@ -1,7 +1,7 @@
+-import { assert, number } from '../../src'
++import { assertValid, number } from '../../src'
+ import { test } from '..'
+ 
+ test<number>((x) => {
+-  assert(x, number())
++  assertValid(x, number())
+   return x
+ })
+--- a/test/typings/object.ts
++++ b/test/typings/object.ts
+@@ -1,8 +1,8 @@
+-import { assert, object, number, string } from '../../src'
++import { assertValid, object, number, string } from '../../src'
+ import { test } from '..'
+ 
+ test<Record<string, unknown>>((x) => {
+-  assert(x, object())
++  assertValid(x, object())
+   return x
+ })
+ 
+@@ -10,6 +10,6 @@
+   a: number
+   b: string
+ }>((x) => {
+-  assert(x, object({ a: number(), b: string() }))
++  assertValid(x, object({ a: number(), b: string() }))
+   return x
+ })
+--- a/test/typings/omit.ts
++++ b/test/typings/omit.ts
+@@ -1,16 +1,16 @@
+-import { assert, omit, object, number, string, type } from '../../src'
++import { assertValid, omit, object, number, string, type } from '../../src'
+ import { test } from '..'
+ 
+ test<{
+   b: string
+ }>((x) => {
+-  assert(x, omit(object({ a: number(), b: string() }), ['a']))
++  assertValid(x, omit(object({ a: number(), b: string() }), ['a']))
+   return x
+ })
+ 
+ test<{
+   b: string
+ }>((x) => {
+-  assert(x, omit(type({ a: number(), b: string() }), ['a']))
++  assertValid(x, omit(type({ a: number(), b: string() }), ['a']))
+   return x
+ })
+--- a/test/typings/optional.ts
++++ b/test/typings/optional.ts
+@@ -1,8 +1,8 @@
+-import { assert, optional, string, number, object, enums } from '../../src'
++import { assertValid, optional, string, number, object, enums } from '../../src'
+ import { test } from '..'
+ 
+ test<string | undefined>((x) => {
+-  assert(x, optional(string()))
++  assertValid(x, optional(string()))
+   return x
+ })
+ 
+@@ -10,7 +10,7 @@
+   a?: number | undefined
+   b: string
+ }>((x) => {
+-  assert(
++  assertValid(
+     x,
+     object({
+       a: optional(number()),
+--- a/test/typings/partial.ts
++++ b/test/typings/partial.ts
+@@ -1,7 +1,7 @@
+-import { assert, object, number } from '../../src'
++import { assertValid, object, number } from '../../src'
+ import { test } from '..'
+ 
+ test<{ a?: number }>((x) => {
+-  assert(x, object({ a: number() }))
++  assertValid(x, object({ a: number() }))
+   return x
+ })
+--- a/test/typings/pattern.ts
++++ b/test/typings/pattern.ts
+@@ -1,7 +1,7 @@
+-import { assert, pattern, string } from '../../src'
++import { assertValid, pattern, string } from '../../src'
+ import { test } from '..'
+ 
+ test<string>((x) => {
+-  assert(x, pattern(string(), /.*/))
++  assertValid(x, pattern(string(), /.*/))
+   return x
+ })
+--- a/test/typings/pick.ts
++++ b/test/typings/pick.ts
+@@ -1,9 +1,9 @@
+-import { assert, pick, object, number, string } from '../../src'
++import { assertValid, pick, object, number, string } from '../../src'
+ import { test } from '..'
+ 
+ test<{
+   b: string
+ }>((x) => {
+-  assert(x, pick(object({ a: number(), b: string() }), ['b']))
++  assertValid(x, pick(object({ a: number(), b: string() }), ['b']))
+   return x
+ })
+--- a/test/typings/record.ts
++++ b/test/typings/record.ts
+@@ -1,7 +1,7 @@
+-import { assert, record, string, number } from '../../src'
++import { assertValid, record, string, number } from '../../src'
+ import { test } from '..'
+ 
+ test<Record<string, number>>((x) => {
+-  assert(x, record(string(), number()))
++  assertValid(x, record(string(), number()))
+   return x
+ })
+--- a/test/typings/refine.ts
++++ b/test/typings/refine.ts
+@@ -1,8 +1,8 @@
+-import { assert, refine, string } from '../../src'
++import { assertValid, refine, string } from '../../src'
+ import { test } from '..'
+ 
+ test<string>((x) => {
+-  assert(
++  assertValid(
+     x,
+     refine(string(), 'word', () => true)
+   )
+--- a/test/typings/regexp.ts
++++ b/test/typings/regexp.ts
+@@ -1,7 +1,7 @@
+-import { assert, regexp } from '../../src'
++import { assertValid, regexp } from '../../src'
+ import { test } from '..'
+ 
+ test<RegExp>((x) => {
+-  assert(x, regexp())
++  assertValid(x, regexp())
+   return x
+ })
+--- a/test/typings/set.ts
++++ b/test/typings/set.ts
+@@ -1,7 +1,7 @@
+-import { assert, set, string } from '../../src'
++import { assertValid, set, string } from '../../src'
+ import { test } from '..'
+ 
+ test<Set<string>>((x) => {
+-  assert(x, set(string()))
++  assertValid(x, set(string()))
+   return x
+ })
+--- a/test/typings/size.ts
++++ b/test/typings/size.ts
+@@ -1,27 +1,27 @@
+-import { assert, size, string, array, number, map, set } from '../../src'
++import { assertValid, size, string, array, number, map, set } from '../../src'
+ import { test } from '..'
+ 
+ test<number>((x) => {
+-  assert(x, size(number(), 1, 5))
++  assertValid(x, size(number(), 1, 5))
+   return x
+ })
+ 
+ test<string>((x) => {
+-  assert(x, size(string(), 1, 5))
++  assertValid(x, size(string(), 1, 5))
+   return x
+ })
+ 
+ test<Array<unknown>>((x) => {
+-  assert(x, size(array(), 1, 5))
++  assertValid(x, size(array(), 1, 5))
+   return x
+ })
+ 
+ test<Set<unknown>>((x) => {
+-  assert(x, size(set(), 1, 5))
++  assertValid(x, size(set(), 1, 5))
+   return x
+ })
+ 
+ test<Map<unknown, unknown>>((x) => {
+-  assert(x, size(map(), 1, 5))
++  assertValid(x, size(map(), 1, 5))
+   return x
+ })
+--- a/test/typings/string.ts
++++ b/test/typings/string.ts
+@@ -1,7 +1,7 @@
+-import { assert, string } from '../../src'
++import { assertValid, string } from '../../src'
+ import { test } from '..'
+ 
+ test<string>((x) => {
+-  assert(x, string())
++  assertValid(x, string())
+   return x
+ })
+--- a/test/typings/struct.ts
++++ b/test/typings/struct.ts
+@@ -1,8 +1,8 @@
+-import { assert, define } from '../../src'
++import { assertValid, define } from '../../src'
+ import { test } from '..'
+ 
+ test<string>((x) => {
+-  assert(
++  assertValid(
+     x,
+     define<string>('custom', () => true)
+   )
+--- a/test/typings/trimmed.ts
++++ b/test/typings/trimmed.ts
+@@ -1,7 +1,7 @@
+-import { assert, string, trimmed } from '../../src'
++import { assertValid, string, trimmed } from '../../src'
+ import { test } from '..'
+ 
+ test<string>((x) => {
+-  assert(x, trimmed(string()))
++  assertValid(x, trimmed(string()))
+   return x
+ })
+--- a/test/typings/tuple.ts
++++ b/test/typings/tuple.ts
+@@ -1,8 +1,8 @@
+-import { assert, tuple, string, number, literal } from '../../src'
++import { assertValid, tuple, string, number, literal } from '../../src'
+ import { test } from '..'
+ 
+ test<[string, number]>((x) => {
+-  assert(x, tuple([string(), number()]))
++  assertValid(x, tuple([string(), number()]))
+   return x
+ })
+ 
+@@ -52,7 +52,7 @@
+     '41',
+   ]
+ >((x) => {
+-  assert(
++  assertValid(
+     x,
+     tuple([
+       literal('1'),
+--- a/test/typings/type.ts
++++ b/test/typings/type.ts
+@@ -1,7 +1,7 @@
+-import { assert, type, number } from '../../src'
++import { assertValid, type, number } from '../../src'
+ import { test } from '..'
+ 
+ test<{ a: number }>((x) => {
+-  assert(x, type({ a: number() }))
++  assertValid(x, type({ a: number() }))
+   return x
+ })
+--- a/test/typings/union.ts
++++ b/test/typings/union.ts
+@@ -1,8 +1,8 @@
+-import { assert, union, object, string, literal } from '../../src'
++import { assertValid, union, object, string, literal } from '../../src'
+ import { test } from '..'
+ 
+ test<{ a: string } | { b: string }>((x) => {
+-  assert(x, union([object({ a: string() }), object({ b: string() })]))
++  assertValid(x, union([object({ a: string() }), object({ b: string() })]))
+   return x
+ })
+ 
+@@ -49,7 +49,7 @@
+   | '39'
+   | '40'
+ >((x) => {
+-  assert(
++  assertValid(
+     x,
+     union([
+       literal('1'),
+--- a/test/typings/unknown.ts
++++ b/test/typings/unknown.ts
+@@ -1,7 +1,7 @@
+-import { assert, unknown } from '../../src'
++import { assertValid, unknown } from '../../src'
+ import { test } from '..'
+ 
+ test<unknown>((x) => {
+-  assert(x, unknown())
++  assertValid(x, unknown())
+   return x
+ })
+--- a/test/validation/dynamic/invalid-reference.ts
++++ b/test/validation/dynamic/invalid-reference.ts
+@@ -1,4 +1,4 @@
+-import { assert, type, dynamic, literal, number, string } from '../../../src'
++import { assertValid, type, dynamic, literal, number, string } from '../../../src'
+ 
+ const Entity = type({
+   object: string(),
+@@ -20,7 +20,7 @@
+ }
+ 
+ export const Struct = dynamic((entity) => {
+-  assert(entity, Entity)
++  assertValid(entity, Entity)
+   return map[entity.object]
+ })
+ 
+--- a/test/validation/dynamic/valid-reference.ts
++++ b/test/validation/dynamic/valid-reference.ts
+@@ -1,4 +1,4 @@
+-import { assert, type, dynamic, literal, string, number } from '../../../src'
++import { assertValid, type, dynamic, literal, string, number } from '../../../src'
+ 
+ const Entity = type({
+   object: string(),
+@@ -20,7 +20,7 @@
+ }
+ 
+ export const Struct = dynamic((entity) => {
+-  assert(entity, Entity)
++  assertValid(entity, Entity)
+   return map[entity.object]
+ })
+ 

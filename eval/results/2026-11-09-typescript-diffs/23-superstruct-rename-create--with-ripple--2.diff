@@ -1,0 +1,235 @@
+--- a/Readme.md
++++ b/Readme.md
+@@ -99,7 +99,7 @@
+ Superstruct can also handle coercion of your data before validating it, for example to mix in default values:
+ 
+ ```ts
+-import { create, object, number, string, defaulted } from 'superstruct'
++import { createFrom, object, number, string, defaulted } from 'superstruct'
+ 
+ let i = 0
+ 
+@@ -113,7 +113,7 @@
+ }
+ 
+ // You can apply the defaults to your data while validating.
+-const user = create(data, User)
++const user = createFrom(data, User)
+ // {
+ //   id: 0,
+ //   name: 'Jane',
+--- a/docs/guides/03-coercing-data.md
++++ b/docs/guides/03-coercing-data.md
+@@ -9,7 +9,7 @@
+ Since defaults are such a common case, Superstruct comes with a `defaulted` helper that makes defining default values easy:
+ 
+ ```ts
+-import { create, defaulted, number, object, string } from 'superstruct'
++import { createFrom, defaulted, number, object, string } from 'superstruct'
+ 
+ let i = 0
+ 
+@@ -24,12 +24,12 @@
+   email: 'jane@example.com',
+ }
+ 
+-const user = create(data, User)
++const user = createFrom(data, User)
+ ```
+ 
+ Here the `user` object didn't default an `id` property. That's because any `undefined` values will be replaced with their default values instead.
+ 
+-Notice that we used [`create`](../reference/core.md#create) and not [`assert`](../reference/core.md#assert)! This is an important distinction because we want to receive the return value of the newly coerced data.
++Notice that we used [`createFrom`](../reference/core.md#createfrom) and not [`assert`](../reference/core.md#assert)! This is an important distinction because we want to receive the return value of the newly coerced data.
+ 
+ The `defaults` helper also works with objects:
+ 
+@@ -53,18 +53,18 @@
+ For example, maybe you want to ensure that a number is parsed from a string before passing it into the validator. To do that you can define a custom coercion:
+ 
+ ```ts
+-import { coerce, number, string, create } from 'superstruct'
++import { coerce, number, string, createFrom } from 'superstruct'
+ 
+ const MyNumber = coerce(number(), string(), (value) => parseFloat(value))
+ ```
+ 
+-Now instead of using `assert()` or `is()` you can use `create()` to apply your custom coercion logic:
++Now instead of using `assert()` or `is()` you can use `createFrom()` to apply your custom coercion logic:
+ 
+ ```ts
+-import { create } from 'superstruct'
++import { createFrom } from 'superstruct'
+ 
+ const data = '3.14'
+-const output = create(data, MyNumber)
++const output = createFrom(data, MyNumber)
+ // 3.14
+ ```
+ 
+--- a/docs/readme.md
++++ b/docs/readme.md
+@@ -64,7 +64,7 @@
+ Superstruct can also handle coercion of your data before validating it, for example to mix in default values:
+ 
+ ```ts
+-import { create, object, number, string, defaulted } from 'superstruct'
++import { createFrom, object, number, string, defaulted } from 'superstruct'
+ 
+ const User = object({
+   id: defaulted(number(), () => 1),
+@@ -76,7 +76,7 @@
+ }
+ 
+ // You can apply the defaults to your data while validating.
+-const user = create(data, User)
++const user = createFrom(data, User)
+ // {
+ //   id: 1,
+ //   name: 'Jane',
+--- a/docs/reference/coercions.md
++++ b/docs/reference/coercions.md
+@@ -31,13 +31,13 @@
+ You can also define your own custom coercions that are specific to your application's requirements, like so:
+ 
+ ```ts
+-import { coerce, number, string, create } from 'superstruct'
++import { coerce, number, string, createFrom } from 'superstruct'
+ 
+ const MyNumber = coerce(number(), string(), (value) => parseFloat(value))
+ 
+-const a = create(42, MyNumber) // 42
+-const b = create('42', MyNumber) // 42
+-const c = create(false, MyNumber) // error thrown!
++const a = createFrom(42, MyNumber) // 42
++const b = createFrom('42', MyNumber) // 42
++const c = createFrom(false, MyNumber) // error thrown!
+ ```
+ 
+ The second argument to `coerce` is a struct narrowing the types of input values you want to try coercion. In the example above, the coercion function will only ever be called when the input is a string—booleans would ignore coercion and fail normally.
+--- a/docs/reference/core.md
++++ b/docs/reference/core.md
+@@ -12,12 +12,12 @@
+ 
+ > 🤖 When using TypeScript `assert` acts as an [assertion function](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-7.html#assertion-functions), so you can ensure that after calling it the type of the `value` matches the shape of the struct.
+ 
+-### `create`
++### `createFrom`
+ 
+-`create<T>(value: unknown, struct: Struct<T>, message?: string) => T`
++`createFrom<T>(value: unknown, struct: Struct<T>, message?: string) => T`
+ 
+ ```ts
+-const user = create(value, User, 'Unable to create a user!')
++const user = createFrom(value, User, 'Unable to create a user!')
+ ```
+ 
+ Create a `value` using the coercion logic that is built-in to the struct, returning the newly coerced value. If the value is invalid a [`StructError`](./errors.md#structerror) will be thrown (the optional `message` parameter allows you to override error's message).
+--- a/examples/default-values.js
++++ b/examples/default-values.js
+@@ -1,6 +1,6 @@
+ import {
+   boolean,
+-  create,
++  createFrom,
+   date,
+   defaulted,
+   number,
+@@ -27,7 +27,7 @@
+ }
+ 
+ // Coerce the data during validation, using the struct's default values.
+-const user = create(data, User)
++const user = createFrom(data, User)
+ // {
+ //   id: 1,
+ //   name: 'Jane Smith',
+--- a/src/struct.ts
++++ b/src/struct.ts
+@@ -73,7 +73,7 @@
+    */
+ 
+   create(value: unknown, message?: string): T {
+-    return create(value, this, message)
++    return createFrom(value, this, message)
+   }
+ 
+   /**
+@@ -136,7 +136,7 @@
+  * Create a value with the coercion logic of struct and validate it.
+  */
+ 
+-export function create<T, S>(
++export function createFrom<T, S>(
+   value: unknown,
+   struct: Struct<T, S>,
+   message?: string
+--- a/src/structs/coercions.ts
++++ b/src/structs/coercions.ts
+@@ -9,7 +9,7 @@
+  * likelihood that it passes validation—for example for default values, parsing
+  * different formats, etc.
+  *
+- * Note: You must use `create(value, Struct)` on the value to have the coercion
++ * Note: You must use `createFrom(value, Struct)` on the value to have the coercion
+  * take effect! Using simply `assert()` or `is()` will not use coercion.
+  */
+ 
+@@ -31,7 +31,7 @@
+ /**
+  * Augment a struct to replace `undefined` values with a default.
+  *
+- * Note: You must use `create(value, Struct)` on the value to have the coercion
++ * Note: You must use `createFrom(value, Struct)` on the value to have the coercion
+  * take effect! Using simply `assert()` or `is()` will not use coercion.
+  */
+ 
+@@ -72,7 +72,7 @@
+ /**
+  * Augment a struct to trim string inputs.
+  *
+- * Note: You must use `create(value, Struct)` on the value to have the coercion
++ * Note: You must use `createFrom(value, Struct)` on the value to have the coercion
+  * take effect! Using simply `assert()` or `is()` will not use coercion.
+  */
+ 
+--- a/test/api/create.test.ts
++++ b/test/api/create.test.ts
+@@ -2,7 +2,7 @@
+ import {
+   type,
+   optional,
+-  create,
++  createFrom,
+   string,
+   defaulted,
+   literal,
+@@ -12,7 +12,7 @@
+ describe('create', () => {
+   it('missing as helper', () => {
+     const S = defaulted(string(), 'default')
+-    expect(create(undefined, S)).toBe('default')
++    expect(createFrom(undefined, S)).toBe('default')
+   })
+ 
+   it('missing as method', () => {
+@@ -22,7 +22,7 @@
+ 
+   it('not missing as helper', () => {
+     const S = defaulted(string(), 'default')
+-    expect(create('string', S)).toBe('string')
++    expect(createFrom('string', S)).toBe('string')
+   })
+ 
+   it('not missing as method', () => {
+--- a/test/index.test.ts
++++ b/test/index.test.ts
+@@ -4,7 +4,7 @@
+ import { describe, expect, it } from 'vitest'
+ import {
+   assert as assertValue,
+-  create as createValue,
++  createFrom as createValue,
+   StructError,
+ } from '../src'
+ describe('superstruct', () => {

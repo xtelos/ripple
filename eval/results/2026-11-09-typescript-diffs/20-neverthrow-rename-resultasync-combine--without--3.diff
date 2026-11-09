@@ -1,0 +1,589 @@
+--- a/README.md
++++ b/README.md
+@@ -60,7 +60,7 @@
+     - [`ResultAsync.andTee` (method)](#resultasyncandtee-method)
+     - [`ResultAsync.orTee` (method)](#resultasyncortee-method)
+     - [`ResultAsync.andThrough` (method)](#resultasyncandthrough-method)
+-    - [`ResultAsync.combine` (static class method)](#resultasynccombine-static-class-method)
++    - [`ResultAsync.gather` (static class method)](#resultasyncgather-static-class-method)
+     - [`ResultAsync.combineWithAllErrors` (static class method)](#resultasynccombinewithallerrors-static-class-method)
+     - [`ResultAsync.safeUnwrap()`](#resultasyncsafeunwrap)
+   + [Utilities](#utilities)
+@@ -1424,28 +1424,28 @@
+ [⬆️  Back to top](#toc)
+ 
+ ---
+-#### `ResultAsync.combine` (static class method)
++#### `ResultAsync.gather` (static class method)
+ 
+ Combine lists of `ResultAsync`s.
+ 
+-If you're familiar with `Promise.all`, the combine function works conceptually the same.
+-
+-**`combine` works on both heterogeneous and homogeneous lists**. This means that you can have lists that contain different kinds of `ResultAsync`s and still be able to combine them. Note that you cannot combine lists that contain both `Result`s **and** `ResultAsync`s.
+-
+-The combine function takes a list of results and returns a single result. If all the results in the list are `Ok`, then the return value will be a `Ok` containing a list of all the individual `Ok` values.
+-
+-If just one of the results in the list is an `Err` then the combine function returns that Err value (it short circuits and returns the first Err that it finds).
++If you're familiar with `Promise.all`, the gather function works conceptually the same.
++
++**`gather` works on both heterogeneous and homogeneous lists**. This means that you can have lists that contain different kinds of `ResultAsync`s and still be able to combine them. Note that you cannot combine lists that contain both `Result`s **and** `ResultAsync`s.
++
++The gather function takes a list of results and returns a single result. If all the results in the list are `Ok`, then the return value will be a `Ok` containing a list of all the individual `Ok` values.
++
++If just one of the results in the list is an `Err` then the gather function returns that Err value (it short circuits and returns the first Err that it finds).
+ 
+ Formally speaking:
+ 
+ ```typescript
+ // homogeneous lists
+-function combine<T, E>(resultList: ResultAsync<T, E>[]): ResultAsync<T[], E>
++function gather<T, E>(resultList: ResultAsync<T, E>[]): ResultAsync<T[], E>
+ 
+ // heterogeneous lists
+-function combine<T1, T2, E1, E2>(resultList: [ ResultAsync<T1, E1>, ResultAsync<T2, E2> ]): ResultAsync<[ T1, T2 ], E1 | E2>
+-function combine<T1, T2, T3, E1, E2, E3> => ResultAsync<[ T1, T2, T3 ], E1 | E2 | E3>
+-function combine<T1, T2, T3, T4, E1, E2, E3, E4> => ResultAsync<[ T1, T2, T3, T4 ], E1 | E2 | E3 | E4>
++function gather<T1, T2, E1, E2>(resultList: [ ResultAsync<T1, E1>, ResultAsync<T2, E2> ]): ResultAsync<[ T1, T2 ], E1 | E2>
++function gather<T1, T2, T3, E1, E2, E3> => ResultAsync<[ T1, T2, T3 ], E1 | E2 | E3>
++function gather<T1, T2, T3, T4, E1, E2, E3, E4> => ResultAsync<[ T1, T2, T3, T4 ], E1 | E2 | E3 | E4>
+ // ... etc etc ad infinitum
+ 
+ ```
+@@ -1456,7 +1456,7 @@
+   [okAsync(1), okAsync(2)]
+ 
+ const combinedList: ResultAsync<number[], unknown> =
+-  ResultAsync.combine(resultList)
++  ResultAsync.gather(resultList)
+ ```
+ 
+ Example with tuples:
+@@ -1468,7 +1468,7 @@
+   tuple(okAsync('a'), okAsync('b'))
+ 
+ const combinedTuple: ResultAsync<[string, string], unknown> =
+-  ResultAsync.combine(resultTuple)
++  ResultAsync.gather(resultTuple)
+ ```
+ [⬆️  Back to top](#toc)
+ 
+--- a/src/result-async.ts
++++ b/src/result-async.ts
+@@ -60,13 +60,13 @@
+     }
+   }
+ 
+-  static combine<
++  static gather<
+     T extends readonly [ResultAsync<unknown, unknown>, ...ResultAsync<unknown, unknown>[]]
+   >(asyncResultList: T): CombineResultAsyncs<T>
+-  static combine<T extends readonly ResultAsync<unknown, unknown>[]>(
++  static gather<T extends readonly ResultAsync<unknown, unknown>[]>(
+     asyncResultList: T,
+   ): CombineResultAsyncs<T>
+-  static combine<T extends readonly ResultAsync<unknown, unknown>[]>(
++  static gather<T extends readonly ResultAsync<unknown, unknown>[]>(
+     asyncResultList: T,
+   ): CombineResultAsyncs<T> {
+     return (combineResultAsyncList(asyncResultList) as unknown) as CombineResultAsyncs<T>
+--- a/tests/index.test.ts
++++ b/tests/index.test.ts
+@@ -594,15 +594,15 @@
+       })
+     })
+ 
+-    describe('`ResultAsync.combine`', () => {
++    describe('`ResultAsync.gather`', () => {
+       it('Combines a list of async results into an Ok value', async () => {
+         const asyncResultList = [okAsync(123), okAsync(456), okAsync(789)]
+ 
+-        const resultAsync: ResultAsync<number[], never[]> = ResultAsync.combine(asyncResultList)
++        const resultAsync: ResultAsync<number[], never[]> = ResultAsync.gather(asyncResultList)
+ 
+         expect(resultAsync).toBeInstanceOf(ResultAsync)
+ 
+-        const result = await ResultAsync.combine(asyncResultList)
++        const result = await ResultAsync.gather(asyncResultList)
+ 
+         expect(result.isOk()).toBe(true)
+         expect(result._unsafeUnwrap()).toEqual([123, 456, 789])
+@@ -616,7 +616,7 @@
+           errAsync('ahhhhh!'),
+         ]
+ 
+-        const result = await ResultAsync.combine(resultList)
++        const result = await ResultAsync.gather(resultList)
+ 
+         expect(result.isErr()).toBe(true)
+         expect(result._unsafeUnwrapErr()).toBe('boooom!')
+@@ -639,7 +639,7 @@
+ 
+         type ExpecteResult = Result<[string, number, boolean, number[]], string | number | boolean>
+ 
+-        const result: ExpecteResult = await ResultAsync.combine(heterogenousList)
++        const result: ExpecteResult = await ResultAsync.gather(heterogenousList)
+ 
+         expect(result._unsafeUnwrap()).toEqual(['Yooooo', 123, true, [1, 2, 3]])
+       })
+@@ -742,7 +742,7 @@
+       })
+     })
+ 
+-    describe('testdouble `ResultAsync.combine`', () => {
++    describe('testdouble `ResultAsync.gather`', () => {
+       interface ITestInterface {
+         getName(): string
+         setName(name: string): void
+@@ -752,7 +752,7 @@
+       it('Combines `testdouble` proxies from mocks generated via interfaces', async () => {
+         const mock = td.object<ITestInterface>()
+ 
+-        const result = await ResultAsync.combine([okAsync(mock)] as const)
++        const result = await ResultAsync.gather([okAsync(mock)] as const)
+ 
+         expect(result).toBeDefined()
+         expect(result.isErr()).toBeFalsy()
+--- a/tests/typecheck-tests.ts
++++ b/tests/typecheck-tests.ts
+@@ -1697,7 +1697,7 @@
+     (function it(_ = 'combines different result asyncs into one') {
+       type Expectation = ResultAsync<[ number, string, boolean, boolean ], Error | string | string[]>;
+ 
+-      const result = ResultAsync.combine([
++      const result = ResultAsync.gather([
+         okAsync<number, string>(1),
+         okAsync<string, string>('string'),
+         errAsync<boolean, string[]>([ 'string', 'string2' ]),
+@@ -1711,7 +1711,7 @@
+     (function it(_ = 'combines only ok result asyncs into one') {
+       type Expectation = ResultAsync<[ number, string ], never>;
+ 
+-      const result = ResultAsync.combine([
++      const result = ResultAsync.gather([
+         okAsync(1),
+         okAsync('string'),
+       ]);
+@@ -1723,7 +1723,7 @@
+     (function it(_ = 'combines only err results into one') {
+       type Expectation = ResultAsync<[ never, never ], number | string>;
+ 
+-      const result = ResultAsync.combine([
++      const result = ResultAsync.gather([
+         errAsync(1),
+         errAsync('string'),
+       ]);
+@@ -1736,7 +1736,7 @@
+       type Expectation = ResultAsync<never, never>;
+       const results: [] = [];
+ 
+-      const result = ResultAsync.combine(results);
++      const result = ResultAsync.gather(results);
+ 
+       const assignableToCheck: Expectation = result;
+       const assignablefromCheck: typeof result = assignableToCheck;
+@@ -1746,7 +1746,7 @@
+       type Expectation = ResultAsync<string[], string>;
+       const results: ResultAsync<string, string>[] = [];
+ 
+-      const result = ResultAsync.combine(results);
++      const result = ResultAsync.gather(results);
+ 
+       const assignableToCheck: Expectation = result;
+       const assignablefromCheck: typeof result = assignableToCheck;
+@@ -1758,7 +1758,7 @@
+         type Expectation = ResultAsync<CreateTuple<6, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -1770,7 +1770,7 @@
+         type Expectation = ResultAsync<CreateTuple<7, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -1782,7 +1782,7 @@
+         type Expectation = ResultAsync<CreateTuple<8, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -1794,7 +1794,7 @@
+         type Expectation = ResultAsync<CreateTuple<9, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -1806,7 +1806,7 @@
+         type Expectation = ResultAsync<CreateTuple<10, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -1818,7 +1818,7 @@
+         type Expectation = ResultAsync<CreateTuple<11, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -1830,7 +1830,7 @@
+         type Expectation = ResultAsync<CreateTuple<12, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -1842,7 +1842,7 @@
+         type Expectation = ResultAsync<CreateTuple<13, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -1854,7 +1854,7 @@
+         type Expectation = ResultAsync<CreateTuple<14, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -1866,7 +1866,7 @@
+         type Expectation = ResultAsync<CreateTuple<15, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -1878,7 +1878,7 @@
+         type Expectation = ResultAsync<CreateTuple<16, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -1890,7 +1890,7 @@
+         type Expectation = ResultAsync<CreateTuple<17, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -1902,7 +1902,7 @@
+         type Expectation = ResultAsync<CreateTuple<18, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -1914,7 +1914,7 @@
+         type Expectation = ResultAsync<CreateTuple<19, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -1926,7 +1926,7 @@
+         type Expectation = ResultAsync<CreateTuple<20, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -1938,7 +1938,7 @@
+         type Expectation = ResultAsync<CreateTuple<21, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -1950,7 +1950,7 @@
+         type Expectation = ResultAsync<CreateTuple<22, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -1962,7 +1962,7 @@
+         type Expectation = ResultAsync<CreateTuple<23, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -1974,7 +1974,7 @@
+         type Expectation = ResultAsync<CreateTuple<24, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -1986,7 +1986,7 @@
+         type Expectation = ResultAsync<CreateTuple<25, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -1998,7 +1998,7 @@
+         type Expectation = ResultAsync<CreateTuple<26, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2010,7 +2010,7 @@
+         type Expectation = ResultAsync<CreateTuple<27, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2022,7 +2022,7 @@
+         type Expectation = ResultAsync<CreateTuple<28, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2034,7 +2034,7 @@
+         type Expectation = ResultAsync<CreateTuple<29, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2046,7 +2046,7 @@
+         type Expectation = ResultAsync<CreateTuple<30, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2058,7 +2058,7 @@
+         type Expectation = ResultAsync<CreateTuple<31, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2070,7 +2070,7 @@
+         type Expectation = ResultAsync<CreateTuple<32, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2082,7 +2082,7 @@
+         type Expectation = ResultAsync<CreateTuple<33, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2094,7 +2094,7 @@
+         type Expectation = ResultAsync<CreateTuple<34, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2106,7 +2106,7 @@
+         type Expectation = ResultAsync<CreateTuple<35, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2118,7 +2118,7 @@
+         type Expectation = ResultAsync<CreateTuple<36, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2130,7 +2130,7 @@
+         type Expectation = ResultAsync<CreateTuple<37, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2142,7 +2142,7 @@
+         type Expectation = ResultAsync<CreateTuple<38, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2154,7 +2154,7 @@
+         type Expectation = ResultAsync<CreateTuple<39, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2166,7 +2166,7 @@
+         type Expectation = ResultAsync<CreateTuple<40, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2178,7 +2178,7 @@
+         type Expectation = ResultAsync<CreateTuple<41, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2190,7 +2190,7 @@
+         type Expectation = ResultAsync<CreateTuple<42, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2202,7 +2202,7 @@
+         type Expectation = ResultAsync<CreateTuple<43, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2214,7 +2214,7 @@
+         type Expectation = ResultAsync<CreateTuple<44, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2226,7 +2226,7 @@
+         type Expectation = ResultAsync<CreateTuple<45, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2238,7 +2238,7 @@
+         type Expectation = ResultAsync<CreateTuple<46, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2250,7 +2250,7 @@
+         type Expectation = ResultAsync<CreateTuple<47, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2262,7 +2262,7 @@
+         type Expectation = ResultAsync<CreateTuple<48, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),
+@@ -2274,7 +2274,7 @@
+         type Expectation = ResultAsync<CreateTuple<49, string>, never>
+ 
+         const inputValues = input<Input>()
+-        const result = ResultAsync.combine(inputValues)
++        const result = ResultAsync.gather(inputValues)
+ 
+         Test.checks([
+           Test.check<typeof result, Expectation, Test.Pass>(),

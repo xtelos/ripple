@@ -1,0 +1,179 @@
+--- a/README.md
++++ b/README.md
+@@ -273,7 +273,7 @@
+ class Foo() {}
+ 
+ class FeatureFlagsTransformer implements Transform<FeatureFlags, boolean> {
+-  public transform(flags: FeatureFlags, flag: string) {
++  public convert(flags: FeatureFlags, flag: string) {
+     return flags.getFlagValue(flag);
+   }
+ }
+@@ -296,7 +296,7 @@
+ }
+ 
+ class FooTransform implements Transform<Foo[], string[]>{
+-  public transform(foos: Foo[]): string[]{
++  public convert(foos: Foo[]): string[]{
+     return foos.map(f => f.value));
+   }
+ }
+--- a/src/__tests__/transform.test.ts
++++ b/src/__tests__/transform.test.ts
+@@ -12,7 +12,7 @@
+   class Bar {}
+ 
+   class BarTransform {
+-    public transform(): string {
++    public convert(): string {
+       return "Transformed from bar";
+     }
+   }
+@@ -35,7 +35,7 @@
+   }
+ 
+   class BarTransform implements Transform<Bar, string> {
+-    public transform(bar: Bar, str: string): string {
++    public convert(bar: Bar, str: string): string {
+       return bar.repeat(str);
+     }
+   }
+@@ -60,7 +60,7 @@
+   }
+ 
+   class BarTransform implements Transform<Bar, string> {
+-    public transform(bar: Bar, str1: string, str2: string): string {
++    public convert(bar: Bar, str1: string, str2: string): string {
+       return bar.concat(str1, str2);
+     }
+   }
+@@ -81,7 +81,7 @@
+   class Bar {}
+ 
+   class BarTransform {
+-    public transform(): string {
++    public convert(): string {
+       return "Transformed from bar";
+     }
+   }
+@@ -102,7 +102,7 @@
+   class Bar {}
+ 
+   class BarTransform {
+-    public transform(): string {
++    public convert(): string {
+       return "Transformed from bar";
+     }
+   }
+@@ -136,7 +136,7 @@
+   container.register<FooInterface>("FooInterface", {useClass: FooTwo});
+ 
+   class FooTransform implements Transform<FooInterface[], string> {
+-    public transform(foos: FooInterface[]): string {
++    public convert(foos: FooInterface[]): string {
+       return foos.map(f => f.bar).reduce((acc, f) => acc + f);
+     }
+   }
+@@ -171,7 +171,7 @@
+   container.register<FooInterface>("FooInterface", {useClass: FooTwo});
+ 
+   class FooTransform implements Transform<FooInterface[], string> {
+-    public transform(foos: FooInterface[], suffix: string): string {
++    public convert(foos: FooInterface[], suffix: string): string {
+       return foos.map(f => f.bar + suffix).reduce((acc, f) => acc + f);
+     }
+   }
+@@ -206,7 +206,7 @@
+   container.register<FooInterface>("FooInterface", {useClass: FooTwo});
+ 
+   class FooTransform implements Transform<FooInterface[], string> {
+-    public transform(
++    public convert(
+       foos: FooInterface[],
+       delimiter: string,
+       suffix: string
+@@ -247,7 +247,7 @@
+   container.register<FooInterface>("FooInterface", {useClass: FooTwo});
+ 
+   class FooTransform implements Transform<FooInterface[], string> {
+-    public transform(
++    public convert(
+       foos: FooInterface[],
+       delimiter: string,
+       suffix: string
+--- a/src/decorators/auto-injectable.ts
++++ b/src/decorators/auto-injectable.ts
+@@ -30,13 +30,13 @@
+                     return type.multiple
+                       ? globalContainer
+                           .resolve(type.transform)
+-                          .transform(
++                          .convert(
+                             globalContainer.resolveAll(type.token),
+                             ...type.transformArgs
+                           )
+                       : globalContainer
+                           .resolve(type.transform)
+-                          .transform(
++                          .convert(
+                             globalContainer.resolve(type.token),
+                             ...type.transformArgs
+                           );
+@@ -48,7 +48,7 @@
+                 } else if (isTransformDescriptor(type)) {
+                   return globalContainer
+                     .resolve(type.transform)
+-                    .transform(
++                    .convert(
+                       globalContainer.resolve(type.token),
+                       ...type.transformArgs
+                     );
+--- a/src/decorators/inject-with-transform.ts
++++ b/src/decorators/inject-with-transform.ts
+@@ -6,7 +6,7 @@
+  * Parameter decorator factory that allows for interface information to be stored in the constructor's metadata with a transform token
+  * @param token The token of the object to be resolved
+  * @param transformer The token of the transform object
+- * @param args Arguments to be passed to the transform method on the transformer
++ * @param args Arguments to be passed to the convert method on the transformer
+  * @returns The parameter decorator
+  */
+ function injectWithTransform(
+--- a/src/dependency-container.ts
++++ b/src/dependency-container.ts
+@@ -554,7 +554,7 @@
+         if (isTokenDescriptor(param)) {
+           if (isTransformDescriptor(param)) {
+             return param.multiple
+-              ? this.resolve(param.transform).transform(
++              ? this.resolve(param.transform).convert(
+                   this.resolveAll(
+                     param.token,
+                     new ResolutionContext(),
+@@ -562,7 +562,7 @@
+                   ),
+                   ...param.transformArgs
+                 )
+-              : this.resolve(param.transform).transform(
++              : this.resolve(param.transform).convert(
+                   this.resolve(param.token, context, param.isOptional),
+                   ...param.transformArgs
+                 );
+@@ -576,7 +576,7 @@
+               : this.resolve(param.token, context, param.isOptional);
+           }
+         } else if (isTransformDescriptor(param)) {
+-          return this.resolve(param.transform, context).transform(
++          return this.resolve(param.transform, context).convert(
+             this.resolve(param.token, context),
+             ...param.transformArgs
+           );
+--- a/src/types/transform.ts
++++ b/src/types/transform.ts
+@@ -1,5 +1,5 @@
+ interface Transform<TIn, TOut> {
+-  transform: (incoming: TIn, ...args: any[]) => TOut;
++  convert: (incoming: TIn, ...args: any[]) => TOut;
+ }
+ 
+ export default Transform;

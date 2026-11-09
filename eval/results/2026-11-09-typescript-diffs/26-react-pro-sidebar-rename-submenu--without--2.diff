@@ -1,0 +1,2153 @@
+--- a/README.md
++++ b/README.md
+@@ -61,14 +61,14 @@
+ ## Usage
+ 
+ ```jsx
+-import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
++import { Sidebar, Menu, MenuItem, MenuGroup } from 'react-pro-sidebar';
+ 
+ <Sidebar>
+   <Menu>
+-    <SubMenu label="Charts">
++    <MenuGroup label="Charts">
+       <MenuItem> Pie charts </MenuItem>
+       <MenuItem> Line charts </MenuItem>
+-    </SubMenu>
++    </MenuGroup>
+     <MenuItem> Documentation </MenuItem>
+     <MenuItem> Calendar </MenuItem>
+   </Menu>
+@@ -125,7 +125,7 @@
+ </Sidebar>
+ ```
+ 
+-For `Menu` component, in addition to `rootStyles` you can also use `menuItemStyles` prop for customizing all `MenuItem` & `SubMenu` components and their children
++For `Menu` component, in addition to `rootStyles` you can also use `menuItemStyles` prop for customizing all `MenuItem` & `MenuGroup` components and their children
+ 
+ **Type definition**
+ 
+@@ -261,19 +261,19 @@
+          <tr>
+             <td>popover</td>
+             <td><code>boolean</code></td>
+-            <td>If <code>true</code>, top-level SubMenus open as floating poppers even when the sidebar is expanded (instead of sliding open inline)</td>
++            <td>If <code>true</code>, top-level MenuGroups open as floating poppers even when the sidebar is expanded (instead of sliding open inline)</td>
+             <td><code>false</code></td>
+         </tr>
+          <tr>
+             <td>accordion</td>
+             <td><code>boolean</code></td>
+-            <td>If <code>true</code>, only one top-level SubMenu can be open at a time; opening another closes the previously open one</td>
++            <td>If <code>true</code>, only one top-level MenuGroup can be open at a time; opening another closes the previously open one</td>
+             <td><code>false</code></td>
+         </tr>
+          <tr>
+             <td>menuItemStyles</td>
+             <td><code>MenuItemStyles</code></td>
+-            <td>Apply styles to MenuItem and SubMenu components and their children </td>
++            <td>Apply styles to MenuItem and MenuGroup components and their children </td>
+             <td>-</td>
+         </tr>
+          <tr>
+@@ -338,7 +338,7 @@
+             <td>-</td>
+         </tr>
+         <tr>
+-            <td rowspan=12>SubMenu</td>
++            <td rowspan=12>MenuGroup</td>
+             <td>label</td>
+             <td><code>string | ReactNode</code></td>
+             <td>Label for the submenu </td>
+@@ -389,7 +389,7 @@
+         <tr>
+             <td>accordion</td>
+             <td><code>boolean</code></td>
+-            <td>If <code>true</code>, only one of this submenu's direct child SubMenus can be open at a time</td>
++            <td>If <code>true</code>, only one of this submenu's direct child MenuGroups can be open at a time</td>
+             <td><code>false</code></td>
+         </tr>
+         <tr>
+@@ -407,7 +407,7 @@
+         <tr>
+             <td>rootStyles</td>
+             <td><code>CSSObject</code></td>
+-            <td>Apply styles to SubMenu element</td>
++            <td>Apply styles to MenuGroup element</td>
+             <td>-</td>
+         </tr>
+     </tbody>
+--- a/src/components/Menu.tsx
++++ b/src/components/Menu.tsx
+@@ -60,7 +60,7 @@
+   closeOnClick?: boolean;
+ 
+   /**
+-   * If set to true, top-level `SubMenu`s open as floating poppers even when the
++   * If set to true, top-level `MenuGroup`s open as floating poppers even when the
+    * sidebar is expanded (instead of sliding open inline). Useful for tall
+    * sidebars with many items.
+    * @default ```false```
+@@ -68,19 +68,19 @@
+   popover?: boolean;
+ 
+   /**
+-   * Apply styles to MenuItem and SubMenu components and their children
++   * Apply styles to MenuItem and MenuGroup components and their children
+    */
+   menuItemStyles?: MenuItemStyles;
+ 
+   /**
+-   * Render a custom expand icon for SubMenu components
++   * Render a custom expand icon for MenuGroup components
+    */
+   renderExpandIcon?: (params: RenderExpandIconParams) => React.ReactNode;
+ }
+ 
+ export interface MenuProps extends MenuContextProps, React.MenuHTMLAttributes<HTMLMenuElement> {
+   /**
+-   * If `true`, only one top-level `SubMenu` can be open at a time (accordion
++   * If `true`, only one top-level `MenuGroup` can be open at a time (accordion
+    * behavior). Opening another closes the previously open one.
+    * @default ```false```
+    */
+@@ -92,7 +92,7 @@
+ 
+ /**
+  * Internal context used to coordinate single-open (accordion) behavior across
+- * sibling `SubMenu`s at a given level. A `null` value means no accordion is
++ * sibling `MenuGroup`s at a given level. A `null` value means no accordion is
+  * active at this level.
+  */
+ export type AccordionContextValue = {
+@@ -100,7 +100,7 @@
+   setActive: (id: string, isOpen: boolean) => void;
+   /**
+    * Synchronously-mutable ref used during mount to detect when more than one
+-   * `SubMenu` registers `defaultOpen` in the same accordion group (sibling
++   * `MenuGroup` registers `defaultOpen` in the same accordion group (sibling
+    * effects in the same commit otherwise can't see each other's state updates).
+    */
+   defaultOpenRegisteredRef: React.MutableRefObject<string | null>;
+@@ -110,9 +110,9 @@
+ 
+ /**
+  * Internal context used to cascade the `active` state up the tree: a child
+- * (MenuItem or SubMenu) reports its active state to the nearest parent SubMenu,
++ * (MenuItem or MenuGroup) reports its active state to the nearest parent MenuGroup,
+  * which marks itself active when any descendant is active. `null` at the top
+- * level (no parent SubMenu to report to).
++ * level (no parent MenuGroup to report to).
+  */
+ export type SubMenuActiveContextValue = {
+   registerActive: (id: string, active: boolean) => void;
+--- a/src/components/MenuItem.tsx
++++ b/src/components/MenuItem.tsx
+@@ -104,7 +104,7 @@
+   const { collapsed, rtl, transitionDuration } = React.useContext(SidebarContext);
+   const { menuItemStyles } = useMenu();
+ 
+-  // Report active state up to the nearest parent SubMenu so ancestors can
++  // Report active state up to the nearest parent MenuGroup so ancestors can
+   // highlight when this item is active.
+   const id = React.useId();
+   const parentActive = React.useContext(SubMenuActiveContext);
+--- a/src/components/SubMenu.tsx
++++ b/src/components/SubMenu.tsx
+@@ -79,7 +79,7 @@
+   rootStyles?: CSSObject;
+ 
+   /**
+-   * If `true`, only one direct-child `SubMenu` can be open at a time (accordion
++   * If `true`, only one direct-child `MenuGroup` can be open at a time (accordion
+    * behavior). Opening another closes the previously open one. Scoped to this
+    * submenu's immediate children.
+    * @default ```false```
+@@ -504,4 +504,4 @@
+     </StyledSubMenu>
+   );
+ };
+-export const SubMenu = React.forwardRef<HTMLLIElement, SubMenuProps>(SubMenuFR);
++export const MenuGroup = React.forwardRef<HTMLLIElement, SubMenuProps>(SubMenuFR);
+--- a/storybook/Playground.tsx
++++ b/storybook/Playground.tsx
+@@ -1,5 +1,5 @@
+ import React from 'react';
+-import { Sidebar, Menu, MenuItem, SubMenu, menuClasses, MenuItemStyles } from '../src';
++import { Sidebar, Menu, MenuItem, MenuGroup, menuClasses, MenuItemStyles } from '../src';
+ import { Switch } from './components/Switch';
+ import { SidebarHeader } from './components/SidebarHeader';
+ import { Diamond } from './icons/Diamond';
+@@ -149,7 +149,7 @@
+               </Typography>
+             </div>
+             <Menu menuItemStyles={menuItemStyles} popover={popover}>
+-              <SubMenu
++              <MenuGroup
+                 label="Charts"
+                 icon={<BarChart />}
+                 suffix={
+@@ -161,32 +161,32 @@
+                 <MenuItem> Pie charts</MenuItem>
+                 <MenuItem> Line charts</MenuItem>
+                 <MenuItem> Bar charts</MenuItem>
+-              </SubMenu>
+-              <SubMenu label="Maps" icon={<Global />}>
++              </MenuGroup>
++              <MenuGroup label="Maps" icon={<Global />}>
+                 <MenuItem> Google maps</MenuItem>
+                 <MenuItem> Open street maps</MenuItem>
+-              </SubMenu>
+-              <SubMenu label="Theme" icon={<InkBottle />}>
++              </MenuGroup>
++              <MenuGroup label="Theme" icon={<InkBottle />}>
+                 <MenuItem> Dark</MenuItem>
+                 <MenuItem> Light</MenuItem>
+-              </SubMenu>
+-              <SubMenu label="Components" icon={<Diamond />}>
++              </MenuGroup>
++              <MenuGroup label="Components" icon={<Diamond />}>
+                 <MenuItem> Grid</MenuItem>
+                 <MenuItem> Layout</MenuItem>
+-                <SubMenu label="Forms">
++                <MenuGroup label="Forms">
+                   <MenuItem> Input</MenuItem>
+                   <MenuItem> Select</MenuItem>
+-                  <SubMenu label="More">
++                  <MenuGroup label="More">
+                     <MenuItem> CheckBox</MenuItem>
+                     <MenuItem> Radio</MenuItem>
+-                  </SubMenu>
+-                </SubMenu>
+-              </SubMenu>
+-              <SubMenu label="E-commerce" icon={<ShoppingCart />}>
++                  </MenuGroup>
++                </MenuGroup>
++              </MenuGroup>
++              <MenuGroup label="E-commerce" icon={<ShoppingCart />}>
+                 <MenuItem> Product</MenuItem>
+                 <MenuItem> Orders</MenuItem>
+                 <MenuItem> Credit card</MenuItem>
+-              </SubMenu>
++              </MenuGroup>
+             </Menu>
+ 
+             <div style={{ padding: '0 24px', marginBottom: '8px', marginTop: '32px' }}>
+--- a/storybook/stories/Menu.stories.tsx
++++ b/storybook/stories/Menu.stories.tsx
+@@ -1,6 +1,6 @@
+ import React from 'react';
+ import type { Meta, StoryFn } from '@storybook/react';
+-import { Menu, menuClasses, MenuItem, Sidebar, SubMenu } from '../../src';
++import { Menu, menuClasses, MenuItem, Sidebar, MenuGroup } from '../../src';
+ import { Icon } from '../icons/Icon';
+ 
+ const StoryParams: Meta<typeof Menu> = {
+@@ -50,11 +50,11 @@
+   <div style={{ display: 'flex', height: '100%' }}>
+     <Sidebar>
+       <Menu renderExpandIcon={({ open }) => <span>{open ? '-' : '+'}</span>}>
+-        <SubMenu label="Charts">
+-          <MenuItem> Pie charts</MenuItem>
+-          <MenuItem> Line charts</MenuItem>
+-          <MenuItem> Bar charts</MenuItem>
+-        </SubMenu>
++        <MenuGroup label="Charts">
++          <MenuItem> Pie charts</MenuItem>
++          <MenuItem> Line charts</MenuItem>
++          <MenuItem> Bar charts</MenuItem>
++        </MenuGroup>
+         <MenuItem> Calendar</MenuItem>
+         <MenuItem> E-commerce</MenuItem>
+         <MenuItem> Examples</MenuItem>
+@@ -80,11 +80,11 @@
+           },
+         }}
+       >
+-        <SubMenu defaultOpen label="Charts" icon={<Icon name="bar-chart" />}>
+-          <MenuItem> Pie charts</MenuItem>
+-          <MenuItem> Line charts</MenuItem>
+-          <MenuItem> Bar charts</MenuItem>
+-        </SubMenu>
++        <MenuGroup defaultOpen label="Charts" icon={<Icon name="bar-chart" />}>
++          <MenuItem> Pie charts</MenuItem>
++          <MenuItem> Line charts</MenuItem>
++          <MenuItem> Bar charts</MenuItem>
++        </MenuGroup>
+         <MenuItem active icon={<Icon name="calendar" />}>
+           Calendar (active)
+         </MenuItem>
+@@ -103,11 +103,11 @@
+   <div style={{ display: 'flex', height: '100%' }}>
+     <Sidebar>
+       <Menu transitionDuration={1000}>
+-        <SubMenu label="Charts">
+-          <MenuItem> Pie charts</MenuItem>
+-          <MenuItem> Line charts</MenuItem>
+-          <MenuItem> Bar charts</MenuItem>
+-        </SubMenu>
++        <MenuGroup label="Charts">
++          <MenuItem> Pie charts</MenuItem>
++          <MenuItem> Line charts</MenuItem>
++          <MenuItem> Bar charts</MenuItem>
++        </MenuGroup>
+         <MenuItem> Calendar</MenuItem>
+         <MenuItem> E-commerce</MenuItem>
+         <MenuItem> Examples</MenuItem>
+@@ -122,11 +122,11 @@
+   <div style={{ display: 'flex', height: '100%' }}>
+     <Sidebar collapsed>
+       <Menu closeOnClick>
+-        <SubMenu label="Charts">
+-          <MenuItem> Pie charts</MenuItem>
+-          <MenuItem> Line charts</MenuItem>
+-          <MenuItem> Bar charts</MenuItem>
+-        </SubMenu>
++        <MenuGroup label="Charts">
++          <MenuItem> Pie charts</MenuItem>
++          <MenuItem> Line charts</MenuItem>
++          <MenuItem> Bar charts</MenuItem>
++        </MenuGroup>
+         <MenuItem> Calendar</MenuItem>
+         <MenuItem> E-commerce</MenuItem>
+         <MenuItem> Examples</MenuItem>
+@@ -148,11 +148,11 @@
+           },
+         }}
+       >
+-        <SubMenu label="Charts" icon={<Icon name="bar-chart" />}>
+-          <MenuItem> Pie charts</MenuItem>
+-          <MenuItem> Line charts</MenuItem>
+-          <MenuItem> Bar charts</MenuItem>
+-        </SubMenu>
++        <MenuGroup label="Charts" icon={<Icon name="bar-chart" />}>
++          <MenuItem> Pie charts</MenuItem>
++          <MenuItem> Line charts</MenuItem>
++          <MenuItem> Bar charts</MenuItem>
++        </MenuGroup>
+         <MenuItem active icon={<Icon name="calendar" />}>
+           Calendar (active)
+         </MenuItem>
+@@ -171,20 +171,20 @@
+   <div style={{ display: 'flex', height: '100%' }}>
+     <Sidebar>
+       <Menu accordion>
+-        <SubMenu label="Charts" icon={<Icon name="bar-chart" />}>
+-          <MenuItem> Pie charts</MenuItem>
+-          <MenuItem> Line charts</MenuItem>
+-          <MenuItem> Bar charts</MenuItem>
+-        </SubMenu>
+-        <SubMenu label="E-commerce" icon={<Icon name="shopping-cart" />}>
++        <MenuGroup label="Charts" icon={<Icon name="bar-chart" />}>
++          <MenuItem> Pie charts</MenuItem>
++          <MenuItem> Line charts</MenuItem>
++          <MenuItem> Bar charts</MenuItem>
++        </MenuGroup>
++        <MenuGroup label="E-commerce" icon={<Icon name="shopping-cart" />}>
+           <MenuItem> Orders</MenuItem>
+           <MenuItem> Products</MenuItem>
+           <MenuItem> Customers</MenuItem>
+-        </SubMenu>
+-        <SubMenu label="Calendar" icon={<Icon name="calendar" />}>
++        </MenuGroup>
++        <MenuGroup label="Calendar" icon={<Icon name="calendar" />}>
+           <MenuItem> Schedule</MenuItem>
+           <MenuItem> Events</MenuItem>
+-        </SubMenu>
++        </MenuGroup>
+         <MenuItem icon={<Icon name="service" />}> Documentation</MenuItem>
+       </Menu>
+     </Sidebar>
+@@ -197,15 +197,15 @@
+   <div style={{ display: 'flex', height: '100%' }}>
+     <Sidebar>
+       <Menu popover>
+-        <SubMenu label="Charts" icon={<Icon name="bar-chart" />}>
+-          <MenuItem> Pie charts</MenuItem>
+-          <MenuItem> Line charts</MenuItem>
+-          <MenuItem> Bar charts</MenuItem>
+-        </SubMenu>
+-        <SubMenu label="E-commerce" icon={<Icon name="shopping-cart" />}>
++        <MenuGroup label="Charts" icon={<Icon name="bar-chart" />}>
++          <MenuItem> Pie charts</MenuItem>
++          <MenuItem> Line charts</MenuItem>
++          <MenuItem> Bar charts</MenuItem>
++        </MenuGroup>
++        <MenuGroup label="E-commerce" icon={<Icon name="shopping-cart" />}>
+           <MenuItem> Orders</MenuItem>
+           <MenuItem> Products</MenuItem>
+-        </SubMenu>
++        </MenuGroup>
+         <MenuItem icon={<Icon name="calendar" />}> Calendar</MenuItem>
+         <MenuItem icon={<Icon name="service" />}> Documentation</MenuItem>
+       </Menu>
+@@ -219,23 +219,23 @@
+   docs: {
+     description: {
+       story:
+-        'With `popover` set on `Menu`, top-level `SubMenu`s open as floating poppers (to the side) even while the sidebar is expanded — instead of sliding open inline. Useful for tall sidebars with many items. Click a submenu to open its flyout; click elsewhere or press Escape to close.',
++        'With `popover` set on `Menu`, top-level `MenuGroup`s open as floating poppers (to the side) even while the sidebar is expanded — instead of sliding open inline. Useful for tall sidebars with many items. Click a submenu to open its flyout; click elsewhere or press Escape to close.',
+     },
+     source: {
+       code: `
+-      import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
++      import { Sidebar, Menu, MenuItem, MenuGroup } from 'react-pro-sidebar';
+ 
+       () => (
+         <Sidebar>
+           <Menu popover>
+-            <SubMenu label="Charts">
++            <MenuGroup label="Charts">
+               <MenuItem>Pie charts</MenuItem>
+               <MenuItem>Line charts</MenuItem>
+-            </SubMenu>
+-            <SubMenu label="E-commerce">
++            </MenuGroup>
++            <MenuGroup label="E-commerce">
+               <MenuItem>Orders</MenuItem>
+               <MenuItem>Products</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+             <MenuItem>Calendar</MenuItem>
+           </Menu>
+         </Sidebar>
+@@ -248,26 +248,26 @@
+   docs: {
+     description: {
+       story:
+-        'When `accordion` is set on `Menu`, only one top-level `SubMenu` can be open at a time. Opening another automatically closes the previously open one. Nested submenus are not affected — set `accordion` on a `SubMenu` to coordinate its direct children.',
++        'When `accordion` is set on `Menu`, only one top-level `MenuGroup` can be open at a time. Opening another automatically closes the previously open one. Nested submenus are not affected — set `accordion` on a `MenuGroup` to coordinate its direct children.',
+     },
+     source: {
+       code: `
+-      import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
++      import { Sidebar, Menu, MenuItem, MenuGroup } from 'react-pro-sidebar';
+ 
+       () => (
+         <Sidebar>
+           <Menu accordion>
+-            <SubMenu label="Charts">
++            <MenuGroup label="Charts">
+               <MenuItem>Pie charts</MenuItem>
+               <MenuItem>Line charts</MenuItem>
+-            </SubMenu>
+-            <SubMenu label="E-commerce">
++            </MenuGroup>
++            <MenuGroup label="E-commerce">
+               <MenuItem>Orders</MenuItem>
+               <MenuItem>Products</MenuItem>
+-            </SubMenu>
+-            <SubMenu label="Calendar">
++            </MenuGroup>
++            <MenuGroup label="Calendar">
+               <MenuItem>Schedule</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>
+       )`,
+--- a/storybook/stories/SubMenu.stories.tsx
++++ b/storybook/stories/SubMenu.stories.tsx
+@@ -1,33 +1,33 @@
+ import React from 'react';
+ import type { Meta, StoryFn } from '@storybook/react';
+-import { Menu, menuClasses, MenuItem, Sidebar, SubMenu } from '../../src';
++import { Menu, menuClasses, MenuItem, Sidebar, MenuGroup } from '../../src';
+ import { Icon } from '../icons/Icon';
+ 
+-const StoryParams: Meta<typeof SubMenu> = {
++const StoryParams: Meta<typeof MenuGroup> = {
+   title: 'SubMenu',
+-  component: SubMenu,
++  component: MenuGroup,
+   argTypes: {},
+ };
+ 
+ export default StoryParams;
+ 
+-export const Basic: StoryFn<typeof SubMenu> = ({ ...props }) => (
+-  <div style={{ display: 'flex', height: '100%' }}>
+-    <Sidebar>
+-      <Menu>
+-        <SubMenu {...props} label="Charts">
++export const Basic: StoryFn<typeof MenuGroup> = ({ ...props }) => (
++  <div style={{ display: 'flex', height: '100%' }}>
++    <Sidebar>
++      <Menu>
++        <MenuGroup {...props} label="Charts">
+           <MenuItem> Pie charts</MenuItem>
+           <MenuItem> Line charts</MenuItem>
+           <MenuItem> Bar charts</MenuItem>
+-        </SubMenu>
+-        <SubMenu label="Maps">
++        </MenuGroup>
++        <MenuGroup label="Maps">
+           <MenuItem> Google maps</MenuItem>
+           <MenuItem> Open street maps</MenuItem>
+-        </SubMenu>
+-        <SubMenu label="Theme">
++        </MenuGroup>
++        <MenuGroup label="Theme">
+           <MenuItem> Dark</MenuItem>
+           <MenuItem> Light</MenuItem>
+-        </SubMenu>
++        </MenuGroup>
+       </Menu>
+     </Sidebar>
+   </div>
+@@ -37,25 +37,25 @@
+   docs: {
+     source: {
+       code: `
+-      import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
++      import { Sidebar, Menu, MenuItem, MenuGroup } from 'react-pro-sidebar';
+ 
+       () => (
+         <div style={{ display: 'flex', height: '100%' }}>
+           <Sidebar>
+             <Menu>
+-              <SubMenu {...props} label="Charts">
++              <MenuGroup {...props} label="Charts">
+                 <MenuItem> Pie charts</MenuItem>
+                 <MenuItem> Line charts</MenuItem>
+                 <MenuItem> Bar charts</MenuItem>
+-              </SubMenu>
+-              <SubMenu label="Maps">
++              </MenuGroup>
++              <MenuGroup label="Maps">
+                 <MenuItem> Google maps</MenuItem>
+                 <MenuItem> Open street maps</MenuItem>
+-              </SubMenu>
+-              <SubMenu label="Theme">
++              </MenuGroup>
++              <MenuGroup label="Theme">
+                 <MenuItem> Dark</MenuItem>
+                 <MenuItem> Light</MenuItem>
+-              </SubMenu>
++              </MenuGroup>
+             </Menu>
+           </Sidebar>
+         </div>
+@@ -64,24 +64,24 @@
+   },
+ };
+ 
+-export const WithIcon: StoryFn<typeof SubMenu> = () => (
+-  <div style={{ display: 'flex', height: '100%' }}>
+-    <Sidebar>
+-      <Menu>
+-        <Menu>
+-          <SubMenu icon={<Icon name="bar-chart" />} label="Charts">
+-            <MenuItem> Pie charts</MenuItem>
+-            <MenuItem> Line charts</MenuItem>
+-            <MenuItem> Bar charts</MenuItem>
+-          </SubMenu>
+-          <SubMenu icon={<Icon name="global" />} label="Maps">
+-            <MenuItem> Google maps</MenuItem>
+-            <MenuItem> Open street maps</MenuItem>
+-          </SubMenu>
+-          <SubMenu icon={<Icon name="ink-bottle" />} label="Theme">
+-            <MenuItem> Dark</MenuItem>
+-            <MenuItem> Light</MenuItem>
+-          </SubMenu>
++export const WithIcon: StoryFn<typeof MenuGroup> = () => (
++  <div style={{ display: 'flex', height: '100%' }}>
++    <Sidebar>
++      <Menu>
++        <Menu>
++          <MenuGroup icon={<Icon name="bar-chart" />} label="Charts">
++            <MenuItem> Pie charts</MenuItem>
++            <MenuItem> Line charts</MenuItem>
++            <MenuItem> Bar charts</MenuItem>
++          </MenuGroup>
++          <MenuGroup icon={<Icon name="global" />} label="Maps">
++            <MenuItem> Google maps</MenuItem>
++            <MenuItem> Open street maps</MenuItem>
++          </MenuGroup>
++          <MenuGroup icon={<Icon name="ink-bottle" />} label="Theme">
++            <MenuItem> Dark</MenuItem>
++            <MenuItem> Light</MenuItem>
++          </MenuGroup>
+         </Menu>
+       </Menu>
+     </Sidebar>
+@@ -90,24 +90,24 @@
+ 
+ WithIcon.storyName = 'icon';
+ 
+-export const Prefix: StoryFn<typeof SubMenu> = () => (
+-  <div style={{ display: 'flex', height: '100%' }}>
+-    <Sidebar>
+-      <Menu>
+-        <Menu>
+-          <SubMenu prefix="🔥" label="Charts">
+-            <MenuItem> Pie charts</MenuItem>
+-            <MenuItem> Line charts</MenuItem>
+-            <MenuItem> Bar charts</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Maps">
+-            <MenuItem> Google maps</MenuItem>
+-            <MenuItem> Open street maps</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Theme">
+-            <MenuItem> Dark</MenuItem>
+-            <MenuItem> Light</MenuItem>
+-          </SubMenu>
++export const Prefix: StoryFn<typeof MenuGroup> = () => (
++  <div style={{ display: 'flex', height: '100%' }}>
++    <Sidebar>
++      <Menu>
++        <Menu>
++          <MenuGroup prefix="🔥" label="Charts">
++            <MenuItem> Pie charts</MenuItem>
++            <MenuItem> Line charts</MenuItem>
++            <MenuItem> Bar charts</MenuItem>
++          </MenuGroup>
++          <MenuGroup label="Maps">
++            <MenuItem> Google maps</MenuItem>
++            <MenuItem> Open street maps</MenuItem>
++          </MenuGroup>
++          <MenuGroup label="Theme">
++            <MenuItem> Dark</MenuItem>
++            <MenuItem> Light</MenuItem>
++          </MenuGroup>
+         </Menu>
+       </Menu>
+     </Sidebar>
+@@ -115,24 +115,24 @@
+ );
+ Prefix.storyName = 'prefix';
+ 
+-export const Suffix: StoryFn<typeof SubMenu> = () => (
+-  <div style={{ display: 'flex', height: '100%' }}>
+-    <Sidebar>
+-      <Menu>
+-        <Menu>
+-          <SubMenu suffix="🔥" label="Charts">
+-            <MenuItem> Pie charts</MenuItem>
+-            <MenuItem> Line charts</MenuItem>
+-            <MenuItem> Bar charts</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Maps">
+-            <MenuItem> Google maps</MenuItem>
+-            <MenuItem> Open street maps</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Theme">
+-            <MenuItem> Dark</MenuItem>
+-            <MenuItem> Light</MenuItem>
+-          </SubMenu>
++export const Suffix: StoryFn<typeof MenuGroup> = () => (
++  <div style={{ display: 'flex', height: '100%' }}>
++    <Sidebar>
++      <Menu>
++        <Menu>
++          <MenuGroup suffix="🔥" label="Charts">
++            <MenuItem> Pie charts</MenuItem>
++            <MenuItem> Line charts</MenuItem>
++            <MenuItem> Bar charts</MenuItem>
++          </MenuGroup>
++          <MenuGroup label="Maps">
++            <MenuItem> Google maps</MenuItem>
++            <MenuItem> Open street maps</MenuItem>
++          </MenuGroup>
++          <MenuGroup label="Theme">
++            <MenuItem> Dark</MenuItem>
++            <MenuItem> Light</MenuItem>
++          </MenuGroup>
+         </Menu>
+       </Menu>
+     </Sidebar>
+@@ -140,20 +140,20 @@
+ );
+ Suffix.storyName = 'suffix';
+ 
+-export const Active: StoryFn<typeof SubMenu> = () => (
+-  <div style={{ display: 'flex', height: '100%' }}>
+-    <Sidebar>
+-      <Menu>
+-        <SubMenu label="Settings" defaultOpen>
+-          <SubMenu label="Account" defaultOpen>
++export const Active: StoryFn<typeof MenuGroup> = () => (
++  <div style={{ display: 'flex', height: '100%' }}>
++    <Sidebar>
++      <Menu>
++        <MenuGroup label="Settings" defaultOpen>
++          <MenuGroup label="Account" defaultOpen>
+             <MenuItem active> Profile (active)</MenuItem>
+             <MenuItem> Password</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Notifications">
++          </MenuGroup>
++          <MenuGroup label="Notifications">
+             <MenuItem> Email</MenuItem>
+             <MenuItem> Push</MenuItem>
+-          </SubMenu>
+-        </SubMenu>
++          </MenuGroup>
++        </MenuGroup>
+       </Menu>
+     </Sidebar>
+   </div>
+@@ -161,24 +161,24 @@
+ 
+ Active.storyName = 'active';
+ 
+-export const Disabled: StoryFn<typeof SubMenu> = () => (
+-  <div style={{ display: 'flex', height: '100%' }}>
+-    <Sidebar>
+-      <Menu>
+-        <Menu>
+-          <SubMenu disabled label="Charts (disabled)">
+-            <MenuItem> Pie charts</MenuItem>
+-            <MenuItem> Line charts</MenuItem>
+-            <MenuItem> Bar charts</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Maps">
+-            <MenuItem> Google maps</MenuItem>
+-            <MenuItem> Open street maps</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Theme">
+-            <MenuItem> Dark</MenuItem>
+-            <MenuItem> Light</MenuItem>
+-          </SubMenu>
++export const Disabled: StoryFn<typeof MenuGroup> = () => (
++  <div style={{ display: 'flex', height: '100%' }}>
++    <Sidebar>
++      <Menu>
++        <Menu>
++          <MenuGroup disabled label="Charts (disabled)">
++            <MenuItem> Pie charts</MenuItem>
++            <MenuItem> Line charts</MenuItem>
++            <MenuItem> Bar charts</MenuItem>
++          </MenuGroup>
++          <MenuGroup label="Maps">
++            <MenuItem> Google maps</MenuItem>
++            <MenuItem> Open street maps</MenuItem>
++          </MenuGroup>
++          <MenuGroup label="Theme">
++            <MenuItem> Dark</MenuItem>
++            <MenuItem> Light</MenuItem>
++          </MenuGroup>
+         </Menu>
+       </Menu>
+     </Sidebar>
+@@ -190,35 +190,35 @@
+   <div style={{ display: 'flex', height: '100%' }}>
+     <Sidebar>
+       <Menu>
+-        <SubMenu defaultOpen label="Charts" component="div">
++        <MenuGroup defaultOpen label="Charts" component="div">
+           <MenuItem> Pie charts</MenuItem>
+           <MenuItem> Line charts</MenuItem>
+           <MenuItem> Bar charts</MenuItem>
+-        </SubMenu>
++        </MenuGroup>
+       </Menu>
+     </Sidebar>
+   </div>
+ );
+ Component.storyName = 'component';
+ 
+-export const DefaultOpen: StoryFn<typeof SubMenu> = () => (
+-  <div style={{ display: 'flex', height: '100%' }}>
+-    <Sidebar>
+-      <Menu>
+-        <Menu>
+-          <SubMenu defaultOpen label="Charts">
+-            <MenuItem> Pie charts</MenuItem>
+-            <MenuItem> Line charts</MenuItem>
+-            <MenuItem> Bar charts</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Maps">
+-            <MenuItem> Google maps</MenuItem>
+-            <MenuItem> Open street maps</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Theme">
+-            <MenuItem> Dark</MenuItem>
+-            <MenuItem> Light</MenuItem>
+-          </SubMenu>
++export const DefaultOpen: StoryFn<typeof MenuGroup> = () => (
++  <div style={{ display: 'flex', height: '100%' }}>
++    <Sidebar>
++      <Menu>
++        <Menu>
++          <MenuGroup defaultOpen label="Charts">
++            <MenuItem> Pie charts</MenuItem>
++            <MenuItem> Line charts</MenuItem>
++            <MenuItem> Bar charts</MenuItem>
++          </MenuGroup>
++          <MenuGroup label="Maps">
++            <MenuItem> Google maps</MenuItem>
++            <MenuItem> Open street maps</MenuItem>
++          </MenuGroup>
++          <MenuGroup label="Theme">
++            <MenuItem> Dark</MenuItem>
++            <MenuItem> Light</MenuItem>
++          </MenuGroup>
+         </Menu>
+       </Menu>
+     </Sidebar>
+@@ -226,7 +226,7 @@
+ );
+ DefaultOpen.storyName = 'defaultOpen';
+ 
+-export const Open: StoryFn<typeof SubMenu> = () => {
++export const Open: StoryFn<typeof MenuGroup> = () => {
+   const [open, setOpen] = React.useState<'charts' | 'maps' | 'theme' | undefined>();
+ 
+   const handleOpenSubMenu = (key: 'charts' | 'maps' | 'theme') => {
+@@ -242,7 +242,7 @@
+       <Sidebar>
+         <Menu>
+           <Menu>
+-            <SubMenu
++            <MenuGroup
+               onClick={() => handleOpenSubMenu('charts')}
+               open={open === 'charts'}
+               label="Charts"
+@@ -250,19 +250,19 @@
+               <MenuItem> Pie charts</MenuItem>
+               <MenuItem> Line charts</MenuItem>
+               <MenuItem> Bar charts</MenuItem>
+-            </SubMenu>
+-            <SubMenu onClick={() => handleOpenSubMenu('maps')} open={open === 'maps'} label="Maps">
++            </MenuGroup>
++            <MenuGroup onClick={() => handleOpenSubMenu('maps')} open={open === 'maps'} label="Maps">
+               <MenuItem> Google maps</MenuItem>
+               <MenuItem> Open street maps</MenuItem>
+-            </SubMenu>
+-            <SubMenu
++            </MenuGroup>
++            <MenuGroup
+               onClick={() => handleOpenSubMenu('theme')}
+               open={open === 'theme'}
+               label="Theme"
+             >
+               <MenuItem> Dark</MenuItem>
+               <MenuItem> Light</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Menu>
+       </Sidebar>
+@@ -276,7 +276,7 @@
+     <Sidebar>
+       <Menu>
+         <Menu>
+-          <SubMenu
++          <MenuGroup
+             defaultOpen
+             label="Charts"
+             rootStyles={{
+@@ -295,15 +295,15 @@
+             <MenuItem> Pie charts</MenuItem>
+             <MenuItem> Line charts</MenuItem>
+             <MenuItem> Bar charts</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Maps">
+-            <MenuItem> Google maps</MenuItem>
+-            <MenuItem> Open street maps</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Theme">
+-            <MenuItem> Dark</MenuItem>
+-            <MenuItem> Light</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
++          <MenuGroup label="Maps">
++            <MenuItem> Google maps</MenuItem>
++            <MenuItem> Open street maps</MenuItem>
++          </MenuGroup>
++          <MenuGroup label="Theme">
++            <MenuItem> Dark</MenuItem>
++            <MenuItem> Light</MenuItem>
++          </MenuGroup>
+         </Menu>
+       </Menu>
+     </Sidebar>
+@@ -311,32 +311,32 @@
+ );
+ RootStyles.storyName = 'rootStyles';
+ 
+-export const Accordion: StoryFn<typeof SubMenu> = () => (
+-  <div style={{ display: 'flex', height: '100%' }}>
+-    <Sidebar>
+-      <Menu>
+-        <SubMenu label="Settings" accordion defaultOpen>
+-          <SubMenu label="Account">
++export const Accordion: StoryFn<typeof MenuGroup> = () => (
++  <div style={{ display: 'flex', height: '100%' }}>
++    <Sidebar>
++      <Menu>
++        <MenuGroup label="Settings" accordion defaultOpen>
++          <MenuGroup label="Account">
+             <MenuItem> Profile</MenuItem>
+             <MenuItem> Password</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Notifications">
++          </MenuGroup>
++          <MenuGroup label="Notifications">
+             <MenuItem> Email</MenuItem>
+             <MenuItem> Push</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Privacy">
++          </MenuGroup>
++          <MenuGroup label="Privacy">
+             <MenuItem> Data</MenuItem>
+             <MenuItem> Sharing</MenuItem>
+-          </SubMenu>
+-        </SubMenu>
+-        <SubMenu label="Tools" defaultOpen>
+-          <SubMenu label="Editor">
++          </MenuGroup>
++        </MenuGroup>
++        <MenuGroup label="Tools" defaultOpen>
++          <MenuGroup label="Editor">
+             <MenuItem> Theme</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Terminal">
++          </MenuGroup>
++          <MenuGroup label="Terminal">
+             <MenuItem> Shell</MenuItem>
+-          </SubMenu>
+-        </SubMenu>
++          </MenuGroup>
++        </MenuGroup>
+       </Menu>
+     </Sidebar>
+   </div>
+@@ -348,24 +348,24 @@
+   docs: {
+     description: {
+       story:
+-        '`accordion` on a `SubMenu` coordinates only its direct children — opening one nested submenu inside `Settings` closes its siblings. The neighboring `Tools` submenu is unaffected: its own nested submenus open independently of each other.',
++        '`accordion` on a `MenuGroup` coordinates only its direct children — opening one nested submenu inside `Settings` closes its siblings. The neighboring `Tools` submenu is unaffected: its own nested submenus open independently of each other.',
+     },
+     source: {
+       code: `
+-      import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
++      import { Sidebar, Menu, MenuItem, MenuGroup } from 'react-pro-sidebar';
+ 
+       () => (
+         <Sidebar>
+           <Menu>
+-            <SubMenu label="Settings" accordion defaultOpen>
+-              <SubMenu label="Account">…</SubMenu>
+-              <SubMenu label="Notifications">…</SubMenu>
+-              <SubMenu label="Privacy">…</SubMenu>
+-            </SubMenu>
+-            <SubMenu label="Tools" defaultOpen>
+-              <SubMenu label="Editor">…</SubMenu>
+-              <SubMenu label="Terminal">…</SubMenu>
+-            </SubMenu>
++            <MenuGroup label="Settings" accordion defaultOpen>
++              <MenuGroup label="Account">…</MenuGroup>
++              <MenuGroup label="Notifications">…</MenuGroup>
++              <MenuGroup label="Privacy">…</MenuGroup>
++            </MenuGroup>
++            <MenuGroup label="Tools" defaultOpen>
++              <MenuGroup label="Editor">…</MenuGroup>
++              <MenuGroup label="Terminal">…</MenuGroup>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>
+       )`,
+--- a/tests/Menu.test.tsx
++++ b/tests/Menu.test.tsx
+@@ -4,7 +4,7 @@
+ import { Sidebar } from '../src/components/Sidebar';
+ import { Menu } from '../src/components/Menu';
+ import { MenuItem } from '../src/components/MenuItem';
+-import { SubMenu } from '../src/components/SubMenu';
++import { MenuGroup } from '../src/components/SubMenu';
+ import { menuClasses, sidebarClasses } from '../src/utils/utilityClasses';
+ 
+ describe('Menu', () => {
+@@ -12,7 +12,7 @@
+     customRender(
+       <Sidebar collapsed>
+         <Menu>
+-          <SubMenu label="Charts"></SubMenu>
++          <MenuGroup label="Charts"></MenuGroup>
+         </Menu>
+       </Sidebar>,
+     );
+@@ -84,9 +84,9 @@
+       customRender(
+         <Sidebar>
+           <Menu>
+-            <SubMenu label="Charts" defaultOpen>
++            <MenuGroup label="Charts" defaultOpen>
+               <MenuItem>Pie</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -98,9 +98,9 @@
+       customRender(
+         <Sidebar collapsed>
+           <Menu>
+-            <SubMenu label="Charts">
++            <MenuGroup label="Charts">
+               <MenuItem>Pie</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -112,9 +112,9 @@
+       customRender(
+         <Sidebar>
+           <Menu>
+-            <SubMenu label="Charts">
++            <MenuGroup label="Charts">
+               <MenuItem>Pie</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -126,9 +126,9 @@
+       customRender(
+         <Sidebar>
+           <Menu>
+-            <SubMenu label="Charts">
++            <MenuGroup label="Charts">
+               <MenuItem>Pie</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -140,9 +140,9 @@
+       customRender(
+         <Sidebar>
+           <Menu>
+-            <SubMenu label="Charts" defaultOpen>
++            <MenuGroup label="Charts" defaultOpen>
+               <MenuItem>Pie</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -154,9 +154,9 @@
+       customRender(
+         <Sidebar>
+           <Menu>
+-            <SubMenu label="Charts">
++            <MenuGroup label="Charts">
+               <MenuItem>Pie</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+--- a/tests/SubMenu.test.tsx
++++ b/tests/SubMenu.test.tsx
+@@ -4,17 +4,17 @@
+ import { Sidebar } from '../src/components/Sidebar';
+ import { Menu } from '../src/components/Menu';
+ import { MenuItem } from '../src/components/MenuItem';
+-import { SubMenu } from '../src/components/SubMenu';
++import { MenuGroup } from '../src/components/SubMenu';
+ import { menuClasses } from '../src/utils/utilityClasses';
+ 
+ const renderSubMenu = (subMenuProps = {}, menuProps = {}, sidebarProps = {}) =>
+   customRender(
+     <Sidebar {...sidebarProps}>
+       <Menu {...menuProps}>
+-        <SubMenu label="Charts" {...subMenuProps}>
++        <MenuGroup label="Charts" {...subMenuProps}>
+           <MenuItem>Pie</MenuItem>
+           <MenuItem>Line</MenuItem>
+-        </SubMenu>
++        </MenuGroup>
+       </Menu>
+     </Sidebar>,
+   );
+@@ -70,9 +70,9 @@
+     const { rerender } = customRender(
+       <Sidebar>
+         <Menu>
+-          <SubMenu label="Charts" open={false} onOpenChange={onOpenChange}>
++          <MenuGroup label="Charts" open={false} onOpenChange={onOpenChange}>
+             <MenuItem>Pie</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+         </Menu>
+       </Sidebar>,
+     );
+@@ -89,9 +89,9 @@
+     rerender(
+       <Sidebar>
+         <Menu>
+-          <SubMenu label="Charts" open onOpenChange={onOpenChange}>
++          <MenuGroup label="Charts" open onOpenChange={onOpenChange}>
+             <MenuItem>Pie</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+         </Menu>
+       </Sidebar>,
+     );
+@@ -110,9 +110,9 @@
+       customRender(
+         <Sidebar>
+           <Menu>
+-            <SubMenu label="Parent" defaultOpen>
++            <MenuGroup label="Parent" defaultOpen>
+               <MenuItem active>Child</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -123,11 +123,11 @@
+       customRender(
+         <Sidebar>
+           <Menu>
+-            <SubMenu label="Top" defaultOpen>
+-              <SubMenu label="Mid" defaultOpen>
++            <MenuGroup label="Top" defaultOpen>
++              <MenuGroup label="Mid" defaultOpen>
+                 <MenuItem active>Leaf</MenuItem>
+-              </SubMenu>
+-            </SubMenu>
++              </MenuGroup>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -139,9 +139,9 @@
+       customRender(
+         <Sidebar>
+           <Menu>
+-            <SubMenu label="Parent" defaultOpen>
++            <MenuGroup label="Parent" defaultOpen>
+               <MenuItem>Child</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -152,9 +152,9 @@
+       const tree = (active: boolean) => (
+         <Sidebar>
+           <Menu>
+-            <SubMenu label="Parent" defaultOpen>
++            <MenuGroup label="Parent" defaultOpen>
+               <MenuItem active={active}>Child</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>
+       );
+@@ -171,12 +171,12 @@
+       customRender(
+         <Sidebar>
+           <Menu accordion>
+-            <SubMenu label="A">
++            <MenuGroup label="A">
+               <MenuItem>A1</MenuItem>
+-            </SubMenu>
+-            <SubMenu label="B">
++            </MenuGroup>
++            <MenuGroup label="B">
+               <MenuItem>B1</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -201,14 +201,14 @@
+       customRender(
+         <Sidebar>
+           <Menu accordion>
+-            <SubMenu label="Top">
+-              <SubMenu label="X">
++            <MenuGroup label="Top">
++              <MenuGroup label="X">
+                 <MenuItem>X1</MenuItem>
+-              </SubMenu>
+-              <SubMenu label="Y">
++              </MenuGroup>
++              <MenuGroup label="Y">
+                 <MenuItem>Y1</MenuItem>
+-              </SubMenu>
+-            </SubMenu>
++              </MenuGroup>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -228,14 +228,14 @@
+       customRender(
+         <Sidebar>
+           <Menu>
+-            <SubMenu label="Group" accordion>
+-              <SubMenu label="X">
++            <MenuGroup label="Group" accordion>
++              <MenuGroup label="X">
+                 <MenuItem>X1</MenuItem>
+-              </SubMenu>
+-              <SubMenu label="Y">
++              </MenuGroup>
++              <MenuGroup label="Y">
+                 <MenuItem>Y1</MenuItem>
+-              </SubMenu>
+-            </SubMenu>
++              </MenuGroup>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -258,12 +258,12 @@
+       customRender(
+         <Sidebar>
+           <Menu accordion>
+-            <SubMenu label="A" defaultOpen>
++            <MenuGroup label="A" defaultOpen>
+               <MenuItem>A1</MenuItem>
+-            </SubMenu>
+-            <SubMenu label="B" defaultOpen>
++            </MenuGroup>
++            <MenuGroup label="B" defaultOpen>
+               <MenuItem>B1</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -282,12 +282,12 @@
+       customRender(
+         <Sidebar>
+           <Menu accordion>
+-            <SubMenu label="A" open>
++            <MenuGroup label="A" open>
+               <MenuItem>A1</MenuItem>
+-            </SubMenu>
+-            <SubMenu label="B">
++            </MenuGroup>
++            <MenuGroup label="B">
+               <MenuItem>B1</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+@@ -352,11 +352,11 @@
+       customRender(
+         <Sidebar>
+           <Menu popover>
+-            <SubMenu label="Top">
+-              <SubMenu label="Nested">
++            <MenuGroup label="Top">
++              <MenuGroup label="Nested">
+                 <MenuItem>Leaf</MenuItem>
+-              </SubMenu>
+-            </SubMenu>
++              </MenuGroup>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>,
+       );
+--- a/tests/a11y.test.tsx
++++ b/tests/a11y.test.tsx
+@@ -5,7 +5,7 @@
+ import { Sidebar } from '../src/components/Sidebar';
+ import { Menu } from '../src/components/Menu';
+ import { MenuItem } from '../src/components/MenuItem';
+-import { SubMenu } from '../src/components/SubMenu';
++import { MenuGroup } from '../src/components/SubMenu';
+ 
+ describe('accessibility (axe)', () => {
+   it('Sidebar with a basic menu has no violations', async () => {
+@@ -37,10 +37,10 @@
+     const { container } = customRender(
+       <Sidebar>
+         <Menu>
+-          <SubMenu label="Charts">
++          <MenuGroup label="Charts">
+             <MenuItem>Pie</MenuItem>
+             <MenuItem>Line</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+         </Menu>
+       </Sidebar>,
+     );
+@@ -51,10 +51,10 @@
+     const { container } = customRender(
+       <Sidebar>
+         <Menu>
+-          <SubMenu label="Charts" defaultOpen>
++          <MenuGroup label="Charts" defaultOpen>
+             <MenuItem>Pie</MenuItem>
+             <MenuItem>Line</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+         </Menu>
+       </Sidebar>,
+     );
+@@ -65,9 +65,9 @@
+     const { container } = customRender(
+       <Sidebar collapsed>
+         <Menu>
+-          <SubMenu label="Charts">
++          <MenuGroup label="Charts">
+             <MenuItem>Pie</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+           <MenuItem>Documentation</MenuItem>
+         </Menu>
+       </Sidebar>,
+--- a/website/components/PlaygroundClient.tsx
++++ b/website/components/PlaygroundClient.tsx
+@@ -3,7 +3,7 @@
+   Sidebar,
+   Menu,
+   MenuItem,
+-  SubMenu,
++  MenuGroup,
+   menuClasses,
+   type MenuItemStyles,
+ } from 'react-pro-sidebar';
+@@ -360,7 +360,7 @@
+               accordion={accordion}
+               closeOnClick={closeOnClick}
+             >
+-              <SubMenu
++              <MenuGroup
+                 label={t.charts}
+                 icon={<BarChart />}
+                 suffix={
+@@ -372,32 +372,32 @@
+                 <MenuItem>{t.pieCharts}</MenuItem>
+                 <MenuItem>{t.lineCharts}</MenuItem>
+                 <MenuItem>{t.barCharts}</MenuItem>
+-              </SubMenu>
+-              <SubMenu label={t.maps} icon={<Global />}>
++              </MenuGroup>
++              <MenuGroup label={t.maps} icon={<Global />}>
+                 <MenuItem>{t.googleMaps}</MenuItem>
+                 <MenuItem>{t.openStreetMaps}</MenuItem>
+-              </SubMenu>
+-              <SubMenu label={t.theme} icon={<InkBottle />}>
++              </MenuGroup>
++              <MenuGroup label={t.theme} icon={<InkBottle />}>
+                 <MenuItem>{t.dark}</MenuItem>
+                 <MenuItem>{t.light}</MenuItem>
+-              </SubMenu>
+-              <SubMenu label={t.components} icon={<Diamond />}>
++              </MenuGroup>
++              <MenuGroup label={t.components} icon={<Diamond />}>
+                 <MenuItem>{t.grid}</MenuItem>
+                 <MenuItem>{t.layout}</MenuItem>
+-                <SubMenu label={t.forms}>
++                <MenuGroup label={t.forms}>
+                   <MenuItem>{t.input}</MenuItem>
+                   <MenuItem>{t.select}</MenuItem>
+-                  <SubMenu label={t.more}>
++                  <MenuGroup label={t.more}>
+                     <MenuItem>{t.checkbox}</MenuItem>
+                     <MenuItem>{t.radio}</MenuItem>
+-                  </SubMenu>
+-                </SubMenu>
+-              </SubMenu>
+-              <SubMenu label={t.ecommerce} icon={<ShoppingCart />}>
++                  </MenuGroup>
++                </MenuGroup>
++              </MenuGroup>
++              <MenuGroup label={t.ecommerce} icon={<ShoppingCart />}>
+                 <MenuItem>{t.product}</MenuItem>
+                 <MenuItem>{t.orders}</MenuItem>
+                 <MenuItem>{t.creditCard}</MenuItem>
+-              </SubMenu>
++              </MenuGroup>
+             </Menu>
+ 
+             <div style={{ padding: '0 24px', marginBottom: 8, marginTop: 32 }}>
+--- a/website/components/demos/ExampleDemos.tsx
++++ b/website/components/demos/ExampleDemos.tsx
+@@ -3,7 +3,7 @@
+   Sidebar,
+   Menu,
+   MenuItem,
+-  SubMenu,
++  MenuGroup,
+   menuClasses,
+   type MenuItemStyles,
+ } from 'react-pro-sidebar';
+@@ -46,11 +46,11 @@
+             Overview
+           </MenuItem>
+           <MenuItem icon={<BarChart />}>Analytics</MenuItem>
+-          <SubMenu label="E-commerce" icon={<Global />}>
++          <MenuGroup label="E-commerce" icon={<Global />}>
+             <MenuItem>Products</MenuItem>
+             <MenuItem>Orders</MenuItem>
+             <MenuItem>Customers</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+           <MenuItem icon={<Calendar />}>Calendar</MenuItem>
+           <MenuItem icon={<Book />}>Documentation</MenuItem>
+         </Menu>
+@@ -245,10 +245,10 @@
+           <MenuItem icon={<Diamond />} active>
+             Dashboard
+           </MenuItem>
+-          <SubMenu label="Charts" icon={<BarChart />} defaultOpen>
++          <MenuGroup label="Charts" icon={<BarChart />} defaultOpen>
+             <MenuItem>Pie</MenuItem>
+             <MenuItem>Line</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+           <MenuItem icon={<InkBottle />}>Theme</MenuItem>
+           <MenuItem icon={<Calendar />}>Calendar</MenuItem>
+         </Menu>
+--- a/website/components/demos/SidebarDemos.tsx
++++ b/website/components/demos/SidebarDemos.tsx
+@@ -1,5 +1,5 @@
+ import React from 'react';
+-import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
++import { Sidebar, Menu, MenuItem, MenuGroup } from 'react-pro-sidebar';
+ import { Switch } from '../playground/ui';
+ import { BarChart, Diamond, Calendar, Book } from '../playground/icons';
+ import { useDemoColors } from './useDemoColors';
+@@ -232,10 +232,10 @@
+         <Sidebar rtl={rtl} backgroundColor={c.sidebarBg} rootStyles={c.sidebarRootStyles}>
+           <Menu menuItemStyles={c.menuItemStyles}>
+             <MenuItem icon={<Diamond />}>Dashboard</MenuItem>
+-            <SubMenu label="Charts" icon={<BarChart />}>
++            <MenuGroup label="Charts" icon={<BarChart />}>
+               <MenuItem>Pie</MenuItem>
+               <MenuItem>Line</MenuItem>
+-            </SubMenu>
++            </MenuGroup>
+           </Menu>
+         </Sidebar>
+         <div className="rps-demo-main">
+@@ -336,14 +336,14 @@
+     <Card>
+       <Sidebar backgroundColor={c.sidebarBg} rootStyles={c.sidebarRootStyles}>
+         <Menu popover={popover} menuItemStyles={c.menuItemStyles}>
+-          <SubMenu label="Charts" icon={<BarChart />}>
++          <MenuGroup label="Charts" icon={<BarChart />}>
+             <MenuItem>Pie</MenuItem>
+             <MenuItem>Line</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Components" icon={<Diamond />}>
++          </MenuGroup>
++          <MenuGroup label="Components" icon={<Diamond />}>
+             <MenuItem>Grid</MenuItem>
+             <MenuItem>Layout</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+         </Menu>
+       </Sidebar>
+       <div className="rps-demo-main">
+@@ -354,7 +354,7 @@
+           label="popover"
+         />
+         <p style={{ marginTop: 12, fontSize: 13, opacity: 0.7 }}>
+-          Top-level <code>SubMenu</code>s open as floating poppers instead of sliding inline.
++          Top-level <code>MenuGroup</code>s open as floating poppers instead of sliding inline.
+         </p>
+       </div>
+     </Card>
+@@ -368,17 +368,17 @@
+     <Card>
+       <Sidebar backgroundColor={c.sidebarBg} rootStyles={c.sidebarRootStyles}>
+         <Menu accordion={accordion} menuItemStyles={c.menuItemStyles}>
+-          <SubMenu label="Charts" icon={<BarChart />} defaultOpen>
++          <MenuGroup label="Charts" icon={<BarChart />} defaultOpen>
+             <MenuItem>Pie</MenuItem>
+             <MenuItem>Line</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Components" icon={<Diamond />}>
++          </MenuGroup>
++          <MenuGroup label="Components" icon={<Diamond />}>
+             <MenuItem>Grid</MenuItem>
+             <MenuItem>Layout</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Calendar" icon={<Calendar />}>
++          </MenuGroup>
++          <MenuGroup label="Calendar" icon={<Calendar />}>
+             <MenuItem>Events</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+         </Menu>
+       </Sidebar>
+       <div className="rps-demo-main">
+@@ -389,7 +389,7 @@
+           label="accordion"
+         />
+         <p style={{ marginTop: 12, fontSize: 13, opacity: 0.7 }}>
+-          With accordion on, opening one top-level <code>SubMenu</code> closes the others.
++          With accordion on, opening one top-level <code>MenuGroup</code> closes the others.
+         </p>
+       </div>
+     </Card>
+@@ -419,10 +419,10 @@
+           <MenuItem icon={<Diamond />} active>
+             Dashboard
+           </MenuItem>
+-          <SubMenu label="Charts" icon={<BarChart />}>
++          <MenuGroup label="Charts" icon={<BarChart />}>
+             <MenuItem>Pie</MenuItem>
+             <MenuItem>Line</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+           <MenuItem icon={<Book />}>Docs</MenuItem>
+         </Menu>
+       </Sidebar>
+@@ -443,10 +443,10 @@
+     <Card>
+       <Sidebar collapsed backgroundColor={c.sidebarBg} rootStyles={c.sidebarRootStyles}>
+         <Menu closeOnClick={closeOnClick} menuItemStyles={c.menuItemStyles}>
+-          <SubMenu label="Charts" icon={<BarChart />}>
++          <MenuGroup label="Charts" icon={<BarChart />}>
+             <MenuItem>Pie</MenuItem>
+             <MenuItem>Line</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+         </Menu>
+       </Sidebar>
+       <div className="rps-demo-main">
+@@ -547,7 +547,7 @@
+   );
+ };
+ 
+-/* ---------- SubMenu prop demos ---------- */
++/* ---------- MenuGroup prop demos ---------- */
+ 
+ export const DefaultOpenDemo = () => {
+   const c = useDemoColors();
+@@ -555,14 +555,14 @@
+     <Card>
+       <Sidebar backgroundColor={c.sidebarBg} rootStyles={c.sidebarRootStyles}>
+         <Menu menuItemStyles={c.menuItemStyles}>
+-          <SubMenu label="Charts" icon={<BarChart />} defaultOpen>
++          <MenuGroup label="Charts" icon={<BarChart />} defaultOpen>
+             <MenuItem>Pie</MenuItem>
+             <MenuItem>Line</MenuItem>
+-          </SubMenu>
+-          <SubMenu label="Components" icon={<Diamond />}>
++          </MenuGroup>
++          <MenuGroup label="Components" icon={<Diamond />}>
+             <MenuItem>Grid</MenuItem>
+             <MenuItem>Layout</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+         </Menu>
+       </Sidebar>
+       <div className="rps-demo-main">
+@@ -581,10 +581,10 @@
+     <Card>
+       <Sidebar backgroundColor={c.sidebarBg} rootStyles={c.sidebarRootStyles}>
+         <Menu menuItemStyles={c.menuItemStyles}>
+-          <SubMenu label="Charts" icon={<BarChart />} open={open} onOpenChange={setOpen}>
++          <MenuGroup label="Charts" icon={<BarChart />} open={open} onOpenChange={setOpen}>
+             <MenuItem>Pie</MenuItem>
+             <MenuItem>Line</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+         </Menu>
+       </Sidebar>
+       <div className="rps-demo-main">
+@@ -608,20 +608,20 @@
+     <Card>
+       <Sidebar backgroundColor={c.sidebarBg} rootStyles={c.sidebarRootStyles}>
+         <Menu menuItemStyles={c.menuItemStyles}>
+-          <SubMenu label="Components" icon={<Diamond />} accordion defaultOpen>
+-            <SubMenu label="Forms" defaultOpen>
++          <MenuGroup label="Components" icon={<Diamond />} accordion defaultOpen>
++            <MenuGroup label="Forms" defaultOpen>
+               <MenuItem>Input</MenuItem>
+               <MenuItem>Select</MenuItem>
+-            </SubMenu>
+-            <SubMenu label="Layout">
++            </MenuGroup>
++            <MenuGroup label="Layout">
+               <MenuItem>Grid</MenuItem>
+               <MenuItem>Stack</MenuItem>
+-            </SubMenu>
+-            <SubMenu label="Display">
++            </MenuGroup>
++            <MenuGroup label="Display">
+               <MenuItem>Card</MenuItem>
+               <MenuItem>List</MenuItem>
+-            </SubMenu>
+-          </SubMenu>
++            </MenuGroup>
++          </MenuGroup>
+         </Menu>
+       </Sidebar>
+       <div className="rps-demo-main">
+--- a/website/components/home/HeroCodePreview.tsx
++++ b/website/components/home/HeroCodePreview.tsx
+@@ -9,7 +9,7 @@
+  * inside `<pre>` (where whitespace is significant).
+  */
+ const html =
+-  '<span class="tok-kw">import</span> { Sidebar, Menu, MenuItem, SubMenu } <span class="tok-kw">from</span> <span class="tok-str">\'react-pro-sidebar\'</span>;\n' +
++  '<span class="tok-kw">import</span> { Sidebar, Menu, MenuItem, MenuGroup } <span class="tok-kw">from</span> <span class="tok-str">\'react-pro-sidebar\'</span>;\n' +
+   '<span class="tok-kw">import</span> { Diamond } <span class="tok-kw">from</span> <span class="tok-str">\'./icons\'</span>;\n\n' +
+   '<span class="tok-kw">export default function</span> <span class="tok-fn">App</span>() {\n' +
+   '  <span class="tok-kw">return</span> (\n' +
+@@ -18,10 +18,10 @@
+   '        &lt;<span class="tok-tag">MenuItem</span> <span class="tok-attr">icon</span>={&lt;<span class="tok-tag">Diamond</span> /&gt;}&gt;\n' +
+   '          Dashboard\n' +
+   '        &lt;/<span class="tok-tag">MenuItem</span>&gt;\n' +
+-  '        &lt;<span class="tok-tag">SubMenu</span> <span class="tok-attr">label</span>=<span class="tok-str">"Charts"</span>&gt;\n' +
++  '        &lt;<span class="tok-tag">MenuGroup</span> <span class="tok-attr">label</span>=<span class="tok-str">"Charts"</span>&gt;\n' +
+   '          &lt;<span class="tok-tag">MenuItem</span>&gt;Pie&lt;/<span class="tok-tag">MenuItem</span>&gt;\n' +
+   '          &lt;<span class="tok-tag">MenuItem</span>&gt;Line&lt;/<span class="tok-tag">MenuItem</span>&gt;\n' +
+-  '        &lt;/<span class="tok-tag">SubMenu</span>&gt;\n' +
++  '        &lt;/<span class="tok-tag">MenuGroup</span>&gt;\n' +
+   '      &lt;/<span class="tok-tag">Menu</span>&gt;\n' +
+   '    &lt;/<span class="tok-tag">Sidebar</span>&gt;\n' +
+   '  );\n' +
+--- a/website/components/playground/generateCode.ts
++++ b/website/components/playground/generateCode.ts
+@@ -79,7 +79,7 @@
+   Sidebar,
+   Menu,
+   MenuItem,
+-  SubMenu,
++  MenuGroup,
+   type MenuItemStyles,
+ } from 'react-pro-sidebar';
+ 
+@@ -99,10 +99,10 @@
+   return (
+     ${sidebarOpen.replace(/\n/g, '\n    ')}
+       ${menuOpen.replace(/\n/g, '\n      ')}
+-        <SubMenu label="Charts">
++        <MenuGroup label="Charts">
+           <MenuItem>Pie charts</MenuItem>
+           <MenuItem>Line charts</MenuItem>
+-        </SubMenu>
++        </MenuGroup>
+         <MenuItem>Calendar</MenuItem>
+         <MenuItem>Documentation</MenuItem>
+       </Menu>
+--- a/website/pages/api-reference.mdx
++++ b/website/pages/api-reference.mdx
+@@ -44,16 +44,16 @@
+ 
+ ## Menu
+ 
+-Container for `MenuItem` and `SubMenu` children. Holds the styling system
++Container for `MenuItem` and `MenuGroup` children. Holds the styling system
+ (`menuItemStyles`), accordion coordination, and the global popover mode.
+ 
+ | Prop | Type | Default | Description |
+ | ---- | ---- | ------- | ----------- |
+ | `closeOnClick` | `boolean` | `false` | If `true` and the sidebar is collapsed, submenu popper closes on MenuItem click |
+-| `popover` | `boolean` | `false` | **New in v2.** If `true`, top-level `SubMenu`s open as floating poppers even when expanded |
+-| `accordion` | `boolean` | `false` | **New in v2.** If `true`, only one top-level `SubMenu` can be open at a time |
+-| `menuItemStyles` | `MenuItemStyles` | – | Apply styles to MenuItem/SubMenu and their child slots (root, button, label, icon, prefix, suffix, …) |
+-| `renderExpandIcon` | `(params) => ReactNode` | – | Custom render for the SubMenu expand icon. `params: { level, collapsed, disabled, active, open }` |
++| `popover` | `boolean` | `false` | **New in v2.** If `true`, top-level `MenuGroup`s open as floating poppers even when expanded |
++| `accordion` | `boolean` | `false` | **New in v2.** If `true`, only one top-level `MenuGroup` can be open at a time |
++| `menuItemStyles` | `MenuItemStyles` | – | Apply styles to MenuItem/MenuGroup and their child slots (root, button, label, icon, prefix, suffix, …) |
++| `renderExpandIcon` | `(params) => ReactNode` | – | Custom render for the MenuGroup expand icon. `params: { level, collapsed, disabled, active, open }` |
+ | `transitionDuration` | `number` | `300` | Transition duration for sliding submenu content |
+ | `rootStyles` | `CSSObject` | – | Apply styles to the Menu root element |
+ 
+@@ -77,9 +77,9 @@
+ - `aria-current="page"` is set on active items.
+ - `aria-disabled` is set on disabled items.
+ 
+-## SubMenu
++## MenuGroup
+ 
+-A nestable container that opens to reveal child `MenuItem` / `SubMenu` nodes.
++A nestable container that opens to reveal child `MenuItem` / `MenuGroup` nodes.
+ Cascades active state from descendants automatically.
+ 
+ | Prop | Type | Default | Description |
+@@ -92,14 +92,14 @@
+ | `disabled` | `boolean` | `false` | Disabled state |
+ | `prefix` | `ReactNode` | – | Node displayed between the icon and the label |
+ | `suffix` | `ReactNode` | – | Node displayed after the label |
+-| `accordion` | `boolean` | `false` | **New in v2.** Only one of this SubMenu's direct child `SubMenu`s can be open at a time |
++| `accordion` | `boolean` | `false` | **New in v2.** Only one of this MenuGroup's direct child `MenuGroup`s can be open at a time |
+ | `onOpenChange` | `(open: boolean) => void` | – | Called when the open state changes |
+ | `component` | `string \| ReactElement` | – | Component used for the trigger button |
+-| `rootStyles` | `CSSObject` | – | Apply styles to the SubMenu root |
++| `rootStyles` | `CSSObject` | – | Apply styles to the MenuGroup root |
+ 
+ ### Behaviors added in v2
+ 
+-- Active state now **cascades automatically**: a `SubMenu` is marked active whenever any descendant is active.
++- Active state now **cascades automatically**: a `MenuGroup` is marked active whenever any descendant is active.
+ - Items in a closed submenu are no longer reachable via Tab or exposed to screen readers — closed content is now marked `inert`.
+ - The trigger now uses `role="button"` so `aria-expanded` / `aria-haspopup` are valid.
+ - `aria-expanded` on the trigger, `aria-haspopup="menu"` when a collapsed top-level submenu opens as a popup, and `aria-disabled` on disabled triggers.
+--- a/website/pages/docs/accessibility.mdx
++++ b/website/pages/docs/accessibility.mdx
+@@ -13,7 +13,7 @@
+ 
+ - `Sidebar` renders as an `<aside>` element.
+ - `Menu` renders as a `<nav>` containing a `<ul>` (`<menu>` element internally).
+-- `MenuItem` and `SubMenu` render as `<li>` with an inner `<a>` (or any element supplied
++- `MenuItem` and `MenuGroup` render as `<li>` with an inner `<a>` (or any element supplied
+   via the `component` prop) acting as the interactive trigger.
+ 
+ This means screen readers announce the sidebar region, navigation landmark, and list
+@@ -23,8 +23,8 @@
+ 
+ | Key | When | Behavior |
+ | --- | ---- | -------- |
+-| `Tab` / `Shift+Tab` | Anywhere | Moves focus between interactive triggers (MenuItem / SubMenu / backdrop button) |
+-| `Enter` | Focused SubMenu trigger | Toggles the submenu open/closed |
++| `Tab` / `Shift+Tab` | Anywhere | Moves focus between interactive triggers (MenuItem / MenuGroup / backdrop button) |
++| `Enter` | Focused MenuGroup trigger | Toggles the submenu open/closed |
+ | `Enter` | Focused MenuItem | Activates the item (follows the link / fires `onClick`) |
+ | `Enter` / `Space` | Focused backdrop (overlay mode) | Closes the overlay sidebar |
+ | `Escape` | Anywhere, while overlay sidebar is open (`broken + toggled`) | Closes the overlay sidebar |
+@@ -36,7 +36,7 @@
+ 
+ ### Closed submenus are inert
+ 
+-Items inside a closed `SubMenu` are not reachable via Tab and are not exposed to screen
++Items inside a closed `MenuGroup` are not reachable via Tab and are not exposed to screen
+ readers — the closed content is marked with the `inert` attribute. This prevents
+ "hidden" focus traps and keeps assistive-tech navigation linear.
+ 
+@@ -49,7 +49,7 @@
+ | `aria-current="page"` | When `active` is `true` |
+ | `aria-disabled` | When `disabled` is `true` |
+ 
+-### SubMenu
++### MenuGroup
+ 
+ | Attribute | When |
+ | --------- | ---- |
+--- a/website/pages/docs/components/menu.mdx
++++ b/website/pages/docs/components/menu.mdx
+@@ -1,6 +1,6 @@
+ ---
+ title: Menu
+-description: Container for MenuItem and SubMenu children — holds the styling system, accordion coordination, and popover mode.
++description: Container for MenuItem and MenuGroup children — holds the styling system, accordion coordination, and popover mode.
+ ---
+ 
+ import {
+@@ -12,11 +12,11 @@
+ 
+ # Menu
+ 
+-The `Menu` is the styled container for `MenuItem` and `SubMenu` children. It owns:
++The `Menu` is the styled container for `MenuItem` and `MenuGroup` children. It owns:
+ 
+ - The **styling system** (`menuItemStyles`) used to style children consistently
+-- The **accordion** coordination for top-level SubMenus (`accordion` prop)
+-- The **popover** mode that opens top-level SubMenus as floating poppers (`popover` prop)
++- The **accordion** coordination for top-level MenuGroups (`accordion` prop)
++- The **popover** mode that opens top-level MenuGroups as floating poppers (`popover` prop)
+ - The **slide transition** duration for inline submenus (`transitionDuration` prop)
+ - The **render override** for expand icons (`renderExpandIcon` prop)
+ 
+@@ -24,14 +24,14 @@
+ "Extras" sections — see the [Playground](/playground)).
+ 
+ ```jsx
+-import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
++import { Sidebar, Menu, MenuItem, MenuGroup } from 'react-pro-sidebar';
+ 
+ <Sidebar>
+   <Menu>
+-    <SubMenu label="Charts">
++    <MenuGroup label="Charts">
+       <MenuItem>Pie</MenuItem>
+       <MenuItem>Line</MenuItem>
+-    </SubMenu>
++    </MenuGroup>
+     <MenuItem>Documentation</MenuItem>
+   </Menu>
+ </Sidebar>;
+@@ -53,7 +53,7 @@
+ 
+ > **New in v2.**
+ 
+-When `true`, top-level `SubMenu`s open as floating poppers even while the sidebar is
++When `true`, top-level `MenuGroup`s open as floating poppers even while the sidebar is
+ expanded — instead of sliding open inline. Useful for tall sidebars with many items.
+ 
+ - **Type:** `boolean`
+@@ -63,7 +63,7 @@
+ 
+ ```jsx
+ <Menu popover>
+-  <SubMenu label="Charts">…</SubMenu>
++  <MenuGroup label="Charts">…</MenuGroup>
+ </Menu>
+ ```
+ 
+@@ -71,7 +71,7 @@
+ 
+ > **New in v2.**
+ 
+-When `true`, only one top-level `SubMenu` can be open at a time. Opening another
++When `true`, only one top-level `MenuGroup` can be open at a time. Opening another
+ automatically closes the previously open one.
+ 
+ - **Type:** `boolean`
+@@ -81,14 +81,14 @@
+ 
+ ```jsx
+ <Menu accordion>
+-  <SubMenu label="Charts">…</SubMenu>
+-  <SubMenu label="Components">…</SubMenu>
++  <MenuGroup label="Charts">…</MenuGroup>
++  <MenuGroup label="Components">…</MenuGroup>
+ </Menu>
+ ```
+ 
+ ### `menuItemStyles`
+ 
+-The styling system: apply CSS to MenuItem / SubMenu and their inner slots — `root`,
++The styling system: apply CSS to MenuItem / MenuGroup and their inner slots — `root`,
+ `button`, `label`, `icon`, `prefix`, `suffix`, `subMenuContent`, `SubMenuExpandIcon`.
+ 
+ Each slot accepts a `CSSObject` or a function of the item's state
+@@ -117,7 +117,7 @@
+ 
+ ### `renderExpandIcon`
+ 
+-Render a custom expand icon for `SubMenu` triggers.
++Render a custom expand icon for `MenuGroup` triggers.
+ 
+ - **Type:** `(params: { level, collapsed, disabled, active, open }) => ReactNode`
+ - **Default:** `–`
+@@ -159,9 +159,9 @@
+ | Name | Type | Default | Description |
+ | ---- | ---- | ------- | ----------- |
+ | `closeOnClick` | `boolean` | `false` | Close the popper on MenuItem click (collapsed sidebar only) |
+-| `popover` | `boolean` | `false` | **v2.** Top-level SubMenus open as floating poppers even when expanded |
+-| `accordion` | `boolean` | `false` | **v2.** Only one top-level SubMenu can be open at a time |
+-| `menuItemStyles` | `MenuItemStyles` | – | Style slots applied to MenuItem / SubMenu and children |
+-| `renderExpandIcon` | `(params) => ReactNode` | – | Custom render for the SubMenu expand icon |
++| `popover` | `boolean` | `false` | **v2.** Top-level MenuGroups open as floating poppers even when expanded |
++| `accordion` | `boolean` | `false` | **v2.** Only one top-level MenuGroup can be open at a time |
++| `menuItemStyles` | `MenuItemStyles` | – | Style slots applied to MenuItem / MenuGroup and children |
++| `renderExpandIcon` | `(params) => ReactNode` | – | Custom render for the MenuGroup expand icon |
+ | `transitionDuration` | `number` | `300` | Duration for the slide-open transition |
+ | `rootStyles` | `CSSObject` | – | Styles applied to the Menu root element |
+--- a/website/pages/docs/components/sub-menu.mdx
++++ b/website/pages/docs/components/sub-menu.mdx
+@@ -1,6 +1,6 @@
+ ---
+-title: SubMenu
+-description: A nestable, expandable submenu that holds MenuItem and SubMenu children. Cascades active state automatically.
++title: MenuGroup
++description: A nestable, expandable submenu that holds MenuItem and MenuGroup children. Cascades active state automatically.
+ ---
+ 
+ import {
+@@ -10,21 +10,21 @@
+   PrefixSuffixDemo,
+ } from '../../../components/demos';
+ 
+-# SubMenu
+-
+-`SubMenu` is an expandable container that holds `MenuItem` and other `SubMenu` children.
++# MenuGroup
++
++`MenuGroup` is an expandable container that holds `MenuItem` and other `MenuGroup` children.
+ When the sidebar is collapsed (or when `Menu`'s `popover` mode is enabled), top-level
+-SubMenus open as floating poppers; otherwise they slide open inline.
+-
+-Active state **cascades automatically** in v2 — a `SubMenu` is marked active whenever any
++MenuGroups open as floating poppers; otherwise they slide open inline.
++
++Active state **cascades automatically** in v2 — a `MenuGroup` is marked active whenever any
+ of its descendants is active, with no need for manual `active` prop management.
+ 
+ ```jsx
+ <Menu>
+-  <SubMenu label="Charts" icon={<ChartIcon />} defaultOpen>
++  <MenuGroup label="Charts" icon={<ChartIcon />} defaultOpen>
+     <MenuItem>Pie</MenuItem>
+     <MenuItem>Line</MenuItem>
+-  </SubMenu>
++  </MenuGroup>
+ </Menu>
+ ```
+ 
+@@ -38,8 +38,8 @@
+ - **Default:** `–`
+ 
+ ```jsx
+-<SubMenu label="Charts">…</SubMenu>
+-<SubMenu label={<span>Charts <Badge>6</Badge></span>}>…</SubMenu>
++<MenuGroup label="Charts">…</MenuGroup>
++<MenuGroup label={<span>Charts <Badge>6</Badge></span>}>…</MenuGroup>
+ ```
+ 
+ ### `icon`
+@@ -50,9 +50,9 @@
+ - **Default:** `–`
+ 
+ ```jsx
+-<SubMenu label="Charts" icon={<ChartIcon />}>
+-  …
+-</SubMenu>
++<MenuGroup label="Charts" icon={<ChartIcon />}>
++  …
++</MenuGroup>
+ ```
+ 
+ ### `defaultOpen`
+@@ -65,14 +65,14 @@
+ <DefaultOpenDemo />
+ 
+ ```jsx
+-<SubMenu label="Charts" defaultOpen>
+-  …
+-</SubMenu>
++<MenuGroup label="Charts" defaultOpen>
++  …
++</MenuGroup>
+ ```
+ 
+ ### `open`
+ 
+-Controlled open state. When set, the SubMenu becomes fully controlled — you own the
++Controlled open state. When set, the MenuGroup becomes fully controlled — you own the
+ state and must pair this with `onOpenChange`.
+ 
+ - **Type:** `boolean`
+@@ -83,14 +83,14 @@
+ ```jsx
+ const [open, setOpen] = useState(false);
+ 
+-<SubMenu label="Charts" open={open} onOpenChange={setOpen}>
+-  …
+-</SubMenu>;
++<MenuGroup label="Charts" open={open} onOpenChange={setOpen}>
++  …
++</MenuGroup>;
+ ```
+ 
+ ### `active`
+ 
+-Forces the active visual state. Note: a SubMenu is **also** marked active automatically
++Forces the active visual state. Note: a MenuGroup is **also** marked active automatically
+ whenever any descendant is active (v2 behavior) — you only need this prop to force the
+ state explicitly.
+ 
+@@ -98,9 +98,9 @@
+ - **Default:** `false`
+ 
+ ```jsx
+-<SubMenu label="Charts" active>
+-  …
+-</SubMenu>
++<MenuGroup label="Charts" active>
++  …
++</MenuGroup>
+ ```
+ 
+ ### `disabled`
+@@ -111,9 +111,9 @@
+ - **Default:** `false`
+ 
+ ```jsx
+-<SubMenu label="Charts" disabled>
+-  …
+-</SubMenu>
++<MenuGroup label="Charts" disabled>
++  …
++</MenuGroup>
+ ```
+ 
+ ### `prefix`
+@@ -133,16 +133,16 @@
+ - **Default:** `–`
+ 
+ ```jsx
+-<SubMenu label="Charts" suffix={<Badge>6</Badge>}>
+-  …
+-</SubMenu>
++<MenuGroup label="Charts" suffix={<Badge>6</Badge>}>
++  …
++</MenuGroup>
+ ```
+ 
+ ### `accordion`
+ 
+ > **New in v2.**
+ 
+-When `true`, only one of this SubMenu's **direct child SubMenus** can be open at a time.
++When `true`, only one of this MenuGroup's **direct child MenuGroups** can be open at a time.
+ The scope is per-level — accordions don't leak up to ancestors.
+ 
+ - **Type:** `boolean`
+@@ -151,24 +151,24 @@
+ <SubMenuAccordionDemo />
+ 
+ ```jsx
+-<SubMenu label="Components" accordion>
+-  <SubMenu label="Forms">…</SubMenu>
+-  <SubMenu label="Layout">…</SubMenu>
+-  <SubMenu label="Display">…</SubMenu>
+-</SubMenu>
++<MenuGroup label="Components" accordion>
++  <MenuGroup label="Forms">…</MenuGroup>
++  <MenuGroup label="Layout">…</MenuGroup>
++  <MenuGroup label="Display">…</MenuGroup>
++</MenuGroup>
+ ```
+ 
+ ### `onOpenChange`
+ 
+-Called whenever the open state changes — for either controlled or uncontrolled SubMenus.
++Called whenever the open state changes — for either controlled or uncontrolled MenuGroups.
+ 
+ - **Type:** `(open: boolean) => void`
+ - **Default:** `–`
+ 
+ ```jsx
+-<SubMenu label="Charts" onOpenChange={(open) => console.log('charts open:', open)}>
+-  …
+-</SubMenu>
++<MenuGroup label="Charts" onOpenChange={(open) => console.log('charts open:', open)}>
++  …
++</MenuGroup>
+ ```
+ 
+ ### `component`
+@@ -180,22 +180,22 @@
+ - **Default:** `–`
+ 
+ ```jsx
+-<SubMenu label="Charts" component="div">
+-  …
+-</SubMenu>
++<MenuGroup label="Charts" component="div">
++  …
++</MenuGroup>
+ ```
+ 
+ ### `rootStyles`
+ 
+-Emotion `CSSObject` applied to the SubMenu's root `<li>` element.
++Emotion `CSSObject` applied to the MenuGroup's root `<li>` element.
+ 
+ - **Type:** `CSSObject`
+ - **Default:** `–`
+ 
+ ```jsx
+-<SubMenu label="Charts" rootStyles={{ borderTop: '1px solid #eee' }}>
+-  …
+-</SubMenu>
++<MenuGroup label="Charts" rootStyles={{ borderTop: '1px solid #eee' }}>
++  …
++</MenuGroup>
+ ```
+ 
+ ## All props
+@@ -210,7 +210,7 @@
+ | `disabled` | `boolean` | `false` | Disabled state (adds `aria-disabled`) |
+ | `prefix` | `ReactNode` | – | Node between the icon and the label |
+ | `suffix` | `ReactNode` | – | Node after the label |
+-| `accordion` | `boolean` | `false` | **v2.** Only one direct-child SubMenu can be open at a time |
++| `accordion` | `boolean` | `false` | **v2.** Only one direct-child MenuGroup can be open at a time |
+ | `onOpenChange` | `(open: boolean) => void` | – | Called when the open state changes |
+ | `component` | `string \| ReactElement` | – | Element used for the trigger node |
+-| `rootStyles` | `CSSObject` | – | Styles applied to the SubMenu root |
++| `rootStyles` | `CSSObject` | – | Styles applied to the MenuGroup root |
+--- a/website/pages/docs/examples/dashboard-layout.mdx
++++ b/website/pages/docs/examples/dashboard-layout.mdx
+@@ -17,7 +17,7 @@
+ 
+ ```jsx
+ import React from 'react';
+-import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
++import { Sidebar, Menu, MenuItem, MenuGroup } from 'react-pro-sidebar';
+ import { Diamond, BarChart, Global, Calendar, Book } from './icons';
+ 
+ export default function Dashboard() {
+@@ -49,11 +49,11 @@
+             Overview
+           </MenuItem>
+           <MenuItem icon={<BarChart />}>Analytics</MenuItem>
+-          <SubMenu label="E-commerce" icon={<Global />}>
++          <MenuGroup label="E-commerce" icon={<Global />}>
+             <MenuItem>Products</MenuItem>
+             <MenuItem>Orders</MenuItem>
+             <MenuItem>Customers</MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+           <MenuItem icon={<Calendar />}>Calendar</MenuItem>
+           <MenuItem icon={<Book />}>Documentation</MenuItem>
+         </Menu>
+--- a/website/pages/docs/examples/theme-customization.mdx
++++ b/website/pages/docs/examples/theme-customization.mdx
+@@ -12,7 +12,7 @@
+ - **`rootStyles`** — Emotion `CSSObject` applied to each component's root element. Pair
+   it with the exported `sidebarClasses` / `menuClasses` registries to target inner nodes.
+ - **`menuItemStyles`** (on `Menu`) — A structured slot system for theming MenuItem and
+-  SubMenu and their children: `root`, `button`, `label`, `icon`, `prefix`, `suffix`,
++  MenuGroup and their children: `root`, `button`, `label`, `icon`, `prefix`, `suffix`,
+   `subMenuContent`, `SubMenuExpandIcon`. Each slot accepts a `CSSObject` or a function
+   of the item's state (`{ level, active, disabled, isSubmenu, open }`).
+ 
+@@ -23,7 +23,7 @@
+ ## Code
+ 
+ ```jsx
+-import { Sidebar, Menu, MenuItem, SubMenu, menuClasses, type MenuItemStyles } from 'react-pro-sidebar';
++import { Sidebar, Menu, MenuItem, MenuGroup, menuClasses, type MenuItemStyles } from 'react-pro-sidebar';
+ 
+ const themes = {
+   light: { bg: '#ffffff', text: '#0d3b66', icon: '#0098e5', hoverBg: '#cfe7ff', hoverText: '#0d3b66' },
+@@ -56,10 +56,10 @@
+     >
+       <Menu menuItemStyles={menuItemStyles}>
+         <MenuItem active>Dashboard</MenuItem>
+-        <SubMenu label="Charts">
++        <MenuGroup label="Charts">
+           <MenuItem>Pie</MenuItem>
+           <MenuItem>Line</MenuItem>
+-        </SubMenu>
++        </MenuGroup>
+       </Menu>
+     </Sidebar>
+   );
+--- a/website/pages/docs/installation.mdx
++++ b/website/pages/docs/installation.mdx
+@@ -43,7 +43,7 @@
+ ## Basic usage
+ 
+ ```jsx
+-import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
++import { Sidebar, Menu, MenuItem, MenuGroup } from 'react-pro-sidebar';
+ 
+ export default function App() {
+   return (
+@@ -51,10 +51,10 @@
+       <Sidebar>
+         <Menu>
+           <MenuItem> Dashboard </MenuItem>
+-          <SubMenu label="Charts">
++          <MenuGroup label="Charts">
+             <MenuItem> Pie charts </MenuItem>
+             <MenuItem> Line charts </MenuItem>
+-          </SubMenu>
++          </MenuGroup>
+           <MenuItem> Documentation </MenuItem>
+           <MenuItem> Calendar </MenuItem>
+         </Menu>
+@@ -73,7 +73,7 @@
+   Sidebar,
+   Menu,
+   MenuItem,
+-  SubMenu,
++  MenuGroup,
+   // Utility classes
+   sidebarClasses,
+   menuClasses,

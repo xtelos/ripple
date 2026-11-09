@@ -510,7 +510,7 @@ How to read this honestly:
 The benchmark checks that ripple's answers are right. The eval checks whether a coding agent does
 better with them: nineteen refactoring tasks (ten on small fixtures, nine on real repositories), each run by Claude
 Code in headless mode, once with a ripple MCP server and once without, three times each. Nine more, over
-TypeScript repositories, are set up but not yet run (see "TypeScript tasks" below).
+TypeScript repositories, have had one full run of the same shape (see "TypeScript tasks" and Results below).
 
 - **The tasks** (`eval/tasks/`) are renames and signature changes where grep is noisy or
   incomplete: a method named `total` on four classes, a function reached only through a package
@@ -614,11 +614,10 @@ It calls the `claude` CLI on whatever account it is logged in to, so it never ru
 
 ### TypeScript tasks
 
-Nine more tasks (`eval/tasks/20-*` to `28-*`) run over four pinned TypeScript repositories. **No agent has run on
-them yet.** The harness is wired and proven with a fake agent (see below), but spending on a real run is a separate
-decision, and the Results table below has no TypeScript row until one exists. The grader (`eval/check_node.py`)
-is the same design as the Python one: the repo's own runner over the agent's source with the reference's tests put
-back, plus a hidden TypeScript test.
+Nine more tasks (`eval/tasks/20-*` to `28-*`) run over four pinned TypeScript repositories. They have had one full
+run (54 runs, three repeats per task and arm; see Results). The harness was first proven with a fake agent (see
+below). The grader (`eval/check_node.py`) is the same design as the Python one: the repo's own runner over the
+agent's source with the reference's tests put back, plus a hidden TypeScript test.
 
 | Task | Repo (runner) | What is renamed | What makes it ambiguous |
 |---|---|---|---|
@@ -732,6 +731,27 @@ over bigger, real repositories, where the without-ripple agent has a real chance
 In this run each arm's working directory name included its condition label (such as
 `--with-ripple--`), which the agent can see; that is fixed now, and the result is unlikely to depend
 on it since both arms scored 30/30.
+
+TypeScript tasks, 2026-11-09, Claude Sonnet (`--model sonnet`), nine tasks, three repeats per task and arm, 54 runs,
+ripple at `5147bf7` (`eval/results/2026-11-09-typescript.json`):
+
+| Mode | Success | Median input tokens | Median output tokens | Median turns | Median wall time | Median cost-equivalent |
+|---|---:|---:|---:|---:|---:|---:|
+| with ripple | 27/27 | 247,566 | 5,105 | 26 | 43.8 s | $0.155 |
+| without | 27/27 | 218,666 | 5,250 | 29 | 38.9 s | $0.146 |
+
+Both arms solved every task every time, so again there is no difference in success to measure. With ripple the
+agent used about 13% more median input tokens and took slightly longer, but not more turns (median 26 against 29).
+The whole batch cost $13.46 in cost-equivalent terms and took 74 minutes.
+
+The agent barely used ripple. It called a ripple tool in 11 of the 27 with-ripple runs, 12 calls in all, and in none
+of the 15 runs on tasks 24, 26, 27 and 28 (one run of task 25 called it twice). So this compares an agent that has
+the tool with one that does not, and says nothing about whether ripple's answers help when they are used. Both arms
+can run `tsc --noEmit` and the repo's test runner; I did not measure how often they used `tsc`, which finds stale
+uses in code the suite never runs.
+
+An earlier one-repeat look at the same tasks (9 of 9 against 8 of 9) is not part of these numbers: the one failure
+was a task 26 prompt that let the agent rename a runtime warning text the suite asserts, fixed before this run.
 
 ## Known limits
 

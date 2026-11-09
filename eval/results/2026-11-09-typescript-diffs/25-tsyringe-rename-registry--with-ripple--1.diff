@@ -1,0 +1,222 @@
+--- a/README.md
++++ b/README.md
+@@ -482,11 +482,11 @@
+ 
+ ### Registry
+ 
+-You can also mark up any class with the `@registry()` decorator to have the given providers registered
+-upon importing the marked up class. `@registry()` takes an array of providers like so:
++You can also mark up any class with the `@registerAll()` decorator to have the given providers registered
++upon importing the marked up class. `@registerAll()` takes an array of providers like so:
+ 
+ ```TypeScript
+-@registry([
++@registerAll([
+   { token: Foobar, useClass: Foobar },
+   { token: "theirClass", useFactory: (c) => {
+        return new TheirClass( "arg" )
+@@ -498,9 +498,9 @@
+ 
+ This is useful when you want to [register multiple classes for the same token](#register).
+ You can also use it to register and declare objects that wouldn't be imported by anything else,
+-such as more classes annotated with `@registry` or that are otherwise responsible for registering objects.
++such as more classes annotated with `@registerAll` or that are otherwise responsible for registering objects.
+ Lastly you might choose to use this to register 3rd party instances instead of the `container.register(...)` method.
+-note: if you want this class to be `@injectable` you must put the decorator before `@registry`, this annotation is not
++note: if you want this class to be `@injectable` you must put the decorator before `@registerAll`, this annotation is not
+ required though.
+ 
+ ### Resolution
+@@ -525,7 +525,7 @@
+ @injectable()
+ class Baz implements Bar {}
+ 
+-@registry([
++@registerAll([
+   // registry is optional, all you need is to use the same token when registering
+   {token: "Bar", useToken: Foo}, // can be any provider
+   {token: "Bar", useToken: Baz}
+@@ -721,7 +721,7 @@
+ export interface IFoo {}
+ 
+ @injectable()
+-@registry([
++@registerAll([
+   {
+     token: "IBar",
+     // `DelayedConstructor` of Bar will be the token
+@@ -734,7 +734,7 @@
+ export interface IBar {}
+ 
+ @injectable()
+-@registry([
++@registerAll([
+   {
+     token: "IFoo",
+     useToken: delay(() => Foo)
+--- a/src/__tests__/fixtures/03-test-case-A03-lazy-injects-B03-interface.ts
++++ b/src/__tests__/fixtures/03-test-case-A03-lazy-injects-B03-interface.ts
+@@ -1,4 +1,4 @@
+-import {inject, injectable, registry} from "../../decorators";
++import {inject, injectable, registerAll} from "../../decorators";
+ import {B03, Ib03} from "./03-test-case-B03-lazy-injects-A03-interface";
+ import {delay} from "../../lazy-helpers";
+ 
+@@ -7,7 +7,7 @@
+ }
+ 
+ @injectable()
+-@registry([
++@registerAll([
+   {
+     token: "Ib03",
+     useToken: delay(() => B03)
+--- a/src/__tests__/fixtures/03-test-case-B03-lazy-injects-A03-interface.ts
++++ b/src/__tests__/fixtures/03-test-case-B03-lazy-injects-A03-interface.ts
+@@ -1,4 +1,4 @@
+-import {inject, injectable, registry} from "../../decorators";
++import {inject, injectable, registerAll} from "../../decorators";
+ import {A03, Ia03} from "./03-test-case-A03-lazy-injects-B03-interface";
+ import {delay} from "../../lazy-helpers";
+ 
+@@ -7,7 +7,7 @@
+ }
+ 
+ @injectable()
+-@registry([
++@registerAll([
+   {
+     token: "Ia03",
+     useToken: delay(() => A03)
+--- a/src/__tests__/global-container.test.ts
++++ b/src/__tests__/global-container.test.ts
+@@ -1,6 +1,6 @@
+ /* eslint-disable @typescript-eslint/interface-name-prefix */
+ 
+-import {inject, injectable, registry, singleton} from "../decorators";
++import {inject, injectable, registerAll, singleton} from "../decorators";
+ import {
+   instanceCachingFactory,
+   instancePerContainerCachingFactory,
+@@ -571,10 +571,10 @@
+   expect(instance.c).toBe(c);
+ });
+ 
+-// --- @registry ---
++// --- @registerAll ---
+ 
+ test("doesn't blow up with empty args", () => {
+-  @registry()
++  @registerAll()
+   class RegisteringFoo {}
+ 
+   expect(() => new RegisteringFoo()).not.toThrow();
+@@ -585,7 +585,7 @@
+   class Bar implements IBar {
+     public value = "";
+   }
+-  @registry([{token: Bar, useClass: Bar}])
++  @registerAll([{token: Bar, useClass: Bar}])
+   class RegisteringFoo {}
+ 
+   new RegisteringFoo();
+@@ -603,7 +603,7 @@
+     useClass: Bar
+   };
+ 
+-  @registry([registration])
++  @registerAll([registration])
+   class RegisteringFoo {}
+ 
+   new RegisteringFoo();
+@@ -617,7 +617,7 @@
+     useValue: {}
+   };
+ 
+-  @registry([registration])
++  @registerAll([registration])
+   class RegisteringFoo {}
+ 
+   new RegisteringFoo();
+@@ -631,7 +631,7 @@
+     useToken: "IFoo"
+   };
+ 
+-  @registry([registration])
++  @registerAll([registration])
+   class RegisteringFoo {}
+ 
+   new RegisteringFoo();
+@@ -651,7 +651,7 @@
+       globalContainer.resolve(Bar)
+   };
+ 
+-  @registry([registration])
++  @registerAll([registration])
+   class RegisteringFoo {}
+ 
+   new RegisteringFoo();
+@@ -673,7 +673,7 @@
+     useClass: Bar
+   };
+ 
+-  @registry([registration, {token: Foo, useClass: Foo}])
++  @registerAll([registration, {token: Foo, useClass: Foo}])
+   class RegisteringFoo {}
+ 
+   new RegisteringFoo();
+@@ -688,7 +688,7 @@
+     useValue: {}
+   };
+ 
+-  @registry([registration])
++  @registerAll([registration])
+   class RegisteringFoo {}
+ 
+   new RegisteringFoo();
+@@ -708,7 +708,7 @@
+   }
+ 
+   @injectable()
+-  @registry([{token: Bar, useClass: Bar}])
++  @registerAll([{token: Bar, useClass: Bar}])
+   class FooWithInterface {
+     constructor(@inject(Bar) public myBar: IBar) {}
+   }
+@@ -725,7 +725,7 @@
+   }
+ 
+   @injectable()
+-  @registry([
++  @registerAll([
+     {
+       token: "IBar",
+       useClass: Bar
+--- a/src/decorators/index.ts
++++ b/src/decorators/index.ts
+@@ -1,7 +1,7 @@
+ export {default as autoInjectable} from "./auto-injectable";
+ export {default as inject} from "./inject";
+ export {default as injectable} from "./injectable";
+-export {default as registry} from "./registry";
++export {default as registerAll} from "./registry";
+ export {default as singleton} from "./singleton";
+ export {default as injectAll} from "./inject-all";
+ export {default as injectAllWithTransform} from "./inject-all-with-transform";
+--- a/src/decorators/registry.ts
++++ b/src/decorators/registry.ts
+@@ -8,7 +8,7 @@
+  *
+  * @return {Function} The class decorator
+  */
+-function registry(
++function registerAll(
+   registrations: ({
+     token: InjectionToken;
+     options?: RegistrationOptions;
+@@ -23,4 +23,4 @@
+   };
+ }
+ 
+-export default registry;
++export default registerAll;

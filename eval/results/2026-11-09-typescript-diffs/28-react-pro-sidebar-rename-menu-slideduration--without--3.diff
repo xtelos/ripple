@@ -1,0 +1,131 @@
+--- a/README.md
++++ b/README.md
+@@ -283,7 +283,7 @@
+             <td>-</td>
+         </tr>
+           <tr>
+-            <td>transitionDuration</td>
++            <td>slideDuration</td>
+             <td><code>number</code></td>
+             <td>Transition duration in milliseconds to use when sliding submenu content</td>
+             <td><code>300</code></td>
+--- a/src/components/Menu.tsx
++++ b/src/components/Menu.tsx
+@@ -50,7 +50,7 @@
+    * Transition duration in milliseconds
+    * @default ```300```
+    */
+-  transitionDuration?: number;
++  slideDuration?: number;
+ 
+   /**
+    * If set to true, the popper menu will close when a menu item is clicked
+@@ -134,7 +134,7 @@
+   {
+     children,
+     className,
+-    transitionDuration = 300,
++    slideDuration = 300,
+     closeOnClick = false,
+     accordion = false,
+     popover = false,
+@@ -146,8 +146,8 @@
+   ref,
+ ) => {
+   const providerValue = React.useMemo(
+-    () => ({ transitionDuration, closeOnClick, popover, menuItemStyles, renderExpandIcon }),
+-    [transitionDuration, closeOnClick, popover, menuItemStyles, renderExpandIcon],
++    () => ({ slideDuration, closeOnClick, popover, menuItemStyles, renderExpandIcon }),
++    [slideDuration,closeOnClick, popover, menuItemStyles, renderExpandIcon],
+   );
+ 
+   const [activeId, setActiveId] = React.useState<string | null>(null);
+--- a/src/components/SubMenuContent.tsx
++++ b/src/components/SubMenuContent.tsx
+@@ -72,7 +72,7 @@
+   { children, open, openWhenCollapsed, popper, rtl, ...rest },
+   ref,
+ ) => {
+-  const { transitionDuration } = useMenu();
++  const { slideDuration } = useMenu();
+ 
+   // In popper mode visibility is driven by `openWhenCollapsed`; otherwise the
+   // submenu slides open based on `open`. While hidden, mark the subtree `inert`
+@@ -93,7 +93,7 @@
+       popper={popper}
+       open={open}
+       openWhenCollapsed={openWhenCollapsed}
+-      transitionDuration={transitionDuration}
++      transitionDuration={slideDuration}
+       {...inertProps}
+       {...rest}
+     >
+--- a/storybook/stories/Menu.stories.tsx
++++ b/storybook/stories/Menu.stories.tsx
+@@ -102,7 +102,7 @@
+ export const TransitionDuration: StoryFn<typeof Menu> = () => (
+   <div style={{ display: 'flex', height: '100%' }}>
+     <Sidebar>
+-      <Menu transitionDuration={1000}>
++      <Menu slideDuration={1000}>
+         <SubMenu label="Charts">
+           <MenuItem> Pie charts</MenuItem>
+           <MenuItem> Line charts</MenuItem>
+--- a/tests/hooks.test.tsx
++++ b/tests/hooks.test.tsx
+@@ -20,7 +20,7 @@
+   });
+ 
+   it('returns the menu context value', () => {
+-    const value = { transitionDuration: 400, closeOnClick: true };
++    const value = { slideDuration: 400, closeOnClick: true };
+     const wrapper = ({ children }: { children: React.ReactNode }) => (
+       <MenuContext.Provider value={value}>{children}</MenuContext.Provider>
+     );
+--- a/website/pages/api-reference.mdx
++++ b/website/pages/api-reference.mdx
+@@ -54,7 +54,7 @@
+ | `accordion` | `boolean` | `false` | **New in v2.** If `true`, only one top-level `SubMenu` can be open at a time |
+ | `menuItemStyles` | `MenuItemStyles` | – | Apply styles to MenuItem/SubMenu and their child slots (root, button, label, icon, prefix, suffix, …) |
+ | `renderExpandIcon` | `(params) => ReactNode` | – | Custom render for the SubMenu expand icon. `params: { level, collapsed, disabled, active, open }` |
+-| `transitionDuration` | `number` | `300` | Transition duration for sliding submenu content |
++| `slideDuration` | `number` | `300` | Transition duration for sliding submenu content |
+ | `rootStyles` | `CSSObject` | – | Apply styles to the Menu root element |
+ 
+ ## MenuItem
+--- a/website/pages/docs/components/menu.mdx
++++ b/website/pages/docs/components/menu.mdx
+@@ -17,7 +17,7 @@
+ - The **styling system** (`menuItemStyles`) used to style children consistently
+ - The **accordion** coordination for top-level SubMenus (`accordion` prop)
+ - The **popover** mode that opens top-level SubMenus as floating poppers (`popover` prop)
+-- The **slide transition** duration for inline submenus (`transitionDuration` prop)
++- The **slide transition** duration for inline submenus (`slideDuration` prop)
+ - The **render override** for expand icons (`renderExpandIcon` prop)
+ 
+ You can nest multiple `Menu`s inside a single `Sidebar` (e.g. for distinct "General" and
+@@ -132,7 +132,7 @@
+ </Menu>
+ ```
+ 
+-### `transitionDuration`
++### `slideDuration`
+ 
+ Duration in milliseconds for the slide-open animation of inline (non-popper) submenus.
+ 
+@@ -140,7 +140,7 @@
+ - **Default:** `300`
+ 
+ ```jsx
+-<Menu transitionDuration={500}>…</Menu>
++<Menu slideDuration={500}>…</Menu>
+ ```
+ 
+ ### `rootStyles`
+@@ -163,5 +163,5 @@
+ | `accordion` | `boolean` | `false` | **v2.** Only one top-level SubMenu can be open at a time |
+ | `menuItemStyles` | `MenuItemStyles` | – | Style slots applied to MenuItem / SubMenu and children |
+ | `renderExpandIcon` | `(params) => ReactNode` | – | Custom render for the SubMenu expand icon |
+-| `transitionDuration` | `number` | `300` | Duration for the slide-open transition |
++| `slideDuration` | `number` | `300` | Duration for the slide-open transition |
+ | `rootStyles` | `CSSObject` | – | Styles applied to the Menu root element |
