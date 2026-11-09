@@ -55,6 +55,12 @@ def summarize(runs: list[dict]) -> dict:
             "timeouts": sum(1 for r in mine if r.get("timed_out")),
             "ripple_calls": sum(r.get("ripple_calls", 0) for r in mine),
         }
+        # only for runs that recorded their ripple exchanges (every run since the harness began to), so the
+        # summary of an older batch is what it always was
+        if any("ripple_exchanges" in r for r in mine):
+            modes[mode]["ripple_error_runs"] = sum(
+                1 for r in mine if any(e.get("is_error") for e in r.get("ripple_exchanges") or [])
+            )
     tasks = {}
     for r in counted:
         cell = tasks.setdefault(r["task"], {}).setdefault(r["mode"], {"runs": 0, "successes": 0})
@@ -80,9 +86,11 @@ def _num(value, digits: int = 0) -> str:
 
 
 def table(summary: dict) -> str:
+    errors = any("ripple_error_runs" in m for m in summary["modes"].values())  # batches that recorded exchanges
     lines = [
-        "| Mode | Runs | Success | Median input tokens | Median output tokens | Median turns | Median wall s | Median cost-equivalent $ | ripple calls | Invalid (not counted) |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Mode | Runs | Success | Median input tokens | Median output tokens | Median turns | Median wall s | Median cost-equivalent $ | ripple calls | Invalid (not counted) |"
+        + (" Runs with a ripple error |" if errors else ""),
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|" + ("---:|" if errors else ""),
     ]
     for mode, m in summary["modes"].items():
         wins = f"{m['successes']}/{m['runs']} ({m['success_rate']:.0%})" if m["runs"] else "n/a"
@@ -90,6 +98,7 @@ def table(summary: dict) -> str:
             f"| {mode} | {m['runs']} | {wins} "
             f"| {_num(m['median_input_tokens'])} | {_num(m['median_output_tokens'])} | {_num(m['median_turns'], 1)} "
             f"| {_num(m['median_wall_s'], 1)} | {_num(m['median_cost_usd'], 3)} | {m['ripple_calls']} | {m.get('invalid', 0)} |"
+            + (f" {m.get('ripple_error_runs', 0)} |" if errors else "")
         )
     lines += ["", "| Task | with-ripple | without |", "|---|---:|---:|"]
     for task, cells in summary["tasks"].items():
