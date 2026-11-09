@@ -85,9 +85,12 @@ def _num(value, digits: int = 0) -> str:
     return f"{value:,.{digits}f}"
 
 
-def table(summary: dict) -> str:
+def table(summary: dict, arm: str | None = None) -> str:
+    """The summary as markdown. A batch's arm (its meta's `arm`, a label like `base` or `forced+restricted`) goes on
+    a line above the first table; results written before the arm existed pass none and print no such line."""
     errors = any("ripple_error_runs" in m for m in summary["modes"].values())  # batches that recorded exchanges
-    lines = [
+    lines = [f"arm: {arm}", ""] if arm else []
+    lines += [
         "| Mode | Runs | Success | Median input tokens | Median output tokens | Median turns | Median wall s | Median cost-equivalent $ | ripple calls | Invalid (not counted) |"
         + (" Runs with a ripple error |" if errors else ""),
         "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|" + ("---:|" if errors else ""),
