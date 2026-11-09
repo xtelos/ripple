@@ -37,7 +37,7 @@ from .profile import PYTHON, LanguageProfile
 
 # Bump when the graph format or the resolution rules change, so old caches
 # are ignored rather than served.
-CACHE_FORMAT = f"{__version__}-10"
+CACHE_FORMAT = f"{__version__}-12"
 
 
 def default_cache_dir() -> Path:
@@ -50,15 +50,16 @@ def default_cache_dir() -> Path:
 def fingerprint(repo: Path, profile: LanguageProfile = PYTHON, sources: list[Path] | None = None) -> dict[str, list[int]]:
     """{relative path: [mtime_ns, size]} for every file the indexer would read, and for the
     profile's config files (tsconfig.json) that are there: an edit to one changes the index too. For TypeScript
-    that includes every config the root one extends inside the repo, which the indexer reads as well.
+    that includes every tsconfig.json above an indexed file and every config each extends inside the repo,
+    which the indexer reads as well.
     sources are the profile's files when the caller has already walked the repo for them."""
     result = {}
     names = [name for name in profile.config_files if (repo / name).is_file()]
-    if profile.front_end == "typescript" and names:
+    sources = find_source_files(repo, profile) if sources is None else sources
+    if profile.front_end == "typescript":
         from .ts_modules import config_files  # no parser needed to read configs
 
-        names = [*names, *(f for f in config_files(repo) if f not in names)]
-    sources = find_source_files(repo, profile) if sources is None else sources
+        names = [*names, *(f for f in config_files(repo, sources) if f not in names)]
     for path in [*sources, *(repo / name for name in names)]:
         try:
             stat = path.stat()
