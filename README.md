@@ -561,10 +561,15 @@ TypeScript repositories, have had one full run of the same shape (see "TypeScrip
   from a fresh copy under `/tmp`, in a directory whose name says nothing about the task or mode,
   and leaves out the user's own settings, hooks and auto-memory.
 - **Invalid runs.** A run is marked invalid and left out of the success rate, but counted and
-  printed (per mode, per task and with its reason) in two cases: a with-ripple run whose ripple
-  server fails to connect, and a run that changed no file while an edit tool (Edit, Write,
+  printed (per mode, per task and with its reason) in three cases: a with-ripple run whose ripple
+  server fails to connect, a run that changed no file while an edit tool (Edit, Write,
   MultiEdit, NotebookEdit) was refused by the permissions, since the harness then blocked the very
-  tool the prompt named. Other refusals are routine and do not invalidate a run: an agent that
+  tool the prompt named, and a run the CLI refused before the agent did anything (an error result
+  with no tool call and at most one turn, for example "You've hit your 5-hour limit"): reason
+  `the agent did not run: <message>`. A usage or rate limit message also stops the batch at once,
+  records it as `stopped_message` in the meta and prints how many runs were not started, so the
+  batch can be re-run after the reset; a run cut off by the limit part way is `aborted` instead.
+  Other refusals are routine and do not invalidate a run: an agent that
   tries `sed -i` despite the prompt, or a read-only command that is refused, and changes nothing,
   is a real failure. The result JSON keeps each run's refused tools and their inputs
   (`permission_denied`).

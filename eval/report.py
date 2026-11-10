@@ -1,13 +1,18 @@
 """Turn a list of run records into the per-mode and per-task summary tables.
 
 A run the agent never got to finish because the subscription refused it
-(rate limit) is marked aborted and left out of every number here, so a
-partial batch reports only the runs that actually happened. A run marked
-invalid is left out the same way: a with-ripple run whose ripple server never
-connected (it ran without ripple), or a run that changed no file and had an
-edit tool refused by the permissions (the harness blocked the tool it was told
-to use). Other refusals do not invalidate a run. Both kinds are
-reported as counts, per mode, per task and with their reasons, never hidden.
+part way (rate limit, usage limit) is marked aborted and left out of every
+success and median number here, so a partial batch reports only the runs that
+actually happened; the summary counts the aborted runs and the table says how
+many. A run marked invalid is left out the same way, in three cases: a
+with-ripple run whose ripple server never connected (it ran without ripple), a
+run that changed no file and had an edit tool refused by the permissions (the
+harness blocked the tool it was told to use), and a run the CLI refused before
+the agent did anything (an error result with no tool call and at most one turn,
+reason "the agent did not run: <message>", for example a spent usage limit).
+Other refusals do not invalidate a run. A run that is both aborted and invalid
+is counted as aborted only. Invalid runs are reported as counts, per mode, per
+task and with their reasons, never hidden.
 """
 
 from __future__ import annotations
