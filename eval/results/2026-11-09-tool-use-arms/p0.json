@@ -1,0 +1,2894 @@
+{
+  "meta": {
+    "started": "2026-11-09T13:34:57",
+    "ripple_commit": "9a37ef1",
+    "claude_version": "2.1.319 (Claude Code)",
+    "model_requested": "sonnet",
+    "repeats": 3,
+    "timeout_s": 600,
+    "jobs": 1,
+    "prompt_preamble": "The shell is there for running the tests: do not use it to edit files (sed, scripted rewrites). Make every edit with the Edit or Write tool.",
+    "with_ripple_line": "A ripple MCP server is connected for this repository. Its tools (impact, callers, callees, path, check) cover the call graph and running tests.",
+    "command": [
+      "claude",
+      "-p",
+      "<task prompt>",
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--setting-sources",
+      "project,local",
+      "--no-session-persistence",
+      "--permission-mode",
+      "acceptEdits",
+      "--allowedTools",
+      "Bash(python -m pytest:*),Bash(python3 -m pytest:*),Bash(pytest:*),mcp__ripple",
+      "--mcp-config",
+      "<mcp.json>",
+      "--strict-mcp-config",
+      "--model",
+      "sonnet"
+    ],
+    "arm": "base",
+    "finished": "2026-11-09T13:47:03",
+    "stopped_early": false
+  },
+  "summary": {
+    "modes": {
+      "with-ripple": {
+        "runs": 30,
+        "invalid": 0,
+        "successes": 27,
+        "success_rate": 0.9,
+        "median_input_tokens": 129230.0,
+        "median_output_tokens": 2212.0,
+        "median_turns": 15.0,
+        "median_wall_s": 20.75,
+        "median_cost_usd": 0.0805436,
+        "timeouts": 0,
+        "ripple_calls": 62,
+        "ripple_error_runs": 2
+      }
+    },
+    "tasks": {
+      "01-shop-tax-args": {
+        "with-ripple": {
+          "runs": 3,
+          "successes": 3
+        }
+      },
+      "02-shop-rename-price-order": {
+        "with-ripple": {
+          "runs": 3,
+          "successes": 3
+        }
+      },
+      "03-notes-rename-cmd-find": {
+        "with-ripple": {
+          "runs": 3,
+          "successes": 3
+        }
+      },
+      "04-ledger-rename-invoice-total": {
+        "with-ripple": {
+          "runs": 3,
+          "successes": 3
+        }
+      },
+      "05-ledger-drop-amount-alias": {
+        "with-ripple": {
+          "runs": 3,
+          "successes": 0
+        }
+      },
+      "06-ledger-fee-region": {
+        "with-ripple": {
+          "runs": 3,
+          "successes": 3
+        }
+      },
+      "07-ledger-rename-account-apply": {
+        "with-ripple": {
+          "runs": 3,
+          "successes": 3
+        }
+      },
+      "08-ledger-move-format-amount": {
+        "with-ripple": {
+          "runs": 3,
+          "successes": 3
+        }
+      },
+      "09-ledger-money-format-symbol": {
+        "with-ripple": {
+          "runs": 3,
+          "successes": 3
+        }
+      },
+      "10-ledger-add-line-quantity": {
+        "with-ripple": {
+          "runs": 3,
+          "successes": 3
+        }
+      }
+    },
+    "aborted": 0,
+    "invalid": 0,
+    "invalid_reasons": {}
+  },
+  "runs": [
+    {
+      "task": "01-shop-tax-args",
+      "mode": "with-ripple",
+      "repeat": 1,
+      "arm": "base",
+      "run_dir": "run-4e7jwie4",
+      "wall_s": 13.0,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "mcp__ripple__impact": 1,
+        "Bash": 2,
+        "Edit": 2,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 2,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "shop.tax.tax_for"
+          },
+          "is_error": false,
+          "result_chars": 1407,
+          "result_head": "{\n  \"symbol\": \"shop.tax.tax_for\",\n  \"depth\": 5,\n  \"affected\": 6,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"shop/pricing.py\": [\n      {\n        \"symbol\": \"shop.pricing.price_order\",\n        \"line\": 8,\n        \"distance\": 1\n      }\n    ],\n    \"shop/service.py\": [\n      {\n        \"symbol\": \"shop.service.OrderService.place_order\",\n        \"line\": 17,\n        \"distance\": 2\n      },\n      {\n        \"symbol\": \"shop.service.OrderService.reprice\",\n        \"line\": 26,\n        \"distance\": 2\n      }\n    ]\n  },\n  \"caller_count\": 3,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_pricing.py::test_percent_discount_and_tax\",\n      \"symbol\": \"tests.test_pricing.test_percent_discount_and_tax\",\n      \"line\": 6,\n      \"distance\": 2,\n      \"file\": \"tests/test_pricing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_service.py::test_place_order_applies_best_discount\",\n      \"symbol\": \"tests.test_service.test_place_order_applies_best_discount\",\n      \"line\": 4,\n      \"distance\": 3,\n      \"file\": \"tests/test_service.py\"\n    },\n    {\n      \"node_id\": \"tests/test_service.py::test_reprice_drops_discounts\",\n      \"symbol\": \"tests.test_service.test_reprice_drops_discounts\",\n      \"line\": 11,\n      \"distance\": 3,\n      \"file\": \"tests/test_service.py\"\n    }\n  ],\n  \"test_count\": 3,\n  \"truncated\": false,\n  \"omitted_callers\": 0,\n  \"omitted_tests\": 0,\n  \"possible_missed_callers\": [],\n  \"possible_missed_total\": 0\n}"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 213,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"3 passed in 0.01s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 8,
+      "agent_duration_s": 11.5,
+      "cost_usd": 0.0562633,
+      "usage": {
+        "input_tokens": 12,
+        "output_tokens": 972,
+        "cache_creation_input_tokens": 9421,
+        "cache_read_input_tokens": 88353
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "`tax_for` now takes `(region, amount)`, and the full test suite passes (3 tests).\n\n- **Signature:** I changed it in `shop/tax.py`.\n- **Caller:** the only direct call was in `price_order` in `shop/pricing.py`. I swapped its arguments to `tax.tax_for(region, net)`.\n- **Other callers:** `OrderService.place_order` and `OrderService.reprice` reach `tax_for` only through `price_order`, so they needed no change. A grep for `tax_for` found no other references.\n\nThe function body is unchanged, so prices ",
+      "changed_files": [
+        "shop/pricing.py",
+        "shop/tax.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 3,
+      "min_tests": 3,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "3 passed in 0.01s",
+      "hidden_summary": "2 passed in 0.01s",
+      "failures": []
+    },
+    {
+      "task": "01-shop-tax-args",
+      "mode": "with-ripple",
+      "repeat": 2,
+      "arm": "base",
+      "run_dir": "run-_d9lomm1",
+      "wall_s": 16.3,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "mcp__ripple__impact": 1,
+        "Bash": 1,
+        "Read": 2,
+        "Edit": 2,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 2,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "shop.tax.tax_for"
+          },
+          "is_error": false,
+          "result_chars": 1407,
+          "result_head": "{\n  \"symbol\": \"shop.tax.tax_for\",\n  \"depth\": 5,\n  \"affected\": 6,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"shop/pricing.py\": [\n      {\n        \"symbol\": \"shop.pricing.price_order\",\n        \"line\": 8,\n        \"distance\": 1\n      }\n    ],\n    \"shop/service.py\": [\n      {\n        \"symbol\": \"shop.service.OrderService.place_order\",\n        \"line\": 17,\n        \"distance\": 2\n      },\n      {\n        \"symbol\": \"shop.service.OrderService.reprice\",\n        \"line\": 26,\n        \"distance\": 2\n      }\n    ]\n  },\n  \"caller_count\": 3,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_pricing.py::test_percent_discount_and_tax\",\n      \"symbol\": \"tests.test_pricing.test_percent_discount_and_tax\",\n      \"line\": 6,\n      \"distance\": 2,\n      \"file\": \"tests/test_pricing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_service.py::test_place_order_applies_best_discount\",\n      \"symbol\": \"tests.test_service.test_place_order_applies_best_discount\",\n      \"line\": 4,\n      \"distance\": 3,\n      \"file\": \"tests/test_service.py\"\n    },\n    {\n      \"node_id\": \"tests/test_service.py::test_reprice_drops_discounts\",\n      \"symbol\": \"tests.test_service.test_reprice_drops_discounts\",\n      \"line\": 11,\n      \"distance\": 3,\n      \"file\": \"tests/test_service.py\"\n    }\n  ],\n  \"test_count\": 3,\n  \"truncated\": false,\n  \"omitted_callers\": 0,\n  \"omitted_tests\": 0,\n  \"possible_missed_callers\": [],\n  \"possible_missed_total\": 0\n}"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 213,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"3 passed in 0.01s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 9,
+      "agent_duration_s": 15.0,
+      "cost_usd": 0.05307819999999999,
+      "usage": {
+        "input_tokens": 14,
+        "output_tokens": 990,
+        "cache_creation_input_tokens": 8003,
+        "cache_read_input_tokens": 111382
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "`tax_for` now takes `(region, amount)`, and the full test suite passes (3 tests).\n\n- **Signature:** I changed it in `shop/tax.py`. The body is the same, so the amounts don't change.\n- **Caller:** The only direct caller is `price_order` in `shop/pricing.py`, and I swapped its arguments. `place_order` and `reprice` reach `tax_for` only through `price_order`, so they needed no edit.\n- **Search:** A grep for `tax_for` found no other uses. Ripple listed no possibly-missed callers.",
+      "changed_files": [
+        "shop/pricing.py",
+        "shop/tax.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 3,
+      "min_tests": 3,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "3 passed in 0.01s",
+      "hidden_summary": "2 passed in 0.01s",
+      "failures": []
+    },
+    {
+      "task": "01-shop-tax-args",
+      "mode": "with-ripple",
+      "repeat": 3,
+      "arm": "base",
+      "run_dir": "run-6dd3jww6",
+      "wall_s": 13.8,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "mcp__ripple__impact": 1,
+        "Bash": 1,
+        "Read": 2,
+        "Edit": 2,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 2,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "shop.tax.tax_for"
+          },
+          "is_error": false,
+          "result_chars": 1407,
+          "result_head": "{\n  \"symbol\": \"shop.tax.tax_for\",\n  \"depth\": 5,\n  \"affected\": 6,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"shop/pricing.py\": [\n      {\n        \"symbol\": \"shop.pricing.price_order\",\n        \"line\": 8,\n        \"distance\": 1\n      }\n    ],\n    \"shop/service.py\": [\n      {\n        \"symbol\": \"shop.service.OrderService.place_order\",\n        \"line\": 17,\n        \"distance\": 2\n      },\n      {\n        \"symbol\": \"shop.service.OrderService.reprice\",\n        \"line\": 26,\n        \"distance\": 2\n      }\n    ]\n  },\n  \"caller_count\": 3,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_pricing.py::test_percent_discount_and_tax\",\n      \"symbol\": \"tests.test_pricing.test_percent_discount_and_tax\",\n      \"line\": 6,\n      \"distance\": 2,\n      \"file\": \"tests/test_pricing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_service.py::test_place_order_applies_best_discount\",\n      \"symbol\": \"tests.test_service.test_place_order_applies_best_discount\",\n      \"line\": 4,\n      \"distance\": 3,\n      \"file\": \"tests/test_service.py\"\n    },\n    {\n      \"node_id\": \"tests/test_service.py::test_reprice_drops_discounts\",\n      \"symbol\": \"tests.test_service.test_reprice_drops_discounts\",\n      \"line\": 11,\n      \"distance\": 3,\n      \"file\": \"tests/test_service.py\"\n    }\n  ],\n  \"test_count\": 3,\n  \"truncated\": false,\n  \"omitted_callers\": 0,\n  \"omitted_tests\": 0,\n  \"possible_missed_callers\": [],\n  \"possible_missed_total\": 0\n}"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 213,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.21,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"3 passed in 0.01s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 9,
+      "agent_duration_s": 12.3,
+      "cost_usd": 0.05310960000000001,
+      "usage": {
+        "input_tokens": 14,
+        "output_tokens": 997,
+        "cache_creation_input_tokens": 7994,
+        "cache_read_input_tokens": 111356
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "`tax_for` now takes `(region, amount)`, and the full test suite passes (3 tests).\n\nThere were only two edits:\n- **`shop/tax.py`:** I swapped the parameters in the signature. The body is unchanged, so the tax maths is the same.\n- **`shop/pricing.py`:** `price_order` now calls `tax.tax_for(region, net)`.\n\nIt is the only direct caller. `OrderService.place_order` and `OrderService.reprice` reach `tax_for` through `price_order`, so they needed no change. A grep for `tax_for` found no other references",
+      "changed_files": [
+        "shop/pricing.py",
+        "shop/tax.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 3,
+      "min_tests": 3,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "3 passed in 0.01s",
+      "hidden_summary": "2 passed in 0.01s",
+      "failures": []
+    },
+    {
+      "task": "02-shop-rename-price-order",
+      "mode": "with-ripple",
+      "repeat": 1,
+      "arm": "base",
+      "run_dir": "run-m31p1zcy",
+      "wall_s": 15.7,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "Bash": 1,
+        "mcp__ripple__impact": 1,
+        "Read": 3,
+        "Edit": 4,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 2,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "shop.pricing.price_order"
+          },
+          "is_error": false,
+          "result_chars": 1280,
+          "result_head": "{\n  \"symbol\": \"shop.pricing.price_order\",\n  \"depth\": 5,\n  \"affected\": 5,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"shop/service.py\": [\n      {\n        \"symbol\": \"shop.service.OrderService.place_order\",\n        \"line\": 17,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"shop.service.OrderService.reprice\",\n        \"line\": 26,\n        \"distance\": 1\n      }\n    ]\n  },\n  \"caller_count\": 2,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_pricing.py::test_percent_discount_and_tax\",\n      \"symbol\": \"tests.test_pricing.test_percent_discount_and_tax\",\n      \"line\": 6,\n      \"distance\": 1,\n      \"file\": \"tests/test_pricing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_service.py::test_place_order_applies_best_discount\",\n      \"symbol\": \"tests.test_service.test_place_order_applies_best_discount\",\n      \"line\": 4,\n      \"distance\": 2,\n      \"file\": \"tests/test_service.py\"\n    },\n    {\n      \"node_id\": \"tests/test_service.py::test_reprice_drops_discounts\",\n      \"symbol\": \"tests.test_service.test_reprice_drops_discounts\",\n      \"line\": 11,\n      \"distance\": 2,\n      \"file\": \"tests/test_service.py\"\n    }\n  ],\n  \"test_count\": 3,\n  \"truncated\": false,\n  \"omitted_callers\": 0,\n  \"omitted_tests\": 0,\n  \"possible_missed_callers\": [],\n  \"possible_missed_total\": 0\n}"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 213,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.21,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"3 passed in 0.01s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 12,
+      "agent_duration_s": 14.3,
+      "cost_usd": 0.06419509999999999,
+      "usage": {
+        "input_tokens": 14,
+        "output_tokens": 1393,
+        "cache_creation_input_tokens": 9743,
+        "cache_read_input_tokens": 112651
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "I renamed `price_order` to `quote_order`, and the full test suite passes (3 tests).\n\nI changed three places:\n- **`shop/pricing.py`:** the function definition.\n- **`shop/service.py`:** the import now reads `from shop.pricing import quote_order as quote`. `quote` is a local shorthand that already existed, so `place_order` and `reprice` didn't need changes. It isn't an alias for the old name.\n- **`tests/test_pricing.py`:** the import and the call.\n\nA final search found no remaining mentions of `pri",
+      "changed_files": [
+        "shop/pricing.py",
+        "shop/service.py",
+        "tests/test_pricing.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 3,
+      "min_tests": 3,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "3 passed in 0.01s",
+      "hidden_summary": "2 passed in 0.01s",
+      "failures": []
+    },
+    {
+      "task": "02-shop-rename-price-order",
+      "mode": "with-ripple",
+      "repeat": 2,
+      "arm": "base",
+      "run_dir": "run-p6mlygql",
+      "wall_s": 13.0,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "mcp__ripple__impact": 1,
+        "Bash": 1,
+        "Edit": 4,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 2,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "shop.pricing.price_order"
+          },
+          "is_error": false,
+          "result_chars": 1280,
+          "result_head": "{\n  \"symbol\": \"shop.pricing.price_order\",\n  \"depth\": 5,\n  \"affected\": 5,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"shop/service.py\": [\n      {\n        \"symbol\": \"shop.service.OrderService.place_order\",\n        \"line\": 17,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"shop.service.OrderService.reprice\",\n        \"line\": 26,\n        \"distance\": 1\n      }\n    ]\n  },\n  \"caller_count\": 2,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_pricing.py::test_percent_discount_and_tax\",\n      \"symbol\": \"tests.test_pricing.test_percent_discount_and_tax\",\n      \"line\": 6,\n      \"distance\": 1,\n      \"file\": \"tests/test_pricing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_service.py::test_place_order_applies_best_discount\",\n      \"symbol\": \"tests.test_service.test_place_order_applies_best_discount\",\n      \"line\": 4,\n      \"distance\": 2,\n      \"file\": \"tests/test_service.py\"\n    },\n    {\n      \"node_id\": \"tests/test_service.py::test_reprice_drops_discounts\",\n      \"symbol\": \"tests.test_service.test_reprice_drops_discounts\",\n      \"line\": 11,\n      \"distance\": 2,\n      \"file\": \"tests/test_service.py\"\n    }\n  ],\n  \"test_count\": 3,\n  \"truncated\": false,\n  \"omitted_callers\": 0,\n  \"omitted_tests\": 0,\n  \"possible_missed_callers\": [],\n  \"possible_missed_total\": 0\n}"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 213,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.21,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"3 passed in 0.01s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 9,
+      "agent_duration_s": 11.5,
+      "cost_usd": 0.0511506,
+      "usage": {
+        "input_tokens": 12,
+        "output_tokens": 1074,
+        "cache_creation_input_tokens": 7828,
+        "cache_read_input_tokens": 90746
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "I renamed `shop.pricing.price_order` to `quote_order`, and the full test suite passes (3 passed). I didn't keep the old name as an alias.\n\nI changed these places:\n- **`shop/pricing.py`:** the function definition.\n- **`shop/service.py`:** the import is now `from shop.pricing import quote_order as quote`. The two callers, `place_order` and `reprice`, call it through the local name `quote`, so I left them alone.\n- **`tests/test_pricing.py`:** the import and the one call.\n\nA grep for `price_order` f",
+      "changed_files": [
+        "shop/pricing.py",
+        "shop/service.py",
+        "tests/test_pricing.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 3,
+      "min_tests": 3,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "3 passed in 0.01s",
+      "hidden_summary": "2 passed in 0.01s",
+      "failures": []
+    },
+    {
+      "task": "02-shop-rename-price-order",
+      "mode": "with-ripple",
+      "repeat": 3,
+      "arm": "base",
+      "run_dir": "run-ytbt7ti6",
+      "wall_s": 14.2,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "mcp__ripple__impact": 1,
+        "Bash": 2,
+        "Edit": 4,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 2,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "shop.pricing.price_order"
+          },
+          "is_error": false,
+          "result_chars": 1280,
+          "result_head": "{\n  \"symbol\": \"shop.pricing.price_order\",\n  \"depth\": 5,\n  \"affected\": 5,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"shop/service.py\": [\n      {\n        \"symbol\": \"shop.service.OrderService.place_order\",\n        \"line\": 17,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"shop.service.OrderService.reprice\",\n        \"line\": 26,\n        \"distance\": 1\n      }\n    ]\n  },\n  \"caller_count\": 2,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_pricing.py::test_percent_discount_and_tax\",\n      \"symbol\": \"tests.test_pricing.test_percent_discount_and_tax\",\n      \"line\": 6,\n      \"distance\": 1,\n      \"file\": \"tests/test_pricing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_service.py::test_place_order_applies_best_discount\",\n      \"symbol\": \"tests.test_service.test_place_order_applies_best_discount\",\n      \"line\": 4,\n      \"distance\": 2,\n      \"file\": \"tests/test_service.py\"\n    },\n    {\n      \"node_id\": \"tests/test_service.py::test_reprice_drops_discounts\",\n      \"symbol\": \"tests.test_service.test_reprice_drops_discounts\",\n      \"line\": 11,\n      \"distance\": 2,\n      \"file\": \"tests/test_service.py\"\n    }\n  ],\n  \"test_count\": 3,\n  \"truncated\": false,\n  \"omitted_callers\": 0,\n  \"omitted_tests\": 0,\n  \"possible_missed_callers\": [],\n  \"possible_missed_total\": 0\n}"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 213,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.21,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"3 passed in 0.01s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 10,
+      "agent_duration_s": 12.8,
+      "cost_usd": 0.0533026,
+      "usage": {
+        "input_tokens": 12,
+        "output_tokens": 1163,
+        "cache_creation_input_tokens": 8137,
+        "cache_read_input_tokens": 91006
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "I renamed `price_order` to `quote_order` in `shop/pricing.py`, with no alias left behind. The full test suite passes (3 passed), and a search of the repo finds no remaining `price_order` references.\n\nI also updated the two places that used the old name:\n- **`shop/service.py`:** the import now reads `from shop.pricing import quote_order as quote`. I kept the local `quote` alias so the calls in `place_order` and `reprice` didn't need to change.\n- **`tests/test_pricing.py`:** the import and the cal",
+      "changed_files": [
+        "shop/pricing.py",
+        "shop/service.py",
+        "tests/test_pricing.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 3,
+      "min_tests": 3,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "3 passed in 0.01s",
+      "hidden_summary": "2 passed in 0.01s",
+      "failures": []
+    },
+    {
+      "task": "03-notes-rename-cmd-find",
+      "mode": "with-ripple",
+      "repeat": 1,
+      "arm": "base",
+      "run_dir": "run-wu_pxixf",
+      "wall_s": 19.8,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "Bash": 3,
+        "mcp__ripple__impact": 1,
+        "Read": 2,
+        "Edit": 3,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 2,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "notes.commands.cmd_find"
+          },
+          "is_error": false,
+          "result_chars": 305,
+          "result_head": "{\n  \"symbol\": \"notes.commands.cmd_find\",\n  \"depth\": 5,\n  \"affected\": 0,\n  \"more_beyond_depth\": false,\n  \"by_file\": {},\n  \"caller_count\": 0,\n  \"tests\": [],\n  \"test_count\": 0,\n  \"truncated\": false,\n  \"omitted_callers\": 0,\n  \"omitted_tests\": 0,\n  \"possible_missed_callers\": [],\n  \"possible_missed_total\": 0\n}"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 213,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.21,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"4 passed in 0.02s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 12,
+      "agent_duration_s": 18.5,
+      "cost_usd": 0.0677238,
+      "usage": {
+        "input_tokens": 16,
+        "output_tokens": 1667,
+        "cache_creation_input_tokens": 9461,
+        "cache_read_input_tokens": 131778
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "I renamed `cmd_find` to `cmd_search` in `notes/commands.py`, and all 4 tests pass. I left no `cmd_find` alias.\n\n- **`COMMANDS` table:** it now reads `\"find\": cmd_search`, so `notes find` works as before.\n- **`run_named` in `notes/cli.py`:** it looked commands up with `getattr(commands, \"cmd_\" + name)`, so `run_named(\"find\", ...)` would have broken after the rename. Ripple's call graph didn't show this, because the lookup builds the name as a string. I changed it to `COMMANDS[name]`.\n- **Unknown ",
+      "changed_files": [
+        "notes/cli.py",
+        "notes/commands.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 4,
+      "min_tests": 4,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "4 passed in 0.01s",
+      "hidden_summary": "3 passed in 0.02s",
+      "failures": []
+    },
+    {
+      "task": "03-notes-rename-cmd-find",
+      "mode": "with-ripple",
+      "repeat": 2,
+      "arm": "base",
+      "run_dir": "run-phjrf90h",
+      "wall_s": 19.3,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "Bash": 3,
+        "mcp__ripple__impact": 1,
+        "Read": 2,
+        "Edit": 4,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 2,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "notes.commands.cmd_find"
+          },
+          "is_error": false,
+          "result_chars": 305,
+          "result_head": "{\n  \"symbol\": \"notes.commands.cmd_find\",\n  \"depth\": 5,\n  \"affected\": 0,\n  \"more_beyond_depth\": false,\n  \"by_file\": {},\n  \"caller_count\": 0,\n  \"tests\": [],\n  \"test_count\": 0,\n  \"truncated\": false,\n  \"omitted_callers\": 0,\n  \"omitted_tests\": 0,\n  \"possible_missed_callers\": [],\n  \"possible_missed_total\": 0\n}"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 213,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"4 passed in 0.02s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 13,
+      "agent_duration_s": 18.0,
+      "cost_usd": 0.0682238,
+      "usage": {
+        "input_tokens": 16,
+        "output_tokens": 1805,
+        "cache_creation_input_tokens": 9210,
+        "cache_read_input_tokens": 133018
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "I renamed `cmd_find` to `cmd_search` in `notes/commands.py`, and the test suite passes (4 tests). I didn't keep `cmd_find` as an alias.\n\nripple's `impact` showed no callers of `cmd_find`, but there was a hidden one. `run_named` in `notes/cli.py` looked commands up with `getattr(commands, \"cmd_\" + name)`, so `run_named(\"find\", ...)` would have broken after the rename. I changed it to `COMMANDS[name]`. The `COMMANDS` dict still maps `\"find\"` to the renamed function, so the `find` subcommand and `r",
+      "changed_files": [
+        "notes/cli.py",
+        "notes/commands.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 4,
+      "min_tests": 4,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "4 passed in 0.01s",
+      "hidden_summary": "3 passed in 0.02s",
+      "failures": []
+    },
+    {
+      "task": "03-notes-rename-cmd-find",
+      "mode": "with-ripple",
+      "repeat": 3,
+      "arm": "base",
+      "run_dir": "run-9xudf5ss",
+      "wall_s": 19.7,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "Bash": 3,
+        "mcp__ripple__impact": 1,
+        "Read": 2,
+        "Edit": 4,
+        "mcp__ripple__check": 2
+      },
+      "ripple_calls": 3,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "notes.commands.cmd_find"
+          },
+          "is_error": false,
+          "result_chars": 305,
+          "result_head": "{\n  \"symbol\": \"notes.commands.cmd_find\",\n  \"depth\": 5,\n  \"affected\": 0,\n  \"more_beyond_depth\": false,\n  \"by_file\": {},\n  \"caller_count\": 0,\n  \"tests\": [],\n  \"test_count\": 0,\n  \"truncated\": false,\n  \"omitted_callers\": 0,\n  \"omitted_tests\": 0,\n  \"possible_missed_callers\": [],\n  \"possible_missed_total\": 0\n}"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 213,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.21,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"4 passed in 0.02s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 213,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"4 passed in 0.01s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 14,
+      "agent_duration_s": 18.3,
+      "cost_usd": 0.0687532,
+      "usage": {
+        "input_tokens": 16,
+        "output_tokens": 1831,
+        "cache_creation_input_tokens": 9243,
+        "cache_read_input_tokens": 134392
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "I renamed `cmd_find` to `cmd_search` in `notes/commands.py`, and the 4 tests pass. I did not keep `cmd_find` as an alias.\n\n- **`COMMANDS` table:** it now reads `\"find\": cmd_search`. The `find` subcommand is unchanged.\n- **`run_named` in `notes/cli.py`:** it looked commands up with `getattr(commands, \"cmd_\" + name)`. The graph tool didn't show that call, and the rename would have broken `run_named(\"find\", ...)`. It now uses `COMMANDS[name]`, so `run_named(\"find\", ...)` still works.\n- **Unused imp",
+      "changed_files": [
+        "notes/cli.py",
+        "notes/commands.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 4,
+      "min_tests": 4,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "4 passed in 0.01s",
+      "hidden_summary": "3 passed in 0.02s",
+      "failures": []
+    },
+    {
+      "task": "04-ledger-rename-invoice-total",
+      "mode": "with-ripple",
+      "repeat": 1,
+      "arm": "base",
+      "run_dir": "run-tliyog10",
+      "wall_s": 27.0,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "Bash": 3,
+        "mcp__ripple__impact": 1,
+        "Edit": 13,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 2,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "Invoice.total"
+          },
+          "is_error": false,
+          "result_chars": 3725,
+          "result_head": "{\n  \"symbol\": \"ledger.invoices.Invoice.total\",\n  \"depth\": 5,\n  \"affected\": 14,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"billing/checkout.py\": [\n      {\n        \"symbol\": \"billing.checkout.checkout\",\n        \"line\": 13,\n        \"distance\": 1\n      }\n    ],\n    \"billing/dunning.py\": [\n      {\n        \"symbol\": \"billing.dunning.reminders\",\n        \"line\": 8,\n        \"distance\": 1\n      }\n    ],\n    \"ledger/invoices.py\": [\n      {\n        \"symbol\": \"ledger.invoices.CreditNote.total\",\n        \"line\": 44,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"ledger.invoices.Invoice.render\",\n        \"line\": 33,\n        \"distance\": 1\n      }\n    ],\n    \"reports/aging.py\": [\n      {\n        \"symbol\": \"reports.aging.AgingReport.rows\",\n        \"line\": 14,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"reports.aging.AgingReport.render\",\n        \"line\": 28,\n        \"distance\": 2\n      },\n      {\n        \"symbol\": \"reports.aging.AgingReport.total\",\n        \"line\": 22,\n        \"distance\": 2\n      }\n    ]\n  },\n  \"caller_count\": 7,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"symbol\": \"tests.test_billing.test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"line\": 23,\n      \"distance\": 1,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_without_a_fee_rule_adds_tax_only\",\n      \"symbol\": \"tests.test_billing.test_checkout_without_a_fee_rule_adds_tax_only\",\n      \"line\": 31,\n      \"distance\": 1,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_recurring_invoice_bills_every_seat_and_renews\",\n      \"symbol\": \"tests.test_billing.test_recurring_invoice_bills_every_seat_and_renews\",\n      \"line\": 44,\n      \"distance\": 1,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_invoices.py::test_store_round_trip\",\n      \"symbol\": \"tests.test_invoices."
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 214,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"25 passed in 0.04s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check,mcp__ripple__callers",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 20,
+      "agent_duration_s": 25.6,
+      "cost_usd": 0.10743520000000001,
+      "usage": {
+        "input_tokens": 14,
+        "output_tokens": 3189,
+        "cache_creation_input_tokens": 15708,
+        "cache_read_input_tokens": 126852
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "`Invoice.total` is now `amount_due`, and the full suite passes (25 tests). I used ripple's impact check for the call sites and edited each one by hand.\n\n- **Method and override:** `Invoice.total` and `CreditNote.total` are both renamed in `ledger/invoices.py`. The credit note's `super()` call and the call inside `Invoice.render` are updated too. There is no `total` alias left on invoices.\n- **Callers in code:** I updated `billing/checkout.py`, `billing/dunning.py` (both `reminders` and `refund_n",
+      "changed_files": [
+        "billing/checkout.py",
+        "billing/dunning.py",
+        "ledger/invoices.py",
+        "reports/aging.py",
+        "tests/test_billing.py",
+        "tests/test_invoices.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 25,
+      "min_tests": 25,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "25 passed in 0.03s",
+      "hidden_summary": "4 passed in 0.02s",
+      "failures": []
+    },
+    {
+      "task": "04-ledger-rename-invoice-total",
+      "mode": "with-ripple",
+      "repeat": 2,
+      "arm": "base",
+      "run_dir": "run-l667zs_n",
+      "wall_s": 28.3,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "Bash": 4,
+        "mcp__ripple__impact": 1,
+        "Read": 1,
+        "Edit": 14,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 2,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "Invoice.total"
+          },
+          "is_error": false,
+          "result_chars": 3725,
+          "result_head": "{\n  \"symbol\": \"ledger.invoices.Invoice.total\",\n  \"depth\": 5,\n  \"affected\": 14,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"billing/checkout.py\": [\n      {\n        \"symbol\": \"billing.checkout.checkout\",\n        \"line\": 13,\n        \"distance\": 1\n      }\n    ],\n    \"billing/dunning.py\": [\n      {\n        \"symbol\": \"billing.dunning.reminders\",\n        \"line\": 8,\n        \"distance\": 1\n      }\n    ],\n    \"ledger/invoices.py\": [\n      {\n        \"symbol\": \"ledger.invoices.CreditNote.total\",\n        \"line\": 44,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"ledger.invoices.Invoice.render\",\n        \"line\": 33,\n        \"distance\": 1\n      }\n    ],\n    \"reports/aging.py\": [\n      {\n        \"symbol\": \"reports.aging.AgingReport.rows\",\n        \"line\": 14,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"reports.aging.AgingReport.render\",\n        \"line\": 28,\n        \"distance\": 2\n      },\n      {\n        \"symbol\": \"reports.aging.AgingReport.total\",\n        \"line\": 22,\n        \"distance\": 2\n      }\n    ]\n  },\n  \"caller_count\": 7,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"symbol\": \"tests.test_billing.test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"line\": 23,\n      \"distance\": 1,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_without_a_fee_rule_adds_tax_only\",\n      \"symbol\": \"tests.test_billing.test_checkout_without_a_fee_rule_adds_tax_only\",\n      \"line\": 31,\n      \"distance\": 1,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_recurring_invoice_bills_every_seat_and_renews\",\n      \"symbol\": \"tests.test_billing.test_recurring_invoice_bills_every_seat_and_renews\",\n      \"line\": 44,\n      \"distance\": 1,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_invoices.py::test_store_round_trip\",\n      \"symbol\": \"tests.test_invoices."
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 214,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"25 passed in 0.04s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__callers,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 23,
+      "agent_duration_s": 27.0,
+      "cost_usd": 0.11489780000000001,
+      "usage": {
+        "input_tokens": 16,
+        "output_tokens": 3689,
+        "cache_creation_input_tokens": 15649,
+        "cache_read_input_tokens": 153798
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "I renamed `Invoice.total` to `amount_due`, and the full suite passes (25 tests).\n\n- **Definitions:** `Invoice.total` and its only override, `CreditNote.total`, are both renamed in `ledger/invoices.py`. The `super().total()` call inside `CreditNote` and the use in `Invoice.render` are updated too. There is no `total` alias left on invoices.\n- **Callers:** `reports/aging.py` (`rows`), `billing/checkout.py` and both uses in `billing/dunning.py` now call `amount_due`. That includes `refund_note`, wh",
+      "changed_files": [
+        "billing/checkout.py",
+        "billing/dunning.py",
+        "ledger/invoices.py",
+        "reports/aging.py",
+        "tests/test_billing.py",
+        "tests/test_invoices.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 25,
+      "min_tests": 25,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "25 passed in 0.03s",
+      "hidden_summary": "4 passed in 0.02s",
+      "failures": []
+    },
+    {
+      "task": "04-ledger-rename-invoice-total",
+      "mode": "with-ripple",
+      "repeat": 3,
+      "arm": "base",
+      "run_dir": "run-kwgvot88",
+      "wall_s": 24.4,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "Bash": 3,
+        "mcp__ripple__impact": 1,
+        "Edit": 13,
+        "Read": 1
+      },
+      "ripple_calls": 1,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "Invoice.total"
+          },
+          "is_error": false,
+          "result_chars": 3725,
+          "result_head": "{\n  \"symbol\": \"ledger.invoices.Invoice.total\",\n  \"depth\": 5,\n  \"affected\": 14,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"billing/checkout.py\": [\n      {\n        \"symbol\": \"billing.checkout.checkout\",\n        \"line\": 13,\n        \"distance\": 1\n      }\n    ],\n    \"billing/dunning.py\": [\n      {\n        \"symbol\": \"billing.dunning.reminders\",\n        \"line\": 8,\n        \"distance\": 1\n      }\n    ],\n    \"ledger/invoices.py\": [\n      {\n        \"symbol\": \"ledger.invoices.CreditNote.total\",\n        \"line\": 44,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"ledger.invoices.Invoice.render\",\n        \"line\": 33,\n        \"distance\": 1\n      }\n    ],\n    \"reports/aging.py\": [\n      {\n        \"symbol\": \"reports.aging.AgingReport.rows\",\n        \"line\": 14,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"reports.aging.AgingReport.render\",\n        \"line\": 28,\n        \"distance\": 2\n      },\n      {\n        \"symbol\": \"reports.aging.AgingReport.total\",\n        \"line\": 22,\n        \"distance\": 2\n      }\n    ]\n  },\n  \"caller_count\": 7,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"symbol\": \"tests.test_billing.test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"line\": 23,\n      \"distance\": 1,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_without_a_fee_rule_adds_tax_only\",\n      \"symbol\": \"tests.test_billing.test_checkout_without_a_fee_rule_adds_tax_only\",\n      \"line\": 31,\n      \"distance\": 1,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_recurring_invoice_bills_every_seat_and_renews\",\n      \"symbol\": \"tests.test_billing.test_recurring_invoice_bills_every_seat_and_renews\",\n      \"line\": 44,\n      \"distance\": 1,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_invoices.py::test_store_round_trip\",\n      \"symbol\": \"tests.test_invoices."
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check,mcp__ripple__callers",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 20,
+      "agent_duration_s": 23.1,
+      "cost_usd": 0.10205510000000001,
+      "usage": {
+        "input_tokens": 12,
+        "output_tokens": 3330,
+        "cache_creation_input_tokens": 14648,
+        "cache_read_input_tokens": 101391
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "`Invoice.total` is now `amount_due`, and the full suite passes (25 tests). I did not keep `total` as an alias on invoices.\n\n- **Definitions:** `Invoice.total` and the `CreditNote.total` override are both renamed. `CreditNote.amount_due` calls `super().amount_due()`.\n- **Callers updated:**\n  - `Invoice.render` in `ledger/invoices.py`\n  - `reports/aging.py` (the per-invoice line)\n  - `billing/dunning.py` (both `reminders` and `refund_note`)\n  - `billing/checkout.py`\n  - the tests in `tests/test_in",
+      "changed_files": [
+        "billing/checkout.py",
+        "billing/dunning.py",
+        "ledger/invoices.py",
+        "reports/aging.py",
+        "tests/test_billing.py",
+        "tests/test_invoices.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 25,
+      "min_tests": 25,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "25 passed in 0.03s",
+      "hidden_summary": "4 passed in 0.02s",
+      "failures": []
+    },
+    {
+      "task": "05-ledger-drop-amount-alias",
+      "mode": "with-ripple",
+      "repeat": 1,
+      "arm": "base",
+      "run_dir": "run-7abvl5sg",
+      "wall_s": 25.9,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "Bash": 3,
+        "mcp__ripple__impact": 1,
+        "Read": 6,
+        "Edit": 9,
+        "Write": 1,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 2,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "ledger.money.parse_amount"
+          },
+          "is_error": false,
+          "result_chars": 3049,
+          "result_head": "{\n  \"symbol\": \"ledger.money.parse_amount\",\n  \"depth\": 5,\n  \"affected\": 14,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"billing/recurring.py\": [\n      {\n        \"symbol\": \"billing.recurring.RecurringInvoice.__init__\",\n        \"line\": 12,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"billing.recurring.RecurringInvoice.add_setup_fee\",\n        \"line\": 19,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"billing.recurring.RecurringInvoice.renew\",\n        \"line\": 22,\n        \"distance\": 2\n      }\n    ],\n    \"payroll/batch.py\": [\n      {\n        \"symbol\": \"payroll.batch.PayrollBatch.add\",\n        \"line\": 20,\n        \"distance\": 1\n      }\n    ],\n    \"reports/statement.py\": [\n      {\n        \"symbol\": \"reports.statement.statement\",\n        \"line\": 10,\n        \"distance\": 1\n      }\n    ],\n    \"tests/test_payroll.py\": [\n      {\n        \"symbol\": \"tests.test_payroll.batch\",\n        \"line\": 9,\n        \"distance\": 2\n      }\n    ]\n  },\n  \"caller_count\": 6,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_money.py::test_parse_amount_handles_symbols_commas_and_signs\",\n      \"symbol\": \"tests.test_money.test_parse_amount_handles_symbols_commas_and_signs\",\n      \"line\": 5,\n      \"distance\": 1,\n      \"file\": \"tests/test_money.py\"\n    },\n    {\n      \"node_id\": \"tests/test_money.py::test_the_package_alias_parses_too\",\n      \"symbol\": \"tests.test_money.test_the_package_alias_parses_too\",\n      \"line\": 11,\n      \"distance\": 1,\n      \"file\": \"tests/test_money.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_recurring_invoice_bills_every_seat_and_renews\",\n      \"symbol\": \"tests.test_billing.test_recurring_invoice_bills_every_seat_and_renews\",\n      \"line\": 44,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_reports.py::test_statement_shows_the_running_balance\",\n      \"symbol\": \"tests.test_reports.test_statement_shows_the_running_balance\",\n      \"line\": 29,\n      \"distance\": 2,\n      \"file\": \"tests/tes"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 214,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"24 passed in 0.04s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 23,
+      "agent_duration_s": 24.6,
+      "cost_usd": 0.1040133,
+      "usage": {
+        "input_tokens": 14,
+        "output_tokens": 3221,
+        "cache_creation_input_tokens": 14874,
+        "cache_read_input_tokens": 122793
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "`ledger.money.parse_amount` is now `parse_money`, and the `ledger.amount` re-export is gone. The full suite passes (24 tests), and a final grep finds no remaining uses of `parse_amount`, `ledger.amount` or `import amount`.\n\n- **`ledger/money.py`:** renamed the function.\n- **`ledger/__init__.py`:** removed the `amount` re-export and dropped it from `__all__`.\n- **`billing/recurring.py`:** now imports and calls `parse_money`.\n- **`payroll/batch.py`:** now imports `parse_money` from `ledger.money` ",
+      "changed_files": [
+        "billing/recurring.py",
+        "ledger/__init__.py",
+        "ledger/money.py",
+        "payroll/batch.py",
+        "reports/statement.py",
+        "tests/test_money.py"
+      ],
+      "success": false,
+      "suite_passed": true,
+      "tests_passed": 24,
+      "min_tests": 24,
+      "tests_lost": 1,
+      "lost_tests": [
+        "tests/test_money.py::test_parse_amount_handles_symbols_commas_and_signs (dropped parse_money)"
+      ],
+      "hidden_passed": true,
+      "suite_summary": "24 passed in 0.03s",
+      "hidden_summary": "3 passed in 0.03s",
+      "failures": []
+    },
+    {
+      "task": "05-ledger-drop-amount-alias",
+      "mode": "with-ripple",
+      "repeat": 2,
+      "arm": "base",
+      "run_dir": "run-rc7laz9j",
+      "wall_s": 25.1,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "Bash": 2,
+        "mcp__ripple__impact": 1,
+        "Read": 6,
+        "Edit": 10,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 2,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "ledger.money.parse_amount"
+          },
+          "is_error": false,
+          "result_chars": 3049,
+          "result_head": "{\n  \"symbol\": \"ledger.money.parse_amount\",\n  \"depth\": 5,\n  \"affected\": 14,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"billing/recurring.py\": [\n      {\n        \"symbol\": \"billing.recurring.RecurringInvoice.__init__\",\n        \"line\": 12,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"billing.recurring.RecurringInvoice.add_setup_fee\",\n        \"line\": 19,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"billing.recurring.RecurringInvoice.renew\",\n        \"line\": 22,\n        \"distance\": 2\n      }\n    ],\n    \"payroll/batch.py\": [\n      {\n        \"symbol\": \"payroll.batch.PayrollBatch.add\",\n        \"line\": 20,\n        \"distance\": 1\n      }\n    ],\n    \"reports/statement.py\": [\n      {\n        \"symbol\": \"reports.statement.statement\",\n        \"line\": 10,\n        \"distance\": 1\n      }\n    ],\n    \"tests/test_payroll.py\": [\n      {\n        \"symbol\": \"tests.test_payroll.batch\",\n        \"line\": 9,\n        \"distance\": 2\n      }\n    ]\n  },\n  \"caller_count\": 6,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_money.py::test_parse_amount_handles_symbols_commas_and_signs\",\n      \"symbol\": \"tests.test_money.test_parse_amount_handles_symbols_commas_and_signs\",\n      \"line\": 5,\n      \"distance\": 1,\n      \"file\": \"tests/test_money.py\"\n    },\n    {\n      \"node_id\": \"tests/test_money.py::test_the_package_alias_parses_too\",\n      \"symbol\": \"tests.test_money.test_the_package_alias_parses_too\",\n      \"line\": 11,\n      \"distance\": 1,\n      \"file\": \"tests/test_money.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_recurring_invoice_bills_every_seat_and_renews\",\n      \"symbol\": \"tests.test_billing.test_recurring_invoice_bills_every_seat_and_renews\",\n      \"line\": 44,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_reports.py::test_statement_shows_the_running_balance\",\n      \"symbol\": \"tests.test_reports.test_statement_shows_the_running_balance\",\n      \"line\": 29,\n      \"distance\": 2,\n      \"file\": \"tests/tes"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 214,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"24 passed in 0.04s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 22,
+      "agent_duration_s": 23.7,
+      "cost_usd": 0.0978666,
+      "usage": {
+        "input_tokens": 14,
+        "output_tokens": 3000,
+        "cache_creation_input_tokens": 13876,
+        "cache_read_input_tokens": 123346
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "`ledger.money.parse_amount` is now `parse_money`, and the `ledger.amount` re-export is gone. The full suite passes (24 tests).\n\n- **`ledger/money.py`:** renamed the function.\n- **`ledger/__init__.py`:** removed the `amount` import and dropped it from `__all__`.\n- **`billing/recurring.py`:** now imports and calls `parse_money`.\n- **`payroll/batch.py`:** now uses `parse_money` from `ledger.money` instead of `ledger.amount`.\n- **`reports/statement.py`:** now calls `m.parse_money(\"0\")`. It no longer",
+      "changed_files": [
+        "billing/recurring.py",
+        "ledger/__init__.py",
+        "ledger/money.py",
+        "payroll/batch.py",
+        "reports/statement.py",
+        "tests/test_money.py"
+      ],
+      "success": false,
+      "suite_passed": true,
+      "tests_passed": 24,
+      "min_tests": 24,
+      "tests_lost": 1,
+      "lost_tests": [
+        "tests/test_money.py::test_parse_amount_handles_symbols_commas_and_signs (dropped parse_money)"
+      ],
+      "hidden_passed": true,
+      "suite_summary": "24 passed in 0.04s",
+      "hidden_summary": "3 passed in 0.03s",
+      "failures": []
+    },
+    {
+      "task": "05-ledger-drop-amount-alias",
+      "mode": "with-ripple",
+      "repeat": 3,
+      "arm": "base",
+      "run_dir": "run-bocf7dgp",
+      "wall_s": 22.7,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "Bash": 2,
+        "mcp__ripple__impact": 1,
+        "Read": 6,
+        "Edit": 9,
+        "Write": 1,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 2,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "parse_amount"
+          },
+          "is_error": false,
+          "result_chars": 3049,
+          "result_head": "{\n  \"symbol\": \"ledger.money.parse_amount\",\n  \"depth\": 5,\n  \"affected\": 14,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"billing/recurring.py\": [\n      {\n        \"symbol\": \"billing.recurring.RecurringInvoice.__init__\",\n        \"line\": 12,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"billing.recurring.RecurringInvoice.add_setup_fee\",\n        \"line\": 19,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"billing.recurring.RecurringInvoice.renew\",\n        \"line\": 22,\n        \"distance\": 2\n      }\n    ],\n    \"payroll/batch.py\": [\n      {\n        \"symbol\": \"payroll.batch.PayrollBatch.add\",\n        \"line\": 20,\n        \"distance\": 1\n      }\n    ],\n    \"reports/statement.py\": [\n      {\n        \"symbol\": \"reports.statement.statement\",\n        \"line\": 10,\n        \"distance\": 1\n      }\n    ],\n    \"tests/test_payroll.py\": [\n      {\n        \"symbol\": \"tests.test_payroll.batch\",\n        \"line\": 9,\n        \"distance\": 2\n      }\n    ]\n  },\n  \"caller_count\": 6,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_money.py::test_parse_amount_handles_symbols_commas_and_signs\",\n      \"symbol\": \"tests.test_money.test_parse_amount_handles_symbols_commas_and_signs\",\n      \"line\": 5,\n      \"distance\": 1,\n      \"file\": \"tests/test_money.py\"\n    },\n    {\n      \"node_id\": \"tests/test_money.py::test_the_package_alias_parses_too\",\n      \"symbol\": \"tests.test_money.test_the_package_alias_parses_too\",\n      \"line\": 11,\n      \"distance\": 1,\n      \"file\": \"tests/test_money.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_recurring_invoice_bills_every_seat_and_renews\",\n      \"symbol\": \"tests.test_billing.test_recurring_invoice_bills_every_seat_and_renews\",\n      \"line\": 44,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_reports.py::test_statement_shows_the_running_balance\",\n      \"symbol\": \"tests.test_reports.test_statement_shows_the_running_balance\",\n      \"line\": 29,\n      \"distance\": 2,\n      \"file\": \"tests/tes"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 214,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"24 passed in 0.04s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 22,
+      "agent_duration_s": 21.4,
+      "cost_usd": 0.09558169999999999,
+      "usage": {
+        "input_tokens": 12,
+        "output_tokens": 3034,
+        "cache_creation_input_tokens": 13890,
+        "cache_read_input_tokens": 96577
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "`ledger.money.parse_amount` is now `parse_money`, and the `ledger.amount` re-export is gone. The full suite passes (24 tests, run through the ripple `check` tool).\n\n- **Definition and re-export:** I renamed the function in `ledger/money.py` and removed the `amount` alias and its `__all__` entry from `ledger/__init__.py`.\n- **Callers:** `billing/recurring.py`, `payroll/batch.py` and `reports/statement.py` now use `parse_money` from `ledger.money`. In `reports/statement.py` the call is `m.parse_mo",
+      "changed_files": [
+        "billing/recurring.py",
+        "ledger/__init__.py",
+        "ledger/money.py",
+        "payroll/batch.py",
+        "reports/statement.py",
+        "tests/test_money.py"
+      ],
+      "success": false,
+      "suite_passed": true,
+      "tests_passed": 24,
+      "min_tests": 24,
+      "tests_lost": 1,
+      "lost_tests": [
+        "tests/test_money.py::test_parse_amount_handles_symbols_commas_and_signs (dropped parse_money)"
+      ],
+      "hidden_passed": true,
+      "suite_summary": "24 passed in 0.03s",
+      "hidden_summary": "3 passed in 0.03s",
+      "failures": []
+    },
+    {
+      "task": "06-ledger-fee-region",
+      "mode": "with-ripple",
+      "repeat": 1,
+      "arm": "base",
+      "run_dir": "run-obzytvch",
+      "wall_s": 21.8,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "Read": 2,
+        "mcp__ripple__impact": 1,
+        "Bash": 2,
+        "Edit": 7,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 2,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "FeeRule.fee"
+          },
+          "is_error": false,
+          "result_chars": 1740,
+          "result_head": "{\n  \"symbol\": \"billing.fees.FeeRule.fee\",\n  \"depth\": 5,\n  \"affected\": 8,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"billing/checkout.py\": [\n      {\n        \"symbol\": \"billing.checkout.checkout\",\n        \"line\": 13,\n        \"distance\": 1\n      }\n    ],\n    \"billing/quotes.py\": [\n      {\n        \"symbol\": \"billing.quotes.quote\",\n        \"line\": 12,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"billing.quotes.cheapest_rule\",\n        \"line\": 19,\n        \"distance\": 2\n      }\n    ],\n    \"payroll/batch.py\": [\n      {\n        \"symbol\": \"payroll.batch.PayrollBatch.processing_fee\",\n        \"line\": 29,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"payroll.batch.PayrollBatch.apply\",\n        \"line\": 32,\n        \"distance\": 2\n      }\n    ]\n  },\n  \"caller_count\": 5,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"symbol\": \"tests.test_billing.test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"line\": 23,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_without_a_fee_rule_adds_tax_only\",\n      \"symbol\": \"tests.test_billing.test_checkout_without_a_fee_rule_adds_tax_only\",\n      \"line\": 31,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_quote_and_cheapest_rule\",\n      \"symbol\": \"tests.test_billing.test_quote_and_cheapest_rule\",\n      \"line\": 37,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    }\n  ],\n  \"test_count\": 3,\n  \"truncated\": false,\n  \"omitted_callers\": 0,\n  \"omitted_tests\": 0,\n  \"possible_missed_callers\": [],\n  \"possible_missed_total\": 0\n}"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 214,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"25 passed in 0.04s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 15,
+      "agent_duration_s": 20.5,
+      "cost_usd": 0.0901633,
+      "usage": {
+        "input_tokens": 16,
+        "output_tokens": 2145,
+        "cache_creation_input_tokens": 13567,
+        "cache_read_input_tokens": 144133
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "`FeeRule.fee` now takes `region` as a required argument, and the full suite passes (25 tests).\n\n- **Signatures:** `FeeRule`, `FlatFee`, `PercentFee` and `CappedFee` (in `payroll/fees.py`) all use `fee(self, subtotal, region)`.\n- **DE rule:** `PercentFee` returns `Money(0)` when the region is \"DE\". `CappedFee` passes the region through to `PercentFee`, so it gets the same behaviour. `FeeRule` and `FlatFee` ignore the region.\n- **Callers:** `checkout` and `quote` pass the `region` they already had",
+      "changed_files": [
+        "billing/checkout.py",
+        "billing/fees.py",
+        "billing/quotes.py",
+        "payroll/batch.py",
+        "payroll/fees.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 25,
+      "min_tests": 25,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "25 passed in 0.03s",
+      "hidden_summary": "5 passed in 0.02s",
+      "failures": []
+    },
+    {
+      "task": "06-ledger-fee-region",
+      "mode": "with-ripple",
+      "repeat": 2,
+      "arm": "base",
+      "run_dir": "run-bsoz_qp9",
+      "wall_s": 19.5,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "Read": 2,
+        "mcp__ripple__impact": 1,
+        "Bash": 2,
+        "Edit": 7,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 2,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "FeeRule.fee"
+          },
+          "is_error": false,
+          "result_chars": 1740,
+          "result_head": "{\n  \"symbol\": \"billing.fees.FeeRule.fee\",\n  \"depth\": 5,\n  \"affected\": 8,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"billing/checkout.py\": [\n      {\n        \"symbol\": \"billing.checkout.checkout\",\n        \"line\": 13,\n        \"distance\": 1\n      }\n    ],\n    \"billing/quotes.py\": [\n      {\n        \"symbol\": \"billing.quotes.quote\",\n        \"line\": 12,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"billing.quotes.cheapest_rule\",\n        \"line\": 19,\n        \"distance\": 2\n      }\n    ],\n    \"payroll/batch.py\": [\n      {\n        \"symbol\": \"payroll.batch.PayrollBatch.processing_fee\",\n        \"line\": 29,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"payroll.batch.PayrollBatch.apply\",\n        \"line\": 32,\n        \"distance\": 2\n      }\n    ]\n  },\n  \"caller_count\": 5,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"symbol\": \"tests.test_billing.test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"line\": 23,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_without_a_fee_rule_adds_tax_only\",\n      \"symbol\": \"tests.test_billing.test_checkout_without_a_fee_rule_adds_tax_only\",\n      \"line\": 31,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_quote_and_cheapest_rule\",\n      \"symbol\": \"tests.test_billing.test_quote_and_cheapest_rule\",\n      \"line\": 37,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    }\n  ],\n  \"test_count\": 3,\n  \"truncated\": false,\n  \"omitted_callers\": 0,\n  \"omitted_tests\": 0,\n  \"possible_missed_callers\": [],\n  \"possible_missed_total\": 0\n}"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 214,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"25 passed in 0.04s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 15,
+      "agent_duration_s": 18.2,
+      "cost_usd": 0.0807307,
+      "usage": {
+        "input_tokens": 14,
+        "output_tokens": 2133,
+        "cache_creation_input_tokens": 11915,
+        "cache_read_input_tokens": 117127
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "Finished the signature change; the full suite passes (25 passed).\n\n- `FeeRule.fee`, `FlatFee.fee`, `PercentFee.fee` and the `payroll.fees.CappedFee.fee` override now take a required `region`.\n- `PercentFee` returns no fee when the region is \"DE\". `CappedFee` passes the region through to `PercentFee`, so it gets the same rule. The other rules ignore the region.\n- The callers now pass the region they have: `checkout` and `quote` use their `region` argument, and `PayrollBatch.processing_fee` uses `",
+      "changed_files": [
+        "billing/checkout.py",
+        "billing/fees.py",
+        "billing/quotes.py",
+        "payroll/batch.py",
+        "payroll/fees.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 25,
+      "min_tests": 25,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "25 passed in 0.03s",
+      "hidden_summary": "5 passed in 0.02s",
+      "failures": []
+    },
+    {
+      "task": "06-ledger-fee-region",
+      "mode": "with-ripple",
+      "repeat": 3,
+      "arm": "base",
+      "run_dir": "run-zs23s0x5",
+      "wall_s": 22.7,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "mcp__ripple__impact": 2,
+        "ToolSearch": 1,
+        "Read": 2,
+        "Bash": 2,
+        "Edit": 7,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 3,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {},
+          "is_error": true,
+          "result_chars": 865,
+          "result_head": "Error executing tool impact: 1 validation error for impactArguments\nsymbol\n  Field required [type=missing, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.14/v/missing\n\nThis tool's input schema was not in your prompt when you called it. The input schema is: {\"type\":\"object\",\"properties\":{\"symbol\":{\"title\":\"Symbol\",\"type\":\"string\"},\"depth\":{\"default\":5,\"title\":\"Depth\",\"type\":\"integer\"},\"limit\":{\"default\":100,\"title\":\"Limit\",\"type\":\"integer\"},\"kinds\":{\"default\":\"all\",\"title\":\"Kinds\",\"type\":\"string\"}},\"required\":[\"symbol\"],\"title\":\"impactArguments\"}\nIf your input does not match this schema, correct it and call the tool again. If it matches, the error above has another cause. If the corrected call fails the same way, call ToolSearch with query \"select:mcp__ripple__impact\" to load the tool, then call it again."
+        },
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "FeeRule.fee"
+          },
+          "is_error": false,
+          "result_chars": 1740,
+          "result_head": "{\n  \"symbol\": \"billing.fees.FeeRule.fee\",\n  \"depth\": 5,\n  \"affected\": 8,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"billing/checkout.py\": [\n      {\n        \"symbol\": \"billing.checkout.checkout\",\n        \"line\": 13,\n        \"distance\": 1\n      }\n    ],\n    \"billing/quotes.py\": [\n      {\n        \"symbol\": \"billing.quotes.quote\",\n        \"line\": 12,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"billing.quotes.cheapest_rule\",\n        \"line\": 19,\n        \"distance\": 2\n      }\n    ],\n    \"payroll/batch.py\": [\n      {\n        \"symbol\": \"payroll.batch.PayrollBatch.processing_fee\",\n        \"line\": 29,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"payroll.batch.PayrollBatch.apply\",\n        \"line\": 32,\n        \"distance\": 2\n      }\n    ]\n  },\n  \"caller_count\": 5,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"symbol\": \"tests.test_billing.test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"line\": 23,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_without_a_fee_rule_adds_tax_only\",\n      \"symbol\": \"tests.test_billing.test_checkout_without_a_fee_rule_adds_tax_only\",\n      \"line\": 31,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_quote_and_cheapest_rule\",\n      \"symbol\": \"tests.test_billing.test_quote_and_cheapest_rule\",\n      \"line\": 37,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    }\n  ],\n  \"test_count\": 3,\n  \"truncated\": false,\n  \"omitted_callers\": 0,\n  \"omitted_tests\": 0,\n  \"possible_missed_callers\": [],\n  \"possible_missed_total\": 0\n}"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 214,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.27,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"25 passed in 0.04s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check,mcp__ripple__callers",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 16,
+      "agent_duration_s": 21.5,
+      "cost_usd": 0.0899707,
+      "usage": {
+        "input_tokens": 18,
+        "output_tokens": 2279,
+        "cache_creation_input_tokens": 12595,
+        "cache_read_input_tokens": 167647
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "`FeeRule.fee` now takes a required `region`, and the full suite passes (25 tests).\n\n- **Signatures:** `FeeRule`, `FlatFee` and `PercentFee` in `billing/fees.py` all use `fee(self, subtotal, region)`. `CappedFee` in `payroll/fees.py` builds on `PercentFee` and also overrides `fee`, so it got the new signature too. It passes `region` through to `super().fee`, so it charges nothing in \"DE\".\n- **DE rule:** `PercentFee` returns `Money(0)` when the region is \"DE\". `FlatFee` and the base `FeeRule` igno",
+      "changed_files": [
+        "billing/checkout.py",
+        "billing/fees.py",
+        "billing/quotes.py",
+        "payroll/batch.py",
+        "payroll/fees.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 25,
+      "min_tests": 25,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "25 passed in 0.04s",
+      "hidden_summary": "5 passed in 0.02s",
+      "failures": []
+    },
+    {
+      "task": "07-ledger-rename-account-apply",
+      "mode": "with-ripple",
+      "repeat": 1,
+      "arm": "base",
+      "run_dir": "run-yg2qvs_g",
+      "wall_s": 31.3,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "Bash": 4,
+        "mcp__ripple__impact": 1,
+        "Read": 4,
+        "Edit": 10,
+        "mcp__ripple__check": 2
+      },
+      "ripple_calls": 3,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "Account.apply"
+          },
+          "is_error": false,
+          "result_chars": 2886,
+          "result_head": "{\n  \"symbol\": \"ledger.accounts.Account.apply\",\n  \"depth\": 5,\n  \"affected\": 11,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"billing/checkout.py\": [\n      {\n        \"symbol\": \"billing.checkout.checkout\",\n        \"line\": 13,\n        \"distance\": 1\n      }\n    ],\n    \"ledger/accounts.py\": [\n      {\n        \"symbol\": \"ledger.accounts.Account.charge\",\n        \"line\": 32,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"ledger.accounts.Account.pay\",\n        \"line\": 35,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"ledger.accounts.CreditLimitAccount.apply\",\n        \"line\": 46,\n        \"distance\": 1\n      }\n    ],\n    \"payroll/batch.py\": [\n      {\n        \"symbol\": \"payroll.batch.PayrollBatch.apply\",\n        \"line\": 32,\n        \"distance\": 1\n      }\n    ]\n  },\n  \"caller_count\": 5,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_accounts.py::test_apply_returns_the_new_balance\",\n      \"symbol\": \"tests.test_accounts.test_apply_returns_the_new_balance\",\n      \"line\": 13,\n      \"distance\": 1,\n      \"file\": \"tests/test_accounts.py\"\n    },\n    {\n      \"node_id\": \"tests/test_accounts.py::test_charge_and_pay_move_the_balance\",\n      \"symbol\": \"tests.test_accounts.test_charge_and_pay_move_the_balance\",\n      \"line\": 7,\n      \"distance\": 2,\n      \"file\": \"tests/test_accounts.py\"\n    },\n    {\n      \"node_id\": \"tests/test_accounts.py::test_credit_limit_refuses_an_entry_over_the_limit\",\n      \"symbol\": \"tests.test_accounts.test_credit_limit_refuses_an_entry_over_the_limit\",\n      \"line\": 18,\n      \"distance\": 2,\n      \"file\": \"tests/test_accounts.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"symbol\": \"tests.test_billing.test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"line\": 23,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_without_a_fee_rule_adds_tax_only\",\n      \"symbol\": \"tests.test_bill"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 315,
+          "result_head": "{\n  \"passed\": false,\n  \"exit_code\": 1,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"1 failed, 24 passed in 0.06s\",\n  \"failures\": [\n    \"FAILED tests/test_payroll.py::test_apply_posts_each_payment_and_the_fee - Ass...\"\n  ],\n  \"failure_count\": 1\n}"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 214,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.21,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"25 passed in 0.02s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check,mcp__ripple__callers",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 23,
+      "agent_duration_s": 30.1,
+      "cost_usd": 0.1116462,
+      "usage": {
+        "input_tokens": 20,
+        "output_tokens": 3328,
+        "cache_creation_input_tokens": 14623,
+        "cache_read_input_tokens": 198342
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "`Account.apply` is now `post`, and the full suite passes (25 tests).\n\n- **Definitions:** I renamed `Account.apply` and the `CreditLimitAccount` override in `ledger/accounts.py`, including its `super().post(...)` call. There is no `apply` alias left on accounts.\n- **Calls:**\n  - `Account.charge` and `Account.pay` now call `self.post`.\n  - `payroll/batch.py` and `billing/checkout.py` now call `account.post`.\n  - `tests/test_accounts.py` now calls `account.post`.\n- **Left alone:** `PayrollBatch.app",
+      "changed_files": [
+        "billing/checkout.py",
+        "ledger/accounts.py",
+        "payroll/batch.py",
+        "tests/test_accounts.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 25,
+      "min_tests": 25,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "25 passed in 0.03s",
+      "hidden_summary": "4 passed in 0.02s",
+      "failures": []
+    },
+    {
+      "task": "07-ledger-rename-account-apply",
+      "mode": "with-ripple",
+      "repeat": 2,
+      "arm": "base",
+      "run_dir": "run-cr4i6cgj",
+      "wall_s": 30.5,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "Bash": 4,
+        "mcp__ripple__impact": 1,
+        "Read": 4,
+        "Edit": 10,
+        "mcp__ripple__check": 2
+      },
+      "ripple_calls": 3,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "Account.apply"
+          },
+          "is_error": false,
+          "result_chars": 2886,
+          "result_head": "{\n  \"symbol\": \"ledger.accounts.Account.apply\",\n  \"depth\": 5,\n  \"affected\": 11,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"billing/checkout.py\": [\n      {\n        \"symbol\": \"billing.checkout.checkout\",\n        \"line\": 13,\n        \"distance\": 1\n      }\n    ],\n    \"ledger/accounts.py\": [\n      {\n        \"symbol\": \"ledger.accounts.Account.charge\",\n        \"line\": 32,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"ledger.accounts.Account.pay\",\n        \"line\": 35,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"ledger.accounts.CreditLimitAccount.apply\",\n        \"line\": 46,\n        \"distance\": 1\n      }\n    ],\n    \"payroll/batch.py\": [\n      {\n        \"symbol\": \"payroll.batch.PayrollBatch.apply\",\n        \"line\": 32,\n        \"distance\": 1\n      }\n    ]\n  },\n  \"caller_count\": 5,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_accounts.py::test_apply_returns_the_new_balance\",\n      \"symbol\": \"tests.test_accounts.test_apply_returns_the_new_balance\",\n      \"line\": 13,\n      \"distance\": 1,\n      \"file\": \"tests/test_accounts.py\"\n    },\n    {\n      \"node_id\": \"tests/test_accounts.py::test_charge_and_pay_move_the_balance\",\n      \"symbol\": \"tests.test_accounts.test_charge_and_pay_move_the_balance\",\n      \"line\": 7,\n      \"distance\": 2,\n      \"file\": \"tests/test_accounts.py\"\n    },\n    {\n      \"node_id\": \"tests/test_accounts.py::test_credit_limit_refuses_an_entry_over_the_limit\",\n      \"symbol\": \"tests.test_accounts.test_credit_limit_refuses_an_entry_over_the_limit\",\n      \"line\": 18,\n      \"distance\": 2,\n      \"file\": \"tests/test_accounts.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"symbol\": \"tests.test_billing.test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"line\": 23,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_without_a_fee_rule_adds_tax_only\",\n      \"symbol\": \"tests.test_bill"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 315,
+          "result_head": "{\n  \"passed\": false,\n  \"exit_code\": 1,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"1 failed, 24 passed in 0.06s\",\n  \"failures\": [\n    \"FAILED tests/test_payroll.py::test_apply_posts_each_payment_and_the_fee - Ass...\"\n  ],\n  \"failure_count\": 1\n}"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 214,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.21,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"25 passed in 0.02s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check,mcp__ripple__callers",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 23,
+      "agent_duration_s": 29.2,
+      "cost_usd": 0.10847009999999999,
+      "usage": {
+        "input_tokens": 18,
+        "output_tokens": 3390,
+        "cache_creation_input_tokens": 14286,
+        "cache_read_input_tokens": 173901
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "`Account.apply` is now `post`, and the full suite passes (25 tests).\n\n- **Definitions:** `Account.post` and the `CreditLimitAccount.post` override are both renamed. The `super().post(...)` call in the override and the internal calls in `charge` and `pay` are updated too (all in `ledger/accounts.py`).\n- **Callers:** I updated the two account calls in `payroll/batch.py`, the one in `billing/checkout.py`, and the one in `tests/test_accounts.py`.\n- **Left alone:** `PayrollBatch.apply`, `TaxTable.app",
+      "changed_files": [
+        "billing/checkout.py",
+        "ledger/accounts.py",
+        "payroll/batch.py",
+        "tests/test_accounts.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 25,
+      "min_tests": 25,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "25 passed in 0.03s",
+      "hidden_summary": "4 passed in 0.02s",
+      "failures": []
+    },
+    {
+      "task": "07-ledger-rename-account-apply",
+      "mode": "with-ripple",
+      "repeat": 3,
+      "arm": "base",
+      "run_dir": "run-nd9hdqvx",
+      "wall_s": 31.1,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "Bash": 4,
+        "mcp__ripple__impact": 1,
+        "Read": 5,
+        "Edit": 10,
+        "mcp__ripple__check": 2
+      },
+      "ripple_calls": 3,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "Account.apply"
+          },
+          "is_error": false,
+          "result_chars": 2886,
+          "result_head": "{\n  \"symbol\": \"ledger.accounts.Account.apply\",\n  \"depth\": 5,\n  \"affected\": 11,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"billing/checkout.py\": [\n      {\n        \"symbol\": \"billing.checkout.checkout\",\n        \"line\": 13,\n        \"distance\": 1\n      }\n    ],\n    \"ledger/accounts.py\": [\n      {\n        \"symbol\": \"ledger.accounts.Account.charge\",\n        \"line\": 32,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"ledger.accounts.Account.pay\",\n        \"line\": 35,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"ledger.accounts.CreditLimitAccount.apply\",\n        \"line\": 46,\n        \"distance\": 1\n      }\n    ],\n    \"payroll/batch.py\": [\n      {\n        \"symbol\": \"payroll.batch.PayrollBatch.apply\",\n        \"line\": 32,\n        \"distance\": 1\n      }\n    ]\n  },\n  \"caller_count\": 5,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_accounts.py::test_apply_returns_the_new_balance\",\n      \"symbol\": \"tests.test_accounts.test_apply_returns_the_new_balance\",\n      \"line\": 13,\n      \"distance\": 1,\n      \"file\": \"tests/test_accounts.py\"\n    },\n    {\n      \"node_id\": \"tests/test_accounts.py::test_charge_and_pay_move_the_balance\",\n      \"symbol\": \"tests.test_accounts.test_charge_and_pay_move_the_balance\",\n      \"line\": 7,\n      \"distance\": 2,\n      \"file\": \"tests/test_accounts.py\"\n    },\n    {\n      \"node_id\": \"tests/test_accounts.py::test_credit_limit_refuses_an_entry_over_the_limit\",\n      \"symbol\": \"tests.test_accounts.test_credit_limit_refuses_an_entry_over_the_limit\",\n      \"line\": 18,\n      \"distance\": 2,\n      \"file\": \"tests/test_accounts.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"symbol\": \"tests.test_billing.test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"line\": 23,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_without_a_fee_rule_adds_tax_only\",\n      \"symbol\": \"tests.test_bill"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 315,
+          "result_head": "{\n  \"passed\": false,\n  \"exit_code\": 1,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"1 failed, 24 passed in 0.06s\",\n  \"failures\": [\n    \"FAILED tests/test_payroll.py::test_apply_posts_each_payment_and_the_fee - Ass...\"\n  ],\n  \"failure_count\": 1\n}"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 214,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.21,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"25 passed in 0.02s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check,mcp__ripple__callers",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 24,
+      "agent_duration_s": 29.8,
+      "cost_usd": 0.11495999999999999,
+      "usage": {
+        "input_tokens": 20,
+        "output_tokens": 3400,
+        "cache_creation_input_tokens": 15137,
+        "cache_read_input_tokens": 203720
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "`Account.apply` is now `post`, and the full suite passes (25 tests).\n\n- **Definitions:** I renamed `Account.apply` and the `CreditLimitAccount` override in `ledger/accounts.py`. That includes the `super().post(...)` call in the override and the calls from `charge` and `pay`.\n- **Callers:** I updated `billing/checkout.py`, `payroll/batch.py` (two calls on the account) and `tests/test_accounts.py`.\n- **Left alone:** `PayrollBatch.apply` and its two calls in `tests/test_payroll.py`. `TaxTable.apply",
+      "changed_files": [
+        "billing/checkout.py",
+        "ledger/accounts.py",
+        "payroll/batch.py",
+        "tests/test_accounts.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 25,
+      "min_tests": 25,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "25 passed in 0.03s",
+      "hidden_summary": "4 passed in 0.02s",
+      "failures": []
+    },
+    {
+      "task": "08-ledger-move-format-amount",
+      "mode": "with-ripple",
+      "repeat": 1,
+      "arm": "base",
+      "run_dir": "run-2vegsjpg",
+      "wall_s": 19.9,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "Bash": 4,
+        "Write": 1,
+        "Edit": 8
+      },
+      "ripple_calls": 0,
+      "ripple_exchanges": [],
+      "toolsearch_queries": [],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 14,
+      "agent_duration_s": 18.6,
+      "cost_usd": 0.07355,
+      "usage": {
+        "input_tokens": 12,
+        "output_tokens": 2332,
+        "cache_creation_input_tokens": 9781,
+        "cache_read_input_tokens": 110820
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "`format_amount` now lives in `ledger/formatting.py`, and the full suite passes (25 tests).\n\n- **`ledger/money.py`:** the function is removed, with no re-export or alias.\n- **`ledger/invoices.py`:** it now imports `format_amount` from `.formatting`, and the old `fmt` alias is replaced by the real name at both call sites.\n- **`reports/aging.py`, `reports/statement.py`, `tests/test_money.py`:** imports and calls point at `ledger.formatting`. `statement.py` used `m.format_amount(...)`, so I dropped ",
+      "changed_files": [
+        "ledger/formatting.py",
+        "ledger/invoices.py",
+        "ledger/money.py",
+        "reports/aging.py",
+        "reports/statement.py",
+        "tests/test_money.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 25,
+      "min_tests": 25,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "25 passed in 0.03s",
+      "hidden_summary": "2 passed in 0.02s",
+      "failures": []
+    },
+    {
+      "task": "08-ledger-move-format-amount",
+      "mode": "with-ripple",
+      "repeat": 2,
+      "arm": "base",
+      "run_dir": "run-2x3zzm1z",
+      "wall_s": 17.8,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "Bash": 3,
+        "Write": 1,
+        "Edit": 6,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 1,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 214,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"25 passed in 0.05s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 13,
+      "agent_duration_s": 16.5,
+      "cost_usd": 0.06755069999999999,
+      "usage": {
+        "input_tokens": 12,
+        "output_tokens": 1961,
+        "cache_creation_input_tokens": 9666,
+        "cache_read_input_tokens": 92527
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "`format_amount` now lives in the new `ledger/formatting.py`, and the full test suite passes (25 tests).\n\n- **`ledger/money.py`:** I removed the function. There's no re-export or alias.\n- **`ledger/invoices.py`:** it now imports `format_amount as fmt` from `.formatting`.\n- **`reports/aging.py`:** it now imports `format_amount` from `ledger.formatting`.\n- **`reports/statement.py`:** it used `m.format_amount(...)` through a `from ledger import money as m` import. I replaced that import with `from l",
+      "changed_files": [
+        "ledger/formatting.py",
+        "ledger/invoices.py",
+        "ledger/money.py",
+        "reports/aging.py",
+        "reports/statement.py",
+        "tests/test_money.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 25,
+      "min_tests": 25,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "25 passed in 0.04s",
+      "hidden_summary": "2 passed in 0.02s",
+      "failures": []
+    },
+    {
+      "task": "08-ledger-move-format-amount",
+      "mode": "with-ripple",
+      "repeat": 3,
+      "arm": "base",
+      "run_dir": "run-r1tjudkj",
+      "wall_s": 21.8,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "Bash": 4,
+        "mcp__ripple__impact": 1,
+        "Write": 1,
+        "Edit": 8,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 2,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "format_amount"
+          },
+          "is_error": false,
+          "result_chars": 1451,
+          "result_head": "{\n  \"symbol\": \"ledger.money.format_amount\",\n  \"depth\": 5,\n  \"affected\": 6,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"ledger/invoices.py\": [\n      {\n        \"symbol\": \"ledger.invoices.Invoice.render\",\n        \"line\": 33,\n        \"distance\": 1\n      }\n    ],\n    \"reports/aging.py\": [\n      {\n        \"symbol\": \"reports.aging.AgingReport.render\",\n        \"line\": 28,\n        \"distance\": 1\n      }\n    ],\n    \"reports/statement.py\": [\n      {\n        \"symbol\": \"reports.statement.statement\",\n        \"line\": 10,\n        \"distance\": 1\n      }\n    ]\n  },\n  \"caller_count\": 3,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_money.py::test_format_amount_right_aligns\",\n      \"symbol\": \"tests.test_money.test_format_amount_right_aligns\",\n      \"line\": 20,\n      \"distance\": 1,\n      \"file\": \"tests/test_money.py\"\n    },\n    {\n      \"node_id\": \"tests/test_reports.py::test_aging_rows_and_total\",\n      \"symbol\": \"tests.test_reports.test_aging_rows_and_total\",\n      \"line\": 18,\n      \"distance\": 2,\n      \"file\": \"tests/test_reports.py\"\n    },\n    {\n      \"node_id\": \"tests/test_reports.py::test_statement_shows_the_running_balance\",\n      \"symbol\": \"tests.test_reports.test_statement_shows_the_running_balance\",\n      \"line\": 29,\n      \"distance\": 2,\n      \"file\": \"tests/test_reports.py\"\n    }\n  ],\n  \"test_count\": 3,\n  \"truncated\": false,\n  \"omitted_callers\": 0,\n  \"omitted_tests\": 0,\n  \"possible_missed_callers\": [],\n  \"possible_missed_total\": 0\n}"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 214,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"25 passed in 0.04s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 17,
+      "agent_duration_s": 20.3,
+      "cost_usd": 0.08035650000000001,
+      "usage": {
+        "input_tokens": 14,
+        "output_tokens": 2499,
+        "cache_creation_input_tokens": 10927,
+        "cache_read_input_tokens": 116305
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "`format_amount` now lives in `ledger/formatting.py`, and the full suite passes (25 tests).\n\n- **`ledger/money.py`:** the function is removed, with no re-export or alias left behind.\n- **`ledger/invoices.py`:** it imports `format_amount` from `.formatting`. I dropped the `fmt` alias and renamed its two call sites.\n- **`reports/aging.py` and `tests/test_money.py`:** they import it from `ledger.formatting`.\n- **`reports/statement.py`:** it imports `format_amount` directly instead of using `m.format",
+      "changed_files": [
+        "ledger/formatting.py",
+        "ledger/invoices.py",
+        "ledger/money.py",
+        "reports/aging.py",
+        "reports/statement.py",
+        "tests/test_money.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 25,
+      "min_tests": 25,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "25 passed in 0.03s",
+      "hidden_summary": "2 passed in 0.02s",
+      "failures": []
+    },
+    {
+      "task": "09-ledger-money-format-symbol",
+      "mode": "with-ripple",
+      "repeat": 1,
+      "arm": "base",
+      "run_dir": "run-0sn2cz2_",
+      "wall_s": 18.8,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "Read": 1,
+        "mcp__ripple__impact": 1,
+        "Bash": 2,
+        "Edit": 6,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 2,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "Money.format"
+          },
+          "is_error": false,
+          "result_chars": 2303,
+          "result_head": "{\n  \"symbol\": \"ledger.money.Money.format\",\n  \"depth\": 5,\n  \"affected\": 10,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"billing/dunning.py\": [\n      {\n        \"symbol\": \"billing.dunning.reminders\",\n        \"line\": 8,\n        \"distance\": 1\n      }\n    ],\n    \"ledger/money.py\": [\n      {\n        \"symbol\": \"ledger.money.format_amount\",\n        \"line\": 40,\n        \"distance\": 1\n      }\n    ],\n    \"reports/statement.py\": [\n      {\n        \"symbol\": \"reports.statement.statement\",\n        \"line\": 10,\n        \"distance\": 1\n      }\n    ],\n    \"ledger/invoices.py\": [\n      {\n        \"symbol\": \"ledger.invoices.Invoice.render\",\n        \"line\": 33,\n        \"distance\": 2\n      }\n    ],\n    \"reports/aging.py\": [\n      {\n        \"symbol\": \"reports.aging.AgingReport.render\",\n        \"line\": 28,\n        \"distance\": 2\n      }\n    ]\n  },\n  \"caller_count\": 5,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_money.py::test_format\",\n      \"symbol\": \"tests.test_money.test_format\",\n      \"line\": 15,\n      \"distance\": 1,\n      \"file\": \"tests/test_money.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_reminders_skip_paid_invoices\",\n      \"symbol\": \"tests.test_billing.test_reminders_skip_paid_invoices\",\n      \"line\": 52,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_money.py::test_format_amount_right_aligns\",\n      \"symbol\": \"tests.test_money.test_format_amount_right_aligns\",\n      \"line\": 20,\n      \"distance\": 2,\n      \"file\": \"tests/test_money.py\"\n    },\n    {\n      \"node_id\": \"tests/test_reports.py::test_statement_shows_the_running_balance\",\n      \"symbol\": \"tests.test_reports.test_statement_shows_the_running_balance\",\n      \"line\": 29,\n      \"distance\": 2,\n      \"file\": \"tests/test_reports.py\"\n    },\n    {\n      \"node_id\": \"tests/test_reports.py::test_aging_rows_and_total\",\n      \"symbol\": \"tests.test_reports.test_aging_rows_and_total\",\n      \"line\": 18,\n      \"distance\": 3,\n      \"file\": \"tests/test_reports.py\"\n    }"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 214,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"25 passed in 0.04s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 13,
+      "agent_duration_s": 17.4,
+      "cost_usd": 0.0738057,
+      "usage": {
+        "input_tokens": 14,
+        "output_tokens": 1868,
+        "cache_creation_input_tokens": 10876,
+        "cache_read_input_tokens": 115937
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "`Money.format` now takes a required `symbol` argument, and the full suite passes (25 tests).\n\n- **`ledger/money.py`:** `format(self, symbol)` puts the minus sign before the symbol. `format_amount` passes `\"$\"`.\n- **Callers:** both calls in `billing/dunning.py` (including `refund_note`, which the call graph missed but a text search found) and the one in `reports/statement.py` now pass `\"$\"`. The invoice and aging renderers go through `format_amount`, so they needed no change.\n- **Tests:** I updat",
+      "changed_files": [
+        "billing/dunning.py",
+        "ledger/money.py",
+        "reports/statement.py",
+        "tests/test_money.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 25,
+      "min_tests": 25,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "25 passed in 0.03s",
+      "hidden_summary": "3 passed in 0.01s",
+      "failures": []
+    },
+    {
+      "task": "09-ledger-money-format-symbol",
+      "mode": "with-ripple",
+      "repeat": 2,
+      "arm": "base",
+      "run_dir": "run-4c5ofsvo",
+      "wall_s": 19.3,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "Read": 1,
+        "mcp__ripple__impact": 1,
+        "Bash": 2,
+        "Edit": 6,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 2,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "Money.format"
+          },
+          "is_error": false,
+          "result_chars": 2303,
+          "result_head": "{\n  \"symbol\": \"ledger.money.Money.format\",\n  \"depth\": 5,\n  \"affected\": 10,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"billing/dunning.py\": [\n      {\n        \"symbol\": \"billing.dunning.reminders\",\n        \"line\": 8,\n        \"distance\": 1\n      }\n    ],\n    \"ledger/money.py\": [\n      {\n        \"symbol\": \"ledger.money.format_amount\",\n        \"line\": 40,\n        \"distance\": 1\n      }\n    ],\n    \"reports/statement.py\": [\n      {\n        \"symbol\": \"reports.statement.statement\",\n        \"line\": 10,\n        \"distance\": 1\n      }\n    ],\n    \"ledger/invoices.py\": [\n      {\n        \"symbol\": \"ledger.invoices.Invoice.render\",\n        \"line\": 33,\n        \"distance\": 2\n      }\n    ],\n    \"reports/aging.py\": [\n      {\n        \"symbol\": \"reports.aging.AgingReport.render\",\n        \"line\": 28,\n        \"distance\": 2\n      }\n    ]\n  },\n  \"caller_count\": 5,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_money.py::test_format\",\n      \"symbol\": \"tests.test_money.test_format\",\n      \"line\": 15,\n      \"distance\": 1,\n      \"file\": \"tests/test_money.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_reminders_skip_paid_invoices\",\n      \"symbol\": \"tests.test_billing.test_reminders_skip_paid_invoices\",\n      \"line\": 52,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_money.py::test_format_amount_right_aligns\",\n      \"symbol\": \"tests.test_money.test_format_amount_right_aligns\",\n      \"line\": 20,\n      \"distance\": 2,\n      \"file\": \"tests/test_money.py\"\n    },\n    {\n      \"node_id\": \"tests/test_reports.py::test_statement_shows_the_running_balance\",\n      \"symbol\": \"tests.test_reports.test_statement_shows_the_running_balance\",\n      \"line\": 29,\n      \"distance\": 2,\n      \"file\": \"tests/test_reports.py\"\n    },\n    {\n      \"node_id\": \"tests/test_reports.py::test_aging_rows_and_total\",\n      \"symbol\": \"tests.test_reports.test_aging_rows_and_total\",\n      \"line\": 18,\n      \"distance\": 3,\n      \"file\": \"tests/test_reports.py\"\n    }"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 214,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"25 passed in 0.04s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 13,
+      "agent_duration_s": 18.0,
+      "cost_usd": 0.0734004,
+      "usage": {
+        "input_tokens": 14,
+        "output_tokens": 1956,
+        "cache_creation_input_tokens": 10520,
+        "cache_read_input_tokens": 117324
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "`Money.format` now takes a required `symbol` argument, and the full suite passes (25 tests).\n\n- **Format change:** `Money(1250).format(\"\u20ac\")` gives \"\u20ac12.50\". A negative amount puts the minus sign before the symbol, so `Money(-5).format(\"$\")` gives \"-$0.05\".\n- **Callers updated to pass `\"$\"`:** `format_amount` in `ledger/money.py`, two calls in `billing/dunning.py` (including `refund_note`), and the balance line in `reports/statement.py`. `format_amount` keeps its own signature, so the aging repor",
+      "changed_files": [
+        "billing/dunning.py",
+        "ledger/money.py",
+        "reports/statement.py",
+        "tests/test_money.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 25,
+      "min_tests": 25,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "25 passed in 0.03s",
+      "hidden_summary": "3 passed in 0.01s",
+      "failures": []
+    },
+    {
+      "task": "09-ledger-money-format-symbol",
+      "mode": "with-ripple",
+      "repeat": 3,
+      "arm": "base",
+      "run_dir": "run-pdmoac_d",
+      "wall_s": 19.1,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "mcp__ripple__impact": 1,
+        "Read": 1,
+        "Bash": 2,
+        "Edit": 6,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 2,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "Money.format"
+          },
+          "is_error": false,
+          "result_chars": 2303,
+          "result_head": "{\n  \"symbol\": \"ledger.money.Money.format\",\n  \"depth\": 5,\n  \"affected\": 10,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"billing/dunning.py\": [\n      {\n        \"symbol\": \"billing.dunning.reminders\",\n        \"line\": 8,\n        \"distance\": 1\n      }\n    ],\n    \"ledger/money.py\": [\n      {\n        \"symbol\": \"ledger.money.format_amount\",\n        \"line\": 40,\n        \"distance\": 1\n      }\n    ],\n    \"reports/statement.py\": [\n      {\n        \"symbol\": \"reports.statement.statement\",\n        \"line\": 10,\n        \"distance\": 1\n      }\n    ],\n    \"ledger/invoices.py\": [\n      {\n        \"symbol\": \"ledger.invoices.Invoice.render\",\n        \"line\": 33,\n        \"distance\": 2\n      }\n    ],\n    \"reports/aging.py\": [\n      {\n        \"symbol\": \"reports.aging.AgingReport.render\",\n        \"line\": 28,\n        \"distance\": 2\n      }\n    ]\n  },\n  \"caller_count\": 5,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_money.py::test_format\",\n      \"symbol\": \"tests.test_money.test_format\",\n      \"line\": 15,\n      \"distance\": 1,\n      \"file\": \"tests/test_money.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_reminders_skip_paid_invoices\",\n      \"symbol\": \"tests.test_billing.test_reminders_skip_paid_invoices\",\n      \"line\": 52,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_money.py::test_format_amount_right_aligns\",\n      \"symbol\": \"tests.test_money.test_format_amount_right_aligns\",\n      \"line\": 20,\n      \"distance\": 2,\n      \"file\": \"tests/test_money.py\"\n    },\n    {\n      \"node_id\": \"tests/test_reports.py::test_statement_shows_the_running_balance\",\n      \"symbol\": \"tests.test_reports.test_statement_shows_the_running_balance\",\n      \"line\": 29,\n      \"distance\": 2,\n      \"file\": \"tests/test_reports.py\"\n    },\n    {\n      \"node_id\": \"tests/test_reports.py::test_aging_rows_and_total\",\n      \"symbol\": \"tests.test_reports.test_aging_rows_and_total\",\n      \"line\": 18,\n      \"distance\": 3,\n      \"file\": \"tests/test_reports.py\"\n    }"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 214,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"25 passed in 0.04s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 13,
+      "agent_duration_s": 17.8,
+      "cost_usd": 0.0743849,
+      "usage": {
+        "input_tokens": 16,
+        "output_tokens": 1893,
+        "cache_creation_input_tokens": 10422,
+        "cache_read_input_tokens": 137349
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "`Money.format` now takes a required `symbol` argument, and the full suite passes (25 tests). `Money(1250).format(\"\u20ac\")` returns \"\u20ac12.50\", and a negative amount puts the minus sign before the symbol.\n\nI updated every caller to pass `\"$\"`, so output is unchanged:\n- `ledger/money.py`: `format_amount`\n- `billing/dunning.py`: the \"is due\" note at line 14 and `refund_note` at line 20\n- `reports/statement.py`: the \"Balance due\" line\n\nRipple didn't resolve the `refund_note` call, so I found it with a gre",
+      "changed_files": [
+        "billing/dunning.py",
+        "ledger/money.py",
+        "reports/statement.py",
+        "tests/test_money.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 25,
+      "min_tests": 25,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "25 passed in 0.04s",
+      "hidden_summary": "3 passed in 0.02s",
+      "failures": []
+    },
+    {
+      "task": "10-ledger-add-line-quantity",
+      "mode": "with-ripple",
+      "repeat": 1,
+      "arm": "base",
+      "run_dir": "run-aughxvk8",
+      "wall_s": 22.5,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "mcp__ripple__impact": 2,
+        "ToolSearch": 1,
+        "Bash": 3,
+        "Edit": 10,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 3,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {},
+          "is_error": true,
+          "result_chars": 865,
+          "result_head": "Error executing tool impact: 1 validation error for impactArguments\nsymbol\n  Field required [type=missing, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.14/v/missing\n\nThis tool's input schema was not in your prompt when you called it. The input schema is: {\"type\":\"object\",\"properties\":{\"symbol\":{\"title\":\"Symbol\",\"type\":\"string\"},\"depth\":{\"default\":5,\"title\":\"Depth\",\"type\":\"integer\"},\"limit\":{\"default\":100,\"title\":\"Limit\",\"type\":\"integer\"},\"kinds\":{\"default\":\"all\",\"title\":\"Kinds\",\"type\":\"string\"}},\"required\":[\"symbol\"],\"title\":\"impactArguments\"}\nIf your input does not match this schema, correct it and call the tool again. If it matches, the error above has another cause. If the corrected call fails the same way, call ToolSearch with query \"select:mcp__ripple__impact\" to load the tool, then call it again."
+        },
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "Invoice.add_line"
+          },
+          "is_error": false,
+          "result_chars": 2864,
+          "result_head": "{\n  \"symbol\": \"ledger.invoices.Invoice.add_line\",\n  \"depth\": 5,\n  \"affected\": 12,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"billing/checkout.py\": [\n      {\n        \"symbol\": \"billing.checkout.checkout\",\n        \"line\": 13,\n        \"distance\": 1\n      }\n    ],\n    \"billing/recurring.py\": [\n      {\n        \"symbol\": \"billing.recurring.RecurringInvoice.__init__\",\n        \"line\": 12,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"billing.recurring.RecurringInvoice.add_setup_fee\",\n        \"line\": 19,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"billing.recurring.RecurringInvoice.renew\",\n        \"line\": 22,\n        \"distance\": 2\n      }\n    ],\n    \"tests/test_reports.py\": [\n      {\n        \"symbol\": \"tests.test_reports.two_invoices\",\n        \"line\": 7,\n        \"distance\": 1\n      }\n    ]\n  },\n  \"caller_count\": 5,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_billing.py::test_refund_note\",\n      \"symbol\": \"tests.test_billing.test_refund_note\",\n      \"line\": 61,\n      \"distance\": 1,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_reminders_skip_paid_invoices\",\n      \"symbol\": \"tests.test_billing.test_reminders_skip_paid_invoices\",\n      \"line\": 52,\n      \"distance\": 1,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"symbol\": \"tests.test_billing.test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"line\": 23,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_without_a_fee_rule_adds_tax_only\",\n      \"symbol\": \"tests.test_billing.test_checkout_without_a_fee_rule_adds_tax_only\",\n      \"line\": 31,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_recurring_invoice_bills_every_seat_and_renews\",\n      \"symbol\": \"tests.test_billing.test_r"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 214,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"25 passed in 0.04s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check,mcp__ripple__callers",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 18,
+      "agent_duration_s": 21.2,
+      "cost_usd": 0.0903485,
+      "usage": {
+        "input_tokens": 14,
+        "output_tokens": 2600,
+        "cache_creation_input_tokens": 13156,
+        "cache_read_input_tokens": 116965
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "`Invoice.add_line` is now `add_line(self, description, quantity, amount)` with `quantity` required. The full suite passes (25 tests).\n\nI updated every caller to the new argument order:\n- **`billing/checkout.py`:** the cart-line call now passes quantity before price. The processing fee line now passes an explicit quantity of 1.\n- **`billing/recurring.py`:** `RecurringInvoice.__init__` now passes seats before price. `add_setup_fee` now passes an explicit quantity of 1. `RecurringInvoice` and `Cred",
+      "changed_files": [
+        "billing/checkout.py",
+        "billing/recurring.py",
+        "ledger/invoices.py",
+        "tests/test_billing.py",
+        "tests/test_invoices.py",
+        "tests/test_reports.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 25,
+      "min_tests": 25,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "25 passed in 0.03s",
+      "hidden_summary": "3 passed in 0.01s",
+      "failures": []
+    },
+    {
+      "task": "10-ledger-add-line-quantity",
+      "mode": "with-ripple",
+      "repeat": 2,
+      "arm": "base",
+      "run_dir": "run-trg74mtz",
+      "wall_s": 22.2,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "Read": 1,
+        "mcp__ripple__impact": 1,
+        "Bash": 2,
+        "Edit": 10,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 2,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "Invoice.add_line"
+          },
+          "is_error": false,
+          "result_chars": 2864,
+          "result_head": "{\n  \"symbol\": \"ledger.invoices.Invoice.add_line\",\n  \"depth\": 5,\n  \"affected\": 12,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"billing/checkout.py\": [\n      {\n        \"symbol\": \"billing.checkout.checkout\",\n        \"line\": 13,\n        \"distance\": 1\n      }\n    ],\n    \"billing/recurring.py\": [\n      {\n        \"symbol\": \"billing.recurring.RecurringInvoice.__init__\",\n        \"line\": 12,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"billing.recurring.RecurringInvoice.add_setup_fee\",\n        \"line\": 19,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"billing.recurring.RecurringInvoice.renew\",\n        \"line\": 22,\n        \"distance\": 2\n      }\n    ],\n    \"tests/test_reports.py\": [\n      {\n        \"symbol\": \"tests.test_reports.two_invoices\",\n        \"line\": 7,\n        \"distance\": 1\n      }\n    ]\n  },\n  \"caller_count\": 5,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_billing.py::test_refund_note\",\n      \"symbol\": \"tests.test_billing.test_refund_note\",\n      \"line\": 61,\n      \"distance\": 1,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_reminders_skip_paid_invoices\",\n      \"symbol\": \"tests.test_billing.test_reminders_skip_paid_invoices\",\n      \"line\": 52,\n      \"distance\": 1,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"symbol\": \"tests.test_billing.test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"line\": 23,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_without_a_fee_rule_adds_tax_only\",\n      \"symbol\": \"tests.test_billing.test_checkout_without_a_fee_rule_adds_tax_only\",\n      \"line\": 31,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_recurring_invoice_bills_every_seat_and_renews\",\n      \"symbol\": \"tests.test_billing.test_r"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 214,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"25 passed in 0.04s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 17,
+      "agent_duration_s": 20.9,
+      "cost_usd": 0.0811992,
+      "usage": {
+        "input_tokens": 14,
+        "output_tokens": 2456,
+        "cache_creation_input_tokens": 11198,
+        "cache_read_input_tokens": 118192
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "The change is done and the full suite passes (25 tests).\n\n`Invoice.add_line` is now `add_line(self, description, quantity, amount)`. I updated every caller:\n- **`billing/recurring.py`:** the seat line and the setup fee. The setup fee now passes `1` explicitly.\n- **`billing/checkout.py`:** the item lines and the processing fee. The fee now passes `1` explicitly.\n- **Tests:** the calls in `tests/test_billing.py`, `tests/test_reports.py` and `tests/test_invoices.py`.\n\nI left `Cart.add_line` in `bil",
+      "changed_files": [
+        "billing/checkout.py",
+        "billing/recurring.py",
+        "ledger/invoices.py",
+        "tests/test_billing.py",
+        "tests/test_invoices.py",
+        "tests/test_reports.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 25,
+      "min_tests": 25,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "25 passed in 0.03s",
+      "hidden_summary": "3 passed in 0.01s",
+      "failures": []
+    },
+    {
+      "task": "10-ledger-add-line-quantity",
+      "mode": "with-ripple",
+      "repeat": 3,
+      "arm": "base",
+      "run_dir": "run-5l5ikzab",
+      "wall_s": 21.6,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [
+        {
+          "name": "ripple",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ],
+      "mcp_tools": [
+        "mcp__ripple__callees",
+        "mcp__ripple__callers",
+        "mcp__ripple__check",
+        "mcp__ripple__impact",
+        "mcp__ripple__path"
+      ],
+      "tool_calls": {
+        "ToolSearch": 1,
+        "Bash": 3,
+        "mcp__ripple__impact": 1,
+        "Edit": 10,
+        "mcp__ripple__check": 1
+      },
+      "ripple_calls": 2,
+      "ripple_exchanges": [
+        {
+          "tool": "mcp__ripple__impact",
+          "input": {
+            "symbol": "Invoice.add_line"
+          },
+          "is_error": false,
+          "result_chars": 2864,
+          "result_head": "{\n  \"symbol\": \"ledger.invoices.Invoice.add_line\",\n  \"depth\": 5,\n  \"affected\": 12,\n  \"more_beyond_depth\": false,\n  \"by_file\": {\n    \"billing/checkout.py\": [\n      {\n        \"symbol\": \"billing.checkout.checkout\",\n        \"line\": 13,\n        \"distance\": 1\n      }\n    ],\n    \"billing/recurring.py\": [\n      {\n        \"symbol\": \"billing.recurring.RecurringInvoice.__init__\",\n        \"line\": 12,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"billing.recurring.RecurringInvoice.add_setup_fee\",\n        \"line\": 19,\n        \"distance\": 1\n      },\n      {\n        \"symbol\": \"billing.recurring.RecurringInvoice.renew\",\n        \"line\": 22,\n        \"distance\": 2\n      }\n    ],\n    \"tests/test_reports.py\": [\n      {\n        \"symbol\": \"tests.test_reports.two_invoices\",\n        \"line\": 7,\n        \"distance\": 1\n      }\n    ]\n  },\n  \"caller_count\": 5,\n  \"tests\": [\n    {\n      \"node_id\": \"tests/test_billing.py::test_refund_note\",\n      \"symbol\": \"tests.test_billing.test_refund_note\",\n      \"line\": 61,\n      \"distance\": 1,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_reminders_skip_paid_invoices\",\n      \"symbol\": \"tests.test_billing.test_reminders_skip_paid_invoices\",\n      \"line\": 52,\n      \"distance\": 1,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"symbol\": \"tests.test_billing.test_checkout_charges_the_account_and_stores_the_invoice\",\n      \"line\": 23,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_checkout_without_a_fee_rule_adds_tax_only\",\n      \"symbol\": \"tests.test_billing.test_checkout_without_a_fee_rule_adds_tax_only\",\n      \"line\": 31,\n      \"distance\": 2,\n      \"file\": \"tests/test_billing.py\"\n    },\n    {\n      \"node_id\": \"tests/test_billing.py::test_recurring_invoice_bills_every_seat_and_renews\",\n      \"symbol\": \"tests.test_billing.test_r"
+        },
+        {
+          "tool": "mcp__ripple__check",
+          "input": {},
+          "is_error": false,
+          "result_chars": 214,
+          "result_head": "{\n  \"passed\": true,\n  \"exit_code\": 0,\n  \"timed_out\": false,\n  \"duration_s\": 0.26,\n  \"command\": \"/tmp/tmp91ap4gb3/bin/python -m pytest -q\",\n  \"summary\": \"25 passed in 0.04s\",\n  \"failures\": [],\n  \"failure_count\": 0\n}"
+        }
+      ],
+      "toolsearch_queries": [
+        {
+          "query": "select:mcp__ripple__impact,mcp__ripple__check",
+          "max_results": 5
+        }
+      ],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 17,
+      "agent_duration_s": 20.3,
+      "cost_usd": 0.0811094,
+      "usage": {
+        "input_tokens": 12,
+        "output_tokens": 2507,
+        "cache_creation_input_tokens": 11659,
+        "cache_read_input_tokens": 93794
+      },
+      "permission_denials": 0,
+      "permission_denied": [],
+      "edit_tools_denied": 0,
+      "final_message": "`Invoice.add_line` is now `add_line(self, description, quantity, amount)`, with `quantity` required. The full suite passes (25 passed).\n\nI changed every caller to the new order. Where a call used to leave quantity at its default, it now passes `1` explicitly, so invoices come out as before.\n\n- **Source:**\n  - `billing/recurring.py`: the plan line and the setup fee in `RecurringInvoice`. `CreditNote` doesn't override `add_line`, so it needed nothing.\n  - `billing/checkout.py`: the cart lines and ",
+      "changed_files": [
+        "billing/checkout.py",
+        "billing/recurring.py",
+        "ledger/invoices.py",
+        "tests/test_billing.py",
+        "tests/test_invoices.py",
+        "tests/test_reports.py"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 25,
+      "min_tests": 25,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "25 passed in 0.03s",
+      "hidden_summary": "3 passed in 0.01s",
+      "failures": []
+    }
+  ]
+}
