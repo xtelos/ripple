@@ -70,6 +70,23 @@ one exception below. What answers when:
   full module id (`shop.tax`, `src/util/math`) to ask about the module itself. A full module id, or any path, is
   answered as before.
 
+A TypeScript id written as the module, a colon and an exported name (`src/components/SubMenu:SubMenu`) resolves the
+same way when no symbol has that id and the module exports the name as a `memo`, `forwardRef`, alias or re-export of
+a function or class: the answer is that function, with the same `note`, for `callers`, `callees`, `impact` and
+`path`, in the text, the `--json` output and the tool result. The module may be written as a path (`components/SubMenu`,
+`src/components/SubMenu.tsx`), and `default` is a name a module can export (`website/pages/_app:default`). When a
+path ends more than one module (`components/SubMenu` in a monorepo, or `x` for `x.ts` and `x.tsx`), the symbols the
+modules declare under the name and what each of the others exports under it are all counted, and when they are more
+than one symbol the answer is ambiguous and lists them, whether the modules declare the name, export it as a wrapper
+or alias, or one of each. An id that is a symbol is never reinterpreted: `src/render:render` is the function `render`
+the module declares, even if the module also exports `render` as something else (the bare name `render` is the
+ambiguous answer). When the module exists and exports no such name, the answer is still `no symbol named ...`, and its
+`suggestions` begin with the module's own top-level symbols and exports as the `module:Name` ids that resolve, closest
+to the name asked first (at most 100; when it lists fewer than the module has, the error says how many there are, and
+for a path that ends several modules how many modules match and how many symbols and exports they have in all),
+followed by the five closest names in the repo (those not already listed) as before. A module that does not exist keeps the old suggestions. Python ids use dots, so a Python query with a colon
+in it is answered as it always was.
+
 The exception is a module at the repo root, whose whole id is the bare name (`SubMenu.tsx` is the module `SubMenu`,
 `tax.py` is `tax`): the name cannot be told from a question about the module. If the module also defines or exports a
 symbol of that name, the answer is ambiguous and lists the module and the symbol (in Python too, as it already was for
