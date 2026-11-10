@@ -63,7 +63,12 @@ RUNTIMES = ("python", "node", "all")
 # The agent may edit files (acceptEdits) and run the tests; anything else that
 # would need permission is refused, since nobody is there to answer.
 TEST_COMMANDS = ["Bash(python -m pytest:*)", "Bash(python3 -m pytest:*)", "Bash(pytest:*)"]
-RATE_LIMITED = re.compile(r"rate.?limit|usage limit|limit reached|quota|\b429\b|overloaded", re.I)
+# The CLI's refusals when the account or the API cannot serve a run. The first form it printed for a spent usage limit,
+# "You've hit your 5-hour limit · resets 6:30pm (America/New_York)", matched none of the older patterns.
+RATE_LIMITED = re.compile(
+    r"rate.?limit|usage limit|limit reached|quota|\b429\b|overloaded|hit your .{0,60}limit|\bresets?\s+(?:at\s+|in\s+)?\d|credit balance",
+    re.I,
+)
 
 # Told to the agent in both modes, ahead of the task. The first real-repo smoke run showed why: with
 # only the test commands allowed in the shell, one agent tried sed -i, xargs sed and a python rewrite,
@@ -343,6 +348,11 @@ def is_rate_limited(parsed: dict, stderr: str) -> bool:
     return bool(RATE_LIMITED.search(parsed.get("final_message", "") + "\n" + stderr))
 
 
+def limit_message(parsed: dict, stderr: str = "") -> str:
+    """What the CLI said when it refused or cut off a run: the final message, else the last line of stderr."""
+    return str(parsed.get("final_message") or "").strip() or (stderr.strip().splitlines() or ["no message"])[-1]
+
+
 def py_files(root: Path) -> dict[str, Path]:
     return {
         str(p.relative_to(root)): p
@@ -380,12 +390,27 @@ def new_run_dir(root: Path) -> Path:
     return Path(tempfile.mkdtemp(prefix="run-", dir=root))
 
 
+def did_not_run_reason(parsed: dict, stderr: str = "") -> str | None:
+    """Why a run that ended in an error before the agent did anything says nothing about its mode, or None. A run
+    whose result is an error, with no tool call and at most one turn, was refused by the CLI (a spent usage limit, an
+    API error), not failed by the agent; what the message says does not matter, so one that matches no known pattern is
+    caught too. A run that used a tool or took a second turn did run, and an error at the end of it is its own outcome."""
+    if not parsed.get("is_error") or parsed.get("tool_calls") or (parsed.get("num_turns") or 0) > 1:
+        return None
+    return f"the agent did not run: {limit_message(parsed, stderr)[:120]}"
+
+
 def invalid_reason(parsed: dict, mode: str) -> str | None:
-    """Why a run cannot count for its mode, or None. A with-ripple run whose
+    """Why a run cannot count for its mode, or None. A run the CLI refused before the agent did anything is invalid
+    (did_not_run_reason). A with-ripple run whose
     init event shows the ripple MCP server anything but connected had no
     ripple tools, so it would be a second control run under the wrong label.
-    A run with no init event at all is left alone: it failed before either
-    mode could differ, and it counts as a failure like any other."""
+    A run with no init event at all is never invalid for the ripple server (it failed before either mode could
+    differ, so the server check is skipped); it counts as a failure like any other unless it is also a run that did
+    not run: an error result with no tool call and at most one turn, which is invalid whether or not it has an init."""
+    idle = did_not_run_reason(parsed)
+    if idle:
+        return idle
     if mode != "with-ripple" or not parsed.get("got_init"):
         return None
     status = next((s.get("status") for s in parsed.get("mcp_servers") or [] if s.get("name") == "ripple"), None)
@@ -455,7 +480,11 @@ def run_one(task: Task, mode: str, repeat: int, root: Path, bin_dir: Path, args)
         **parsed,
     }
     if is_rate_limited(parsed, stderr):
-        return {**record, "aborted": True, "success": False, "stderr_tail": stderr}
+        idle = did_not_run_reason(parsed, stderr)
+        if not idle:
+            return {**record, "aborted": True, "success": False, "stderr_tail": stderr}
+        # Refused before it began: invalid, never graded (nothing to grade), and the batch stops on `limit_hit`.
+        return {**record, "changed_files": [], "success": False, "invalid": idle, "limit_hit": limit_message(parsed, stderr)}
     record["changed_files"], record["diff"] = diff_trees(task.fixture, repo, node=task.is_node)
     record.update(check_task(task, repo))
     if not parsed["got_result"]:
@@ -731,6 +760,7 @@ def main(argv=None) -> int:
     write_python_shims(bin_dir)
     runs: list[dict] = []
     lock, stop = threading.Lock(), threading.Event()
+    stopped_by: list[str] = []  # the message of the first run that hit a limit
 
     def one(item):
         task, mode, repeat = item
@@ -739,8 +769,11 @@ def main(argv=None) -> int:
         record = run_one(task, mode, repeat, root, bin_dir, args)
         with lock:
             runs.append(record)
-            if record.get("aborted"):
+            if record.get("aborted") or record.get("limit_hit"):
                 stop.set()
+                if not stopped_by:
+                    stopped_by.append(record.get("limit_hit") or limit_message(record, record.get("stderr_tail") or ""))
+                    meta["stopped_message"] = stopped_by[0]
             save(out, {**meta, "stopped_early": stop.is_set()}, runs)
             if record.get("aborted"):
                 status = "ABORTED (rate limit)"
@@ -768,9 +801,12 @@ def main(argv=None) -> int:
     invalid = Counter(r["invalid"] for r in runs if r.get("invalid") and not r.get("aborted"))
     if invalid:
         why = "; ".join(f"{n} x {reason}" for reason, n in sorted(invalid.items()))
-        print(f"WARNING: {sum(invalid.values())} run(s) are invalid and not counted: {why}")
+        print(f"WARNING: {sum(invalid.values())} INVALID run(s) of {len(runs)} are not counted in any success rate: {why}")
     if stop.is_set():
-        print(f"stopped early: rate limited after {len(runs)} of {len(plan)} runs")
+        print(
+            f"stopped early: a usage or rate limit was hit ({stopped_by[0]}) after {len(runs)} of {len(plan)} runs; "
+            f"{len(plan) - len(runs)} not started. Resume after the limit resets, with a new --out."
+        )
     return 0
 
 
