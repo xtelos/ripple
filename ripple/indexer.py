@@ -51,6 +51,7 @@ from .facts import (
 )
 from .model import Graph
 from .profile import PYTHON, LanguageProfile
+from .registry import front_end
 
 # Directories that hold dependencies or caches, never the project's own
 # source, wherever they appear. Hidden directories (.git, .venv, .tox, ...),
@@ -105,19 +106,10 @@ def walk_languages(repo: Path, profiles: list[LanguageProfile]) -> tuple[dict[st
 
 
 def _reads_as_source(path: Path, profile: LanguageProfile) -> bool:
-    """False for a `.ts` file that is not TypeScript, by its first bytes. The suffix is shared: a Qt Linguist
-    translation file is XML (`<?xml`, `<!DOCTYPE TS>` or `<TS`), and a transport stream (video) is
-    binary. Neither is read, counted or warned about. Any other file, and a file that cannot be opened (so
-    that reading it fails and is reported with the unparsable ones), counts as source."""
-    if profile.front_end != "typescript" or not path.name.endswith(".ts"):
-        return True
-    try:
-        with open(path, "rb") as handle:
-            head = handle.read(512)
-    except OSError:
-        return True
-    head = head.removeprefix(b"\xef\xbb\xbf").lstrip()
-    return b"\0" not in head and not head.startswith((b"<?xml", b"<!DOCTYPE TS", b"<TS"))
+    """Whether a file with a source suffix is source, as its front end says (registry.py: reads_as_source,
+    which a front end whose suffix another kind of file shares defines). Without one, it is."""
+    reads_as_source = getattr(front_end(profile), "reads_as_source", None)
+    return reads_as_source is None or reads_as_source(path, profile)
 
 
 def _holds_venv_or_is_locked(directory: Path) -> bool:
@@ -1039,7 +1031,7 @@ def build_graph(repo: str | Path, profile: LanguageProfile = PYTHON) -> Graph:
     """Index a repository from scratch. Most callers want cache.load_graph.
 
     The profile chooses which files are read, what the resolver assumes about the language and which
-    front end reads them: Python's (this module) or, for TYPESCRIPT, ts_indexer.py.
+    front end reads them: Python's (this module) or another registered one (registry.py), ts_indexer.py for TYPESCRIPT.
     """
     # The index is a large graph of objects that all stay alive until the end, so the cyclic
     # collector, which rescans every live object each time it runs, finds almost nothing and
@@ -1055,15 +1047,16 @@ def build_graph(repo: str | Path, profile: LanguageProfile = PYTHON) -> Graph:
 
 
 def _build_graph(repo: Path, profile: LanguageProfile = PYTHON) -> Graph:
-    from .resolver import Resolver
-
     repo = Path(repo).resolve()
     files, skipped = walk_repo(repo, profile)
-    if profile.front_end == "typescript":
-        # Imported here, so the Python path never loads it, and it loads tree-sitter only when it parses a file.
-        from .ts_indexer import build_ts_graph
+    # The front end is imported here, so the Python path never loads another's, and a parser loads only when a file is parsed.
+    return front_end(profile).index_files(repo, files, skipped, profile)
 
-        return build_ts_graph(repo, files, skipped, profile)
+
+def index_files(repo: Path, files: list[Path], skipped: list[str], profile: LanguageProfile = PYTHON) -> Graph:
+    """The Python front end (registry.py): the graph of the files read with Python's ast."""
+    from .resolver import Resolver
+
     scopes, errors = collect_scopes(repo, files)
     graph = Resolver(scopes, Rescanner(repo), errors, profile).run()
     graph.parse_errors = errors

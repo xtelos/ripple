@@ -15,8 +15,9 @@ from collections import deque
 
 from .jsx_facts import JSX_NO_RENDERER, JSX_TAG_UNRESOLVED
 from .model import DECORATOR_SCOPE, UNREAD_CLASS, Decoration, Edge, Graph, Symbol, Unresolved
-from .profile import PYTHON, TYPESCRIPT, LanguageProfile
+from .profile import LanguageProfile
 from .pytest_collection import PytestCollection  # noqa: F401 (it was defined here)
+from .registry import language_of
 from .ts_modules import SUFFIXES, module_id  # no parser needed to read an id
 
 MAX_LISTED = 100  # default cap on symbols listed per section, so a hub function cannot flood the agent
@@ -149,7 +150,7 @@ _MISSED_REASONS = (UNREAD_CLASS, DECORATOR_SCOPE)
 def _same_language(file: str, symbol: Symbol) -> bool:
     """Whether a file (where a decorator or a call is written) is in the language of the symbol's own file. Only
     TypeScript front end reads decorators and class expressions, so a Python symbol is never the target of one."""
-    return file.endswith(TYPESCRIPT.source_suffixes) == symbol.file.endswith(TYPESCRIPT.source_suffixes)
+    return language_of(file) is language_of(symbol.file)
 
 
 def _missed(u: Unresolved) -> dict:
@@ -467,10 +468,10 @@ def _describe(symbol: Symbol) -> dict:
 
 def _profile_of(symbol: Symbol, profile: LanguageProfile | None) -> LanguageProfile:
     """The profile a query uses for one symbol: the one it was given, or (None) the language of the
-    symbol's file, so one graph can hold Python and TypeScript and each is read by its own rules."""
+    symbol's file (registry.language_of), so one graph can hold several languages and each is read by its own rules."""
     if profile is not None:
         return profile
-    return TYPESCRIPT if symbol.file.endswith(TYPESCRIPT.source_suffixes) else PYTHON
+    return language_of(symbol.file).profile
 
 
 class _Collections:

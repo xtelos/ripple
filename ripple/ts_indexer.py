@@ -74,7 +74,7 @@ from .facts import (
 from .jsx_facts import JsxElement, JsxModule, JsxScope, Placement
 from .model import DECORATOR_SCOPE, UNREAD_CLASS, Graph
 from .profile import TYPESCRIPT, LanguageProfile
-from .ts_modules import ModuleMap
+from .ts_modules import ModuleMap, config_files  # noqa: F401 (config_files: the registry asks this module for it)
 
 INSTALL_HINT = "pip install 'ripple-code[typescript]'"
 REINSTALL = f"it needs tree-sitter>=0.25,<0.27 and tree-sitter-typescript>=0.23.2,<0.24, which {INSTALL_HINT} installs"
@@ -2016,3 +2016,26 @@ def build_ts_graph(repo: Path, files: list[Path], skipped: list[str], profile: L
     graph.skipped_dirs = skipped
     graph.modules.update(read)
     return graph
+
+
+# What the registry (registry.py) asks of a front end: index_files and NotInstalled are this module's names for
+# build_ts_graph and TypeScriptNotInstalled, and config_files (imported above) is the tsconfig.json files
+# the cache fingerprints.
+index_files = build_ts_graph
+NotInstalled = TypeScriptNotInstalled
+
+
+def reads_as_source(path: Path, profile: LanguageProfile) -> bool:
+    """False for a `.ts` file that is not TypeScript, by its first bytes. The suffix is shared: a Qt Linguist
+    translation file is XML (`<?xml`, `<!DOCTYPE TS>` or `<TS`), and a transport stream (video) is
+    binary. Neither is read, counted or warned about. Any other file, and a file that cannot be opened (so
+    that reading it fails and is reported with the unparsable ones), counts as source."""
+    if not path.name.endswith(".ts"):
+        return True
+    try:
+        with open(path, "rb") as handle:
+            head = handle.read(512)
+    except OSError:
+        return True
+    head = head.removeprefix(b"\xef\xbb\xbf").lstrip()
+    return b"\0" not in head and not head.startswith((b"<?xml", b"<!DOCTYPE TS", b"<TS"))
