@@ -400,7 +400,9 @@ with no `warnings` key covers everything the repo has.
 
 The core has no parser dependency: the Python front end reads files with the standard library `ast`
 module, and the base install needs only the `mcp` SDK. The TypeScript front end (`ripple/ts_indexer.py`)
-writes the same per-file facts from a tree-sitter parse, so one resolver builds both graphs.
+writes the same per-file facts from a tree-sitter parse, so one resolver builds both graphs. The languages
+are listed once, in precedence order, in `ripple/registry.py`: a language is a profile (`ripple/profile.py`)
+and one entry there naming its front end module, which is imported only when a file of that language is read.
 
 1. **Collect** (`ripple/indexer.py`): each file is read on its own. For every module, class and
    function it records what names are bound (defs, imports, assignments and what they suggest about

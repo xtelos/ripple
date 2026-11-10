@@ -1,7 +1,7 @@
 """Which languages a repository is written in, and one graph from them.
 
-`--lang` (or RIPPLE_LANG, or the server's lang argument) is "python", "typescript" or "auto", the
-default. Auto reads the repo's file names: each profile's source suffixes (profile.py) are looked for
+`--lang` (or RIPPLE_LANG, or the server's lang argument) is the name of a language in registry.py
+("python", "typescript") or "auto", the default. Auto reads the repo's file names: each profile's source suffixes (profile.py) are looked for
 in one walk that skips node_modules, virtualenvs and declaration files like every other walk. A repo
 with files of one language is indexed with that language's profile, exactly as before. A repo with
 both is MIXED: each language is indexed with its own profile, and cached under its own key (cache.py),
@@ -12,16 +12,16 @@ are written: a Python id is dotted (`app.core.total`) and a TypeScript id is a p
 But ANY id can be defined by both, not only a module: a root file with a dotted name is a dotted module id
 (`app.config.ts` is `app.config`, the id of `def config` in app.py, and `util.ts` is `util` like util.py), and
 so on for a class or a member. The merge cannot keep both: one id would carry both languages' callers and
-invent chains between them. So for every id an earlier graph (Python's) already defines, the later graph's
-symbol is dropped with every edge, unresolved call and base of that graph that names the id; the Python
-symbol and its edges are untouched. The ids are listed in Graph.ambiguous_ids with both files, in the
+invent chains between them. So for every id an earlier graph already defines (the registry lists the languages
+in order, Python first), the later graph's symbol is dropped with every edge, unresolved call and base of that
+graph that names the id; the earlier symbol and its edges are untouched. The ids are listed in Graph.ambiguous_ids with both files, in the
 warnings (so the exit status is 3, "answered, but something was left out"), and queries refuse to answer for
 them (queries.find_symbol).
 
 A language whose parser is not installed or cannot load (TypeScript without the extra, or with a tree-sitter
 that does not fit) is skipped when the repo has another, and the result says so (RepoGraph.skipped); when it
 is the only one, that is an error.
-Nothing here imports the TypeScript front end or tree-sitter until a TypeScript file has to be read.
+Nothing here imports a front end or its parser (tree-sitter for TypeScript) until a file of its language has to be read.
 """
 
 from __future__ import annotations
@@ -31,13 +31,16 @@ from pathlib import Path
 
 from .indexer import walk_languages
 from .model import Graph
-from .profile import PYTHON, TYPESCRIPT, LanguageProfile
+from .profile import LanguageProfile
+from .registry import LANGUAGES, default_language, join, label, language_of, profiles, rank
 
-LANGUAGES = {"python": PYTHON, "typescript": TYPESCRIPT}
-LABELS = {"python": "Python", "typescript": "TypeScript"}
-CHOICES = ("auto", *LANGUAGES)
 SHOWN_UNPARSABLE = 10  # files listed per language before "... and N more"
 SHOWN_AMBIGUOUS = 5
+
+
+def choices() -> tuple[str, ...]:
+    """What --lang takes: auto, and each registered language."""
+    return ("auto", *LANGUAGES)
 
 
 class RepoError(ValueError):
@@ -51,7 +54,7 @@ def plural(n: int, word: str) -> str:
 @dataclass
 class Scan:
     repo: Path  # resolved
-    profiles: list[LanguageProfile]  # the languages the repo has files of, in LANGUAGES order
+    profiles: list[LanguageProfile]  # the languages the repo has files of, in registry order
     files: dict[str, list[Path]]  # profile name -> its source files
     skipped_dirs: list[str]
 
@@ -69,7 +72,7 @@ class LanguageIndex:
 
     @property
     def label(self) -> str:
-        return LABELS.get(self.name, self.name)
+        return label(self.name)
 
 
 @dataclass
@@ -103,10 +106,10 @@ def check_repo(repo: str | Path) -> Path:
 
 def selected_profiles(lang: str) -> list[LanguageProfile]:
     if lang == "auto":
-        return list(LANGUAGES.values())
+        return profiles()
     if lang not in LANGUAGES:
-        raise RepoError(f"unknown language '{lang}': choose one of {', '.join(CHOICES)}")
-    return [LANGUAGES[lang]]
+        raise RepoError(f"unknown language '{lang}': choose one of {', '.join(choices())}")
+    return [LANGUAGES[lang].profile]
 
 
 def scan_repo(repo: str | Path, lang: str = "auto") -> Scan:
@@ -118,35 +121,38 @@ def scan_repo(repo: str | Path, lang: str = "auto") -> Scan:
     present = [profile for profile in selected if files[profile.name]]
     if not present:
         if lang == "auto":
-            raise RepoError(
-                f"no Python or TypeScript source files in {repo} (looked for .py, .ts, .tsx, .mts and .cts; "
-                "node_modules, virtualenvs, build output and .d.ts files are skipped)"
-            )
+            names = join([label(profile.name) for profile in selected], "or")
+            suffixes = join([suffix for profile in selected for suffix in profile.source_suffixes])
+            skipped_kinds = ["node_modules", "virtualenvs", "build output"]
+            skipped_kinds += [f"{profile.excluded_suffixes[0]} files" for profile in selected if profile.excluded_suffixes]
+            raise RepoError(f"no {names} source files in {repo} (looked for {suffixes}; {join(skipped_kinds)} are skipped)")
         profile = selected[0]
         raise RepoError(
-            f"no {LABELS[profile.name]} source files ({', '.join(profile.source_suffixes)}) in {repo}"
+            f"no {label(profile.name)} source files ({', '.join(profile.source_suffixes)}) in {repo}"
         )
     return Scan(root, present, files, skipped)
 
 
 def check_profile(repo: str | Path, lang: str = "auto") -> LanguageProfile:
-    """The profile whose way of running tests `check` uses. A repo with nothing but TypeScript uses
-    TypeScript's (which has no default command and says so); anything else uses Python's pytest."""
+    """The profile whose way of running tests `check` uses: the first language (in registry order) the repo has
+    files of. A repo with nothing but TypeScript uses TypeScript's (which has no default command and says so);
+    one with any Python uses Python's pytest, and so does one with no source at all."""
     root = check_repo(repo)
     if lang != "auto":
         return selected_profiles(lang)[0]
-    files, _ = walk_languages(root, list(LANGUAGES.values()))
-    return TYPESCRIPT if files["typescript"] and not files["python"] else PYTHON
+    files, _ = walk_languages(root, profiles())
+    return next((profile for profile in profiles() if files[profile.name]), default_language().profile)
 
 
 def merge_graphs(graphs: list[Graph]) -> Graph:
     """One graph from the graphs of the languages of a repo (see the module comment).
 
     One graph is returned as it is, so a single-language repo is exactly what its profile built.
-    The graphs are taken in order (load_repo lists Python first). An id that an earlier graph already
+    The graphs are taken in order (load_repo lists them in registry order, Python first). An id that an earlier graph already
     defines is not merged: the later graph's symbol is dropped, with every edge, unresolved call, base
     and external base of that graph that names the id, and the id goes in ambiguous_ids with both
-    files. The earlier graph is untouched, so nothing of it is ever joined to the other language's code.
+    files (every file, when three or more languages define it). The earlier graph is untouched, so nothing of it is
+    ever joined to another language's code.
     """
     if len(graphs) == 1:
         return graphs[0]
@@ -188,10 +194,22 @@ def merge_graphs(graphs: list[Graph]) -> Graph:
 
 
 def ambiguity_warning(ids: dict[str, list[str]]) -> str:
+    """The warning for ids more than one language defines, naming the languages by label. For each id the
+    earliest language in the registry keeps it and the others lose it, so with three languages the kept
+    and the left-out ones are lists ("kept the Python symbol and left out the TypeScript or Go one")."""
+    kept, left_out = set(), set()
+    for files in ids.values():
+        names = sorted({language_of(file).profile.name for file in files}, key=list(LANGUAGES).index)
+        kept.add(names[0])
+        left_out.update(names[1:])
+    involved = [name for name in LANGUAGES if name in kept | left_out]
+    who = "both languages" if len(involved) == 2 else join([label(name) for name in involved])
+    keeps = join([label(name) for name in LANGUAGES if name in kept], "or")
+    loses = join([label(name) for name in LANGUAGES if name in left_out], "or")
     shown = ", ".join(f"{sid} ({', '.join(files)})" for sid, files in list(ids.items())[:SHOWN_AMBIGUOUS])
     more = f" and {len(ids) - SHOWN_AMBIGUOUS} more" if len(ids) > SHOWN_AMBIGUOUS else ""
     return (
-        f"both languages define {plural(len(ids), 'id')}: ripple kept the Python symbol and left out the TypeScript one "
+        f"{who} define {plural(len(ids), 'id')}: ripple kept the {keeps} symbol and left out the {loses} one "
         f"and the calls that name it, and does not answer questions about them: {shown}{more}"
     )
 
@@ -200,9 +218,9 @@ def module_collisions(graph: Graph) -> dict[str, list[str]]:
     """Graph.module_collisions for each language on its own: files of one language that share a module
     name share ids. A Python file and a TypeScript file with the same id are the merge's business
     (ambiguity_warning), and their symbols are not mixed."""
-    groups: dict[tuple[str, bool], list[str]] = {}
+    groups: dict[tuple[str, int], list[str]] = {}
     for file, module in graph.modules.items():
-        groups.setdefault((module, file.endswith(TYPESCRIPT.source_suffixes)), []).append(file)
+        groups.setdefault((module, rank(file)), []).append(file)
     found: dict[str, list[str]] = {}
     for (module, _), files in sorted(groups.items()):
         if len(files) > 1:
@@ -212,7 +230,7 @@ def module_collisions(graph: Graph) -> dict[str, list[str]]:
 
 def skipped_message(language: LanguageIndex, error: Exception, indexed: list[LanguageIndex]) -> str:
     """What a mixed repo's answers lack, and what to do about it."""
-    covered = " and ".join(other.label for other in indexed)
+    covered = join([other.label for other in indexed])
     return (
         f"{language.label} was not indexed ({plural(language.found, 'file')} found): {error}. "
         f"These answers cover the {covered} files only."

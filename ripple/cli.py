@@ -1,6 +1,6 @@
 """Command-line entry point: the same queries as the MCP tools, for humans.
 
-    ripple index <repo> [--reasons] [--lang auto|python|typescript]
+    ripple index <repo> [--reasons] [--lang L]
     ripple callers|callees <symbol> [--repo DIR] [--json] [--kinds K] [--lang L]
     ripple impact <symbol> [--depth N] [--limit N] [--repo DIR] [--json] [--kinds K] [--lang L]
     ripple path <source> <target> [--repo DIR] [--json] [--kinds K] [--lang L]
@@ -9,8 +9,8 @@
 
 --kinds (default all) picks the edges a question follows: calls, renders and renderer, comma separated. renders is
 a function that writes <Child /> (TypeScript JSX), renderer the component React runs Child inside, proven or left out.
---lang (default auto, or RIPPLE_LANG) picks the language the repo is read as; auto looks at its files and
-reads a repo that has both as both. Exit status: 0 done, 1 not found or the tests failed, 2 refused
+--lang (default auto, or RIPPLE_LANG) picks the language the repo is read as, one named in registry.py; auto looks
+at its files and reads a repo that has several as all of them. Exit status: 0 done, 1 not found or the tests failed, 2 refused
 (no such repo, nothing to read, a missing parser, a command that is not allowed), 3 answered, but part of
 the repo was left out (a language whose parser is not installed or cannot load, or ids both languages
 define): the output says which.
@@ -27,7 +27,8 @@ from collections import Counter
 from . import queries
 from .cache import load_repo
 from .checker import run_check
-from .languages import CHOICES, SHOWN_UNPARSABLE, RepoError, RepoGraph, check_profile, module_collisions, plural, with_warnings
+from .languages import SHOWN_UNPARSABLE, RepoError, RepoGraph, check_profile, choices, module_collisions, plural, with_warnings
+from .registry import LANGUAGES, default_language, join
 
 MORE = "  ... and {n} more {what} not listed; raise --limit to see them"
 PARTIAL_EXIT = 3
@@ -90,7 +91,7 @@ def format_index(repo: str, result: RepoGraph, reasons: bool = False) -> str:
         + f"{stats['unresolved_calls']} unresolved calls, {stats['external_calls']} calls to code outside the repo",
         "(loaded from cache)" if result.cached else "(indexed)",
     ]
-    named = any(language.name != "python" for language in result.languages)
+    named = any(language.name != default_language().profile.name for language in result.languages)
     if named:
         lines += format_languages(result)
     lines += format_unparsable(result, named)
@@ -244,7 +245,8 @@ def add_kinds(parser: argparse.ArgumentParser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="ripple", description="Call graph and impact analysis for Python and TypeScript repos.")
+    served = join([language.label for language in LANGUAGES.values()])
+    parser = argparse.ArgumentParser(prog="ripple", description=f"Call graph and impact analysis for {served} repos.")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("index", help="index a repository and print what was found")
@@ -287,7 +289,7 @@ def build_parser() -> argparse.ArgumentParser:
     for p in sub.choices.values():
         p.add_argument(
             "--lang",
-            choices=CHOICES,
+            choices=choices(),
             default=os.environ.get("RIPPLE_LANG", "auto"),
             help="language to read the repo as (default: auto, from the files it has; env RIPPLE_LANG)",
         )

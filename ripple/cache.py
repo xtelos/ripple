@@ -34,6 +34,7 @@ from .languages import (
 )
 from .model import Graph
 from .profile import PYTHON, LanguageProfile
+from .registry import default_language, front_end, is_missing_parser
 
 # Bump when the graph format or the resolution rules change, so old caches
 # are ignored rather than served.
@@ -51,14 +52,13 @@ def fingerprint(repo: Path, profile: LanguageProfile = PYTHON, sources: list[Pat
     """{relative path: [mtime_ns, size]} for every file the indexer would read, and for the
     profile's config files (tsconfig.json) that are there: an edit to one changes the index too. For TypeScript
     that includes every tsconfig.json above an indexed file and every config each extends inside the repo,
-    which the indexer reads as well.
+    which the indexer reads as well (the front end's config_files, registry.py).
     sources are the profile's files when the caller has already walked the repo for them."""
     result = {}
     names = [name for name in profile.config_files if (repo / name).is_file()]
     sources = find_source_files(repo, profile) if sources is None else sources
-    if profile.front_end == "typescript":
-        from .ts_modules import config_files  # no parser needed to read configs
-
+    config_files = getattr(front_end(profile), "config_files", None)  # no parser needed to read configs
+    if config_files is not None:
         names = [*names, *(f for f in config_files(repo, sources) if f not in names)]
     for path in [*sources, *(repo / name for name in names)]:
         try:
@@ -88,11 +88,12 @@ def _describe(value: object) -> object:
 def profile_key(profile: LanguageProfile) -> str:
     """What tells one profile's cache from another's.
 
-    "" for PYTHON, so the Python cache is exactly the one that has always been written. Any other
-    profile gets its name and a hash of all its fields: the name alone does not say what resolves
-    differently, since two profiles can share one (a Python profile with another constructor name).
+    "" for the first language's profile (PYTHON), so the Python cache is exactly the one that has always
+    been written. Any other profile gets its name and a hash of all its fields: the name alone does not
+    say what resolves differently, since two profiles can share one (a Python profile with another
+    constructor name).
     """
-    if profile == PYTHON:
+    if profile == default_language().profile:
         return ""
     described = {f.name: _describe(getattr(profile, f.name)) for f in fields(profile)}
     digest = hashlib.sha256(json.dumps(described, sort_keys=True, default=repr).encode()).hexdigest()[:12]
@@ -146,9 +147,7 @@ def _index(scan: Scan, fingerprints: dict[str, dict], cache_dir: str | Path | No
         try:
             graph, language.cached = load_graph(scan.repo, cache_dir, fingerprints[profile.name], profile)
         except ImportError as error:
-            from .ts_indexer import TypeScriptNotInstalled  # loaded only now: nothing else asked for it
-
-            if not isinstance(error, TypeScriptNotInstalled):
+            if not is_missing_parser(error, profile):
                 raise
             language.skipped = True
             missing[profile.name] = error
@@ -177,7 +176,7 @@ def load_repo(repo: str | Path, cache_dir: str | Path | None = None, lang: str =
 class RepoIndex:
     """One repository's graph, held in memory for a long-running server.
 
-    By default the languages are found from the files (lang "auto", or python or typescript). Given a
+    By default the languages are found from the files (lang "auto", or the name of one language). Given a
     profile, it indexes with that profile alone, whatever the files are.
     """
 

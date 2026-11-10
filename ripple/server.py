@@ -52,7 +52,7 @@ RUNS_CODE = ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldH
 
 
 def build_server(repo: str, test_command: str | None = None, timeout: float = 300, lang: str = "auto") -> MCPServer:
-    """The server for one repository. lang is "auto" (the languages its files are in), "python" or "typescript"."""
+    """The server for one repository. lang is "auto" (the languages its files are in) or the name of a registered language (registry.py)."""
     check_repo(repo)  # a repo that is not there fails now, with a message, not at the first question
     selected_profiles(lang)
     index = RepoIndex(repo, lang=lang)
