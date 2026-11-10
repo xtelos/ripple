@@ -1,0 +1,199 @@
+{
+  "meta": {
+    "started": "2026-11-09T20:07:18",
+    "ripple_commit": "9a37ef1",
+    "claude_version": "2.1.321 (Claude Code)",
+    "model_requested": "sonnet",
+    "repeats": 1,
+    "timeout_s": 600,
+    "jobs": 1,
+    "prompt_preamble": "The shell is there for running the tests (`pytest`, or `python -m pytest`): do not use it to edit files (sed, scripted rewrites). Make every edit with the Edit or Write tool. The Grep and Glob tools, shell search commands (grep, find) and web access are not available.",
+    "with_ripple_line": "A ripple MCP server is connected for this repository. Its tools (impact, callers, callees, path, check) cover the call graph and running tests.",
+    "command": [
+      "claude",
+      "-p",
+      "<task prompt>",
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--setting-sources",
+      "project,local",
+      "--no-session-persistence",
+      "--permission-mode",
+      "acceptEdits",
+      "--allowedTools",
+      "Bash(python -m pytest:*),Bash(python3 -m pytest:*),Bash(pytest:*),mcp__ripple",
+      "--disallowedTools",
+      "Grep,Glob,LS,WebSearch,WebFetch,Bash(grep:*),Bash(egrep:*),Bash(fgrep:*),Bash(rg:*),Bash(ag:*),Bash(ack:*),Bash(find:*),Bash(fd:*),Bash(tree:*),Bash(locate:*),Bash(git grep:*),Bash(git ls-files:*),Bash(sed:*),Bash(awk:*),Bash(gawk:*),Bash(xargs:*)",
+      "--mcp-config",
+      "<mcp.json>",
+      "--strict-mcp-config",
+      "--model",
+      "sonnet"
+    ],
+    "arm": "restricted",
+    "arm_flags": {
+      "forced_use": false,
+      "hard_prompts": false,
+      "restrict_search": true
+    },
+    "disallowed_tools": [
+      "Grep",
+      "Glob",
+      "LS",
+      "WebSearch",
+      "WebFetch",
+      "Bash(grep:*)",
+      "Bash(egrep:*)",
+      "Bash(fgrep:*)",
+      "Bash(rg:*)",
+      "Bash(ag:*)",
+      "Bash(ack:*)",
+      "Bash(find:*)",
+      "Bash(fd:*)",
+      "Bash(tree:*)",
+      "Bash(locate:*)",
+      "Bash(git grep:*)",
+      "Bash(git ls-files:*)",
+      "Bash(sed:*)",
+      "Bash(awk:*)",
+      "Bash(gawk:*)",
+      "Bash(xargs:*)"
+    ],
+    "node_prompt_preambles": {
+      "vitest": "The shell is there for running the tests (`vitest run`, optionally with file paths): do not use it to edit files (sed, scripted rewrites, node -e). Make every edit with the Edit or Write tool. The Grep and Glob tools, shell search commands (grep, find) and web access are not available."
+    },
+    "node_commands": {
+      "vitest": [
+        "claude",
+        "-p",
+        "<task prompt>",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--setting-sources",
+        "project,local",
+        "--no-session-persistence",
+        "--permission-mode",
+        "acceptEdits",
+        "--allowedTools",
+        "Bash(vitest:*),mcp__ripple",
+        "--disallowedTools",
+        "Grep,Glob,LS,WebSearch,WebFetch,Bash(grep:*),Bash(egrep:*),Bash(fgrep:*),Bash(rg:*),Bash(ag:*),Bash(ack:*),Bash(find:*),Bash(fd:*),Bash(tree:*),Bash(locate:*),Bash(git grep:*),Bash(git ls-files:*),Bash(sed:*),Bash(awk:*),Bash(gawk:*),Bash(xargs:*)",
+        "--mcp-config",
+        "<mcp.json>",
+        "--strict-mcp-config",
+        "--model",
+        "sonnet"
+      ]
+    },
+    "ripple_python": "<repo>/.venv/bin/python",
+    "finished": "2026-11-09T20:08:56",
+    "stopped_early": false
+  },
+  "summary": {
+    "modes": {
+      "without": {
+        "runs": 1,
+        "invalid": 0,
+        "successes": 1,
+        "success_rate": 1.0,
+        "median_input_tokens": 706490,
+        "median_output_tokens": 9858,
+        "median_turns": 70,
+        "median_wall_s": 79.3,
+        "median_cost_usd": 0.40868340000000003,
+        "timeouts": 0,
+        "ripple_calls": 0,
+        "ripple_error_runs": 0
+      }
+    },
+    "tasks": {
+      "23-superstruct-rename-create": {
+        "without": {
+          "runs": 1,
+          "successes": 1
+        }
+      }
+    },
+    "aborted": 0,
+    "invalid": 0,
+    "invalid_reasons": {}
+  },
+  "runs": [
+    {
+      "task": "23-superstruct-rename-create",
+      "mode": "without",
+      "repeat": 1,
+      "arm": "restricted",
+      "run_dir": "run-ld9lzcak",
+      "wall_s": 79.3,
+      "timed_out": false,
+      "exit_code": 0,
+      "got_init": true,
+      "model": "claude-sonnet-5-5",
+      "mcp_servers": [],
+      "mcp_tools": [],
+      "tool_calls": {
+        "Read": 41,
+        "Edit": 24,
+        "Bash": 4
+      },
+      "ripple_calls": 0,
+      "ripple_exchanges": [],
+      "toolsearch_queries": [],
+      "ripple_exchanges_truncated": false,
+      "got_result": true,
+      "bash_commands": [
+        "ls -R /tmp/tmpop0wavgp/run-ld9lzcak/repo --ignore=node_modules --ignore=.git | head -200",
+        "npx vitest run 2>&1 | tail -30; npx tsc --noEmit -p test 2>&1 | head -20",
+        "vitest run",
+        "vitest run"
+      ],
+      "is_error": false,
+      "result_subtype": "success",
+      "num_turns": 70,
+      "agent_duration_s": 78.5,
+      "cost_usd": 0.40868340000000003,
+      "usage": {
+        "input_tokens": 34,
+        "output_tokens": 9858,
+        "cache_creation_input_tokens": 61382,
+        "cache_read_input_tokens": 645074
+      },
+      "permission_denials": 1,
+      "permission_denied": [
+        {
+          "tool": "Bash",
+          "input": {
+            "command": "npx vitest run 2>&1 | tail -30; npx tsc --noEmit -p test 2>&1 | head -20"
+          }
+        }
+      ],
+      "edit_tools_denied": 0,
+      "final_message": "I renamed the function to `createFrom`, and all 225 tests pass (`vitest run`).\n\nI couldn't use grep or find, so I found uses by listing the files and reading the likely ones. I did not read the rest of `docs/` (`summary.md`) or the `test/validation` fixtures. A stray `create` import there would not show up in the tests, because the suite doesn't load such imports from fixtures. I also didn't run a type-check.\n\n- **`src/struct.ts`:** the exported function is now `createFrom`, and `Struct.create` ",
+      "changed_files": [
+        "Readme.md",
+        "docs/guides/03-coercing-data.md",
+        "docs/readme.md",
+        "docs/reference/coercions.md",
+        "docs/reference/core.md",
+        "examples/default-values.js",
+        "src/struct.ts",
+        "src/structs/coercions.ts",
+        "test/api/create.test.ts",
+        "test/index.test.ts"
+      ],
+      "success": true,
+      "suite_passed": true,
+      "tests_passed": 225,
+      "min_tests": 225,
+      "tests_lost": 0,
+      "lost_tests": [],
+      "hidden_passed": true,
+      "suite_summary": "225 passed, 0 failed",
+      "hidden_summary": "5 passed, 0 failed",
+      "failures": []
+    }
+  ]
+}

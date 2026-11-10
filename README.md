@@ -819,6 +819,45 @@ uses in code the suite never runs.
 An earlier one-repeat look at the same tasks (9 of 9 against 8 of 9) is not part of these numbers: the one failure
 was a task 26 prompt that let the agent rename a runtime warning text the suite asserts, fixed before this run.
 
+#### Tool-use test arms
+
+Because agents called ripple in only 11 of the 27 with-ripple TypeScript runs, four more batches were run on
+2026-11-09 to find out why (records in `eval/results/2026-11-09-tool-use-arms/`, same model, three repeats per task and
+arm, about $47 in all):
+
+| Arm | What it changes | With ripple | Without | Ripple use (with-ripple runs) |
+|---|---|---:|---:|---|
+| P0: Python tasks 01 to 10 | nothing (current model, neutral working directory) | 30/30 | not run | 29 of 30 runs, 62 calls |
+| F: `--forced-use`, TypeScript | the prompt tells the agent to call `callers` before editing | 27/27 | not run | 27 of 27 runs, 33 calls |
+| H: `--hard-prompts`, TypeScript | prompts with no file paths or lists of sites | 25/27 | 27/27 | 7 of 27 runs, 11 calls |
+| R: `--restrict-search`, TypeScript | no Grep, Glob, LS or web; shell search commands denied; no `tsc` | 23/27 | 27/27 | 27 of 27 runs, 53 calls |
+
+- **P0.** Python agents still called ripple in nearly every run (30 `impact`, 32 `check`), as in the first run, so
+  the TypeScript gap is not the model or the old working-directory label. Python `impact` returns pytest ids that
+  feed `check`; TypeScript has no such ids. As graded, P0 task 05 failed 3 of 3 because the agent renamed a test
+  function and the grader keyed tests by name; that grader bug is fixed, and the three real diffs replayed through
+  the fixed grader pass, so 30/30 is after a regrade by replay, not a re-run.
+- **F.** When told to, every agent called ripple and the tool path worked (no tool errors). But 11 of the 33 answers
+  were "no symbol named ..." errors, on tasks 24, 26 and 28, where the agent wrote an id such as
+  `src/components/SubMenu:SubMenu` for a symbol that is `SubMenuFR`. Four runs tried again, and none of the nine
+  runs on those three tasks got a usable answer for the symbol being renamed.
+- **H.** Short prompts did not raise usage, and the two with-ripple failures were not the same cause: one agent used
+  `impact`, which gives one entry per module and no call-site lines, and left 4 stale calls in a file only `tsc` reads;
+  the other made no ripple call and missed 11 uses in a test file after its `tsc` and `jest` commands were blocked.
+  25/27 against 27/27 is not a significant difference.
+- **R.** With search taken away, agents with ripple cost about 35% less (median $0.261 against $0.403 per run, 379k
+  against 643k input tokens) and passed less often (23 of 27 against 27 of 27). Each of the four with-ripple failures
+  is a site ripple cannot see: `examples/*.js` that import the package by its own name (tasks 22 and 23), the website
+  demos (task 26), and a prop (task 28). The pattern fits an agent that stops when the list ends, but four failures
+  against none is not significant (Fisher exact p about 0.11).
+
+Read these with their limits. Cells are three runs each. Eleven R runs were lost to the account's usage limit
+(ten ended after one turn, one at turn 39), the harness did not flag them, and they were excluded and re-run, with
+the ten re-runs recorded as repeat 1. The R restriction leaked: in 11 of the 54 valid runs (7 with ripple, 4 without)
+a shell command naming `grep`, `awk` or `find` ran, because a deny rule does not see a search word inside a compound
+command that starts with an allowed one; on the 43 runs with no leak the result has the same shape (with ripple 17 of
+20, without 23 of 23). R is "mostly restricted", not ripple-only, and an agent can still search by writing a test file.
+
 ## Known limits
 
 Static analysis of a dynamic language misses things. ripple does not follow:
