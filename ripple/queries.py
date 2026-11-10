@@ -357,6 +357,62 @@ def _settle_bare(graph: Graph, query: str, matches: list[str], whole_id: str = "
     return {"error": f"'{query}' is ambiguous; pass one of the candidates", "candidates": candidates}
 
 
+def _own_forms(graph: Graph, query: str) -> list[str]:
+    """The `module:Name` ids a question can be asked of in the module a `module:Name` query names: what the module declares at
+    its top level (a member of a class is `Class.method`, not listed) and the names it exports under another symbol (the
+    id of the export, which resolves to what it wraps). Empty when no module is named."""
+    modules = _module_ids(graph, query.partition(":")[0])
+    found = set()
+    for module in modules:
+        prefix = module + ":"
+        found.update(
+            sid for sid, s in graph.symbols.items() if s.kind != "module" and sid.startswith(prefix) and not re.search(r"[.]| > ", sid[len(prefix) :])
+        )
+        found.update(key for key, alias in graph.export_aliases.items() if key.startswith(prefix) and alias[0])
+    name = _tail(query)
+    return sorted(found, key=lambda sid: (-difflib.SequenceMatcher(None, name, sid.rpartition(":")[2]).ratio(), sid))
+
+
+def _settle_qualified(graph: Graph, query: str) -> dict | None:
+    """The answer for a `module:Name` query that names no symbol when the module exports Name under another symbol
+    (`src/components/SubMenu:SubMenu` where the module has `SubMenu = forwardRef(SubMenuFR)`): that symbol, with the note
+    the bare name gets (see _settle_bare). None when no module of the query exports the name, so the usual error stands.
+
+    Never a pick: a name that two modules of a path tail export as different symbols is the ambiguous answer, and a
+    name the module exports as something ripple cannot name as one function or class has no symbol to settle on."""
+    path, _, name = query.partition(":")
+    exports = [(m, graph.export_aliases[f"{m}:{name}"]) for m in _module_ids(graph, path) if f"{m}:{name}" in graph.export_aliases]
+    unnamed = [m for m, alias in exports if not alias[0] or alias[0] not in graph.symbols]
+    if unnamed:
+        module = unnamed[0]
+        return {
+            "error": f"'{query}': {module} exports {name} as something ripple cannot name as one function or class",
+            "candidates": _own_forms(graph, f"{module}:{name}")[:MAX_LISTED],
+        }
+    targets = sorted({alias[0] for _, alias in exports})
+    if len(targets) > 1:
+        return {"error": f"'{query}' is ambiguous; pass one of the candidates", "candidates": targets}
+    if targets:
+        notes = "; ".join(f"{name} is exported by {m} as {alias[1]}; showing {alias[0]}" for m, alias in exports)
+        return {"symbol": targets[0], "note": notes}
+    return None
+
+
+def _with_exports(graph: Graph, query: str, matches: list[str]) -> list[str]:
+    """The ids a `module:Name` query that is not itself a symbol's id names: the symbols it matched, and what every module
+    it names exports as Name under another symbol. A tail that two modules end (`components/SubMenu`) can be one that
+    declares Name and another that exports it as a wrapper, and the answer must not settle on the declared one then.
+    A module whose `module:Name` is a symbol is not read as an alias (the id is the symbol's)."""
+    path, _, name = query.partition(":")
+    found = set(matches)
+    for module in _module_ids(graph, path):
+        key = f"{module}:{name}"
+        target = graph.export_aliases.get(key, ("",))[0]
+        if key not in graph.symbols and target in graph.symbols:
+            found.add(target)
+    return sorted(found)
+
+
 def _noted(result: dict, *founds: dict) -> dict:
     """The result with the note of how a name was resolved (see _settle_bare), straight after the symbol or symbols it names."""
     notes = list(dict.fromkeys(f["note"] for f in founds if "note" in f))
@@ -378,13 +434,31 @@ def _find(graph: Graph, query: str) -> dict:
         settled = _settle_bare(graph, query, matches, whole_id)
         if settled is not None:
             return settled
+    if matches and ":" in query:
+        matches = _with_exports(graph, query, matches)
     if len(matches) == 1:
         return {"symbol": matches[0]}
     if matches:
         return {"error": f"'{query}' is ambiguous; pass one of the candidates", "candidates": matches}
+    if ":" in query:
+        settled = _settle_qualified(graph, query)
+        if settled is not None:
+            return settled
     names = {s.name: s.id for s in graph.symbols.values()}
-    close = difflib.get_close_matches(_tail(query), list(names), n=5)
-    return {"error": f"no symbol named '{query}'", "suggestions": [names[n] for n in close]}
+    close = [names[n] for n in difflib.get_close_matches(_tail(query), list(names), n=5)]
+    own = _own_forms(graph, query) if ":" in query else []
+    if not own:
+        return {"error": f"no symbol named '{query}'", "suggestions": close}
+    # The module is named and exists: what it declares and exports comes first, as these are the ids that would resolve.
+    error = f"no symbol named '{query}'"
+    if len(own) > MAX_LISTED:
+        count = len(_module_ids(graph, query.partition(":")[0]))  # a path tail can name several modules: count what is listed
+        error += (
+            f" ({count} modules match, {len(own)} symbols and exports in all, showing {MAX_LISTED})"
+            if count > 1
+            else f" (the module has {len(own)} symbols and exports, showing {MAX_LISTED})"
+        )
+    return {"error": error, "suggestions": [*own[:MAX_LISTED], *(sid for sid in close if sid not in own)]}
 
 
 def _describe(symbol: Symbol) -> dict:
