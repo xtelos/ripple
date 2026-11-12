@@ -1,0 +1,92 @@
+{
+  "notes": "A directory reached through baseUrl.",
+  "imports": [
+    [
+      "a.ts",
+      "pkg"
+    ],
+    [
+      "a.ts",
+      "pkg/x"
+    ],
+    [
+      "a.ts",
+      "empty"
+    ],
+    [
+      "b.tsx",
+      "pkg"
+    ],
+    [
+      "b.tsx",
+      "pkg/x"
+    ],
+    [
+      "b.tsx",
+      "empty"
+    ],
+    [
+      "c.js",
+      "pkg"
+    ],
+    [
+      "c.js",
+      "pkg/x"
+    ],
+    [
+      "c.js",
+      "empty"
+    ],
+    [
+      "d.jsx",
+      "pkg"
+    ],
+    [
+      "d.jsx",
+      "pkg/x"
+    ],
+    [
+      "d.jsx",
+      "empty"
+    ],
+    [
+      "e.mjs",
+      "pkg"
+    ],
+    [
+      "e.mjs",
+      "pkg/x"
+    ],
+    [
+      "e.mjs",
+      "empty"
+    ],
+    [
+      "f.cjs",
+      "pkg"
+    ],
+    [
+      "f.cjs",
+      "pkg/x"
+    ],
+    [
+      "f.cjs",
+      "empty"
+    ]
+  ],
+  "generated": [
+    "a.ts",
+    "b.tsx",
+    "c.js",
+    "d.jsx",
+    "e.mjs"
+  ],
+  "unresolved": {
+    "a.ts|pkg": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "b.tsx|pkg": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "c.js|pkg": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "d.jsx|pkg": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "e.mjs|pkg": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "f.cjs|pkg": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it"
+  }
+}

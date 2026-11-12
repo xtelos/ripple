@@ -1,0 +1,52 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "app/src/m.ts",
+      "specifier": "@/lib",
+      "resolved": "app/src/lib.ts",
+      "project": "app/tsconfig.json",
+      "build_project": "app/tsconfig.json",
+      "build": "app/src/lib.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "app/src/m.tsx",
+      "specifier": "@/lib",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {
+        "app/tsconfig.json": "app/src/lib.ts"
+      }
+    },
+    {
+      "importer": "app/src/n.js",
+      "specifier": "@/lib",
+      "resolved": "app/src/lib.ts",
+      "project": "app/tsconfig.json",
+      "build_project": "app/tsconfig.json",
+      "build": "app/src/lib.ts",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "app/src/n.jsx",
+      "specifier": "@/lib",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {
+        "app/tsconfig.json": "app/src/lib.ts"
+      }
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

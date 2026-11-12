@@ -1,0 +1,32 @@
+{
+  "notes": "The usual library layout: tsconfig.json is `files: []` plus a reference to tsconfig.build.json, which holds the paths and the include.",
+  "imports": [
+    [
+      "src/a.ts",
+      "@/util"
+    ],
+    [
+      "src/b.tsx",
+      "@/util"
+    ],
+    [
+      "src/c.js",
+      "@/util"
+    ],
+    [
+      "src/e.mjs",
+      "@/util"
+    ],
+    [
+      "other/x.ts",
+      "@/util"
+    ]
+  ],
+  "generated": [
+    "src/a.ts",
+    "src/b.tsx",
+    "src/c.js",
+    "src/e.mjs",
+    "other/x.ts"
+  ]
+}

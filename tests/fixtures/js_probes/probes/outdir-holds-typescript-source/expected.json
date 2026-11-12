@@ -1,0 +1,37 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "packages/a/src/x.ts",
+      "specifier": "./dist/y",
+      "resolved": "packages/a/src/dist/y.ts",
+      "project": "packages/a/tsconfig.json",
+      "build_project": "packages/a/tsconfig.json",
+      "build": "packages/a/src/dist/y.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "packages/b/src/z.ts",
+      "specifier": "../dist/w",
+      "resolved": "packages/b/dist/w.ts",
+      "project": "packages/b/tsconfig.json",
+      "build_project": "packages/b/tsconfig.json",
+      "build": "packages/b/dist/w.ts",
+      "reach_dropped": {}
+    }
+  ],
+  "definitions": [
+    {
+      "in": "packages/a/src/x.ts",
+      "call": "y",
+      "defined_in": "packages/a/src/dist/y.ts"
+    },
+    {
+      "in": "packages/b/src/z.ts",
+      "call": "w",
+      "defined_in": "packages/b/dist/w.ts"
+    }
+  ],
+  "jsx": []
+}

@@ -5,3 +5,8 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+# fixtures hold directories named like build output on purpose (a compiler's outDir is what they test)
+!tests/fixtures/**/build/
+!tests/fixtures/**/dist/
+!bench/fixtures/**/build/
+!bench/fixtures/**/dist/

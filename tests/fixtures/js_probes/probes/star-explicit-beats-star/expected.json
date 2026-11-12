@@ -1,0 +1,23 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "user.ts",
+      "specifier": "./barrel",
+      "resolved": "barrel.ts",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    }
+  ],
+  "definitions": [
+    {
+      "in": "user.ts",
+      "call": "foo",
+      "defined_in": "barrel.ts"
+    }
+  ],
+  "jsx": []
+}

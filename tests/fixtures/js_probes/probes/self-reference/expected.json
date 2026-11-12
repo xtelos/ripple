@@ -1,0 +1,206 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "a.ts",
+      "specifier": "mypkg",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "a.ts",
+      "specifier": "mypkg/sub",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "a.ts",
+      "specifier": "mypkg-other",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "mypkg",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "mypkg/sub",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "mypkg-other",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "c.js",
+      "specifier": "mypkg",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": "lib/main.js",
+        "error": null
+      }
+    },
+    {
+      "importer": "c.js",
+      "specifier": "mypkg/sub",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": "lib/sub.js",
+        "error": null
+      }
+    },
+    {
+      "importer": "c.js",
+      "specifier": "mypkg-other",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "mypkg",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "mypkg/sub",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "mypkg-other",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "mypkg",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": "lib/main.js",
+        "error": null
+      }
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "mypkg/sub",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": "lib/sub.js",
+        "error": null
+      }
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "mypkg-other",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "mypkg",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": "lib/main.js",
+        "error": null
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "mypkg/sub",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": "lib/sub.js",
+        "error": null
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "mypkg-other",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

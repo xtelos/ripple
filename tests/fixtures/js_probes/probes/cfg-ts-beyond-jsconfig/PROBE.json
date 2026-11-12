@@ -1,0 +1,12 @@
+{
+  "notes": "tsserver puts app/main.ts in app/jsconfig.json (app/lib/util.ts); tsc builds it in the root tsconfig.json (src/util.ts): the build's answer is the one drawn.",
+  "imports": [
+    [
+      "app/main.ts",
+      "@/util"
+    ]
+  ],
+  "generated": [
+    "app/main.ts"
+  ]
+}

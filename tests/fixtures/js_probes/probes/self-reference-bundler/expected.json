@@ -1,0 +1,140 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "a.ts",
+      "specifier": "mypkg",
+      "resolved": "lib/main.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "lib/main.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "a.ts",
+      "specifier": "mypkg/sub",
+      "resolved": "lib/sub.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "lib/sub.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "mypkg",
+      "resolved": "lib/main.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "lib/main.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "mypkg/sub",
+      "resolved": "lib/sub.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "lib/sub.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "c.js",
+      "specifier": "mypkg",
+      "resolved": "lib/main.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "lib/main.js",
+      "reach_dropped": {},
+      "node": {
+        "file": "lib/main.js",
+        "error": null
+      }
+    },
+    {
+      "importer": "c.js",
+      "specifier": "mypkg/sub",
+      "resolved": "lib/sub.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "lib/sub.js",
+      "reach_dropped": {},
+      "node": {
+        "file": "lib/sub.js",
+        "error": null
+      }
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "mypkg",
+      "resolved": "lib/main.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "lib/main.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "mypkg/sub",
+      "resolved": "lib/sub.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "lib/sub.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "mypkg",
+      "resolved": "lib/main.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "lib/main.js",
+      "reach_dropped": {},
+      "node": {
+        "file": "lib/main.js",
+        "error": null
+      }
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "mypkg/sub",
+      "resolved": "lib/sub.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "lib/sub.js",
+      "reach_dropped": {},
+      "node": {
+        "file": "lib/sub.js",
+        "error": null
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "mypkg",
+      "resolved": "lib/main.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "lib/main.js",
+      "reach_dropped": {},
+      "node": {
+        "file": "lib/main.js",
+        "error": null
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "mypkg/sub",
+      "resolved": "lib/sub.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "lib/sub.js",
+      "reach_dropped": {},
+      "node": {
+        "file": "lib/sub.js",
+        "error": null
+      }
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

@@ -1,0 +1,338 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "compat/src/a.ts",
+      "specifier": "lib/hooks",
+      "resolved": "hooks/src/index.d.ts",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "compat/src/a.ts",
+      "specifier": "lib/plain",
+      "resolved": "plain/src/index.js",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "compat/src/a.ts",
+      "specifier": "lib/bare",
+      "resolved": null,
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "compat/src/a.ts",
+      "specifier": "lib/hooks/src/index.js",
+      "resolved": "hooks/src/index.d.ts",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "compat/src/a.ts",
+      "specifier": "../../plain",
+      "resolved": "plain/src/index.js",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "compat/src/b.tsx",
+      "specifier": "lib/hooks",
+      "resolved": "hooks/src/index.d.ts",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "compat/src/b.tsx",
+      "specifier": "lib/plain",
+      "resolved": "plain/src/index.js",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "compat/src/b.tsx",
+      "specifier": "lib/bare",
+      "resolved": null,
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "compat/src/b.tsx",
+      "specifier": "lib/hooks/src/index.js",
+      "resolved": "hooks/src/index.d.ts",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "compat/src/b.tsx",
+      "specifier": "../../plain",
+      "resolved": "plain/src/index.js",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "compat/src/c.js",
+      "specifier": "lib/hooks",
+      "resolved": "hooks/src/index.d.ts",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "compat/src/c.js",
+      "specifier": "lib/plain",
+      "resolved": "plain/src/index.js",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "compat/src/c.js",
+      "specifier": "lib/bare",
+      "resolved": null,
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "compat/src/c.js",
+      "specifier": "lib/hooks/src/index.js",
+      "resolved": "hooks/src/index.d.ts",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "compat/src/c.js",
+      "specifier": "../../plain",
+      "resolved": "plain/src/index.js",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_UNSUPPORTED_DIR_IMPORT"
+      }
+    },
+    {
+      "importer": "compat/src/d.jsx",
+      "specifier": "lib/hooks",
+      "resolved": "hooks/src/index.d.ts",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "compat/src/d.jsx",
+      "specifier": "lib/plain",
+      "resolved": "plain/src/index.js",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "compat/src/d.jsx",
+      "specifier": "lib/bare",
+      "resolved": null,
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "compat/src/d.jsx",
+      "specifier": "lib/hooks/src/index.js",
+      "resolved": "hooks/src/index.d.ts",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "compat/src/d.jsx",
+      "specifier": "../../plain",
+      "resolved": "plain/src/index.js",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "compat/src/e.mjs",
+      "specifier": "lib/hooks",
+      "resolved": "hooks/src/index.d.ts",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "compat/src/e.mjs",
+      "specifier": "lib/plain",
+      "resolved": "plain/src/index.js",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "compat/src/e.mjs",
+      "specifier": "lib/bare",
+      "resolved": null,
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "compat/src/e.mjs",
+      "specifier": "lib/hooks/src/index.js",
+      "resolved": "hooks/src/index.d.ts",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "compat/src/e.mjs",
+      "specifier": "../../plain",
+      "resolved": "plain/src/index.js",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_UNSUPPORTED_DIR_IMPORT"
+      }
+    },
+    {
+      "importer": "compat/src/f.cjs",
+      "specifier": "lib/hooks",
+      "resolved": "hooks/src/index.d.ts",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "compat/src/f.cjs",
+      "specifier": "lib/plain",
+      "resolved": "plain/src/index.js",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "compat/src/f.cjs",
+      "specifier": "lib/bare",
+      "resolved": null,
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "compat/src/f.cjs",
+      "specifier": "lib/hooks/src/index.js",
+      "resolved": "hooks/src/index.d.ts",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "compat/src/f.cjs",
+      "specifier": "../../plain",
+      "resolved": "plain/src/index.js",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": "plain/src/index.js",
+        "error": null
+      }
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

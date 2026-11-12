@@ -1,0 +1,146 @@
+{
+  "notes": "",
+  "imports": [
+    [
+      "a.ts",
+      "./x"
+    ],
+    [
+      "a.ts",
+      "./x.js"
+    ],
+    [
+      "a.ts",
+      "./x.jsx"
+    ],
+    [
+      "a.ts",
+      "./x.ts"
+    ],
+    [
+      "a.ts",
+      "./x.tsx"
+    ],
+    [
+      "b.tsx",
+      "./x"
+    ],
+    [
+      "b.tsx",
+      "./x.js"
+    ],
+    [
+      "b.tsx",
+      "./x.jsx"
+    ],
+    [
+      "b.tsx",
+      "./x.ts"
+    ],
+    [
+      "b.tsx",
+      "./x.tsx"
+    ],
+    [
+      "c.js",
+      "./x"
+    ],
+    [
+      "c.js",
+      "./x.js"
+    ],
+    [
+      "c.js",
+      "./x.jsx"
+    ],
+    [
+      "c.js",
+      "./x.ts"
+    ],
+    [
+      "c.js",
+      "./x.tsx"
+    ],
+    [
+      "d.jsx",
+      "./x"
+    ],
+    [
+      "d.jsx",
+      "./x.js"
+    ],
+    [
+      "d.jsx",
+      "./x.jsx"
+    ],
+    [
+      "d.jsx",
+      "./x.ts"
+    ],
+    [
+      "d.jsx",
+      "./x.tsx"
+    ],
+    [
+      "e.mjs",
+      "./x"
+    ],
+    [
+      "e.mjs",
+      "./x.js"
+    ],
+    [
+      "e.mjs",
+      "./x.jsx"
+    ],
+    [
+      "e.mjs",
+      "./x.ts"
+    ],
+    [
+      "e.mjs",
+      "./x.tsx"
+    ],
+    [
+      "f.cjs",
+      "./x"
+    ],
+    [
+      "f.cjs",
+      "./x.js"
+    ],
+    [
+      "f.cjs",
+      "./x.jsx"
+    ],
+    [
+      "f.cjs",
+      "./x.ts"
+    ],
+    [
+      "f.cjs",
+      "./x.tsx"
+    ]
+  ],
+  "generated": [
+    "a.ts",
+    "b.tsx",
+    "c.js",
+    "d.jsx",
+    "e.mjs"
+  ],
+  "unresolved": {
+    "c.js|./x": "Vite orders .js before .ts",
+    "d.jsx|./x": "Vite orders .js before .ts",
+    "e.mjs|./x": "Vite orders .js before .ts",
+    "f.cjs|./x": "Vite orders .js before .ts",
+    "c.js|./x.js": "compiler reads x.ts, runtime runs x.js",
+    "d.jsx|./x.js": "compiler reads x.ts, runtime runs x.js",
+    "e.mjs|./x.js": "compiler reads x.ts, runtime runs x.js",
+    "f.cjs|./x.js": "compiler reads x.ts, runtime runs x.js",
+    "c.js|./x.jsx": "compiler reads x.tsx, runtime runs x.jsx",
+    "d.jsx|./x.jsx": "compiler reads x.tsx, runtime runs x.jsx",
+    "e.mjs|./x.jsx": "compiler reads x.tsx, runtime runs x.jsx",
+    "f.cjs|./x.jsx": "compiler reads x.tsx, runtime runs x.jsx"
+  }
+}

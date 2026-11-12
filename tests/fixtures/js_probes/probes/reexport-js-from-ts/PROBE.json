@@ -1,0 +1,24 @@
+{
+  "notes": "",
+  "imports": [
+    [
+      "user.js",
+      "./barrel"
+    ],
+    [
+      "barrel.js",
+      "./t"
+    ]
+  ],
+  "generated": [],
+  "calls": [
+    {
+      "in": "user.js",
+      "call": "renamed"
+    },
+    {
+      "in": "user.js",
+      "call": "t"
+    }
+  ]
+}

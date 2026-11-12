@@ -1,0 +1,54 @@
+{
+  "notes": "",
+  "imports": [
+    [
+      "test/b.ts",
+      ".."
+    ],
+    [
+      "test/b.ts",
+      "../"
+    ],
+    [
+      "test/b.ts",
+      "../index"
+    ],
+    [
+      "test/b.ts",
+      "../index.js"
+    ],
+    [
+      "test/c.js",
+      ".."
+    ],
+    [
+      "test/c.js",
+      "../"
+    ],
+    [
+      "test/c.js",
+      "../index"
+    ],
+    [
+      "test/c.js",
+      "../index.js"
+    ],
+    [
+      "test/d.jsx",
+      ".."
+    ],
+    [
+      "test/d.jsx",
+      "../"
+    ],
+    [
+      "test/d.jsx",
+      "../index"
+    ],
+    [
+      "test/d.jsx",
+      "../index.js"
+    ]
+  ],
+  "generated": []
+}

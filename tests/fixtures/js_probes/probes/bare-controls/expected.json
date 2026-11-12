@@ -1,0 +1,410 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "a.ts",
+      "specifier": "react",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "a.ts",
+      "specifier": "lodash/fp",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "a.ts",
+      "specifier": "@scope/pkg",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "a.ts",
+      "specifier": "node:fs",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "a.ts",
+      "specifier": "fs",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "a.ts",
+      "specifier": "@types/node",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "react",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "lodash/fp",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "@scope/pkg",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "node:fs",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "fs",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "@types/node",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "c.js",
+      "specifier": "react",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "c.js",
+      "specifier": "lodash/fp",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "c.js",
+      "specifier": "@scope/pkg",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "c.js",
+      "specifier": "node:fs",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": null,
+        "builtin": true
+      }
+    },
+    {
+      "importer": "c.js",
+      "specifier": "fs",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": null,
+        "builtin": true
+      }
+    },
+    {
+      "importer": "c.js",
+      "specifier": "@types/node",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "react",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "lodash/fp",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "@scope/pkg",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "node:fs",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "fs",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "@types/node",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "react",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "lodash/fp",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "@scope/pkg",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "node:fs",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": null,
+        "builtin": true
+      }
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "fs",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": null,
+        "builtin": true
+      }
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "@types/node",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "react",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "lodash/fp",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "@scope/pkg",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "node:fs",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": null,
+        "builtin": true
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "fs",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": null,
+        "builtin": true
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "@types/node",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

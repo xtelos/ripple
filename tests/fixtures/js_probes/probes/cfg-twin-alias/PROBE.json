@@ -1,0 +1,48 @@
+{
+  "notes": "The reviewer's round-2 probes e-tsx, e-jsx and zz-tsx-twin: a file that a wildcard include drops for a same-named twin (x.tsx beside x.ts) is in no project, yet it is built with the alias, so its alias is neither a package nor an edge.",
+  "imports": [
+    [
+      "src/x.tsx",
+      "@/lib"
+    ],
+    [
+      "src/x.ts",
+      "@/lib"
+    ],
+    [
+      "src/p.js",
+      "@/lib"
+    ],
+    [
+      "src/p.jsx",
+      "@/lib"
+    ],
+    [
+      "src/q.ts",
+      "@/lib"
+    ],
+    [
+      "src/q.js",
+      "@/lib"
+    ],
+    [
+      "src/r.mts",
+      "@/lib"
+    ],
+    [
+      "src/r.mjs",
+      "@/lib"
+    ]
+  ],
+  "generated": [
+    "src/p.js",
+    "src/p.jsx",
+    "src/q.ts",
+    "src/q.js",
+    "src/r.mts",
+    "src/r.mjs"
+  ],
+  "reasons": {
+    "src/x.tsx|lib": "which project builds it is not known"
+  }
+}

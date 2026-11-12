@@ -1,0 +1,338 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "a.ts",
+      "specifier": "./lib",
+      "resolved": "lib/index.jsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "a.ts",
+      "specifier": "./lib/index",
+      "resolved": "lib/index.jsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "a.ts",
+      "specifier": "./ui",
+      "resolved": "ui/index.tsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "a.ts",
+      "specifier": "./ui/index.js",
+      "resolved": "ui/index.tsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "a.ts",
+      "specifier": "./ui/index.jsx",
+      "resolved": "ui/index.tsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "./lib",
+      "resolved": "lib/index.jsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "./lib/index",
+      "resolved": "lib/index.jsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "./ui",
+      "resolved": "ui/index.tsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "./ui/index.js",
+      "resolved": "ui/index.tsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "./ui/index.jsx",
+      "resolved": "ui/index.tsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "c.js",
+      "specifier": "./lib",
+      "resolved": "lib/index.jsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_UNSUPPORTED_DIR_IMPORT"
+      }
+    },
+    {
+      "importer": "c.js",
+      "specifier": "./lib/index",
+      "resolved": "lib/index.jsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "c.js",
+      "specifier": "./ui",
+      "resolved": "ui/index.tsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_UNSUPPORTED_DIR_IMPORT"
+      }
+    },
+    {
+      "importer": "c.js",
+      "specifier": "./ui/index.js",
+      "resolved": "ui/index.tsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "c.js",
+      "specifier": "./ui/index.jsx",
+      "resolved": "ui/index.tsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "./lib",
+      "resolved": "lib/index.jsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "./lib/index",
+      "resolved": "lib/index.jsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "./ui",
+      "resolved": "ui/index.tsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "./ui/index.js",
+      "resolved": "ui/index.tsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "./ui/index.jsx",
+      "resolved": "ui/index.tsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "./lib",
+      "resolved": "lib/index.jsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_UNSUPPORTED_DIR_IMPORT"
+      }
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "./lib/index",
+      "resolved": "lib/index.jsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "./ui",
+      "resolved": "ui/index.tsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_UNSUPPORTED_DIR_IMPORT"
+      }
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "./ui/index.js",
+      "resolved": "ui/index.tsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "./ui/index.jsx",
+      "resolved": "ui/index.tsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "./lib",
+      "resolved": "lib/index.jsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "./lib/index",
+      "resolved": "lib/index.jsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "./ui",
+      "resolved": "ui/index.tsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "./ui/index.js",
+      "resolved": "ui/index.tsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "./ui/index.jsx",
+      "resolved": "ui/index.tsx",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

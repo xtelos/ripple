@@ -1,0 +1,43 @@
+{
+  "notes": "TypeScript 5.5's ${configDir}: in a shared base config it is the directory of the config that extends it, so each package maps to its own src.",
+  "imports": [
+    [
+      "packages/a/src/a.ts",
+      "@/util"
+    ],
+    [
+      "packages/a/src/a.ts",
+      "src/util"
+    ],
+    [
+      "packages/a/src/c.js",
+      "@/util"
+    ],
+    [
+      "packages/a/src/c.js",
+      "src/util"
+    ],
+    [
+      "packages/b/src/a.ts",
+      "@/util"
+    ],
+    [
+      "packages/b/src/a.ts",
+      "src/util"
+    ],
+    [
+      "packages/b/src/c.js",
+      "@/util"
+    ],
+    [
+      "packages/b/src/c.js",
+      "src/util"
+    ]
+  ],
+  "generated": [
+    "packages/a/src/a.ts",
+    "packages/a/src/c.js",
+    "packages/b/src/a.ts",
+    "packages/b/src/c.js"
+  ]
+}

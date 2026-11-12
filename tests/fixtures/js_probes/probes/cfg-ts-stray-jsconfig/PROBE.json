@@ -1,0 +1,43 @@
+{
+  "notes": "The reviewer's round-2 probe zz-stray-jsconfig: a jsconfig.json nearer than the tsconfig.json that includes a TypeScript file. tsc builds the file with the tsconfig.json's paths (the edge main drew), where tsserver opens it in the jsconfig.json; a JavaScript file is the jsconfig.json's, as tsserver says.",
+  "imports": [
+    [
+      "src/legacy/a.ts",
+      "@/util"
+    ],
+    [
+      "src/legacy/a.ts",
+      "../util"
+    ],
+    [
+      "src/legacy/b.tsx",
+      "@/util"
+    ],
+    [
+      "src/legacy/b.tsx",
+      "../util"
+    ],
+    [
+      "src/legacy/c.js",
+      "@/util"
+    ],
+    [
+      "src/legacy/c.js",
+      "../util"
+    ],
+    [
+      "src/legacy/e.mjs",
+      "@/util"
+    ],
+    [
+      "src/legacy/e.mjs",
+      "../util"
+    ]
+  ],
+  "generated": [
+    "src/legacy/a.ts",
+    "src/legacy/b.tsx",
+    "src/legacy/c.js",
+    "src/legacy/e.mjs"
+  ]
+}

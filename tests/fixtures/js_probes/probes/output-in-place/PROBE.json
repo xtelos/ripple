@@ -1,0 +1,24 @@
+{
+  "notes": "In-place emit: x.js and y.js sit beside the x.ts and y.ts they were built from.",
+  "imports": [
+    [
+      "use.ts",
+      "./x"
+    ],
+    [
+      "use.ts",
+      "./x.js"
+    ],
+    [
+      "use.ts",
+      "./y"
+    ],
+    [
+      "use.ts",
+      "./y.js"
+    ]
+  ],
+  "generated": [
+    "use.ts"
+  ]
+}

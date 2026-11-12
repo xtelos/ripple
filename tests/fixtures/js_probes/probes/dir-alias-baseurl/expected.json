@@ -1,0 +1,206 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "a.ts",
+      "specifier": "pkg",
+      "resolved": "pkg/x.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "pkg/x.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "a.ts",
+      "specifier": "pkg/x",
+      "resolved": "pkg/x.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "pkg/x.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "a.ts",
+      "specifier": "empty",
+      "resolved": null,
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "pkg",
+      "resolved": "pkg/x.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "pkg/x.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "pkg/x",
+      "resolved": "pkg/x.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "pkg/x.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "empty",
+      "resolved": null,
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "c.js",
+      "specifier": "pkg",
+      "resolved": "pkg/x.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "pkg/x.js",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "c.js",
+      "specifier": "pkg/x",
+      "resolved": "pkg/x.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "pkg/x.js",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "c.js",
+      "specifier": "empty",
+      "resolved": null,
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "pkg",
+      "resolved": "pkg/x.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "pkg/x.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "pkg/x",
+      "resolved": "pkg/x.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "pkg/x.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "empty",
+      "resolved": null,
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "pkg",
+      "resolved": "pkg/x.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "pkg/x.js",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "pkg/x",
+      "resolved": "pkg/x.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "pkg/x.js",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "empty",
+      "resolved": null,
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "pkg",
+      "resolved": "pkg/x.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "pkg/x.js",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "pkg/x",
+      "resolved": "pkg/x.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "pkg/x.js",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "empty",
+      "resolved": null,
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

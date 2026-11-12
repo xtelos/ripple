@@ -1,0 +1,138 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "src/a.ts",
+      "specifier": "x",
+      "resolved": "src/x.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/x.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "src/a.ts",
+      "specifier": "y",
+      "resolved": "src/y.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/y.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "src/a.ts",
+      "specifier": "lib",
+      "resolved": "src/lib/index.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/lib/index.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "src/a.ts",
+      "specifier": "nothing",
+      "resolved": null,
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "src/a.js",
+      "specifier": "x",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {
+        "tsconfig.json": "src/x.ts"
+      },
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "src/a.js",
+      "specifier": "y",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {
+        "tsconfig.json": "src/y.js"
+      },
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "src/a.js",
+      "specifier": "lib",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {
+        "tsconfig.json": "src/lib/index.js"
+      },
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "src/a.js",
+      "specifier": "nothing",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "src/a.jsx",
+      "specifier": "x",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "src/a.jsx",
+      "specifier": "y",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "src/a.jsx",
+      "specifier": "lib",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "src/a.jsx",
+      "specifier": "nothing",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

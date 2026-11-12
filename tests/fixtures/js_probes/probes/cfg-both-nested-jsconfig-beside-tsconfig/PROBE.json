@@ -1,0 +1,16 @@
+{
+  "notes": "The reviewer's probe p4: sub/jsconfig.json, not the root tsconfig.json, is the project of sub/app.js.",
+  "imports": [
+    [
+      "sub/app.js",
+      "@/util"
+    ]
+  ],
+  "generated": [],
+  "calls": [
+    {
+      "in": "sub/app.js",
+      "call": "util"
+    }
+  ]
+}

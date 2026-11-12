@@ -1,0 +1,45 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "pkg/main.js",
+      "specifier": "@/a",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {
+        "tsconfig.json": "src/a.js"
+      },
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "pkg/main.ts",
+      "specifier": "@/a",
+      "resolved": "pkg/lib/a.js",
+      "project": "pkg/tsconfig.json",
+      "build_project": "pkg/tsconfig.json",
+      "build": "pkg/lib/a.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "main.js",
+      "specifier": "@/a",
+      "resolved": "src/a.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/a.js",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

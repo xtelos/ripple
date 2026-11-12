@@ -1,0 +1,38 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "user.ts",
+      "specifier": "./barrel",
+      "resolved": "barrel.ts",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    }
+  ],
+  "definitions": [
+    {
+      "in": "user.ts",
+      "call": "fa",
+      "defined_in": "a.ts"
+    },
+    {
+      "in": "user.ts",
+      "call": "renamed",
+      "defined_in": "b.ts"
+    },
+    {
+      "in": "user.ts",
+      "call": "dflt",
+      "defined_in": "d.ts"
+    },
+    {
+      "in": "user.ts",
+      "call": "dd",
+      "defined_in": "d.ts"
+    }
+  ],
+  "jsx": []
+}

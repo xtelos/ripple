@@ -1,0 +1,23 @@
+{
+  "notes": "deep is behind two stars but the mid barrel also stars a JavaScript file that could define it.",
+  "imports": [
+    [
+      "user.ts",
+      "./top"
+    ]
+  ],
+  "generated": [],
+  "unresolved": {
+    "calls:user.ts|deep": "other.js may export deep too: its exports are not read into this graph"
+  },
+  "calls": [
+    {
+      "in": "user.ts",
+      "call": "deep"
+    },
+    {
+      "in": "user.ts",
+      "call": "far"
+    }
+  ]
+}

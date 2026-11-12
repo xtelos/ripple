@@ -1,0 +1,118 @@
+{
+  "notes": "",
+  "imports": [
+    [
+      "a.ts",
+      "@p/t"
+    ],
+    [
+      "a.ts",
+      "@p/j"
+    ],
+    [
+      "a.ts",
+      "./x"
+    ],
+    [
+      "a.ts",
+      "./x.js"
+    ],
+    [
+      "b.tsx",
+      "@p/t"
+    ],
+    [
+      "b.tsx",
+      "@p/j"
+    ],
+    [
+      "b.tsx",
+      "./x"
+    ],
+    [
+      "b.tsx",
+      "./x.js"
+    ],
+    [
+      "c.js",
+      "@p/t"
+    ],
+    [
+      "c.js",
+      "@p/j"
+    ],
+    [
+      "c.js",
+      "./x"
+    ],
+    [
+      "c.js",
+      "./x.js"
+    ],
+    [
+      "d.jsx",
+      "@p/t"
+    ],
+    [
+      "d.jsx",
+      "@p/j"
+    ],
+    [
+      "d.jsx",
+      "./x"
+    ],
+    [
+      "d.jsx",
+      "./x.js"
+    ],
+    [
+      "e.mjs",
+      "@p/t"
+    ],
+    [
+      "e.mjs",
+      "@p/j"
+    ],
+    [
+      "e.mjs",
+      "./x"
+    ],
+    [
+      "e.mjs",
+      "./x.js"
+    ],
+    [
+      "f.cjs",
+      "@p/t"
+    ],
+    [
+      "f.cjs",
+      "@p/j"
+    ],
+    [
+      "f.cjs",
+      "./x"
+    ],
+    [
+      "f.cjs",
+      "./x.js"
+    ]
+  ],
+  "generated": [
+    "a.ts",
+    "b.tsx",
+    "c.js",
+    "d.jsx",
+    "e.mjs"
+  ],
+  "unresolved": {
+    "c.js|./x": "the compiler reads an extensionless import as x.ts, Node and Vite run x.js",
+    "d.jsx|./x": "the compiler reads an extensionless import as x.ts, Node and Vite run x.js",
+    "e.mjs|./x": "the compiler reads an extensionless import as x.ts, Node and Vite run x.js",
+    "f.cjs|./x": "the compiler reads an extensionless import as x.ts, Node and Vite run x.js",
+    "c.js|./x.js": "the compiler reads ./x.js as x.ts, Node and the bundlers run x.js",
+    "d.jsx|./x.js": "the compiler reads ./x.js as x.ts, Node and the bundlers run x.js",
+    "e.mjs|./x.js": "the compiler reads ./x.js as x.ts, Node and the bundlers run x.js",
+    "f.cjs|./x.js": "the compiler reads ./x.js as x.ts, Node and the bundlers run x.js"
+  }
+}

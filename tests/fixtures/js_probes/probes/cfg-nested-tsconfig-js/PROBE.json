@@ -1,0 +1,22 @@
+{
+  "notes": "pkg/tsconfig.json has no allowJs, so pkg/main.js belongs to the root config.",
+  "imports": [
+    [
+      "pkg/main.js",
+      "@/a"
+    ],
+    [
+      "pkg/main.ts",
+      "@/a"
+    ],
+    [
+      "main.js",
+      "@/a"
+    ]
+  ],
+  "generated": [
+    "pkg/main.js",
+    "pkg/main.ts",
+    "main.js"
+  ]
+}

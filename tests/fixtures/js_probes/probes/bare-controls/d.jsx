@@ -1,0 +1,12 @@
+import * as m0 from "react";
+export function call0() { m0.f(); }
+import * as m1 from "lodash/fp";
+export function call1() { m1.f(); }
+import * as m2 from "@scope/pkg";
+export function call2() { m2.f(); }
+import * as m3 from "node:fs";
+export function call3() { m3.f(); }
+import * as m4 from "fs";
+export function call4() { m4.f(); }
+import * as m5 from "@types/node";
+export function call5() { m5.f(); }

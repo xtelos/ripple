@@ -1,0 +1,32 @@
+{
+  "notes": "The reviewer's probe p9, TypeScript side: the second star is a JavaScript file ripple does not read into this graph, so the barrel's export set is unknown.",
+  "imports": [
+    [
+      "user.ts",
+      "./barrel"
+    ],
+    [
+      "barrel.ts",
+      "./legacy.js"
+    ]
+  ],
+  "generated": [],
+  "unresolved": {
+    "calls:user.ts|foo": "TS2308: ambiguous star exports",
+    "calls:user.ts|new_": "legacy.js may export new_ too: its exports are not read into this graph"
+  },
+  "calls": [
+    {
+      "in": "user.ts",
+      "call": "foo"
+    },
+    {
+      "in": "user.ts",
+      "call": "old"
+    },
+    {
+      "in": "user.ts",
+      "call": "new_"
+    }
+  ]
+}

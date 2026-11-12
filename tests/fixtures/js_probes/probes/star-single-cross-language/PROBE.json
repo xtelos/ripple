@@ -1,0 +1,20 @@
+{
+  "notes": "A lone star onto a file of the other language: the name is not 'not exported', it is not known.",
+  "imports": [
+    [
+      "user.js",
+      "./barrel"
+    ],
+    [
+      "barrel.js",
+      "./a"
+    ]
+  ],
+  "generated": [],
+  "calls": [
+    {
+      "in": "user.js",
+      "call": "ta"
+    }
+  ]
+}

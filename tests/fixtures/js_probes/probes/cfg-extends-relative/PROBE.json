@@ -1,0 +1,25 @@
+{
+  "notes": "",
+  "imports": [
+    [
+      "a.ts",
+      "@p/t"
+    ],
+    [
+      "a.ts",
+      "@p/j"
+    ],
+    [
+      "c.js",
+      "@p/t"
+    ],
+    [
+      "c.js",
+      "@p/j"
+    ]
+  ],
+  "generated": [
+    "a.ts",
+    "c.js"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "notes": "A name the barrel declares itself is its own, whatever a star provides.",
+  "imports": [
+    [
+      "user.ts",
+      "./barrel"
+    ]
+  ],
+  "generated": [],
+  "calls": [
+    {
+      "in": "user.ts",
+      "call": "foo"
+    }
+  ]
+}

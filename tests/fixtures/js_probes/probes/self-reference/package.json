@@ -1,0 +1,8 @@
+{
+  "name": "mypkg",
+  "type": "module",
+  "exports": {
+    ".": "./lib/main.js",
+    "./sub": "./lib/sub.js"
+  }
+}

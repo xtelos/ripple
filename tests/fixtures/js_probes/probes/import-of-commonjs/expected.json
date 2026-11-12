@@ -1,0 +1,32 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "m.mjs",
+      "specifier": "./c.js",
+      "resolved": "c.js",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": "c.js",
+        "error": null
+      }
+    }
+  ],
+  "definitions": [
+    {
+      "in": "m.mjs",
+      "call": "f",
+      "defined_in": "c.js"
+    },
+    {
+      "in": "m.mjs",
+      "call": "g",
+      "defined_in": "c.js"
+    }
+  ],
+  "jsx": []
+}

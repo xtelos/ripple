@@ -1,0 +1,33 @@
+{
+  "notes": "A package.json anywhere in the repo that names a package makes its name the repo's.",
+  "imports": [
+    [
+      "a.ts",
+      "a-lib"
+    ],
+    [
+      "a.ts",
+      "a-lib/src/index"
+    ],
+    [
+      "a.ts",
+      "b-lib"
+    ],
+    [
+      "c.js",
+      "a-lib"
+    ],
+    [
+      "c.js",
+      "a-lib/src/index"
+    ],
+    [
+      "c.js",
+      "b-lib"
+    ]
+  ],
+  "generated": [
+    "a.ts",
+    "c.js"
+  ]
+}

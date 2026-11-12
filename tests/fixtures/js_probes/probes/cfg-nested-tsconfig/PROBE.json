@@ -1,0 +1,17 @@
+{
+  "notes": "",
+  "imports": [
+    [
+      "pkg/main.ts",
+      "@/a"
+    ],
+    [
+      "main.ts",
+      "@/a"
+    ]
+  ],
+  "generated": [
+    "pkg/main.ts",
+    "main.ts"
+  ]
+}

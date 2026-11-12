@@ -1,0 +1,74 @@
+{
+  "notes": "",
+  "imports": [
+    [
+      "a.ts",
+      "mypkg"
+    ],
+    [
+      "a.ts",
+      "mypkg/sub"
+    ],
+    [
+      "b.tsx",
+      "mypkg"
+    ],
+    [
+      "b.tsx",
+      "mypkg/sub"
+    ],
+    [
+      "c.js",
+      "mypkg"
+    ],
+    [
+      "c.js",
+      "mypkg/sub"
+    ],
+    [
+      "d.jsx",
+      "mypkg"
+    ],
+    [
+      "d.jsx",
+      "mypkg/sub"
+    ],
+    [
+      "e.mjs",
+      "mypkg"
+    ],
+    [
+      "e.mjs",
+      "mypkg/sub"
+    ],
+    [
+      "f.cjs",
+      "mypkg"
+    ],
+    [
+      "f.cjs",
+      "mypkg/sub"
+    ]
+  ],
+  "generated": [
+    "a.ts",
+    "b.tsx",
+    "c.js",
+    "d.jsx",
+    "e.mjs"
+  ],
+  "unresolved": {
+    "a.ts|mypkg": "the package's own name is resolved through its `exports`, which ripple does not read",
+    "a.ts|mypkg/sub": "the package's own name is resolved through its `exports`, which ripple does not read",
+    "b.tsx|mypkg": "the package's own name is resolved through its `exports`, which ripple does not read",
+    "b.tsx|mypkg/sub": "the package's own name is resolved through its `exports`, which ripple does not read",
+    "c.js|mypkg": "the package's own name is resolved through its `exports`, which ripple does not read",
+    "c.js|mypkg/sub": "the package's own name is resolved through its `exports`, which ripple does not read",
+    "d.jsx|mypkg": "the package's own name is resolved through its `exports`, which ripple does not read",
+    "d.jsx|mypkg/sub": "the package's own name is resolved through its `exports`, which ripple does not read",
+    "e.mjs|mypkg": "the package's own name is resolved through its `exports`, which ripple does not read",
+    "e.mjs|mypkg/sub": "the package's own name is resolved through its `exports`, which ripple does not read",
+    "f.cjs|mypkg": "the package's own name is resolved through its `exports`, which ripple does not read",
+    "f.cjs|mypkg/sub": "the package's own name is resolved through its `exports`, which ripple does not read"
+  }
+}

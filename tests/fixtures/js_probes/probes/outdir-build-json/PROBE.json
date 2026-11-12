@@ -1,0 +1,16 @@
+{
+  "notes": "The reviewer's round-2 probe f-buildcfg: the outDir is in the config the library's tsconfig.json references.",
+  "imports": [],
+  "generated": [],
+  "symbols": {
+    "clamp": "packages/core/src/math:clamp"
+  },
+  "walk": {
+    "not_indexed": [
+      "packages/core/dist/math.js"
+    ],
+    "skipped": [
+      "packages/core/dist"
+    ]
+  }
+}

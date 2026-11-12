@@ -1,0 +1,16 @@
+{
+  "notes": "Both mechanisms: a reference to a config that extends a base with ${configDir}.",
+  "imports": [],
+  "generated": [],
+  "symbols": {
+    "clamp": "packages/core/src/math:clamp"
+  },
+  "walk": {
+    "not_indexed": [
+      "packages/core/lib/math.js"
+    ],
+    "skipped": [
+      "packages/core/lib"
+    ]
+  }
+}

@@ -1,0 +1,223 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "m.ts",
+      "specifier": "@p/t",
+      "resolved": "paths/t.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "paths/t.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "m.js",
+      "specifier": "@p/t",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {
+        "tsconfig.json": "paths/t.ts"
+      },
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "n.tsx",
+      "specifier": "@p/t",
+      "resolved": "paths/t.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "paths/t.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "n.js",
+      "specifier": "@p/t",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {
+        "tsconfig.json": "paths/t.ts"
+      },
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "o.js",
+      "specifier": "@p/t",
+      "resolved": "paths/t.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "paths/t.ts",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "p.js",
+      "specifier": "@p/t",
+      "resolved": "paths/t.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "paths/t.ts",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "p.jsx",
+      "specifier": "@p/t",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {
+        "tsconfig.json": "paths/t.ts"
+      }
+    },
+    {
+      "importer": "q.ts",
+      "specifier": "@p/t",
+      "resolved": "paths/t.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "paths/t.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "q.tsx",
+      "specifier": "@p/t",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {
+        "tsconfig.json": "paths/t.ts"
+      }
+    },
+    {
+      "importer": "r.mts",
+      "specifier": "@p/t",
+      "resolved": "paths/t.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "paths/t.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "r.mjs",
+      "specifier": "@p/t",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {
+        "tsconfig.json": "paths/t.ts"
+      },
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "s.cts",
+      "specifier": "@p/t",
+      "resolved": "paths/t.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "paths/t.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "s.cjs",
+      "specifier": "@p/t",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {
+        "tsconfig.json": "paths/t.ts"
+      },
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "t.ts",
+      "specifier": "@p/t",
+      "resolved": "paths/t.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "paths/t.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "t.mjs",
+      "specifier": "@p/t",
+      "resolved": "paths/t.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "paths/t.ts",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "u.ts",
+      "specifier": "@p/t",
+      "resolved": "paths/t.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "paths/t.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "u.jsx",
+      "specifier": "@p/t",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {
+        "tsconfig.json": "paths/t.ts"
+      }
+    },
+    {
+      "importer": "v.tsx",
+      "specifier": "@p/t",
+      "resolved": "paths/t.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "paths/t.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "v.jsx",
+      "specifier": "@p/t",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {
+        "tsconfig.json": "paths/t.ts"
+      }
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

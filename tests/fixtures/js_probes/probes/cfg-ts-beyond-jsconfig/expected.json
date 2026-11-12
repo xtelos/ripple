@@ -1,0 +1,17 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "app/main.ts",
+      "specifier": "@/util",
+      "resolved": null,
+      "project": "app/jsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/util.ts",
+      "reach_dropped": {}
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

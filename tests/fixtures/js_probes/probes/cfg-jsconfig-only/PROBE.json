@@ -1,0 +1,90 @@
+{
+  "notes": "A jsconfig.json is read by tsserver for every file below it that no tsconfig.json holds, a TypeScript file included.",
+  "imports": [
+    [
+      "a.ts",
+      "@p/t"
+    ],
+    [
+      "a.ts",
+      "@p/j"
+    ],
+    [
+      "a.ts",
+      "./x"
+    ],
+    [
+      "b.tsx",
+      "@p/t"
+    ],
+    [
+      "b.tsx",
+      "@p/j"
+    ],
+    [
+      "b.tsx",
+      "./x"
+    ],
+    [
+      "c.js",
+      "@p/t"
+    ],
+    [
+      "c.js",
+      "@p/j"
+    ],
+    [
+      "c.js",
+      "./x"
+    ],
+    [
+      "d.jsx",
+      "@p/t"
+    ],
+    [
+      "d.jsx",
+      "@p/j"
+    ],
+    [
+      "d.jsx",
+      "./x"
+    ],
+    [
+      "e.mjs",
+      "@p/t"
+    ],
+    [
+      "e.mjs",
+      "@p/j"
+    ],
+    [
+      "e.mjs",
+      "./x"
+    ],
+    [
+      "f.cjs",
+      "@p/t"
+    ],
+    [
+      "f.cjs",
+      "@p/j"
+    ],
+    [
+      "f.cjs",
+      "./x"
+    ]
+  ],
+  "generated": [
+    "a.ts",
+    "b.tsx",
+    "c.js",
+    "d.jsx",
+    "e.mjs"
+  ],
+  "unresolved": {
+    "c.js|./x": "the compiler reads an extensionless import as x.ts, Node and Vite run x.js",
+    "d.jsx|./x": "the compiler reads an extensionless import as x.ts, Node and Vite run x.js",
+    "e.mjs|./x": "the compiler reads an extensionless import as x.ts, Node and Vite run x.js",
+    "f.cjs|./x": "the compiler reads an extensionless import as x.ts, Node and Vite run x.js"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "notes": "A solution-style root hands each file to the referenced project that holds it; app/scripts is held by no project.",
+  "imports": [
+    [
+      "app/src/a.ts",
+      "@l/u"
+    ],
+    [
+      "app/src/a.ts",
+      "@l/v"
+    ],
+    [
+      "lib/src/w.js",
+      "./v"
+    ],
+    [
+      "lib/src/w.js",
+      "./u"
+    ],
+    [
+      "app/scripts/s.ts",
+      "@l/u"
+    ]
+  ],
+  "generated": [
+    "app/src/a.ts",
+    "lib/src/w.js",
+    "app/scripts/s.ts"
+  ]
+}

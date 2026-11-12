@@ -1,0 +1,27 @@
+{
+  "notes": "No tsconfig.json: the jsconfig.json is the project of the files it includes, a TypeScript file too; scripts/ is outside its include.",
+  "imports": [
+    [
+      "src/a.ts",
+      "@/util"
+    ],
+    [
+      "src/c.js",
+      "@/util"
+    ],
+    [
+      "scripts/b.ts",
+      "@/util"
+    ],
+    [
+      "scripts/d.js",
+      "@/util"
+    ]
+  ],
+  "generated": [
+    "scripts/b.ts",
+    "scripts/d.js",
+    "src/a.ts",
+    "src/c.js"
+  ]
+}

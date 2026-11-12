@@ -1,0 +1,25 @@
+{
+  "notes": "A file under outDir is left out of the program by default.",
+  "imports": [
+    [
+      "src/a.ts",
+      "@p/t"
+    ],
+    [
+      "src/a.ts",
+      "@p/j"
+    ],
+    [
+      "out/a.js",
+      "@p/t"
+    ],
+    [
+      "out/a.js",
+      "@p/j"
+    ]
+  ],
+  "generated": [
+    "src/a.ts",
+    "out/a.js"
+  ]
+}

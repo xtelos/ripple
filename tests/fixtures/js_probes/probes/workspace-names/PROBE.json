@@ -1,0 +1,156 @@
+{
+  "notes": "Workspace packages are linked into node_modules by the package manager (the generator makes the links): Node runs the repo's own files. @me/other and react are not in the repo.",
+  "imports": [
+    [
+      "a.ts",
+      "@me/util"
+    ],
+    [
+      "a.ts",
+      "@me/util/src/index.js"
+    ],
+    [
+      "a.ts",
+      "plainpkg"
+    ],
+    [
+      "a.ts",
+      "@me/other"
+    ],
+    [
+      "a.ts",
+      "react"
+    ],
+    [
+      "b.tsx",
+      "@me/util"
+    ],
+    [
+      "b.tsx",
+      "@me/util/src/index.js"
+    ],
+    [
+      "b.tsx",
+      "plainpkg"
+    ],
+    [
+      "b.tsx",
+      "@me/other"
+    ],
+    [
+      "b.tsx",
+      "react"
+    ],
+    [
+      "c.js",
+      "@me/util"
+    ],
+    [
+      "c.js",
+      "@me/util/src/index.js"
+    ],
+    [
+      "c.js",
+      "plainpkg"
+    ],
+    [
+      "c.js",
+      "@me/other"
+    ],
+    [
+      "c.js",
+      "react"
+    ],
+    [
+      "d.jsx",
+      "@me/util"
+    ],
+    [
+      "d.jsx",
+      "@me/util/src/index.js"
+    ],
+    [
+      "d.jsx",
+      "plainpkg"
+    ],
+    [
+      "d.jsx",
+      "@me/other"
+    ],
+    [
+      "d.jsx",
+      "react"
+    ],
+    [
+      "e.mjs",
+      "@me/util"
+    ],
+    [
+      "e.mjs",
+      "@me/util/src/index.js"
+    ],
+    [
+      "e.mjs",
+      "plainpkg"
+    ],
+    [
+      "e.mjs",
+      "@me/other"
+    ],
+    [
+      "e.mjs",
+      "react"
+    ],
+    [
+      "f.cjs",
+      "@me/util"
+    ],
+    [
+      "f.cjs",
+      "@me/util/src/index.js"
+    ],
+    [
+      "f.cjs",
+      "plainpkg"
+    ],
+    [
+      "f.cjs",
+      "@me/other"
+    ],
+    [
+      "f.cjs",
+      "react"
+    ]
+  ],
+  "generated": [
+    "a.ts",
+    "b.tsx",
+    "c.js",
+    "d.jsx",
+    "e.mjs"
+  ],
+  "unresolved": {
+    "a.ts|@me/util": "a workspace package is reached through its package.json name, which ripple does not follow",
+    "a.ts|@me/util/src/index.js": "a workspace package is reached through its package.json name, which ripple does not follow",
+    "a.ts|plainpkg": "a workspace package is reached through its package.json name, which ripple does not follow",
+    "b.tsx|@me/util": "a workspace package is reached through its package.json name, which ripple does not follow",
+    "b.tsx|@me/util/src/index.js": "a workspace package is reached through its package.json name, which ripple does not follow",
+    "b.tsx|plainpkg": "a workspace package is reached through its package.json name, which ripple does not follow",
+    "c.js|@me/util": "a workspace package is reached through its package.json name, which ripple does not follow",
+    "c.js|@me/util/src/index.js": "a workspace package is reached through its package.json name, which ripple does not follow",
+    "c.js|plainpkg": "a workspace package is reached through its package.json name, which ripple does not follow",
+    "d.jsx|@me/util": "a workspace package is reached through its package.json name, which ripple does not follow",
+    "d.jsx|@me/util/src/index.js": "a workspace package is reached through its package.json name, which ripple does not follow",
+    "d.jsx|plainpkg": "a workspace package is reached through its package.json name, which ripple does not follow",
+    "e.mjs|@me/util": "a workspace package is reached through its package.json name, which ripple does not follow",
+    "e.mjs|@me/util/src/index.js": "a workspace package is reached through its package.json name, which ripple does not follow",
+    "e.mjs|plainpkg": "a workspace package is reached through its package.json name, which ripple does not follow",
+    "f.cjs|@me/util": "a workspace package is reached through its package.json name, which ripple does not follow",
+    "f.cjs|@me/util/src/index.js": "a workspace package is reached through its package.json name, which ripple does not follow",
+    "f.cjs|plainpkg": "a workspace package is reached through its package.json name, which ripple does not follow"
+  },
+  "links": {
+    "node_modules/@me/util": "../../packages/util",
+    "node_modules/plainpkg": "../packages/plain"
+  }
+}

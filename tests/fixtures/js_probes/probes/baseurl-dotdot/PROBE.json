@@ -1,0 +1,25 @@
+{
+  "notes": "",
+  "imports": [
+    [
+      "app/a.ts",
+      "shared/s"
+    ],
+    [
+      "app/a.ts",
+      "shared/t"
+    ],
+    [
+      "app/a.js",
+      "shared/s"
+    ],
+    [
+      "app/a.js",
+      "shared/t"
+    ]
+  ],
+  "generated": [
+    "app/a.ts",
+    "app/a.js"
+  ]
+}

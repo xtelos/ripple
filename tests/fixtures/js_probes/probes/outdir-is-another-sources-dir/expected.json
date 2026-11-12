@@ -1,0 +1,23 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "src/app.ts",
+      "specifier": "./core",
+      "resolved": "src/core.ts",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    }
+  ],
+  "definitions": [
+    {
+      "in": "src/app.ts",
+      "call": "core",
+      "defined_in": "src/core.ts"
+    }
+  ],
+  "jsx": []
+}

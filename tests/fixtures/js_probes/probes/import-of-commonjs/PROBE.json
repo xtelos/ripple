@@ -1,0 +1,28 @@
+{
+  "notes": "The reviewer's round-2 probe js-cjs: Node's cjs-module-lexer gives an ES import of a CommonJS file its names, ripple does not model them.",
+  "imports": [
+    [
+      "m.mjs",
+      "./c.js"
+    ]
+  ],
+  "generated": [],
+  "unresolved": {
+    "calls:m.mjs|f": "CommonJS",
+    "calls:m.mjs|g": "CommonJS"
+  },
+  "calls": [
+    {
+      "in": "m.mjs",
+      "call": "f"
+    },
+    {
+      "in": "m.mjs",
+      "call": "g"
+    }
+  ],
+  "reasons": {
+    "m.mjs|f": "is CommonJS",
+    "m.mjs|g": "is CommonJS"
+  }
+}

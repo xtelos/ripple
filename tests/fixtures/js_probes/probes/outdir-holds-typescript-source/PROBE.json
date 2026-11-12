@@ -1,0 +1,31 @@
+{
+  "notes": "The reviewer's round-2 probe f-outdir-mono: a TypeScript source in an outDir is not output.",
+  "imports": [
+    [
+      "packages/a/src/x.ts",
+      "./dist/y"
+    ],
+    [
+      "packages/b/src/z.ts",
+      "../dist/w"
+    ]
+  ],
+  "generated": [],
+  "calls": [
+    {
+      "in": "packages/a/src/x.ts",
+      "call": "y"
+    },
+    {
+      "in": "packages/b/src/z.ts",
+      "call": "w"
+    }
+  ],
+  "walk": {
+    "indexed": [
+      "packages/a/src/dist/y.ts",
+      "packages/b/dist/w.ts"
+    ],
+    "skipped": []
+  }
+}

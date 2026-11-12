@@ -1,0 +1,152 @@
+{
+  "notes": "The preact layout (the reviewer's zz-preact-sub): a path alias onto directories whose package.json picks the entry; 265 sites in preact's own JavaScript.",
+  "imports": [
+    [
+      "compat/src/a.ts",
+      "lib/hooks"
+    ],
+    [
+      "compat/src/a.ts",
+      "lib/plain"
+    ],
+    [
+      "compat/src/a.ts",
+      "lib/bare"
+    ],
+    [
+      "compat/src/a.ts",
+      "lib/hooks/src/index.js"
+    ],
+    [
+      "compat/src/a.ts",
+      "../../plain"
+    ],
+    [
+      "compat/src/b.tsx",
+      "lib/hooks"
+    ],
+    [
+      "compat/src/b.tsx",
+      "lib/plain"
+    ],
+    [
+      "compat/src/b.tsx",
+      "lib/bare"
+    ],
+    [
+      "compat/src/b.tsx",
+      "lib/hooks/src/index.js"
+    ],
+    [
+      "compat/src/b.tsx",
+      "../../plain"
+    ],
+    [
+      "compat/src/c.js",
+      "lib/hooks"
+    ],
+    [
+      "compat/src/c.js",
+      "lib/plain"
+    ],
+    [
+      "compat/src/c.js",
+      "lib/bare"
+    ],
+    [
+      "compat/src/c.js",
+      "lib/hooks/src/index.js"
+    ],
+    [
+      "compat/src/c.js",
+      "../../plain"
+    ],
+    [
+      "compat/src/d.jsx",
+      "lib/hooks"
+    ],
+    [
+      "compat/src/d.jsx",
+      "lib/plain"
+    ],
+    [
+      "compat/src/d.jsx",
+      "lib/bare"
+    ],
+    [
+      "compat/src/d.jsx",
+      "lib/hooks/src/index.js"
+    ],
+    [
+      "compat/src/d.jsx",
+      "../../plain"
+    ],
+    [
+      "compat/src/e.mjs",
+      "lib/hooks"
+    ],
+    [
+      "compat/src/e.mjs",
+      "lib/plain"
+    ],
+    [
+      "compat/src/e.mjs",
+      "lib/bare"
+    ],
+    [
+      "compat/src/e.mjs",
+      "lib/hooks/src/index.js"
+    ],
+    [
+      "compat/src/e.mjs",
+      "../../plain"
+    ],
+    [
+      "compat/src/f.cjs",
+      "lib/hooks"
+    ],
+    [
+      "compat/src/f.cjs",
+      "lib/plain"
+    ],
+    [
+      "compat/src/f.cjs",
+      "lib/bare"
+    ],
+    [
+      "compat/src/f.cjs",
+      "lib/hooks/src/index.js"
+    ],
+    [
+      "compat/src/f.cjs",
+      "../../plain"
+    ]
+  ],
+  "generated": [
+    "compat/src/a.ts",
+    "compat/src/b.tsx",
+    "compat/src/c.js",
+    "compat/src/d.jsx",
+    "compat/src/e.mjs"
+  ],
+  "unresolved": {
+    "compat/src/a.ts|lib/hooks": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "compat/src/a.ts|lib/plain": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "compat/src/a.ts|../../plain": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "compat/src/b.tsx|lib/hooks": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "compat/src/b.tsx|lib/plain": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "compat/src/b.tsx|../../plain": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "compat/src/c.js|lib/hooks": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "compat/src/c.js|lib/plain": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "compat/src/c.js|../../plain": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "compat/src/d.jsx|lib/hooks": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "compat/src/d.jsx|lib/plain": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "compat/src/d.jsx|../../plain": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "compat/src/e.mjs|lib/hooks": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "compat/src/e.mjs|lib/plain": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "compat/src/e.mjs|../../plain": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "compat/src/f.cjs|lib/hooks": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "compat/src/f.cjs|lib/plain": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "compat/src/f.cjs|../../plain": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it"
+  }
+}

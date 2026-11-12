@@ -1,0 +1,200 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "test/a.ts",
+      "specifier": "..",
+      "resolved": "lib/main.js",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "test/a.ts",
+      "specifier": "../",
+      "resolved": "lib/main.js",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "test/a.ts",
+      "specifier": "../index.js",
+      "resolved": "index.js",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "test/a.ts",
+      "specifier": "../lib/main",
+      "resolved": "lib/main.js",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "test/c.js",
+      "specifier": "..",
+      "resolved": "lib/main.js",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_UNSUPPORTED_DIR_IMPORT"
+      }
+    },
+    {
+      "importer": "test/c.js",
+      "specifier": "../",
+      "resolved": "lib/main.js",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_UNSUPPORTED_DIR_IMPORT"
+      }
+    },
+    {
+      "importer": "test/c.js",
+      "specifier": "../index.js",
+      "resolved": "index.js",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": "index.js",
+        "error": null
+      }
+    },
+    {
+      "importer": "test/c.js",
+      "specifier": "../lib/main",
+      "resolved": "lib/main.js",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "test/e.mjs",
+      "specifier": "..",
+      "resolved": "lib/main.js",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_UNSUPPORTED_DIR_IMPORT"
+      }
+    },
+    {
+      "importer": "test/e.mjs",
+      "specifier": "../",
+      "resolved": "lib/main.js",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_UNSUPPORTED_DIR_IMPORT"
+      }
+    },
+    {
+      "importer": "test/e.mjs",
+      "specifier": "../index.js",
+      "resolved": "index.js",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": "index.js",
+        "error": null
+      }
+    },
+    {
+      "importer": "test/e.mjs",
+      "specifier": "../lib/main",
+      "resolved": "lib/main.js",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "test/f.cjs",
+      "specifier": "..",
+      "resolved": "lib/main.js",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": "lib/main.js",
+        "error": null
+      }
+    },
+    {
+      "importer": "test/f.cjs",
+      "specifier": "../",
+      "resolved": "lib/main.js",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": "lib/main.js",
+        "error": null
+      }
+    },
+    {
+      "importer": "test/f.cjs",
+      "specifier": "../index.js",
+      "resolved": "index.js",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": "index.js",
+        "error": null
+      }
+    },
+    {
+      "importer": "test/f.cjs",
+      "specifier": "../lib/main",
+      "resolved": "lib/main.js",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": "lib/main.js",
+        "error": null
+      }
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

@@ -1,0 +1,94 @@
+{
+  "notes": "x.ts beside x.js. The compiler reads ./x and ./x.js as x.ts for every importer, and a TypeScript importer takes it (x.js is what the build makes of it). Node and the bundlers run x.js for a JavaScript importer, so those sites are unresolved.",
+  "imports": [
+    [
+      "a.ts",
+      "./x"
+    ],
+    [
+      "a.ts",
+      "./x.js"
+    ],
+    [
+      "a.ts",
+      "./x.ts"
+    ],
+    [
+      "b.tsx",
+      "./x"
+    ],
+    [
+      "b.tsx",
+      "./x.js"
+    ],
+    [
+      "b.tsx",
+      "./x.ts"
+    ],
+    [
+      "c.js",
+      "./x"
+    ],
+    [
+      "c.js",
+      "./x.js"
+    ],
+    [
+      "c.js",
+      "./x.ts"
+    ],
+    [
+      "d.jsx",
+      "./x"
+    ],
+    [
+      "d.jsx",
+      "./x.js"
+    ],
+    [
+      "d.jsx",
+      "./x.ts"
+    ],
+    [
+      "e.mjs",
+      "./x"
+    ],
+    [
+      "e.mjs",
+      "./x.js"
+    ],
+    [
+      "e.mjs",
+      "./x.ts"
+    ],
+    [
+      "f.cjs",
+      "./x"
+    ],
+    [
+      "f.cjs",
+      "./x.js"
+    ],
+    [
+      "f.cjs",
+      "./x.ts"
+    ]
+  ],
+  "generated": [
+    "a.ts",
+    "b.tsx",
+    "c.js",
+    "d.jsx",
+    "e.mjs"
+  ],
+  "unresolved": {
+    "c.js|./x.js": "compiler and runtime or bundler name different files",
+    "d.jsx|./x.js": "compiler and runtime or bundler name different files",
+    "e.mjs|./x.js": "compiler and runtime or bundler name different files",
+    "f.cjs|./x.js": "compiler and runtime or bundler name different files",
+    "c.js|./x": "Vite orders .js before .ts",
+    "d.jsx|./x": "Vite orders .js before .ts",
+    "e.mjs|./x": "Vite orders .js before .ts",
+    "f.cjs|./x": "Vite orders .js before .ts"
+  }
+}

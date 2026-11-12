@@ -1,0 +1,28 @@
+{
+  "notes": "",
+  "imports": [
+    [
+      "main.ts",
+      "a.fx"
+    ],
+    [
+      "main.ts",
+      "b.fx"
+    ],
+    [
+      "main.ts",
+      "@s/c"
+    ],
+    [
+      "main.ts",
+      "@s/d"
+    ],
+    [
+      "main.ts",
+      "@s/c.js"
+    ]
+  ],
+  "generated": [
+    "main.ts"
+  ]
+}

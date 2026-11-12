@@ -1,0 +1,7 @@
+{
+  "name": "mypkg",
+  "type": "module",
+  "imports": {
+    "#lib/*": "./lib/*"
+  }
+}

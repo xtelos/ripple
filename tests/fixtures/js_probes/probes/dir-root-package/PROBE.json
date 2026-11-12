@@ -1,0 +1,84 @@
+{
+  "notes": "The root has a package.json and an index.js: `..` is the file main names.",
+  "imports": [
+    [
+      "test/a.ts",
+      ".."
+    ],
+    [
+      "test/a.ts",
+      "../"
+    ],
+    [
+      "test/a.ts",
+      "../index.js"
+    ],
+    [
+      "test/a.ts",
+      "../lib/main"
+    ],
+    [
+      "test/c.js",
+      ".."
+    ],
+    [
+      "test/c.js",
+      "../"
+    ],
+    [
+      "test/c.js",
+      "../index.js"
+    ],
+    [
+      "test/c.js",
+      "../lib/main"
+    ],
+    [
+      "test/e.mjs",
+      ".."
+    ],
+    [
+      "test/e.mjs",
+      "../"
+    ],
+    [
+      "test/e.mjs",
+      "../index.js"
+    ],
+    [
+      "test/e.mjs",
+      "../lib/main"
+    ],
+    [
+      "test/f.cjs",
+      ".."
+    ],
+    [
+      "test/f.cjs",
+      "../"
+    ],
+    [
+      "test/f.cjs",
+      "../index.js"
+    ],
+    [
+      "test/f.cjs",
+      "../lib/main"
+    ]
+  ],
+  "generated": [
+    "test/a.ts",
+    "test/c.js",
+    "test/e.mjs"
+  ],
+  "unresolved": {
+    "test/a.ts|..": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "test/a.ts|../": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "test/c.js|..": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "test/c.js|../": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "test/e.mjs|..": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "test/e.mjs|../": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "test/f.cjs|..": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "test/f.cjs|../": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it"
+  }
+}

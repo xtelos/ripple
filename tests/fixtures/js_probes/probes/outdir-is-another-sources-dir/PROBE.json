@@ -1,0 +1,23 @@
+{
+  "notes": "The reviewer's round-2 probe f-outdir-src: a fixture's tsconfig.json writes its output into the repo's real src, which holds TypeScript source.",
+  "imports": [
+    [
+      "src/app.ts",
+      "./core"
+    ]
+  ],
+  "generated": [],
+  "calls": [
+    {
+      "in": "src/app.ts",
+      "call": "core"
+    }
+  ],
+  "walk": {
+    "indexed": [
+      "src/app.ts",
+      "src/core.ts"
+    ],
+    "skipped": []
+  }
+}

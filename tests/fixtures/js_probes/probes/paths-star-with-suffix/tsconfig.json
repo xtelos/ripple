@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "baseUrl": ".",
+    "paths": {
+      "*.fx": [
+        "fx/*"
+      ],
+      "@s/*": [
+        "src/*.js",
+        "src/*.ts"
+      ]
+    }
+  }
+}

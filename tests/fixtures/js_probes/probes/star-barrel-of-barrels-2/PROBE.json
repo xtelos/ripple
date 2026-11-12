@@ -1,0 +1,19 @@
+{
+  "notes": "The reviewer's round-2 probe star-bb2: far2 comes from the second star and from a JavaScript file behind the first; tsc reports TS2308.",
+  "imports": [
+    [
+      "user.ts",
+      "./top"
+    ]
+  ],
+  "generated": [],
+  "unresolved": {
+    "calls:user.ts|far2": "ambiguous across a star and a star onto an unread file"
+  },
+  "calls": [
+    {
+      "in": "user.ts",
+      "call": "far2"
+    }
+  ]
+}

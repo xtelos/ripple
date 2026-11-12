@@ -1,0 +1,17 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "main.ts",
+      "specifier": "@t/f",
+      "resolved": "src/f.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/f.ts",
+      "reach_dropped": {}
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

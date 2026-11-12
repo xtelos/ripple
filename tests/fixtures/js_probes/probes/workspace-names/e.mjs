@@ -1,0 +1,10 @@
+import * as m0 from "@me/util";
+export function call0() { m0.f(); }
+import * as m1 from "@me/util/src/index.js";
+export function call1() { m1.f(); }
+import * as m2 from "plainpkg";
+export function call2() { m2.f(); }
+import * as m3 from "@me/other";
+export function call3() { m3.f(); }
+import * as m4 from "react";
+export function call4() { m4.f(); }
