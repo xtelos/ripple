@@ -1,0 +1,27 @@
+{
+ "invokes": [
+  ["p/Planet.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Planet.<init>:()V", 1],
+  ["p/Planet.java", 4, "invokespecial", "java.lang.Enum", "<init>", "(Ljava/lang/String;I)V", "p.Planet$Kind.<init>:(Ljava/lang/String;I)V", 3],
+  ["p/Planet.java", 4, "invokestatic", "java.lang.Enum", "valueOf", "(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Enum;", "p.Planet$Kind.valueOf:(Ljava/lang/String;)Lp/Planet$Kind;", 3],
+  ["p/Planet.java", 4, "invokestatic", "p.Planet$Kind", "$values", "()[Lp/Planet$Kind;", "p.Planet$Kind.<clinit>:()V", 26],
+  ["p/Planet.java", 4, "invokevirtual", "[Lp.Planet$Kind;", "clone", "()Ljava/lang/Object;", "p.Planet$Kind.values:()[Lp/Planet$Kind;", 3],
+  ["p/Planet.java", 5, "invokespecial", "p.Planet$Kind", "<init>", "(Ljava/lang/String;I)V", "p.Planet$Kind.<clinit>:()V", 7],
+  ["p/Planet.java", 5, "invokespecial", "p.Planet$Kind", "<init>", "(Ljava/lang/String;I)V", "p.Planet$Kind.<clinit>:()V", 20],
+  ["p/Planet.java", 7, "invokestatic", "p.Planet$Kind", "valueOf", "(Ljava/lang/String;)Lp/Planet$Kind;", "p.Planet$Kind.parse:(Ljava/lang/String;)Lp/Planet$Kind;", 1],
+  ["p/Planet.java", 8, "invokevirtual", "p.Planet$Kind", "ordinal", "()I", "p.Planet$Kind.rank:()I", 1],
+  ["p/Planet.java", 11, "invokestatic", "p.Planet$Kind", "valueOf", "(Ljava/lang/String;)Lp/Planet$Kind;", "p.Planet.use:(Lp/Planet$Kind;)V", 2],
+  ["p/Planet.java", 12, "invokestatic", "p.Planet$Kind", "values", "()[Lp/Planet$Kind;", "p.Planet.use:(Lp/Planet$Kind;)V", 6],
+  ["p/Planet.java", 13, "invokevirtual", "p.Planet$Kind", "name", "()Ljava/lang/String;", "p.Planet.use:(Lp/Planet$Kind;)V", 11],
+  ["p/Planet.java", 14, "invokevirtual", "p.Planet$Kind", "ordinal", "()I", "p.Planet.use:(Lp/Planet$Kind;)V", 16],
+  ["p/Planet.java", 15, "invokevirtual", "p.Planet$Kind", "compareTo", "(Ljava/lang/Enum;)I", "p.Planet.use:(Lp/Planet$Kind;)V", 24],
+  ["p/Planet.java", 16, "invokevirtual", "p.Planet$Kind", "run", "()V", "p.Planet.use:(Lp/Planet$Kind;)V", 29],
+  ["p/Planet.java", 17, "invokevirtual", "p.Planet$Kind", "rank", "()I", "p.Planet.use:(Lp/Planet$Kind;)V", 33],
+  ["p/Planet.java", 18, "invokestatic", "p.Planet$Kind", "parse", "(Ljava/lang/String;)Lp/Planet$Kind;", "p.Planet.use:(Lp/Planet$Kind;)V", 39],
+  ["p/Planet.java", 19, "invokevirtual", "p.Planet$Kind", "toString", "()Ljava/lang/String;", "p.Planet.use:(Lp/Planet$Kind;)V", 44],
+  ["p/Planet.java", 20, "invokevirtual", "p.Planet$Kind", "equals", "(Ljava/lang/Object;)Z", "p.Planet.use:(Lp/Planet$Kind;)V", 52]
+ ],
+ "classes": {
+  "p.Planet": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Planet$Kind;)V", 0]], "bridges": [], "compiler": []},
+  "p.Planet$Kind": {"supers": ["java.io.Serializable", "java.lang.Comparable", "java.lang.Enum", "java.lang.Object", "java.lang.Runnable", "java.lang.constant.Constable"], "methods": [["<init>", "(Ljava/lang/String;I)V", 2], ["parse", "(Ljava/lang/String;)Lp/Planet$Kind;", 8], ["rank", "()I", 0], ["run", "()V", 1]], "bridges": [], "compiler": [["valueOf", "(Ljava/lang/String;)Lp/Planet$Kind;", 9], ["values", "()[Lp/Planet$Kind;", 9]]}
+ }
+}

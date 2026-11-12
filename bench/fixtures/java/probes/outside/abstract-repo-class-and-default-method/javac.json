@@ -1,0 +1,40 @@
+{
+ "invokes": [
+  ["p/Abstracts.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Work.<init>:()V", 1],
+  ["p/Abstracts.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Part.<init>:()V", 1],
+  ["p/Abstracts.java", 8, "invokestatic", "p.Work", "go", "()V", "p.Part.stop:()V", 0],
+  ["p/Abstracts.java", 10, "invokespecial", "p.Part", "<init>", "()V", "p.Full.<init>:()V", 1],
+  ["p/Abstracts.java", 11, "invokestatic", "p.Work", "go", "()V", "p.Full.run:()V", 0],
+  ["p/Abstracts.java", 14, "invokestatic", "p.Work", "go", "()V", "p.Greeter.run:()V", 0],
+  ["p/Abstracts.java", 16, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Hello.<init>:()V", 1],
+  ["p/Abstracts.java", 17, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Source.<init>:()V", 1],
+  ["p/Abstracts.java", 18, "invokestatic", "p.Work", "go", "()V", "p.Source.get:()Ljava/lang/Object;", 0],
+  ["p/Abstracts.java", 20, "invokespecial", "p.Source", "<init>", "()V", "p.Names.<init>:()V", 1],
+  ["p/Abstracts.java", 21, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Cursor.<init>:()V", 1],
+  ["p/Abstracts.java", 21, "invokestatic", "p.Work", "go", "()V", "p.Cursor.hasNext:()Z", 0],
+  ["p/Abstracts.java", 22, "invokespecial", "p.Cursor", "<init>", "()V", "p.Names2.<init>:()V", 1],
+  ["p/Abstracts.java", 22, "invokespecial", "p.Cursor", "next", "()Ljava/lang/String;", "p.Names2.next:()Ljava/lang/Object;", 1],
+  ["p/Abstracts.java", 23, "invokespecial", "p.Names2", "<init>", "()V", "p.Mid.<init>:()V", 1],
+  ["p/Abstracts.java", 25, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Abstracts.<init>:()V", 1],
+  ["p/Abstracts.java", 27, "invokevirtual", "p.Part", "run", "()V", "p.Abstracts.h:(Lp/Part;Lp/Greeter;Ljava/util/function/Supplier;Ljava/util/Iterator;)V", 1],
+  ["p/Abstracts.java", 28, "invokeinterface", "p.Greeter", "run", "()V", "p.Abstracts.h:(Lp/Part;Lp/Greeter;Ljava/util/function/Supplier;Ljava/util/Iterator;)V", 5],
+  ["p/Abstracts.java", 29, "invokeinterface", "java.util.function.Supplier", "get", "()Ljava/lang/Object;", "p.Abstracts.h:(Lp/Part;Lp/Greeter;Ljava/util/function/Supplier;Ljava/util/Iterator;)V", 11],
+  ["p/Abstracts.java", 30, "invokeinterface", "java.util.Iterator", "hasNext", "()Z", "p.Abstracts.h:(Lp/Part;Lp/Greeter;Ljava/util/function/Supplier;Ljava/util/Iterator;)V", 19],
+  ["p/Abstracts.java", 31, "invokeinterface", "java.util.Iterator", "next", "()Ljava/lang/Object;", "p.Abstracts.h:(Lp/Part;Lp/Greeter;Ljava/util/function/Supplier;Ljava/util/Iterator;)V", 27],
+  ["p/Abstracts.java", 32, "invokespecial", "p.Hello", "<init>", "()V", "p.Abstracts.h:(Lp/Part;Lp/Greeter;Ljava/util/function/Supplier;Ljava/util/Iterator;)V", 37],
+  ["p/Abstracts.java", 32, "invokevirtual", "p.Hello", "run", "()V", "p.Abstracts.h:(Lp/Part;Lp/Greeter;Ljava/util/function/Supplier;Ljava/util/Iterator;)V", 40]
+ ],
+ "classes": {
+  "p.Abstracts": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Lp/Part;Lp/Greeter;Ljava/util/function/Supplier;Ljava/util/Iterator;)V", 0]], "bridges": [], "compiler": []},
+  "p.Cursor": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["hasNext", "()Z", 1], ["next", "()Ljava/lang/String;", 1]], "bridges": [], "compiler": []},
+  "p.Full": {"supers": ["java.lang.Object", "java.lang.Runnable", "p.Part"], "methods": [["<init>", "()V", 0], ["run", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Greeter": {"supers": ["java.lang.Object", "java.lang.Runnable"], "methods": [["run", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Hello": {"supers": ["java.lang.Object", "java.lang.Runnable", "p.Greeter"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Mid": {"supers": ["java.lang.Object", "java.util.Iterator", "p.Cursor", "p.Names2"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Names": {"supers": ["java.lang.Object", "java.util.function.Supplier", "p.Source"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Names2": {"supers": ["java.lang.Object", "java.util.Iterator", "p.Cursor"], "methods": [["<init>", "()V", 0]], "bridges": [["next", "()Ljava/lang/Object;", ""]], "compiler": []},
+  "p.Part": {"supers": ["java.lang.Object", "java.lang.Runnable"], "methods": [["<init>", "()V", 0], ["stop", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Source": {"supers": ["java.lang.Object", "java.util.function.Supplier"], "methods": [["<init>", "()V", 0], ["get", "()Ljava/lang/Object;", 1]], "bridges": [], "compiler": []},
+  "p.Work": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["go", "()V", 8]], "bridges": [], "compiler": []}
+ }
+}

@@ -1,0 +1,24 @@
+{
+ "invokes": [
+  ["p/Animals.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Animals.<init>:()V", 1],
+  ["p/Animals.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Animals$Animal.<init>:()V", 1],
+  ["p/Animals.java", 5, "invokespecial", "p.Animals$Animal", "<init>", "()V", "p.Animals$Dog.<init>:()V", 1],
+  ["p/Animals.java", 6, "invokespecial", "p.Animals$Animal", "<init>", "()V", "p.Animals$Cat.<init>:()V", 1],
+  ["p/Animals.java", 11, "invokevirtual", "p.Animals", "f", "(Lp/Animals$Animal;)V", "p.Animals.use:(Lp/Animals$Animal;Lp/Animals$Dog;Lp/Animals$Cat;)V", 2],
+  ["p/Animals.java", 12, "invokevirtual", "p.Animals", "f", "(Lp/Animals$Dog;)V", "p.Animals.use:(Lp/Animals$Animal;Lp/Animals$Dog;Lp/Animals$Cat;)V", 7],
+  ["p/Animals.java", 13, "invokevirtual", "p.Animals", "f", "(Lp/Animals$Animal;)V", "p.Animals.use:(Lp/Animals$Animal;Lp/Animals$Dog;Lp/Animals$Cat;)V", 12],
+  ["p/Animals.java", 14, "invokespecial", "p.Animals$Dog", "<init>", "()V", "p.Animals.use:(Lp/Animals$Animal;Lp/Animals$Dog;Lp/Animals$Cat;)V", 20],
+  ["p/Animals.java", 14, "invokevirtual", "p.Animals", "f", "(Lp/Animals$Dog;)V", "p.Animals.use:(Lp/Animals$Animal;Lp/Animals$Dog;Lp/Animals$Cat;)V", 23],
+  ["p/Animals.java", 15, "invokespecial", "p.Animals$Animal", "<init>", "()V", "p.Animals.use:(Lp/Animals$Animal;Lp/Animals$Dog;Lp/Animals$Cat;)V", 31],
+  ["p/Animals.java", 15, "invokevirtual", "p.Animals", "f", "(Lp/Animals$Animal;)V", "p.Animals.use:(Lp/Animals$Animal;Lp/Animals$Dog;Lp/Animals$Cat;)V", 34],
+  ["p/Animals.java", 16, "invokevirtual", "p.Animals", "g", "(Lp/Animals$Animal;)V", "p.Animals.use:(Lp/Animals$Animal;Lp/Animals$Dog;Lp/Animals$Cat;)V", 39],
+  ["p/Animals.java", 17, "invokespecial", "p.Animals$Cat", "<init>", "()V", "p.Animals.use:(Lp/Animals$Animal;Lp/Animals$Dog;Lp/Animals$Cat;)V", 47],
+  ["p/Animals.java", 17, "invokevirtual", "p.Animals", "g", "(Lp/Animals$Animal;)V", "p.Animals.use:(Lp/Animals$Animal;Lp/Animals$Dog;Lp/Animals$Cat;)V", 50]
+ ],
+ "classes": {
+  "p.Animals": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Lp/Animals$Animal;)V", 0], ["f", "(Lp/Animals$Dog;)V", 0], ["g", "(Lp/Animals$Animal;)V", 0], ["use", "(Lp/Animals$Animal;Lp/Animals$Dog;Lp/Animals$Cat;)V", 0]], "bridges": [], "compiler": []},
+  "p.Animals$Animal": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Animals$Cat": {"supers": ["java.lang.Object", "p.Animals$Animal"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Animals$Dog": {"supers": ["java.lang.Object", "p.Animals$Animal"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

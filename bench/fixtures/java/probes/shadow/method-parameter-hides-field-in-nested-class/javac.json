@@ -1,0 +1,21 @@
+{
+ "invokes": [
+  ["p/Captured.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Captured.<init>:()V", 1],
+  ["p/Captured.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Captured$Money.<init>:()V", 1],
+  ["p/Captured.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Captured$Item.<init>:()V", 1],
+  ["p/Captured.java", 6, "invokespecial", "p.Captured$Money", "<init>", "()V", "p.Captured.<init>:()V", 9],
+  ["p/Captured.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Captured$1Local.<init>:(Lp/Captured;Lp/Captured$Item;)V", 6],
+  ["p/Captured.java", 10, "invokevirtual", "p.Captured$Item", "add", "(I)V", "p.Captured$1Local.run:()V", 5],
+  ["p/Captured.java", 13, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Captured$1.<init>:(Lp/Captured;Lp/Captured$Item;)V", 6],
+  ["p/Captured.java", 13, "invokespecial", "p.Captured$1", "<init>", "(Lp/Captured;Lp/Captured$Item;)V", "p.Captured.make:(Lp/Captured$Item;)Ljava/lang/Runnable;", 6],
+  ["p/Captured.java", 15, "invokevirtual", "p.Captured$Item", "add", "(I)V", "p.Captured$1.run:()V", 5],
+  ["p/Captured.java", 20, "invokevirtual", "p.Captured$Money", "add", "(I)V", "p.Captured.other:()V", 5]
+ ],
+ "classes": {
+  "p.Captured": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["make", "(Lp/Captured$Item;)Ljava/lang/Runnable;", 0], ["other", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Captured$1": {"supers": ["java.lang.Object", "java.lang.Runnable"], "methods": [["<init>", "(Lp/Captured;Lp/Captured$Item;)V", 0], ["run", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Captured$1Local": {"supers": ["java.lang.Object", "java.lang.Runnable"], "methods": [["<init>", "(Lp/Captured;Lp/Captured$Item;)V", 0], ["run", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Captured$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.Captured$Money": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []}
+ }
+}

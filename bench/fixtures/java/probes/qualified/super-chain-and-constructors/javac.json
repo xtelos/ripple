@@ -1,0 +1,25 @@
+{
+ "invokes": [
+  ["p/Chain.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Chain.<init>:()V", 1],
+  ["p/Chain.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Chain$A.<init>:()V", 1],
+  ["p/Chain.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Chain$A.<init>:(Ljava/lang/String;)V", 1],
+  ["p/Chain.java", 12, "invokespecial", "p.Chain$A", "<init>", "(Ljava/lang/String;)V", "p.Chain$B.<init>:()V", 3],
+  ["p/Chain.java", 15, "invokespecial", "p.Chain$B", "<init>", "()V", "p.Chain$B.<init>:(I)V", 1],
+  ["p/Chain.java", 18, "invokespecial", "p.Chain$A", "m", "()V", "p.Chain$B.m:()V", 1],
+  ["p/Chain.java", 24, "invokespecial", "p.Chain$B", "<init>", "(I)V", "p.Chain$C.<init>:()V", 2],
+  ["p/Chain.java", 27, "invokespecial", "p.Chain$B", "m", "()V", "p.Chain$C.m:()V", 1],
+  ["p/Chain.java", 31, "invokevirtual", "p.Chain$A", "m", "()V", "p.Chain.use:(Lp/Chain$A;Lp/Chain$B;)V", 1],
+  ["p/Chain.java", 32, "invokevirtual", "p.Chain$B", "m", "()V", "p.Chain.use:(Lp/Chain$A;Lp/Chain$B;)V", 5],
+  ["p/Chain.java", 33, "invokestatic", "p.Chain$A", "sm", "()V", "p.Chain.use:(Lp/Chain$A;Lp/Chain$B;)V", 10],
+  ["p/Chain.java", 34, "invokestatic", "p.Chain$B", "sm", "()V", "p.Chain.use:(Lp/Chain$A;Lp/Chain$B;)V", 15],
+  ["p/Chain.java", 35, "invokestatic", "p.Chain$A", "sm", "()V", "p.Chain.use:(Lp/Chain$A;Lp/Chain$B;)V", 18],
+  ["p/Chain.java", 36, "invokestatic", "p.Chain$B", "sm", "()V", "p.Chain.use:(Lp/Chain$A;Lp/Chain$B;)V", 21],
+  ["p/Chain.java", 37, "invokestatic", "p.Chain$C", "sm", "()V", "p.Chain.use:(Lp/Chain$A;Lp/Chain$B;)V", 24]
+ ],
+ "classes": {
+  "p.Chain": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Chain$A;Lp/Chain$B;)V", 0]], "bridges": [], "compiler": []},
+  "p.Chain$A": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["<init>", "(Ljava/lang/String;)V", 0], ["m", "()V", 0], ["sm", "()V", 8]], "bridges": [], "compiler": []},
+  "p.Chain$B": {"supers": ["java.lang.Object", "p.Chain$A"], "methods": [["<init>", "()V", 0], ["<init>", "(I)V", 0], ["m", "()V", 0], ["sm", "()V", 8]], "bridges": [], "compiler": []},
+  "p.Chain$C": {"supers": ["java.lang.Object", "p.Chain$A", "p.Chain$B"], "methods": [["<init>", "()V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

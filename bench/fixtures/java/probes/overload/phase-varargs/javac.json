@@ -1,0 +1,20 @@
+{
+ "invokes": [
+  ["p/Varargs.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Varargs.<init>:()V", 1],
+  ["p/Varargs.java", 10, "invokevirtual", "p.Varargs", "v", "([Ljava/lang/String;)V", "p.Varargs.use:([Ljava/lang/String;[Ljava/lang/Object;)V", 5],
+  ["p/Varargs.java", 11, "invokevirtual", "p.Varargs", "v", "(Ljava/lang/String;)V", "p.Varargs.use:([Ljava/lang/String;[Ljava/lang/Object;)V", 11],
+  ["p/Varargs.java", 12, "invokevirtual", "p.Varargs", "v", "([Ljava/lang/String;)V", "p.Varargs.use:([Ljava/lang/String;[Ljava/lang/Object;)V", 29],
+  ["p/Varargs.java", 13, "invokevirtual", "p.Varargs", "v", "([Ljava/lang/String;)V", "p.Varargs.use:([Ljava/lang/String;[Ljava/lang/Object;)V", 34],
+  ["p/Varargs.java", 14, "invokevirtual", "p.Varargs", "v", "([Ljava/lang/Object;)V", "p.Varargs.use:([Ljava/lang/String;[Ljava/lang/Object;)V", 39],
+  ["p/Varargs.java", 15, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.Varargs.use:([Ljava/lang/String;[Ljava/lang/Object;)V", 50],
+  ["p/Varargs.java", 15, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.Varargs.use:([Ljava/lang/String;[Ljava/lang/Object;)V", 57],
+  ["p/Varargs.java", 15, "invokevirtual", "p.Varargs", "v", "([Ljava/lang/Object;)V", "p.Varargs.use:([Ljava/lang/String;[Ljava/lang/Object;)V", 61],
+  ["p/Varargs.java", 16, "invokevirtual", "p.Varargs", "w", "(I[Ljava/lang/String;)V", "p.Varargs.use:([Ljava/lang/String;[Ljava/lang/Object;)V", 70],
+  ["p/Varargs.java", 17, "invokevirtual", "p.Varargs", "w", "(II)V", "p.Varargs.use:([Ljava/lang/String;[Ljava/lang/Object;)V", 76],
+  ["p/Varargs.java", 18, "invokevirtual", "p.Varargs", "w", "(I[Ljava/lang/String;)V", "p.Varargs.use:([Ljava/lang/String;[Ljava/lang/Object;)V", 90],
+  ["p/Varargs.java", 19, "invokevirtual", "p.Varargs", "w", "(I[Ljava/lang/String;)V", "p.Varargs.use:([Ljava/lang/String;[Ljava/lang/Object;)V", 109]
+ ],
+ "classes": {
+  "p.Varargs": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "([Ljava/lang/String;[Ljava/lang/Object;)V", 0], ["v", "(Ljava/lang/String;)V", 0], ["v", "([Ljava/lang/Object;)V", 128], ["v", "([Ljava/lang/String;)V", 128], ["w", "(II)V", 0], ["w", "(I[Ljava/lang/String;)V", 128]], "bridges": [], "compiler": []}
+ }
+}

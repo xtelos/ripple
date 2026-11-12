@@ -1,0 +1,30 @@
+{
+ "invokes": [
+  ["p/Handlers.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Event.<init>:()V", 1],
+  ["p/Handlers.java", 4, "invokespecial", "p.Event", "<init>", "()V", "p.Click.<init>:()V", 1],
+  ["p/Handlers.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Handler.<init>:()V", 1],
+  ["p/Handlers.java", 9, "invokespecial", "p.Handler", "<init>", "()V", "p.ClickHandler.<init>:()V", 1],
+  ["p/Handlers.java", 9, "invokevirtual", "p.ClickHandler", "handle", "(Lp/Click;)V", "p.ClickHandler.handle:(Ljava/lang/Object;)V", 5],
+  ["p/Handlers.java", 9, "invokevirtual", "p.ClickHandler", "handle", "(Lp/Click;I)V", "p.ClickHandler.handle:(Ljava/lang/Object;I)V", 6],
+  ["p/Handlers.java", 14, "invokespecial", "p.Handler", "<init>", "()V", "p.AnyHandler.<init>:()V", 1],
+  ["p/Handlers.java", 14, "invokevirtual", "p.AnyHandler", "handle", "(Lp/Event;)V", "p.AnyHandler.handle:(Ljava/lang/Object;)V", 5],
+  ["p/Handlers.java", 18, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Handlers.<init>:()V", 1],
+  ["p/Handlers.java", 20, "invokespecial", "p.Click", "<init>", "()V", "p.Handlers.h:(Lp/Handler;Lp/Handler;)V", 5],
+  ["p/Handlers.java", 20, "invokevirtual", "p.Handler", "handle", "(Ljava/lang/Object;)V", "p.Handlers.h:(Lp/Handler;Lp/Handler;)V", 8],
+  ["p/Handlers.java", 21, "invokespecial", "p.Click", "<init>", "()V", "p.Handlers.h:(Lp/Handler;Lp/Handler;)V", 16],
+  ["p/Handlers.java", 21, "invokevirtual", "p.Handler", "handle", "(Ljava/lang/Object;I)V", "p.Handlers.h:(Lp/Handler;Lp/Handler;)V", 20],
+  ["p/Handlers.java", 22, "invokespecial", "p.Event", "<init>", "()V", "p.Handlers.h:(Lp/Handler;Lp/Handler;)V", 28],
+  ["p/Handlers.java", 22, "invokevirtual", "p.Handler", "handle", "(Ljava/lang/Object;)V", "p.Handlers.h:(Lp/Handler;Lp/Handler;)V", 31],
+  ["p/Handlers.java", 23, "invokespecial", "p.ClickHandler", "<init>", "()V", "p.Handlers.h:(Lp/Handler;Lp/Handler;)V", 38],
+  ["p/Handlers.java", 23, "invokespecial", "p.Event", "<init>", "()V", "p.Handlers.h:(Lp/Handler;Lp/Handler;)V", 45],
+  ["p/Handlers.java", 23, "invokevirtual", "p.ClickHandler", "handle", "(Lp/Event;)V", "p.Handlers.h:(Lp/Handler;Lp/Handler;)V", 48]
+ ],
+ "classes": {
+  "p.AnyHandler": {"supers": ["java.lang.Object", "p.Handler"], "methods": [["<init>", "()V", 0], ["handle", "(Lp/Event;)V", 0]], "bridges": [["handle", "(Ljava/lang/Object;)V", "(Lp/Event;)V"]], "compiler": []},
+  "p.Click": {"supers": ["java.lang.Object", "p.Event"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.ClickHandler": {"supers": ["java.lang.Object", "p.Handler"], "methods": [["<init>", "()V", 0], ["handle", "(Lp/Click;)V", 0], ["handle", "(Lp/Click;I)V", 0], ["handle", "(Lp/Event;)V", 0]], "bridges": [["handle", "(Ljava/lang/Object;)V", "(Lp/Click;)V"], ["handle", "(Ljava/lang/Object;I)V", "(Lp/Click;I)V"]], "compiler": []},
+  "p.Event": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Handler": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["handle", "(Ljava/lang/Object;)V", 1024], ["handle", "(Ljava/lang/Object;I)V", 0]], "bridges": [], "compiler": []},
+  "p.Handlers": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Lp/Handler;Lp/Handler;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

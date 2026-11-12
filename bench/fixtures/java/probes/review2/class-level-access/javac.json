@@ -1,0 +1,23 @@
+{
+ "invokes": [
+  ["p/a/Pub.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.a.Hidden.<init>:()V", 1],
+  ["p/a/Pub.java", 5, "invokespecial", "p.a.Hidden", "<init>", "()V", "p.a.Pub.<init>:()V", 1],
+  ["p/a/Pub.java", 5, "invokespecial", "p.a.Hidden", "m", "(Ljava/lang/String;)V", "p.a.Pub.m:(Ljava/lang/String;)V", 2],
+  ["p/a/Pub.java", 5, "invokespecial", "p.a.Hidden", "q", "(Ljava/lang/Object;)V", "p.a.Pub.q:(Ljava/lang/Object;)V", 2],
+  ["p/a/Pub.java", 8, "invokespecial", "p.a.Pub", "<init>", "()V", "p.a.Pub.make:()Lp/a/Pub;", 4],
+  ["p/b/Use.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.b.Use.<init>:()V", 1],
+  ["p/b/Use.java", 7, "invokespecial", "p.a.Pub", "<init>", "()V", "p.b.Use.f:()V", 4],
+  ["p/b/Use.java", 7, "invokevirtual", "p.a.Pub", "m", "(Ljava/lang/String;)V", "p.b.Use.f:()V", 9],
+  ["p/b/Use.java", 8, "invokestatic", "p.a.Pub", "make", "()Lp/a/Pub;", "p.b.Use.f:()V", 12],
+  ["p/b/Use.java", 8, "invokevirtual", "p.a.Pub", "m", "(Ljava/lang/String;)V", "p.b.Use.f:()V", 17],
+  ["p/b/Use.java", 9, "invokespecial", "p.a.Pub", "<init>", "()V", "p.b.Use.f:()V", 24],
+  ["p/b/Use.java", 9, "invokevirtual", "p.a.Pub", "q", "(Ljava/lang/String;)V", "p.b.Use.f:()V", 29],
+  ["p/b/Use.java", 11, "invokespecial", "p.a.Pub", "<init>", "()V", "p.b.Use.f:()V", 39],
+  ["p/b/Use.java", 11, "invokevirtual", "p.a.Pub", "q", "(Ljava/lang/Object;)V", "p.b.Use.f:()V", 43]
+ ],
+ "classes": {
+  "p.a.Hidden": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "(Ljava/lang/String;)V", 1], ["q", "(Ljava/lang/Object;)V", 1]], "bridges": [], "compiler": []},
+  "p.a.Pub": {"supers": ["java.lang.Object", "p.a.Hidden"], "methods": [["<init>", "()V", 1], ["m", "(Ljava/lang/Object;)V", 1], ["make", "()Lp/a/Pub;", 9], ["q", "(Ljava/lang/String;)V", 1]], "bridges": [["m", "(Ljava/lang/String;)V", ""], ["q", "(Ljava/lang/Object;)V", ""]], "compiler": []},
+  "p.b.Use": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

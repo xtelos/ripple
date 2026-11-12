@@ -1,0 +1,20 @@
+{
+ "invokes": [
+  ["p/Imports.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Other.<init>:()V", 1],
+  ["p/Imports.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Cart.<init>:()V", 1],
+  ["p/Imports.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Cell.<init>:()V", 1],
+  ["p/Imports.java", 9, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Util.<init>:()V", 1],
+  ["p/Imports.java", 10, "invokespecial", "p.Other", "<init>", "()V", "p.Util.<clinit>:()V", 4],
+  ["p/Imports.java", 11, "invokespecial", "p.Other", "<init>", "()V", "p.Util.<clinit>:()V", 14],
+  ["p/Imports.java", 13, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Imports.<init>:()V", 1],
+  ["p/Imports.java", 15, "invokevirtual", "p.Other", "m", "()V", "p.Imports.h:()V", 3],
+  ["p/Imports.java", 16, "invokevirtual", "p.Other", "m", "()V", "p.Imports.h:()V", 9]
+ ],
+ "classes": {
+  "p.Cart": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 8]], "bridges": [], "compiler": []},
+  "p.Cell": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 8]], "bridges": [], "compiler": []},
+  "p.Imports": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Other": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 0], ["s", "()V", 8]], "bridges": [], "compiler": []},
+  "p.Util": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

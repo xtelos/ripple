@@ -1,0 +1,24 @@
+{
+ "invokes": [
+  ["p/Chains.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Chains.<init>:()V", 1],
+  ["p/Chains.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Chains$A.<init>:(Lp/Chains;)V", 1],
+  ["p/Chains.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Chains$A$B.<init>:(Lp/Chains$A;)V", 1],
+  ["p/Chains.java", 8, "invokespecial", "p.Chains$A$B", "<init>", "(Lp/Chains$A;)V", "p.Chains$A.make:()Lp/Chains$A$B;", 5],
+  ["p/Chains.java", 10, "invokespecial", "p.Chains$A", "<init>", "(Lp/Chains;)V", "p.Chains.<init>:()V", 10],
+  ["p/Chains.java", 12, "invokevirtual", "p.Chains$A", "make", "()Lp/Chains$A$B;", "p.Chains.use:(Lp/Chains;)V", 4],
+  ["p/Chains.java", 12, "invokevirtual", "p.Chains$A$B", "leaf", "()V", "p.Chains.use:(Lp/Chains;)V", 7],
+  ["p/Chains.java", 13, "invokespecial", "p.Chains$A$B", "<init>", "(Lp/Chains$A;)V", "p.Chains.use:(Lp/Chains;)V", 23],
+  ["p/Chains.java", 13, "invokestatic", "java.util.Objects", "requireNonNull", "(Ljava/lang/Object;)Ljava/lang/Object;", "p.Chains.use:(Lp/Chains;)V", 19],
+  ["p/Chains.java", 13, "invokevirtual", "p.Chains$A$B", "leaf", "()V", "p.Chains.use:(Lp/Chains;)V", 26],
+  ["p/Chains.java", 14, "invokevirtual", "p.Chains$A", "make", "()Lp/Chains$A$B;", "p.Chains.use:(Lp/Chains;)V", 33],
+  ["p/Chains.java", 14, "invokevirtual", "p.Chains$A$B", "leaf", "()V", "p.Chains.use:(Lp/Chains;)V", 36],
+  ["p/Chains.java", 15, "invokespecial", "p.Chains", "<init>", "()V", "p.Chains.use:(Lp/Chains;)V", 47],
+  ["p/Chains.java", 15, "invokespecial", "p.Chains$A", "<init>", "(Lp/Chains;)V", "p.Chains.use:(Lp/Chains;)V", 50],
+  ["p/Chains.java", 15, "invokevirtual", "p.Chains$A", "make", "()Lp/Chains$A$B;", "p.Chains.use:(Lp/Chains;)V", 53]
+ ],
+ "classes": {
+  "p.Chains": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Chains;)V", 0]], "bridges": [], "compiler": []},
+  "p.Chains$A": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/Chains;)V", 0], ["make", "()Lp/Chains$A$B;", 0]], "bridges": [], "compiler": []},
+  "p.Chains$A$B": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/Chains$A;)V", 0], ["leaf", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

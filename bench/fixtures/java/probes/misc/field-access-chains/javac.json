@@ -1,0 +1,26 @@
+{
+ "invokes": [
+  ["p/Fields.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Fields.<init>:()V", 1],
+  ["p/Fields.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Fields$Leaf.<init>:()V", 1],
+  ["p/Fields.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Fields$Mid.<init>:()V", 1],
+  ["p/Fields.java", 5, "invokespecial", "p.Fields$Leaf", "<init>", "()V", "p.Fields$Mid.<clinit>:()V", 4],
+  ["p/Fields.java", 5, "invokespecial", "p.Fields$Leaf", "<init>", "()V", "p.Fields$Mid.<init>:()V", 9],
+  ["p/Fields.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Fields$Top.<init>:()V", 1],
+  ["p/Fields.java", 6, "invokespecial", "p.Fields$Mid", "<init>", "()V", "p.Fields$Top.<init>:()V", 9],
+  ["p/Fields.java", 7, "invokespecial", "p.Fields$Top", "<init>", "()V", "p.Fields.<init>:()V", 9],
+  ["p/Fields.java", 8, "invokespecial", "p.Fields$Top", "<init>", "()V", "p.Fields.<clinit>:()V", 4],
+  ["p/Fields.java", 10, "invokevirtual", "p.Fields$Leaf", "go", "()V", "p.Fields.use:(Lp/Fields$Top;)V", 7],
+  ["p/Fields.java", 11, "invokevirtual", "p.Fields$Leaf", "go", "()V", "p.Fields.use:(Lp/Fields$Top;)V", 20],
+  ["p/Fields.java", 12, "invokevirtual", "p.Fields$Leaf", "go", "()V", "p.Fields.use:(Lp/Fields$Top;)V", 33],
+  ["p/Fields.java", 13, "invokevirtual", "p.Fields$Leaf", "go", "()V", "p.Fields.use:(Lp/Fields$Top;)V", 45],
+  ["p/Fields.java", 14, "invokevirtual", "p.Fields$Leaf", "go", "()V", "p.Fields.use:(Lp/Fields$Top;)V", 51],
+  ["p/Fields.java", 15, "invokevirtual", "p.Fields$Leaf", "go", "()V", "p.Fields.use:(Lp/Fields$Top;)V", 63],
+  ["p/Fields.java", 16, "invokevirtual", "p.Fields$Leaf", "go", "()V", "p.Fields.use:(Lp/Fields$Top;)V", 75]
+ ],
+ "classes": {
+  "p.Fields": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Fields$Top;)V", 0]], "bridges": [], "compiler": []},
+  "p.Fields$Leaf": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["go", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Fields$Mid": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Fields$Top": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

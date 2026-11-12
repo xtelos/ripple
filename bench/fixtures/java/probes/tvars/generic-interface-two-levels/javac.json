@@ -1,0 +1,28 @@
+{
+ "invokes": [
+  ["p/Visitors.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Item.<init>:()V", 1],
+  ["p/Visitors.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.BaseV.<init>:()V", 1],
+  ["p/Visitors.java", 6, "invokevirtual", "p.BaseV", "helper", "(Ljava/lang/Object;)V", "p.BaseV.visit:(Ljava/lang/Object;)V", 2],
+  ["p/Visitors.java", 9, "invokespecial", "p.BaseV", "<init>", "()V", "p.ItemV.<init>:()V", 1],
+  ["p/Visitors.java", 9, "invokevirtual", "p.ItemV", "visit", "(Lp/Item;)V", "p.ItemV.visit:(Ljava/lang/Object;)V", 5],
+  ["p/Visitors.java", 14, "invokespecial", "p.BaseV", "<init>", "()V", "p.StrV.<init>:()V", 1],
+  ["p/Visitors.java", 14, "invokevirtual", "p.StrV", "visit", "(Ljava/lang/String;)V", "p.StrV.visit:(Ljava/lang/Object;)V", 5],
+  ["p/Visitors.java", 19, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Visitors.<init>:()V", 1],
+  ["p/Visitors.java", 21, "invokeinterface", "p.Visitor", "visit", "(Ljava/lang/Object;)V", "p.Visitors.h:(Lp/Visitor;Lp/BaseV;Lp/ItemV;)V", 8],
+  ["p/Visitors.java", 21, "invokespecial", "p.Item", "<init>", "()V", "p.Visitors.h:(Lp/Visitor;Lp/BaseV;Lp/ItemV;)V", 5],
+  ["p/Visitors.java", 22, "invokevirtual", "p.BaseV", "visit", "(Ljava/lang/Object;)V", "p.Visitors.h:(Lp/Visitor;Lp/BaseV;Lp/ItemV;)V", 16],
+  ["p/Visitors.java", 23, "invokevirtual", "p.ItemV", "visit", "(Ljava/lang/String;)V", "p.Visitors.h:(Lp/Visitor;Lp/BaseV;Lp/ItemV;)V", 22],
+  ["p/Visitors.java", 24, "invokespecial", "p.Item", "<init>", "()V", "p.Visitors.h:(Lp/Visitor;Lp/BaseV;Lp/ItemV;)V", 30],
+  ["p/Visitors.java", 24, "invokevirtual", "p.ItemV", "visit", "(Lp/Item;)V", "p.Visitors.h:(Lp/Visitor;Lp/BaseV;Lp/ItemV;)V", 33],
+  ["p/Visitors.java", 25, "invokespecial", "p.StrV", "<init>", "()V", "p.Visitors.h:(Lp/Visitor;Lp/BaseV;Lp/ItemV;)V", 40],
+  ["p/Visitors.java", 25, "invokevirtual", "p.StrV", "visit", "(Ljava/lang/String;)V", "p.Visitors.h:(Lp/Visitor;Lp/BaseV;Lp/ItemV;)V", 45]
+ ],
+ "classes": {
+  "p.BaseV": {"supers": ["java.lang.Object", "p.Visitor"], "methods": [["<init>", "()V", 0], ["helper", "(Ljava/lang/Object;)V", 0], ["visit", "(Ljava/lang/Object;)V", 1]], "bridges": [], "compiler": []},
+  "p.Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.ItemV": {"supers": ["java.lang.Object", "p.BaseV", "p.Visitor"], "methods": [["<init>", "()V", 0], ["visit", "(Ljava/lang/String;)V", 1], ["visit", "(Lp/Item;)V", 1], ["visit", "(Lp/Item;I)V", 1]], "bridges": [["visit", "(Ljava/lang/Object;)V", "(Lp/Item;)V"]], "compiler": []},
+  "p.StrV": {"supers": ["java.lang.Object", "p.BaseV", "p.Visitor"], "methods": [["<init>", "()V", 0], ["visit", "(Ljava/lang/String;)V", 1], ["visit", "(Lp/Item;)V", 1]], "bridges": [["visit", "(Ljava/lang/Object;)V", "(Ljava/lang/String;)V"]], "compiler": []},
+  "p.Visitor": {"supers": ["java.lang.Object"], "methods": [["visit", "(Ljava/lang/Object;)V", 1025]], "bridges": [], "compiler": []},
+  "p.Visitors": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Lp/Visitor;Lp/BaseV;Lp/ItemV;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

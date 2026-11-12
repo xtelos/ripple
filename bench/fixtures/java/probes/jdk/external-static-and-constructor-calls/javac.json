@@ -1,0 +1,24 @@
+{
+ "invokes": [
+  ["p/Calls.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Calls.<init>:()V", 1],
+  ["p/Calls.java", 9, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Calls$Item.<init>:()V", 1],
+  ["p/Calls.java", 9, "invokevirtual", "p.Calls$Item", "compareTo", "(Lp/Calls$Item;)I", "p.Calls$Item.compareTo:(Ljava/lang/Object;)I", 5],
+  ["p/Calls.java", 14, "invokestatic", "java.util.Collections", "sort", "(Ljava/util/List;)V", "p.Calls.use:(Ljava/util/List;)V", 1],
+  ["p/Calls.java", 15, "invokestatic", "java.util.Collections", "emptyList", "()Ljava/util/List;", "p.Calls.use:(Ljava/util/List;)V", 4],
+  ["p/Calls.java", 16, "invokestatic", "java.util.Objects", "requireNonNull", "(Ljava/lang/Object;)Ljava/lang/Object;", "p.Calls.use:(Ljava/util/List;)V", 9],
+  ["p/Calls.java", 17, "invokestatic", "java.lang.String", "valueOf", "(I)Ljava/lang/String;", "p.Calls.use:(Ljava/util/List;)V", 14],
+  ["p/Calls.java", 18, "invokestatic", "java.lang.Integer", "parseInt", "(Ljava/lang/String;)I", "p.Calls.use:(Ljava/util/List;)V", 20],
+  ["p/Calls.java", 19, "invokespecial", "java.util.ArrayList", "<init>", "()V", "p.Calls.use:(Ljava/util/List;)V", 28],
+  ["p/Calls.java", 20, "invokespecial", "java.lang.StringBuilder", "<init>", "()V", "p.Calls.use:(Ljava/util/List;)V", 36],
+  ["p/Calls.java", 20, "invokevirtual", "java.lang.StringBuilder", "append", "(I)Ljava/lang/StringBuilder;", "p.Calls.use:(Ljava/util/List;)V", 45],
+  ["p/Calls.java", 20, "invokevirtual", "java.lang.StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", "p.Calls.use:(Ljava/util/List;)V", 41],
+  ["p/Calls.java", 20, "invokevirtual", "java.lang.StringBuilder", "toString", "()Ljava/lang/String;", "p.Calls.use:(Ljava/util/List;)V", 48],
+  ["p/Calls.java", 21, "invokevirtual", "java.io.PrintStream", "println", "(Ljava/lang/Object;)V", "p.Calls.use:(Ljava/util/List;)V", 56],
+  ["p/Calls.java", 22, "invokevirtual", "java.lang.String", "length", "()I", "p.Calls.use:(Ljava/util/List;)V", 61],
+  ["p/Calls.java", 23, "invokestatic", "java.lang.Math", "max", "(II)I", "p.Calls.use:(Ljava/util/List;)V", 67]
+ ],
+ "classes": {
+  "p.Calls": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Ljava/util/List;)V", 0]], "bridges": [], "compiler": []},
+  "p.Calls$Item": {"supers": ["java.lang.Comparable", "java.lang.Object"], "methods": [["<init>", "()V", 0], ["compareTo", "(Lp/Calls$Item;)I", 1], ["toString", "()Ljava/lang/String;", 1]], "bridges": [["compareTo", "(Ljava/lang/Object;)I", "(Lp/Calls$Item;)I"]], "compiler": []}
+ }
+}

@@ -1,0 +1,18 @@
+{
+ "invokes": [
+  ["p/Math.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Math.<init>:()V", 1],
+  ["p/Names.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Names.<init>:()V", 1],
+  ["p/Names.java", 5, "invokevirtual", "java.lang.String", "length", "()I", "p.Names.f:(Ljava/lang/String;)V", 1],
+  ["p/Names.java", 6, "invokevirtual", "java.io.PrintStream", "println", "()V", "p.Names.f:(Ljava/lang/String;)V", 8],
+  ["p/Names.java", 7, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.Names.f:(Ljava/lang/String;)V", 12],
+  ["p/Use.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Use.<init>:()V", 1],
+  ["p/Use.java", 5, "invokestatic", "p.Math", "max", "(Ljava/lang/String;Ljava/lang/String;)I", "p.Use.f:()V", 4],
+  ["p/Use.java", 6, "invokestatic", "p.Math", "abs", "(Ljava/lang/String;)I", "p.Use.f:()V", 10],
+  ["p/Use.java", 7, "invokestatic", "java.lang.Math", "abs", "(I)I", "p.Use.f:()V", 15]
+ ],
+ "classes": {
+  "p.Math": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["abs", "(Ljava/lang/String;)I", 9], ["max", "(Ljava/lang/String;Ljava/lang/String;)I", 9]], "bridges": [], "compiler": []},
+  "p.Names": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Ljava/lang/String;)V", 0]], "bridges": [], "compiler": []},
+  "p.Use": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

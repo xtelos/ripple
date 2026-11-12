@@ -1,0 +1,29 @@
+{
+ "invokes": [
+  ["p/Capture.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.PItem.<init>:()V", 1],
+  ["p/Capture.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Money.<init>:()V", 1],
+  ["p/Capture.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Capture.<init>:()V", 1],
+  ["p/Capture.java", 9, "invokespecial", "p.Money", "<init>", "()V", "p.Capture.<init>:()V", 9],
+  ["p/Capture.java", 12, "invokevirtual", "p.PItem", "add", "(I)V", "p.Capture.lambda$lambda$0:(Lp/PItem;)V", 2],
+  ["p/Capture.java", 13, "invokeinterface", "java.lang.Runnable", "run", "()V", "p.Capture.lambda:(Ljava/lang/Object;)V", 20],
+  ["p/Capture.java", 18, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Capture$1.<init>:(Lp/Capture;Lp/PItem;)V", 6],
+  ["p/Capture.java", 18, "invokespecial", "p.Capture$1", "<init>", "(Lp/Capture;Lp/PItem;)V", "p.Capture.anonymous:(Ljava/lang/Object;)V", 18],
+  ["p/Capture.java", 19, "invokevirtual", "p.PItem", "add", "(I)V", "p.Capture$1.run:()V", 5],
+  ["p/Capture.java", 21, "invokeinterface", "java.lang.Runnable", "run", "()V", "p.Capture.anonymous:(Ljava/lang/Object;)V", 23],
+  ["p/Capture.java", 26, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Capture$1L.<init>:(Lp/Capture;Lp/PItem;)V", 6],
+  ["p/Capture.java", 26, "invokevirtual", "p.PItem", "add", "(I)V", "p.Capture$1L.go:()V", 5],
+  ["p/Capture.java", 27, "invokespecial", "p.Capture$1L", "<init>", "(Lp/Capture;Lp/PItem;)V", "p.Capture.local:(Ljava/lang/Object;)V", 18],
+  ["p/Capture.java", 27, "invokevirtual", "p.Capture$1L", "go", "()V", "p.Capture.local:(Ljava/lang/Object;)V", 21],
+  ["p/Capture.java", 32, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.Capture.lambda$noField$1:(Lp/PItem;)Ljava/lang/Integer;", 6],
+  ["p/Capture.java", 32, "invokevirtual", "p.PItem", "add", "(I)V", "p.Capture.lambda$noField$1:(Lp/PItem;)Ljava/lang/Integer;", 2],
+  ["p/Capture.java", 33, "invokeinterface", "java.util.function.Supplier", "get", "()Ljava/lang/Object;", "p.Capture.noField:(Ljava/lang/Object;)V", 20],
+  ["p/Capture.java", 37, "invokevirtual", "p.Money", "add", "(I)V", "p.Capture.outside:()V", 5]
+ ],
+ "classes": {
+  "p.Capture": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["anonymous", "(Ljava/lang/Object;)V", 0], ["lambda", "(Ljava/lang/Object;)V", 0], ["local", "(Ljava/lang/Object;)V", 0], ["noField", "(Ljava/lang/Object;)V", 0], ["outside", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Capture$1": {"supers": ["java.lang.Object", "java.lang.Runnable"], "methods": [["<init>", "(Lp/Capture;Lp/PItem;)V", 0], ["run", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Capture$1L": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/Capture;Lp/PItem;)V", 0], ["go", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Money": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.PItem": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []}
+ }
+}

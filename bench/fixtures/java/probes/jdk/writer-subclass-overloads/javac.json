@@ -1,0 +1,18 @@
+{
+ "invokes": [
+  ["p/Ledger.java", 6, "invokespecial", "java.io.StringWriter", "<init>", "()V", "p.Ledger.<init>:()V", 1],
+  ["p/Ledger.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Ledger$Item.<init>:()V", 1],
+  ["p/Ledger.java", 11, "invokevirtual", "p.Ledger", "write", "(Ljava/lang/String;)V", "p.Ledger.write:(Lp/Ledger$Item;)V", 5],
+  ["p/Ledger.java", 11, "invokevirtual", "p.Ledger$Item", "name", "()Ljava/lang/String;", "p.Ledger.write:(Lp/Ledger$Item;)V", 2],
+  ["p/Ledger.java", 14, "invokevirtual", "p.Ledger", "write", "(Ljava/lang/String;)V", "p.Ledger.f:(Lp/Ledger$Item;)V", 3],
+  ["p/Ledger.java", 15, "invokevirtual", "p.Ledger", "write", "(Lp/Ledger$Item;)V", "p.Ledger.f:(Lp/Ledger$Item;)V", 8],
+  ["p/Ledger.java", 16, "invokevirtual", "p.Ledger", "write", "(Ljava/lang/String;)V", "p.Ledger.f:(Lp/Ledger$Item;)V", 16],
+  ["p/Ledger.java", 16, "invokevirtual", "p.Ledger$Item", "name", "()Ljava/lang/String;", "p.Ledger.f:(Lp/Ledger$Item;)V", 13],
+  ["p/Ledger.java", 17, "invokevirtual", "p.Ledger", "append", "(Ljava/lang/CharSequence;)Ljava/io/StringWriter;", "p.Ledger.f:(Lp/Ledger$Item;)V", 22],
+  ["p/Ledger.java", 18, "invokevirtual", "p.Ledger", "flush", "()V", "p.Ledger.f:(Lp/Ledger$Item;)V", 27]
+ ],
+ "classes": {
+  "p.Ledger": {"supers": ["java.io.Closeable", "java.io.Flushable", "java.io.StringWriter", "java.io.Writer", "java.lang.Appendable", "java.lang.AutoCloseable", "java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Lp/Ledger$Item;)V", 0], ["write", "(Lp/Ledger$Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.Ledger$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["name", "()Ljava/lang/String;", 0]], "bridges": [], "compiler": []}
+ }
+}

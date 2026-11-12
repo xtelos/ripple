@@ -1,0 +1,19 @@
+{
+ "invokes": [
+  ["p/Bound.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Box.<init>:()V", 1],
+  ["p/Bound.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Plain.<init>:()V", 1],
+  ["p/Bound.java", 13, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Bound.<init>:()V", 1],
+  ["p/Bound.java", 15, "invokevirtual", "p.Box", "put", "(Ljava/lang/Comparable;)V", "p.Bound.h:(Lp/Box;Lp/Plain;)V", 3],
+  ["p/Bound.java", 16, "invokevirtual", "p.Box", "put", "(Ljava/lang/String;I)V", "p.Bound.h:(Lp/Box;Lp/Plain;)V", 10],
+  ["p/Bound.java", 17, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.Bound.h:(Lp/Box;Lp/Plain;)V", 15],
+  ["p/Bound.java", 17, "invokevirtual", "p.Box", "put", "(Ljava/lang/Integer;)V", "p.Bound.h:(Lp/Box;Lp/Plain;)V", 18],
+  ["p/Bound.java", 18, "invokevirtual", "p.Plain", "put", "(Ljava/lang/String;)V", "p.Bound.h:(Lp/Box;Lp/Plain;)V", 24],
+  ["p/Bound.java", 19, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.Bound.h:(Lp/Box;Lp/Plain;)V", 29],
+  ["p/Bound.java", 19, "invokevirtual", "p.Plain", "put", "(Ljava/lang/Object;)V", "p.Bound.h:(Lp/Box;Lp/Plain;)V", 32]
+ ],
+ "classes": {
+  "p.Bound": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Lp/Box;Lp/Plain;)V", 0]], "bridges": [], "compiler": []},
+  "p.Box": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["put", "(Ljava/lang/Comparable;)V", 0], ["put", "(Ljava/lang/Integer;)V", 0], ["put", "(Ljava/lang/String;I)V", 0]], "bridges": [], "compiler": []},
+  "p.Plain": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["put", "(Ljava/lang/Object;)V", 0], ["put", "(Ljava/lang/String;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

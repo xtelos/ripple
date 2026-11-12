@@ -1,0 +1,13 @@
+{
+ "invokes": [
+  ["p/Params.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Params.<init>:()V", 1],
+  ["p/Params.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Params$Entry.<init>:()V", 1],
+  ["p/Params.java", 13, "invokevirtual", "p.Params$Entry", "put", "(Ljava/util/Map$Entry;)V", "p.Params.use:(Lp/Params$Entry;Ljava/util/Map$Entry;)V", 2],
+  ["p/Params.java", 14, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.Params.use:(Lp/Params$Entry;Ljava/util/Map$Entry;)V", 11],
+  ["p/Params.java", 14, "invokevirtual", "p.Params$Entry", "put", "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V", "p.Params.use:(Lp/Params$Entry;Ljava/util/Map$Entry;)V", 14]
+ ],
+ "classes": {
+  "p.Params": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Params$Entry;Ljava/util/Map$Entry;)V", 0]], "bridges": [], "compiler": []},
+  "p.Params$Entry": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["put", "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V", 0], ["put", "(Ljava/util/Map$Entry;)V", 0], ["put", "([Ljava/util/List;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

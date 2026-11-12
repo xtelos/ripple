@@ -1,0 +1,11 @@
+{
+ "invokes": [
+  ["p/b/Use.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.b.Use.<init>:()V", 1],
+  ["p/b/Use.java", 8, "invokeinterface", "p.a.Shape", "draw", "(Ljava/lang/String;)V", "p.b.Use.f:(Lp/a/Shape;)V", 3],
+  ["p/b/Use.java", 9, "invokevirtual", "p.b.Use", "draw", "(Ljava/lang/String;)V", "p.b.Use.f:(Lp/a/Shape;)V", 11]
+ ],
+ "classes": {
+  "p.a.Shape": {"supers": ["java.lang.Object"], "methods": [["draw", "(Ljava/lang/Object;)V", 1], ["draw", "(Ljava/lang/String;)V", 1025]], "bridges": [], "compiler": []},
+  "p.b.Use": {"supers": ["java.lang.Object", "p.a.Shape"], "methods": [["<init>", "()V", 1], ["draw", "(Ljava/lang/String;)V", 1], ["f", "(Lp/a/Shape;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

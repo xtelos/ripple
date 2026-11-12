@@ -1,0 +1,30 @@
+{
+ "invokes": [
+  ["p/QualField.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Inner.<init>:()V", 1],
+  ["p/QualField.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Other.<init>:()V", 1],
+  ["p/QualField.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Outer.<init>:()V", 1],
+  ["p/QualField.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Outer$Inner.<init>:()V", 1],
+  ["p/QualField.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Outer$OnlyType.<init>:()V", 1],
+  ["p/QualField.java", 10, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Outer$Mixed2.<init>:()V", 1],
+  ["p/QualField.java", 12, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Both.<init>:()V", 1],
+  ["p/QualField.java", 13, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Both$Both2.<init>:()V", 1],
+  ["p/QualField.java", 15, "invokestatic", "p.Other", "m", "()V", "p.Both.call:()V", 4],
+  ["p/QualField.java", 17, "invokespecial", "java.lang.Object", "<init>", "()V", "p.QualField.<init>:()V", 1],
+  ["p/QualField.java", 19, "invokestatic", "p.Other", "m", "()V", "p.QualField.h:()V", 4],
+  ["p/QualField.java", 20, "invokestatic", "p.Outer$OnlyType", "m", "()V", "p.QualField.h:()V", 7],
+  ["p/QualField.java", 21, "invokestatic", "p.Other", "m", "()V", "p.QualField.h:()V", 14],
+  ["p/QualField.java", 22, "invokestatic", "p.Outer$Mixed2", "m", "()V", "p.QualField.h:()V", 17],
+  ["p/QualField.java", 23, "invokestatic", "p.Other", "m", "()V", "p.QualField.h:()V", 24]
+ ],
+ "classes": {
+  "p.Both": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["call", "()V", 8]], "bridges": [], "compiler": []},
+  "p.Both$Both2": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 8]], "bridges": [], "compiler": []},
+  "p.Inner": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 8]], "bridges": [], "compiler": []},
+  "p.Other": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 8]], "bridges": [], "compiler": []},
+  "p.Outer": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Outer$Inner": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 8]], "bridges": [], "compiler": []},
+  "p.Outer$Mixed2": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 8]], "bridges": [], "compiler": []},
+  "p.Outer$OnlyType": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 8]], "bridges": [], "compiler": []},
+  "p.QualField": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

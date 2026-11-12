@@ -1,0 +1,22 @@
+{
+ "invokes": [
+  ["p/a/Outer.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.a.Outer.<init>:()V", 1],
+  ["p/a/Outer.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.a.Outer$Inner.<init>:()V", 1],
+  ["p/b/Use.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.b.Use.<init>:()V", 1],
+  ["p/b/Use.java", 8, "invokestatic", "p.a.Outer$Inner", "sm", "()V", "p.b.Use.f:(Lp/a/Outer$Inner;Lp/a/Outer$Inner;Lp/a/Outer$Inner;)V", 0],
+  ["p/b/Use.java", 9, "invokestatic", "p.a.Outer$Inner", "sm", "()V", "p.b.Use.f:(Lp/a/Outer$Inner;Lp/a/Outer$Inner;Lp/a/Outer$Inner;)V", 3],
+  ["p/b/Use.java", 10, "invokestatic", "p.a.Outer$Inner", "sm", "()V", "p.b.Use.f:(Lp/a/Outer$Inner;Lp/a/Outer$Inner;Lp/a/Outer$Inner;)V", 6],
+  ["p/b/Use.java", 11, "invokevirtual", "p.a.Outer$Inner", "im", "()V", "p.b.Use.f:(Lp/a/Outer$Inner;Lp/a/Outer$Inner;Lp/a/Outer$Inner;)V", 10],
+  ["p/b/Use.java", 12, "invokevirtual", "p.a.Outer$Inner", "im", "()V", "p.b.Use.f:(Lp/a/Outer$Inner;Lp/a/Outer$Inner;Lp/a/Outer$Inner;)V", 14],
+  ["p/b/Use.java", 13, "invokevirtual", "p.a.Outer$Inner", "im", "()V", "p.b.Use.f:(Lp/a/Outer$Inner;Lp/a/Outer$Inner;Lp/a/Outer$Inner;)V", 18],
+  ["p/b/Use.java", 14, "invokespecial", "p.a.Outer$Inner", "<init>", "()V", "p.b.Use.f:(Lp/a/Outer$Inner;Lp/a/Outer$Inner;Lp/a/Outer$Inner;)V", 25],
+  ["p/b/Use.java", 14, "invokevirtual", "p.a.Outer$Inner", "im", "()V", "p.b.Use.f:(Lp/a/Outer$Inner;Lp/a/Outer$Inner;Lp/a/Outer$Inner;)V", 28],
+  ["p/b/Use.java", 15, "invokespecial", "p.a.Outer$Inner", "<init>", "()V", "p.b.Use.f:(Lp/a/Outer$Inner;Lp/a/Outer$Inner;Lp/a/Outer$Inner;)V", 35],
+  ["p/b/Use.java", 15, "invokevirtual", "p.a.Outer$Inner", "im", "()V", "p.b.Use.f:(Lp/a/Outer$Inner;Lp/a/Outer$Inner;Lp/a/Outer$Inner;)V", 38]
+ ],
+ "classes": {
+  "p.a.Outer": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1]], "bridges": [], "compiler": []},
+  "p.a.Outer$Inner": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["im", "()V", 1], ["sm", "()V", 9]], "bridges": [], "compiler": []},
+  "p.b.Use": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Lp/a/Outer$Inner;Lp/a/Outer$Inner;Lp/a/Outer$Inner;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

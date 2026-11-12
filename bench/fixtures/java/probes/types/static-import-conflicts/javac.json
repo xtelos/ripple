@@ -1,0 +1,23 @@
+{
+ "invokes": [
+  ["p/Clash.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Clash.<init>:()V", 1],
+  ["p/Clash.java", 10, "invokestatic", "java.lang.Math", "max", "(II)I", "p.Clash.f:()V", 2],
+  ["p/Clash.java", 11, "invokestatic", "p.Util", "max", "(Ljava/lang/String;Ljava/lang/String;)I", "p.Clash.f:()V", 10],
+  ["p/Clash.java", 12, "invokestatic", "p.Other", "unique", "()V", "p.Clash.f:()V", 14],
+  ["p/Inherits.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Inherits.<init>:()V", 1],
+  ["p/Inherits.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Inherits$Base.<init>:()V", 1],
+  ["p/Inherits.java", 9, "invokespecial", "p.Inherits$Base", "<init>", "()V", "p.Inherits$Sub.<init>:()V", 1],
+  ["p/Inherits.java", 11, "invokevirtual", "p.Inherits$Sub", "max", "(III)V", "p.Inherits$Sub.f:()V", 4],
+  ["p/Inherits.java", 15, "invokestatic", "p.Util", "max", "(Ljava/lang/String;Ljava/lang/String;)I", "p.Inherits.g:()V", 4],
+  ["p/Other.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Other.<init>:()V", 1],
+  ["p/Util.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Util.<init>:()V", 1]
+ ],
+ "classes": {
+  "p.Clash": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Inherits": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["g", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Inherits$Base": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["max", "(III)V", 0]], "bridges": [], "compiler": []},
+  "p.Inherits$Sub": {"supers": ["java.lang.Object", "p.Inherits$Base"], "methods": [["<init>", "()V", 0], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Other": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["shared", "()V", 9], ["unique", "()V", 9]], "bridges": [], "compiler": []},
+  "p.Util": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["max", "(Ljava/lang/String;Ljava/lang/String;)I", 9], ["shared", "()V", 9]], "bridges": [], "compiler": []}
+ }
+}

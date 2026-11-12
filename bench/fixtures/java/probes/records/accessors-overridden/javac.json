@@ -1,0 +1,22 @@
+{
+ "invokes": [
+  ["p/Accessors.java", 4, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Person.<init>:(Ljava/lang/String;I)V", 1],
+  ["p/Accessors.java", 5, "invokevirtual", "java.lang.String", "trim", "()Ljava/lang/String;", "p.Person.name:()Ljava/lang/String;", 4],
+  ["p/Accessors.java", 7, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Plain.<init>:(Ljava/lang/String;)V", 1],
+  ["p/Accessors.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Other.<init>:()V", 1],
+  ["p/Accessors.java", 10, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Accessors.<init>:()V", 1],
+  ["p/Accessors.java", 11, "invokespecial", "p.Other", "<init>", "()V", "p.Accessors.<init>:()V", 9],
+  ["p/Accessors.java", 13, "invokevirtual", "p.Person", "name", "()Ljava/lang/String;", "p.Accessors.h:(Lp/Person;Lp/Plain;Lp/Named;)V", 1],
+  ["p/Accessors.java", 14, "invokevirtual", "p.Person", "age", "()I", "p.Accessors.h:(Lp/Person;Lp/Plain;Lp/Named;)V", 6],
+  ["p/Accessors.java", 15, "invokevirtual", "p.Plain", "name", "()Ljava/lang/String;", "p.Accessors.h:(Lp/Person;Lp/Plain;Lp/Named;)V", 11],
+  ["p/Accessors.java", 16, "invokeinterface", "p.Named", "name", "()Ljava/lang/String;", "p.Accessors.h:(Lp/Person;Lp/Plain;Lp/Named;)V", 16],
+  ["p/Accessors.java", 17, "invokevirtual", "p.Other", "age", "()I", "p.Accessors.h:(Lp/Person;Lp/Plain;Lp/Named;)V", 26]
+ ],
+ "classes": {
+  "p.Accessors": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Lp/Person;Lp/Plain;Lp/Named;)V", 0]], "bridges": [], "compiler": []},
+  "p.Named": {"supers": ["java.lang.Object"], "methods": [["name", "()Ljava/lang/String;", 1025]], "bridges": [], "compiler": []},
+  "p.Other": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["age", "()I", 0], ["name", "()Ljava/lang/String;", 0]], "bridges": [], "compiler": []},
+  "p.Person": {"supers": ["java.lang.Object", "java.lang.Record", "p.Named"], "methods": [["<init>", "(Ljava/lang/String;I)V", 0]], "bridges": [], "compiler": [["age", "()I", 1], ["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["name", "()Ljava/lang/String;", 1], ["toString", "()Ljava/lang/String;", 17]]},
+  "p.Plain": {"supers": ["java.lang.Object", "java.lang.Record", "p.Named"], "methods": [["<init>", "(Ljava/lang/String;)V", 0]], "bridges": [], "compiler": [["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["name", "()Ljava/lang/String;", 1], ["toString", "()Ljava/lang/String;", 17]]}
+ }
+}

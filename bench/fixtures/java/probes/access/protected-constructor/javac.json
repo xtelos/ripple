@@ -1,0 +1,12 @@
+{
+ "invokes": [
+  ["p/a/Ctor.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.a.Ctor.<init>:(Ljava/lang/String;)V", 1],
+  ["p/a/Ctor.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.a.Ctor.<init>:(Ljava/lang/Object;)V", 1],
+  ["p/b/Make.java", 7, "invokespecial", "p.a.Ctor", "<init>", "(Ljava/lang/String;)V", "p.b.Make.<init>:()V", 3],
+  ["p/b/Make.java", 10, "invokespecial", "p.a.Ctor", "<init>", "(Ljava/lang/Object;)V", "p.b.Make.one:()Lp/a/Ctor;", 6]
+ ],
+ "classes": {
+  "p.a.Ctor": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Ljava/lang/Object;)V", 1], ["<init>", "(Ljava/lang/String;)V", 4]], "bridges": [], "compiler": []},
+  "p.b.Make": {"supers": ["java.lang.Object", "p.a.Ctor"], "methods": [["<init>", "()V", 0], ["one", "()Lp/a/Ctor;", 8]], "bridges": [], "compiler": []}
+ }
+}

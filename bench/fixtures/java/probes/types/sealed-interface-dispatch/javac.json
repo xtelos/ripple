@@ -1,0 +1,18 @@
+{
+ "invokes": [
+  ["p/Shapes.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Shapes.<init>:()V", 1],
+  ["p/Shapes.java", 8, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Shapes$Circle.<init>:(D)V", 1],
+  ["p/Shapes.java", 11, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Shapes$Square.<init>:(D)V", 1],
+  ["p/Shapes.java", 16, "invokeinterface", "p.Shapes$Shape", "area", "()D", "p.Shapes.use:(Lp/Shapes$Shape;Lp/Shapes$Circle;Lp/Shapes$Square;)V", 1],
+  ["p/Shapes.java", 17, "invokeinterface", "p.Shapes$Shape", "label", "()Ljava/lang/String;", "p.Shapes.use:(Lp/Shapes$Shape;Lp/Shapes$Circle;Lp/Shapes$Square;)V", 8],
+  ["p/Shapes.java", 18, "invokevirtual", "p.Shapes$Circle", "area", "()D", "p.Shapes.use:(Lp/Shapes$Shape;Lp/Shapes$Circle;Lp/Shapes$Square;)V", 15],
+  ["p/Shapes.java", 19, "invokevirtual", "p.Shapes$Circle", "label", "()Ljava/lang/String;", "p.Shapes.use:(Lp/Shapes$Shape;Lp/Shapes$Circle;Lp/Shapes$Square;)V", 20],
+  ["p/Shapes.java", 20, "invokevirtual", "p.Shapes$Square", "label", "()Ljava/lang/String;", "p.Shapes.use:(Lp/Shapes$Shape;Lp/Shapes$Circle;Lp/Shapes$Square;)V", 25]
+ ],
+ "classes": {
+  "p.Shapes": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Shapes$Shape;Lp/Shapes$Circle;Lp/Shapes$Square;)V", 0]], "bridges": [], "compiler": []},
+  "p.Shapes$Circle": {"supers": ["java.lang.Object", "java.lang.Record", "p.Shapes$Shape"], "methods": [["<init>", "(D)V", 0], ["area", "()D", 1]], "bridges": [], "compiler": [["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["r", "()D", 1], ["toString", "()Ljava/lang/String;", 17]]},
+  "p.Shapes$Shape": {"supers": ["java.lang.Object"], "methods": [["area", "()D", 1025], ["label", "()Ljava/lang/String;", 1]], "bridges": [], "compiler": []},
+  "p.Shapes$Square": {"supers": ["java.lang.Object", "java.lang.Record", "p.Shapes$Shape"], "methods": [["<init>", "(D)V", 0], ["area", "()D", 1], ["label", "()Ljava/lang/String;", 1]], "bridges": [], "compiler": [["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["s", "()D", 1], ["toString", "()Ljava/lang/String;", 17]]}
+ }
+}

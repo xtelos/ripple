@@ -1,0 +1,16 @@
+{
+ "invokes": [
+  ["p/Beats.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Beats.<init>:()V", 1],
+  ["p/Beats.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Beats$A.<init>:()V", 1],
+  ["p/Beats.java", 7, "invokespecial", "p.Beats$A", "<init>", "()V", "p.Beats$B.<init>:()V", 1],
+  ["p/Beats.java", 9, "invokevirtual", "p.Beats$B", "v", "()I", "p.Beats.use:(Lp/Beats$B;Lp/Beats$J;)V", 1],
+  ["p/Beats.java", 10, "invokeinterface", "p.Beats$J", "v", "()I", "p.Beats.use:(Lp/Beats$B;Lp/Beats$J;)V", 6]
+ ],
+ "classes": {
+  "p.Beats": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Beats$B;Lp/Beats$J;)V", 0]], "bridges": [], "compiler": []},
+  "p.Beats$A": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["v", "()I", 1]], "bridges": [], "compiler": []},
+  "p.Beats$B": {"supers": ["java.lang.Object", "p.Beats$A", "p.Beats$I", "p.Beats$J"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Beats$I": {"supers": ["java.lang.Object"], "methods": [["v", "()I", 1]], "bridges": [], "compiler": []},
+  "p.Beats$J": {"supers": ["java.lang.Object", "p.Beats$I"], "methods": [["v", "()I", 1]], "bridges": [], "compiler": []}
+ }
+}

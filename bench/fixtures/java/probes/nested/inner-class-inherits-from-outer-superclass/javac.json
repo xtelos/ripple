@@ -1,0 +1,17 @@
+{
+ "invokes": [
+  ["p/Chain.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Chain.<init>:()V", 1],
+  ["p/Chain.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Chain$Root.<init>:()V", 1],
+  ["p/Chain.java", 8, "invokespecial", "p.Chain$Root", "<init>", "()V", "p.Chain$Mid.<init>:()V", 1],
+  ["p/Chain.java", 10, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Chain$Mid$Leaf.<init>:(Lp/Chain$Mid;)V", 6],
+  ["p/Chain.java", 12, "invokevirtual", "p.Chain$Mid", "walk", "()V", "p.Chain$Mid$Leaf.f:()V", 4],
+  ["p/Chain.java", 13, "invokevirtual", "p.Chain$Mid", "run", "(I)V", "p.Chain$Mid$Leaf.f:()V", 12],
+  ["p/Chain.java", 14, "invokevirtual", "p.Chain$Mid", "run", "(Ljava/lang/String;)V", "p.Chain$Mid$Leaf.f:()V", 21]
+ ],
+ "classes": {
+  "p.Chain": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Chain$Mid": {"supers": ["java.lang.Object", "p.Chain$Root"], "methods": [["<init>", "()V", 0], ["run", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.Chain$Mid$Leaf": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/Chain$Mid;)V", 0], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Chain$Root": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["run", "(Ljava/lang/String;)V", 0], ["walk", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

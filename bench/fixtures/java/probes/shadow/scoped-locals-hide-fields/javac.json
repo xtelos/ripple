@@ -1,0 +1,29 @@
+{
+ "invokes": [
+  ["p/ScopedLocals.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.ScopedLocals.<init>:()V", 1],
+  ["p/ScopedLocals.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.ScopedLocals$Money.<init>:()V", 1],
+  ["p/ScopedLocals.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.ScopedLocals$Item.<init>:()V", 1],
+  ["p/ScopedLocals.java", 9, "invokespecial", "p.ScopedLocals$Money", "<init>", "()V", "p.ScopedLocals.<init>:()V", 9],
+  ["p/ScopedLocals.java", 10, "invokespecial", "p.ScopedLocals$Money", "<init>", "()V", "p.ScopedLocals.<init>:()V", 20],
+  ["p/ScopedLocals.java", 11, "invokespecial", "p.ScopedLocals$Money", "<init>", "()V", "p.ScopedLocals.<init>:()V", 31],
+  ["p/ScopedLocals.java", 13, "invokespecial", "p.ScopedLocals$Item", "<init>", "()V", "p.ScopedLocals.f:([Lp/ScopedLocals$Item;)V", 4],
+  ["p/ScopedLocals.java", 14, "invokevirtual", "p.ScopedLocals$Item", "add", "(I)V", "p.ScopedLocals.f:([Lp/ScopedLocals$Item;)V", 14],
+  ["p/ScopedLocals.java", 16, "invokevirtual", "p.ScopedLocals$Money", "add", "(I)V", "p.ScopedLocals.f:([Lp/ScopedLocals$Item;)V", 27],
+  ["p/ScopedLocals.java", 18, "invokevirtual", "p.ScopedLocals$Item", "add", "(I)V", "p.ScopedLocals.f:([Lp/ScopedLocals$Item;)V", 53],
+  ["p/ScopedLocals.java", 20, "invokevirtual", "p.ScopedLocals$Money", "add", "(I)V", "p.ScopedLocals.f:([Lp/ScopedLocals$Item;)V", 67],
+  ["p/ScopedLocals.java", 21, "invokespecial", "p.ScopedLocals$Item", "<init>", "()V", "p.ScopedLocals.f:([Lp/ScopedLocals$Item;)V", 74],
+  ["p/ScopedLocals.java", 21, "invokevirtual", "java.lang.Throwable", "addSuppressed", "(Ljava/lang/Throwable;)V", "p.ScopedLocals.f:([Lp/ScopedLocals$Item;)V", 103],
+  ["p/ScopedLocals.java", 21, "invokevirtual", "p.ScopedLocals$Item", "close", "()V", "p.ScopedLocals.f:([Lp/ScopedLocals$Item;)V", 92],
+  ["p/ScopedLocals.java", 22, "invokevirtual", "p.ScopedLocals$Item", "add", "(I)V", "p.ScopedLocals.f:([Lp/ScopedLocals$Item;)V", 80],
+  ["p/ScopedLocals.java", 23, "invokevirtual", "p.ScopedLocals$Item", "close", "()V", "p.ScopedLocals.f:([Lp/ScopedLocals$Item;)V", 84],
+  ["p/ScopedLocals.java", 24, "invokevirtual", "p.ScopedLocals$Money", "add", "(I)V", "p.ScopedLocals.f:([Lp/ScopedLocals$Item;)V", 114],
+  ["p/ScopedLocals.java", 26, "invokevirtual", "p.ScopedLocals$Money", "add", "(I)V", "p.ScopedLocals.f:([Lp/ScopedLocals$Item;)V", 123],
+  ["p/ScopedLocals.java", 28, "invokevirtual", "java.lang.RuntimeException", "getMessage", "()Ljava/lang/String;", "p.ScopedLocals.f:([Lp/ScopedLocals$Item;)V", 131],
+  ["p/ScopedLocals.java", 30, "invokevirtual", "p.ScopedLocals$Money", "add", "(I)V", "p.ScopedLocals.f:([Lp/ScopedLocals$Item;)V", 141]
+ ],
+ "classes": {
+  "p.ScopedLocals": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "([Lp/ScopedLocals$Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.ScopedLocals$Item": {"supers": ["java.lang.AutoCloseable", "java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0], ["close", "()V", 1]], "bridges": [], "compiler": []},
+  "p.ScopedLocals$Money": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []}
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "invokes": [
+  ["p/Ifaces.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Ifaces.<init>:()V", 1],
+  ["p/Ifaces.java", 6, "invokeinterface", "p.Ifaces$Greeter", "name", "()Ljava/lang/String;", "p.Ifaces$Greeter.greet:()Ljava/lang/String;", 7],
+  ["p/Ifaces.java", 6, "invokeinterface", "p.Ifaces$Greeter", "prefix", "()Ljava/lang/String;", "p.Ifaces$Greeter.greet:()Ljava/lang/String;", 1],
+  ["p/Ifaces.java", 11, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Ifaces$English.<init>:()V", 1],
+  ["p/Ifaces.java", 14, "invokevirtual", "p.Ifaces$English", "greet", "()Ljava/lang/String;", "p.Ifaces$English.f:()V", 1],
+  ["p/Ifaces.java", 15, "invokestatic", "p.Ifaces$Greeter", "log", "(Ljava/lang/String;)V", "p.Ifaces$English.f:()V", 7],
+  ["p/Ifaces.java", 16, "invokeinterface", "p.Ifaces$Greeter", "greet", "()Ljava/lang/String;", "p.Ifaces$English.f:()V", 15],
+  ["p/Ifaces.java", 16, "invokestatic", "p.Ifaces$Greeter", "of", "(Ljava/lang/String;)Lp/Ifaces$Greeter;", "p.Ifaces$English.f:()V", 12],
+  ["p/Ifaces.java", 20, "invokeinterface", "p.Ifaces$Greeter", "greet", "()Ljava/lang/String;", "p.Ifaces.use:(Lp/Ifaces$Greeter;Lp/Ifaces$English;)V", 1],
+  ["p/Ifaces.java", 21, "invokevirtual", "p.Ifaces$English", "greet", "()Ljava/lang/String;", "p.Ifaces.use:(Lp/Ifaces$Greeter;Lp/Ifaces$English;)V", 8],
+  ["p/Ifaces.java", 22, "invokevirtual", "p.Ifaces$English", "name", "()Ljava/lang/String;", "p.Ifaces.use:(Lp/Ifaces$Greeter;Lp/Ifaces$English;)V", 13],
+  ["p/Ifaces.java", 23, "invokestatic", "p.Ifaces$Greeter", "of", "(Ljava/lang/String;)Lp/Ifaces$Greeter;", "p.Ifaces.use:(Lp/Ifaces$Greeter;Lp/Ifaces$English;)V", 19]
+ ],
+ "classes": {
+  "p.Ifaces": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Ifaces$Greeter;Lp/Ifaces$English;)V", 0]], "bridges": [], "compiler": []},
+  "p.Ifaces$English": {"supers": ["java.lang.Object", "p.Ifaces$Greeter"], "methods": [["<init>", "()V", 0], ["f", "()V", 0], ["name", "()Ljava/lang/String;", 1]], "bridges": [], "compiler": []},
+  "p.Ifaces$Greeter": {"supers": ["java.lang.Object"], "methods": [["greet", "()Ljava/lang/String;", 1], ["log", "(Ljava/lang/String;)V", 9], ["name", "()Ljava/lang/String;", 1025], ["of", "(Ljava/lang/String;)Lp/Ifaces$Greeter;", 9], ["prefix", "()Ljava/lang/String;", 2]], "bridges": [], "compiler": []}
+ }
+}

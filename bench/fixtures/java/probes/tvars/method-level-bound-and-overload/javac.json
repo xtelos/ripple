@@ -1,0 +1,20 @@
+{
+ "invokes": [
+  ["p/MethodBound.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Item.<init>:()V", 1],
+  ["p/MethodBound.java", 4, "invokespecial", "p.Item", "<init>", "()V", "p.Special.<init>:()V", 1],
+  ["p/MethodBound.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.MethodBound.<init>:()V", 1],
+  ["p/MethodBound.java", 15, "invokevirtual", "p.MethodBound", "add", "(Lp/Item;)V", "p.MethodBound.h:(Lp/Item;Lp/Special;)V", 2],
+  ["p/MethodBound.java", 16, "invokevirtual", "p.MethodBound", "add", "(Lp/Special;)V", "p.MethodBound.h:(Lp/Item;Lp/Special;)V", 7],
+  ["p/MethodBound.java", 17, "invokevirtual", "p.MethodBound", "add", "(Ljava/lang/String;)V", "p.MethodBound.h:(Lp/Item;Lp/Special;)V", 13],
+  ["p/MethodBound.java", 18, "invokevirtual", "p.MethodBound", "max", "(II)I", "p.MethodBound.h:(Lp/Item;Lp/Special;)V", 19],
+  ["p/MethodBound.java", 19, "invokevirtual", "p.MethodBound", "max", "(Ljava/lang/Comparable;Ljava/lang/Comparable;)Ljava/lang/Comparable;", "p.MethodBound.h:(Lp/Item;Lp/Special;)V", 28],
+  ["p/MethodBound.java", 20, "invokestatic", "p.MethodBound", "w", "(Ljava/lang/String;)V", "p.MethodBound.h:(Lp/Item;Lp/Special;)V", 34],
+  ["p/MethodBound.java", 21, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.MethodBound.h:(Lp/Item;Lp/Special;)V", 38],
+  ["p/MethodBound.java", 21, "invokestatic", "p.MethodBound", "w", "(Ljava/lang/Object;)V", "p.MethodBound.h:(Lp/Item;Lp/Special;)V", 41]
+ ],
+ "classes": {
+  "p.Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []},
+  "p.MethodBound": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["add", "(Ljava/lang/String;)V", 0], ["add", "(Lp/Item;)V", 0], ["add", "(Lp/Special;)V", 0], ["h", "(Lp/Item;Lp/Special;)V", 0], ["max", "(II)I", 0], ["max", "(Ljava/lang/Comparable;Ljava/lang/Comparable;)Ljava/lang/Comparable;", 0], ["w", "(Ljava/lang/Object;)V", 8], ["w", "(Ljava/lang/String;)V", 8]], "bridges": [], "compiler": []},
+  "p.Special": {"supers": ["java.lang.Object", "p.Item"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "invokes": [
+  ["p/Lambdas.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Lambdas.<init>:()V", 1],
+  ["p/Lambdas.java", 16, "invokevirtual", "p.Lambdas", "run", "(Ljava/lang/Runnable;)V", "p.Lambdas.use:()V", 6],
+  ["p/Lambdas.java", 17, "invokevirtual", "p.Lambdas", "run", "(Ljava/lang/Runnable;)V", "p.Lambdas.use:()V", 16],
+  ["p/Lambdas.java", 17, "invokevirtual", "p.Lambdas", "task", "()V", "p.Lambdas.lambda$use$1:()V", 1],
+  ["p/Lambdas.java", 18, "invokevirtual", "p.Lambdas", "run", "(Ljava/lang/Runnable;)V", "p.Lambdas.use:()V", 26],
+  ["p/Lambdas.java", 19, "invokevirtual", "p.Lambdas", "apply", "(Ljava/util/function/Function;)V", "p.Lambdas.use:()V", 35],
+  ["p/Lambdas.java", 20, "invokevirtual", "p.Lambdas", "apply", "(Ljava/util/function/Supplier;)V", "p.Lambdas.use:()V", 45],
+  ["p/Lambdas.java", 21, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.Lambdas.lambda$use$2:(Ljava/lang/String;)Ljava/lang/Integer;", 4],
+  ["p/Lambdas.java", 21, "invokevirtual", "java.lang.String", "length", "()I", "p.Lambdas.lambda$use$2:(Ljava/lang/String;)Ljava/lang/Integer;", 1],
+  ["p/Lambdas.java", 21, "invokevirtual", "p.Lambdas", "apply", "(Ljava/util/function/Function;)V", "p.Lambdas.use:()V", 54],
+  ["p/Lambdas.java", 22, "invokevirtual", "p.Lambdas", "apply", "(Ljava/util/function/Supplier;)V", "p.Lambdas.use:()V", 64],
+  ["p/Lambdas.java", 22, "invokevirtual", "p.Lambdas", "text", "()Ljava/lang/String;", "p.Lambdas.lambda$use$3:()Ljava/lang/String;", 1],
+  ["p/Lambdas.java", 23, "invokevirtual", "p.Lambdas", "task", "()V", "p.Lambdas.lambda$use$4:()V", 1],
+  ["p/Lambdas.java", 24, "invokeinterface", "java.lang.Runnable", "run", "()V", "p.Lambdas.use:()V", 75]
+ ],
+ "classes": {
+  "p.Lambdas": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["apply", "(Ljava/util/function/Function;)V", 0], ["apply", "(Ljava/util/function/Supplier;)V", 0], ["number", "()I", 0], ["run", "(Ljava/lang/Runnable;)V", 0], ["run", "(Ljava/util/concurrent/Callable;)V", 0], ["task", "()V", 0], ["text", "()Ljava/lang/String;", 0], ["use", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

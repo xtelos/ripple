@@ -1,0 +1,27 @@
+{
+ "invokes": [
+  ["p/Vars.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Vars.<init>:()V", 1],
+  ["p/Vars.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Vars$Item.<init>:()V", 1],
+  ["p/Vars.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Vars$Money.<init>:()V", 1],
+  ["p/Vars.java", 9, "invokespecial", "p.Vars$Item", "<init>", "()V", "p.Vars.make:()Lp/Vars$Item;", 4],
+  ["p/Vars.java", 11, "invokespecial", "p.Vars$Item", "<init>", "()V", "p.Vars.use:(Ljava/util/List;)V", 4],
+  ["p/Vars.java", 12, "invokevirtual", "p.Vars$Item", "add", "(I)V", "p.Vars.use:(Ljava/util/List;)V", 10],
+  ["p/Vars.java", 13, "invokestatic", "p.Vars", "make", "()Lp/Vars$Item;", "p.Vars.use:(Ljava/util/List;)V", 13],
+  ["p/Vars.java", 14, "invokevirtual", "p.Vars$Item", "add", "(I)V", "p.Vars.use:(Ljava/util/List;)V", 19],
+  ["p/Vars.java", 15, "invokeinterface", "java.util.List", "get", "(I)Ljava/lang/Object;", "p.Vars.use:(Ljava/util/List;)V", 24],
+  ["p/Vars.java", 16, "invokevirtual", "p.Vars$Money", "add", "(I)V", "p.Vars.use:(Ljava/util/List;)V", 37],
+  ["p/Vars.java", 17, "invokespecial", "java.util.ArrayList", "<init>", "()V", "p.Vars.use:(Ljava/util/List;)V", 44],
+  ["p/Vars.java", 18, "invokeinterface", "java.util.List", "add", "(Ljava/lang/Object;)Z", "p.Vars.use:(Ljava/util/List;)V", 58],
+  ["p/Vars.java", 18, "invokespecial", "p.Vars$Item", "<init>", "()V", "p.Vars.use:(Ljava/util/List;)V", 55],
+  ["p/Vars.java", 19, "invokeinterface", "java.util.Iterator", "hasNext", "()Z", "p.Vars.use:(Ljava/util/List;)V", 74],
+  ["p/Vars.java", 19, "invokeinterface", "java.util.Iterator", "next", "()Ljava/lang/Object;", "p.Vars.use:(Ljava/util/List;)V", 84],
+  ["p/Vars.java", 19, "invokeinterface", "java.util.List", "iterator", "()Ljava/util/Iterator;", "p.Vars.use:(Ljava/util/List;)V", 65],
+  ["p/Vars.java", 20, "invokevirtual", "p.Vars$Money", "add", "(I)V", "p.Vars.use:(Ljava/util/List;)V", 97],
+  ["p/Vars.java", 23, "invokevirtual", "p.Vars$Money", "add", "(I)V", "p.Vars.use:(Ljava/util/List;)V", 112]
+ ],
+ "classes": {
+  "p.Vars": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["make", "()Lp/Vars$Item;", 8], ["use", "(Ljava/util/List;)V", 0]], "bridges": [], "compiler": []},
+  "p.Vars$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.Vars$Money": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []}
+ }
+}

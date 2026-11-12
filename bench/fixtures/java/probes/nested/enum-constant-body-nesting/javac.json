@@ -1,0 +1,24 @@
+{
+ "invokes": [
+  ["p/Level.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Level.<init>:()V", 1],
+  ["p/Level.java", 4, "invokespecial", "java.lang.Enum", "<init>", "(Ljava/lang/String;I)V", "p.Level$Op.<init>:(Ljava/lang/String;I)V", 3],
+  ["p/Level.java", 4, "invokestatic", "java.lang.Enum", "valueOf", "(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Enum;", "p.Level$Op.valueOf:(Ljava/lang/String;)Lp/Level$Op;", 3],
+  ["p/Level.java", 4, "invokestatic", "p.Level$Op", "$values", "()[Lp/Level$Op;", "p.Level$Op.<clinit>:()V", 26],
+  ["p/Level.java", 4, "invokevirtual", "[Lp.Level$Op;", "clone", "()Ljava/lang/Object;", "p.Level$Op.values:()[Lp/Level$Op;", 3],
+  ["p/Level.java", 5, "invokespecial", "p.Level$Op", "<init>", "(Ljava/lang/String;I)V", "p.Level$Op$1.<init>:(Ljava/lang/String;I)V", 3],
+  ["p/Level.java", 5, "invokespecial", "p.Level$Op$1", "<init>", "(Ljava/lang/String;I)V", "p.Level$Op.<clinit>:()V", 7],
+  ["p/Level.java", 6, "invokevirtual", "p.Level$Op$1", "helper", "(I)I", "p.Level$Op$1.apply:(II)I", 2],
+  ["p/Level.java", 8, "invokespecial", "p.Level$Op", "<init>", "(Ljava/lang/String;I)V", "p.Level$Op$2.<init>:(Ljava/lang/String;I)V", 3],
+  ["p/Level.java", 8, "invokespecial", "p.Level$Op$2", "<init>", "(Ljava/lang/String;I)V", "p.Level$Op.<clinit>:()V", 20],
+  ["p/Level.java", 17, "invokestatic", "p.Level$Op", "twice", "(I)I", "p.Level.use:(Lp/Level$Op;)I", 1],
+  ["p/Level.java", 18, "invokevirtual", "p.Level$Op", "helper", "(I)I", "p.Level.use:(Lp/Level$Op;)I", 7],
+  ["p/Level.java", 19, "invokevirtual", "p.Level$Op", "apply", "(II)I", "p.Level.use:(Lp/Level$Op;)I", 14],
+  ["p/Level.java", 19, "invokevirtual", "p.Level$Op", "apply", "(II)I", "p.Level.use:(Lp/Level$Op;)I", 22]
+ ],
+ "classes": {
+  "p.Level": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Level$Op;)I", 0]], "bridges": [], "compiler": []},
+  "p.Level$Op": {"supers": ["java.io.Serializable", "java.lang.Comparable", "java.lang.Enum", "java.lang.Object", "java.lang.constant.Constable"], "methods": [["<init>", "(Ljava/lang/String;I)V", 2], ["apply", "(II)I", 1024], ["helper", "(I)I", 0], ["twice", "(I)I", 8]], "bridges": [], "compiler": [["valueOf", "(Ljava/lang/String;)Lp/Level$Op;", 9], ["values", "()[Lp/Level$Op;", 9]]},
+  "p.Level$Op$1": {"supers": ["java.io.Serializable", "java.lang.Comparable", "java.lang.Enum", "java.lang.Object", "java.lang.constant.Constable", "p.Level$Op"], "methods": [["<init>", "(Ljava/lang/String;I)V", 2], ["apply", "(II)I", 0]], "bridges": [], "compiler": []},
+  "p.Level$Op$2": {"supers": ["java.io.Serializable", "java.lang.Comparable", "java.lang.Enum", "java.lang.Object", "java.lang.constant.Constable", "p.Level$Op"], "methods": [["<init>", "(Ljava/lang/String;I)V", 2], ["apply", "(II)I", 0], ["helper", "(I)I", 0]], "bridges": [], "compiler": []}
+ }
+}

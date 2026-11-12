@@ -1,0 +1,16 @@
+{
+ "invokes": [
+  ["p/TwoTypes.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.A.<init>:()V", 1],
+  ["p/TwoTypes.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.B.<init>:()V", 1],
+  ["p/TwoTypes.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.TwoTypes.<init>:()V", 1],
+  ["p/TwoTypes.java", 9, "invokevirtual", "p.A", "use", "()V", "p.TwoTypes.h:(Ljava/lang/Object;)V", 13],
+  ["p/TwoTypes.java", 11, "invokevirtual", "p.B", "use", "()V", "p.TwoTypes.h:(Ljava/lang/Object;)V", 32],
+  ["p/TwoTypes.java", 13, "invokevirtual", "p.A", "use", "()V", "p.TwoTypes.h:(Ljava/lang/Object;)V", 52],
+  ["p/TwoTypes.java", 14, "invokevirtual", "p.B", "use", "()V", "p.TwoTypes.h:(Ljava/lang/Object;)V", 72]
+ ],
+ "classes": {
+  "p.A": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["use", "()V", 0]], "bridges": [], "compiler": []},
+  "p.B": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["use", "()V", 0]], "bridges": [], "compiler": []},
+  "p.TwoTypes": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Ljava/lang/Object;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

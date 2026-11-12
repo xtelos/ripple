@@ -1,0 +1,22 @@
+{
+ "invokes": [
+  ["p/K4.java", 3, "invokespecial", "java.lang.Record", "<init>", "()V", "p.P.<init>:(II)V", 1],
+  ["p/K4.java", 4, "invokespecial", "p.P", "<init>", "(II)V", "p.P.<init>:(Ljava/lang/String;Ljava/lang/String;)V", 3],
+  ["p/K4.java", 7, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Q.<init>:(Ljava/lang/String;)V", 1],
+  ["p/K4.java", 7, "invokevirtual", "java.lang.String", "length", "()I", "p.Q.<init>:(Ljava/lang/String;)V", 5],
+  ["p/K4.java", 9, "invokespecial", "java.lang.Record", "<init>", "()V", "p.R.<init>:(I)V", 1],
+  ["p/K4.java", 10, "invokespecial", "p.R", "<init>", "(I)V", "p.R.<init>:(J)V", 3],
+  ["p/K4.java", 13, "invokespecial", "java.lang.Object", "<init>", "()V", "p.K4.<init>:()V", 1],
+  ["p/K4.java", 15, "invokespecial", "p.P", "<init>", "(II)V", "p.K4.f:()V", 6],
+  ["p/K4.java", 16, "invokespecial", "p.P", "<init>", "(Ljava/lang/String;Ljava/lang/String;)V", "p.K4.f:()V", 18],
+  ["p/K4.java", 17, "invokespecial", "p.Q", "<init>", "(Ljava/lang/String;)V", "p.K4.f:()V", 28],
+  ["p/K4.java", 18, "invokespecial", "p.R", "<init>", "(I)V", "p.K4.f:()V", 37],
+  ["p/K4.java", 19, "invokespecial", "p.R", "<init>", "(J)V", "p.K4.f:()V", 48]
+ ],
+ "classes": {
+  "p.K4": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.P": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "(II)V", 0], ["<init>", "(Ljava/lang/String;Ljava/lang/String;)V", 0]], "bridges": [], "compiler": [["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["toString", "()Ljava/lang/String;", 17], ["x", "()I", 1], ["y", "()I", 1]]},
+  "p.Q": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "(Ljava/lang/String;)V", 0]], "bridges": [], "compiler": [["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["s", "()Ljava/lang/String;", 1], ["toString", "()Ljava/lang/String;", 17]]},
+  "p.R": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "(I)V", 0], ["<init>", "(J)V", 0]], "bridges": [], "compiler": [["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["toString", "()Ljava/lang/String;", 17], ["v", "()I", 1]]}
+ }
+}

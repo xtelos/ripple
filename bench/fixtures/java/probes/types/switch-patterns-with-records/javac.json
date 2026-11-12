@@ -1,0 +1,28 @@
+{
+ "invokes": [
+  ["p/Match.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Match.<init>:()V", 1],
+  ["p/Match.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Match$Item.<init>:()V", 1],
+  ["p/Match.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Match$Money.<init>:()V", 1],
+  ["p/Match.java", 6, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Match$Box.<init>:(Lp/Match$Item;Lp/Match$Money;)V", 1],
+  ["p/Match.java", 8, "invokestatic", "java.util.Objects", "requireNonNull", "(Ljava/lang/Object;)Ljava/lang/Object;", "p.Match.f:(Ljava/lang/Object;)V", 2],
+  ["p/Match.java", 9, "invokevirtual", "p.Match$Item", "add", "(I)V", "p.Match.f:(Ljava/lang/Object;)V", 53],
+  ["p/Match.java", 10, "invokevirtual", "p.Match$Money", "add", "(I)V", "p.Match.f:(Ljava/lang/Object;)V", 68],
+  ["p/Match.java", 11, "invokevirtual", "p.Match$Box", "item", "()Lp/Match$Item;", "p.Match.f:(Ljava/lang/Object;)V", 82],
+  ["p/Match.java", 11, "invokevirtual", "p.Match$Box", "money", "()Lp/Match$Money;", "p.Match.f:(Ljava/lang/Object;)V", 93],
+  ["p/Match.java", 12, "invokevirtual", "p.Match$Item", "add", "(I)V", "p.Match.f:(Ljava/lang/Object;)V", 105],
+  ["p/Match.java", 13, "invokevirtual", "p.Match$Money", "add", "(I)V", "p.Match.f:(Ljava/lang/Object;)V", 111],
+  ["p/Match.java", 17, "invokevirtual", "p.Match$Box", "item", "()Lp/Match$Item;", "p.Match.f:(Ljava/lang/Object;)V", 130],
+  ["p/Match.java", 17, "invokevirtual", "p.Match$Box", "money", "()Lp/Match$Money;", "p.Match.f:(Ljava/lang/Object;)V", 139],
+  ["p/Match.java", 18, "invokevirtual", "p.Match$Item", "add", "(I)V", "p.Match.f:(Ljava/lang/Object;)V", 154],
+  ["p/Match.java", 20, "invokespecial", "java.lang.MatchException", "<init>", "(Ljava/lang/String;Ljava/lang/Throwable;)V", "p.Match.f:(Ljava/lang/Object;)V", 206],
+  ["p/Match.java", 20, "invokevirtual", "java.lang.Throwable", "toString", "()Ljava/lang/String;", "p.Match.f:(Ljava/lang/Object;)V", 202],
+  ["p/Match.java", 21, "invokevirtual", "p.Match$Item", "add", "(I)V", "p.Match.f:(Ljava/lang/Object;)V", 184],
+  ["p/Match.java", 22, "invokevirtual", "p.Match$Money", "add", "(I)V", "p.Match.f:(Ljava/lang/Object;)V", 190]
+ ],
+ "classes": {
+  "p.Match": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Ljava/lang/Object;)V", 0]], "bridges": [], "compiler": []},
+  "p.Match$Box": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "(Lp/Match$Item;Lp/Match$Money;)V", 0]], "bridges": [], "compiler": [["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["item", "()Lp/Match$Item;", 1], ["money", "()Lp/Match$Money;", 1], ["toString", "()Ljava/lang/String;", 17]]},
+  "p.Match$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.Match$Money": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []}
+ }
+}

@@ -1,0 +1,18 @@
+{
+ "invokes": [
+  ["p/Tree.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Tree.<init>:()V", 1],
+  ["p/Tree.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Tree$Base.<init>:()V", 1],
+  ["p/Tree.java", 7, "invokespecial", "p.Tree$Base", "<init>", "()V", "p.Tree$Node.<init>:()V", 1],
+  ["p/Tree.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Tree$Node$Base.<init>:()V", 1],
+  ["p/Tree.java", 12, "invokevirtual", "p.Tree$Node", "grow", "()V", "p.Tree$Node.f:()V", 1],
+  ["p/Tree.java", 15, "invokespecial", "p.Tree$Node$Base", "<init>", "()V", "p.Tree$Leaf.<init>:()V", 1],
+  ["p/Tree.java", 17, "invokevirtual", "p.Tree$Leaf", "grow", "()V", "p.Tree$Leaf.g:()V", 1]
+ ],
+ "classes": {
+  "p.Tree": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Tree$Base": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["grow", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Tree$Leaf": {"supers": ["java.lang.Object", "p.Tree$Node$Base"], "methods": [["<init>", "()V", 0], ["g", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Tree$Node": {"supers": ["java.lang.Object", "p.Tree$Base"], "methods": [["<init>", "()V", 0], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Tree$Node$Base": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["grow", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

@@ -1,0 +1,39 @@
+{
+ "invokes": [
+  ["p/SwitchRec.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Item.<init>:()V", 1],
+  ["p/SwitchRec.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Money.<init>:()V", 1],
+  ["p/SwitchRec.java", 5, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Pair.<init>:(Lp/Item;Ljava/lang/Object;)V", 1],
+  ["p/SwitchRec.java", 7, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Circle.<init>:(Lp/Item;)V", 1],
+  ["p/SwitchRec.java", 8, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Square.<init>:(Lp/Item;)V", 1],
+  ["p/SwitchRec.java", 10, "invokespecial", "java.lang.Object", "<init>", "()V", "p.SwitchRec.<init>:()V", 1],
+  ["p/SwitchRec.java", 11, "invokespecial", "p.Money", "<init>", "()V", "p.SwitchRec.<init>:()V", 9],
+  ["p/SwitchRec.java", 12, "invokespecial", "p.Money", "<init>", "()V", "p.SwitchRec.<init>:()V", 20],
+  ["p/SwitchRec.java", 13, "invokespecial", "p.Money", "<init>", "()V", "p.SwitchRec.<init>:()V", 31],
+  ["p/SwitchRec.java", 15, "invokestatic", "java.util.Objects", "requireNonNull", "(Ljava/lang/Object;)Ljava/lang/Object;", "p.SwitchRec.h:(Ljava/lang/Object;Lp/Shape;)V", 2],
+  ["p/SwitchRec.java", 16, "invokevirtual", "p.Item", "add", "(I)V", "p.SwitchRec.h:(Ljava/lang/Object;Lp/Shape;)V", 67],
+  ["p/SwitchRec.java", 16, "invokevirtual", "p.Pair", "first", "()Lp/Item;", "p.SwitchRec.h:(Ljava/lang/Object;Lp/Shape;)V", 44],
+  ["p/SwitchRec.java", 16, "invokevirtual", "p.Pair", "second", "()Ljava/lang/Object;", "p.SwitchRec.h:(Ljava/lang/Object;Lp/Shape;)V", 55],
+  ["p/SwitchRec.java", 17, "invokevirtual", "p.Money", "add", "(I)V", "p.SwitchRec.h:(Ljava/lang/Object;Lp/Shape;)V", 78],
+  ["p/SwitchRec.java", 19, "invokespecial", "java.lang.MatchException", "<init>", "(Ljava/lang/String;Ljava/lang/Throwable;)V", "p.SwitchRec.h:(Ljava/lang/Object;Lp/Shape;)V", 130],
+  ["p/SwitchRec.java", 19, "invokestatic", "java.util.Objects", "requireNonNull", "(Ljava/lang/Object;)Ljava/lang/Object;", "p.SwitchRec.h:(Ljava/lang/Object;Lp/Shape;)V", 83],
+  ["p/SwitchRec.java", 20, "invokevirtual", "p.Circle", "c", "()Lp/Item;", "p.SwitchRec.h:(Ljava/lang/Object;Lp/Shape;)V", 142],
+  ["p/SwitchRec.java", 20, "invokevirtual", "p.Item", "add", "(I)V", "p.SwitchRec.h:(Ljava/lang/Object;Lp/Shape;)V", 154],
+  ["p/SwitchRec.java", 21, "invokevirtual", "p.Item", "add", "(I)V", "p.SwitchRec.h:(Ljava/lang/Object;Lp/Shape;)V", 181],
+  ["p/SwitchRec.java", 21, "invokevirtual", "p.Square", "s", "()Lp/Item;", "p.SwitchRec.h:(Ljava/lang/Object;Lp/Shape;)V", 168],
+  ["p/SwitchRec.java", 23, "invokestatic", "java.util.Objects", "requireNonNull", "(Ljava/lang/Object;)Ljava/lang/Object;", "p.SwitchRec.h:(Ljava/lang/Object;Lp/Shape;)V", 186],
+  ["p/SwitchRec.java", 24, "invokespecial", "java.lang.MatchException", "<init>", "(Ljava/lang/String;Ljava/lang/Throwable;)V", "p.SwitchRec.h:(Ljava/lang/Object;Lp/Shape;)V", 298],
+  ["p/SwitchRec.java", 24, "invokevirtual", "java.lang.Throwable", "toString", "()Ljava/lang/String;", "p.SwitchRec.h:(Ljava/lang/Object;Lp/Shape;)V", 293],
+  ["p/SwitchRec.java", 24, "invokevirtual", "p.Item", "add", "(I)V", "p.SwitchRec.h:(Ljava/lang/Object;Lp/Shape;)V", 268],
+  ["p/SwitchRec.java", 24, "invokevirtual", "p.Pair", "first", "()Lp/Item;", "p.SwitchRec.h:(Ljava/lang/Object;Lp/Shape;)V", 233],
+  ["p/SwitchRec.java", 24, "invokevirtual", "p.Pair", "second", "()Ljava/lang/Object;", "p.SwitchRec.h:(Ljava/lang/Object;Lp/Shape;)V", 244]
+ ],
+ "classes": {
+  "p.Circle": {"supers": ["java.lang.Object", "java.lang.Record", "p.Shape"], "methods": [["<init>", "(Lp/Item;)V", 0]], "bridges": [], "compiler": [["c", "()Lp/Item;", 1], ["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["toString", "()Ljava/lang/String;", 17]]},
+  "p.Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.Money": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.Pair": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "(Lp/Item;Ljava/lang/Object;)V", 0]], "bridges": [], "compiler": [["equals", "(Ljava/lang/Object;)Z", 17], ["first", "()Lp/Item;", 1], ["hashCode", "()I", 17], ["second", "()Ljava/lang/Object;", 1], ["toString", "()Ljava/lang/String;", 17]]},
+  "p.Shape": {"supers": ["java.lang.Object"], "methods": [], "bridges": [], "compiler": []},
+  "p.Square": {"supers": ["java.lang.Object", "java.lang.Record", "p.Shape"], "methods": [["<init>", "(Lp/Item;)V", 0]], "bridges": [], "compiler": [["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["s", "()Lp/Item;", 1], ["toString", "()Ljava/lang/String;", 17]]},
+  "p.SwitchRec": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Ljava/lang/Object;Lp/Shape;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

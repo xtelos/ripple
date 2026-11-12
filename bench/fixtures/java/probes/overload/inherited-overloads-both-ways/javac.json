@@ -1,0 +1,21 @@
+{
+ "invokes": [
+  ["p/Inherit.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Inherit.<init>:()V", 1],
+  ["p/Inherit.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Inherit$Base.<init>:()V", 1],
+  ["p/Inherit.java", 8, "invokespecial", "p.Inherit$Base", "<init>", "()V", "p.Inherit$Sub.<init>:()V", 1],
+  ["p/Inherit.java", 13, "invokevirtual", "p.Inherit$Sub", "m", "(Ljava/lang/String;)V", "p.Inherit.use:(Lp/Inherit$Sub;Lp/Inherit$Base;)V", 3],
+  ["p/Inherit.java", 14, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.Inherit.use:(Lp/Inherit$Sub;Lp/Inherit$Base;)V", 8],
+  ["p/Inherit.java", 14, "invokevirtual", "p.Inherit$Sub", "m", "(Ljava/lang/Object;)V", "p.Inherit.use:(Lp/Inherit$Sub;Lp/Inherit$Base;)V", 11],
+  ["p/Inherit.java", 15, "invokevirtual", "p.Inherit$Sub", "n", "(Ljava/lang/String;)V", "p.Inherit.use:(Lp/Inherit$Sub;Lp/Inherit$Base;)V", 17],
+  ["p/Inherit.java", 16, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.Inherit.use:(Lp/Inherit$Sub;Lp/Inherit$Base;)V", 22],
+  ["p/Inherit.java", 16, "invokevirtual", "p.Inherit$Sub", "n", "(Ljava/lang/Object;)V", "p.Inherit.use:(Lp/Inherit$Sub;Lp/Inherit$Base;)V", 25],
+  ["p/Inherit.java", 17, "invokevirtual", "p.Inherit$Base", "m", "(Ljava/lang/String;)V", "p.Inherit.use:(Lp/Inherit$Sub;Lp/Inherit$Base;)V", 31],
+  ["p/Inherit.java", 18, "invokevirtual", "p.Inherit$Base", "n", "(Ljava/lang/Object;)V", "p.Inherit.use:(Lp/Inherit$Sub;Lp/Inherit$Base;)V", 37],
+  ["p/Inherit.java", 19, "invokevirtual", "p.Inherit$Base", "m", "(Ljava/lang/String;)V", "p.Inherit.use:(Lp/Inherit$Sub;Lp/Inherit$Base;)V", 43]
+ ],
+ "classes": {
+  "p.Inherit": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Inherit$Sub;Lp/Inherit$Base;)V", 0]], "bridges": [], "compiler": []},
+  "p.Inherit$Base": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "(Ljava/lang/String;)V", 0], ["n", "(Ljava/lang/Object;)V", 0]], "bridges": [], "compiler": []},
+  "p.Inherit$Sub": {"supers": ["java.lang.Object", "p.Inherit$Base"], "methods": [["<init>", "()V", 0], ["m", "(Ljava/lang/Object;)V", 0], ["n", "(Ljava/lang/String;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "invokes": [
+  ["p/Base.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Base.<init>:()V", 1],
+  ["p/Derived.java", 3, "invokespecial", "p.Base", "<init>", "()V", "p.Derived.<init>:()V", 1],
+  ["p/Derived.java", 3, "invokespecial", "p.Base", "m", "(Ljava/lang/Object;)V", "p.Derived.access$101:(Lp/Derived;Ljava/lang/Object;)V", 2],
+  ["p/Derived.java", 3, "invokespecial", "p.Base", "m", "(Ljava/lang/String;)V", "p.Derived.access$001:(Lp/Derived;Ljava/lang/String;)V", 2],
+  ["p/Derived.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Derived$Inner.<init>:(Lp/Derived;)V", 6],
+  ["p/Derived.java", 7, "invokespecial", "p.Base", "m", "(Ljava/lang/String;)V", "p.Derived$Inner.f:()V", 6],
+  ["p/Derived.java", 8, "invokevirtual", "p.Derived", "m", "(Ljava/lang/String;)V", "p.Derived$Inner.f:()V", 15],
+  ["p/Derived.java", 9, "invokespecial", "p.Base", "m", "(Ljava/lang/Object;)V", "p.Derived$Inner.f:()V", 26],
+  ["p/Derived.java", 9, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.Derived$Inner.f:()V", 23],
+  ["p/Derived.java", 13, "invokespecial", "p.Base", "m", "(Ljava/lang/String;)V", "p.Derived.g:()V", 3],
+  ["p/Derived.java", 14, "invokevirtual", "p.Derived", "m", "(Ljava/lang/String;)V", "p.Derived.g:()V", 9]
+ ],
+ "classes": {
+  "p.Base": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["m", "(Ljava/lang/Object;)V", 0], ["m", "(Ljava/lang/String;)V", 0]], "bridges": [], "compiler": []},
+  "p.Derived": {"supers": ["java.lang.Object", "p.Base"], "methods": [["<init>", "()V", 1], ["g", "()V", 0], ["m", "(Ljava/lang/String;)V", 0]], "bridges": [], "compiler": []},
+  "p.Derived$Inner": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/Derived;)V", 0], ["f", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

@@ -1,0 +1,31 @@
+{
+ "invokes": [
+  ["p/K9.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Item9.<init>:()V", 1],
+  ["p/K9.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Other9.<init>:()V", 1],
+  ["p/K9.java", 9, "invokespecial", "java.lang.Object", "<init>", "()V", "p.K9.<init>:()V", 1],
+  ["p/K9.java", 12, "invokespecial", "java.lang.Object", "<init>", "()V", "p.K9$1.<init>:(Lp/Item9;)V", 6],
+  ["p/K9.java", 12, "invokespecial", "p.K9$1", "<init>", "(Lp/Item9;)V", "p.K9.lambda$static$0:(Lp/Item9;)Lp/Task9;", 5],
+  ["p/K9.java", 13, "invokevirtual", "p.Item9", "m", "()V", "p.K9$1.run:()V", 4],
+  ["p/K9.java", 16, "invokespecial", "p.Item9", "<init>", "()V", "p.K9.<clinit>:()V", 12],
+  ["p/K9.java", 17, "invokespecial", "java.lang.Object", "<init>", "()V", "p.K9$2.<init>:(Lp/Item9;)V", 6],
+  ["p/K9.java", 17, "invokespecial", "p.K9$2", "<init>", "(Lp/Item9;)V", "p.K9.<clinit>:()V", 21],
+  ["p/K9.java", 18, "invokevirtual", "p.Item9", "m", "()V", "p.K9$2.run:()V", 4],
+  ["p/K9.java", 22, "invokespecial", "p.Item9", "<init>", "()V", "p.K9.<init>:()V", 8],
+  ["p/K9.java", 23, "invokespecial", "java.lang.Object", "<init>", "()V", "p.K9$3.<init>:(Lp/K9;Lp/Item9;)V", 6],
+  ["p/K9.java", 23, "invokespecial", "p.K9$3", "<init>", "(Lp/K9;Lp/Item9;)V", "p.K9.<init>:()V", 18],
+  ["p/K9.java", 24, "invokevirtual", "p.Item9", "m", "()V", "p.K9$3.run:()V", 4],
+  ["p/K9.java", 27, "invokespecial", "java.lang.Object", "<init>", "()V", "p.K9$4.<init>:(Lp/K9;Lp/Item9;)V", 6],
+  ["p/K9.java", 27, "invokespecial", "p.K9$4", "<init>", "(Lp/K9;Lp/Item9;)V", "p.K9.lambda$new$1:(Lp/Item9;)Lp/Task9;", 6],
+  ["p/K9.java", 28, "invokevirtual", "p.Item9", "m", "()V", "p.K9$4.run:()V", 4]
+ ],
+ "classes": {
+  "p.Item9": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []},
+  "p.K9": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1]], "bridges": [], "compiler": []},
+  "p.K9$1": {"supers": ["java.lang.Object", "p.Task9"], "methods": [["<init>", "(Lp/Item9;)V", 0], ["run", "()V", 1]], "bridges": [], "compiler": []},
+  "p.K9$2": {"supers": ["java.lang.Object", "p.Task9"], "methods": [["<init>", "(Lp/Item9;)V", 0], ["run", "()V", 1]], "bridges": [], "compiler": []},
+  "p.K9$3": {"supers": ["java.lang.Object", "p.Task9"], "methods": [["<init>", "(Lp/K9;Lp/Item9;)V", 0], ["run", "()V", 1]], "bridges": [], "compiler": []},
+  "p.K9$4": {"supers": ["java.lang.Object", "p.Task9"], "methods": [["<init>", "(Lp/K9;Lp/Item9;)V", 0], ["run", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Other9": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Task9": {"supers": ["java.lang.Object"], "methods": [["run", "()V", 1025]], "bridges": [], "compiler": []}
+ }
+}

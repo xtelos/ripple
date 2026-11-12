@@ -1,0 +1,18 @@
+{
+ "invokes": [
+  ["p/Boxes.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Boxes.<init>:()V", 1],
+  ["p/Boxes.java", 13, "invokevirtual", "p.Boxes", "f", "(I)V", "p.Boxes.use:(Ljava/lang/Integer;CSLjava/lang/Object;)V", 2],
+  ["p/Boxes.java", 14, "invokevirtual", "p.Boxes", "f", "(J)V", "p.Boxes.use:(Ljava/lang/Integer;CSLjava/lang/Object;)V", 7],
+  ["p/Boxes.java", 15, "invokevirtual", "p.Boxes", "f", "(Ljava/lang/Integer;)V", "p.Boxes.use:(Ljava/lang/Integer;CSLjava/lang/Object;)V", 12],
+  ["p/Boxes.java", 16, "invokevirtual", "p.Boxes", "f", "(I)V", "p.Boxes.use:(Ljava/lang/Integer;CSLjava/lang/Object;)V", 17],
+  ["p/Boxes.java", 17, "invokevirtual", "p.Boxes", "f", "(I)V", "p.Boxes.use:(Ljava/lang/Integer;CSLjava/lang/Object;)V", 22],
+  ["p/Boxes.java", 18, "invokevirtual", "p.Boxes", "f", "(Ljava/lang/Object;)V", "p.Boxes.use:(Ljava/lang/Integer;CSLjava/lang/Object;)V", 28],
+  ["p/Boxes.java", 19, "invokevirtual", "p.Boxes", "f", "(Ljava/lang/Object;)V", "p.Boxes.use:(Ljava/lang/Integer;CSLjava/lang/Object;)V", 34],
+  ["p/Boxes.java", 20, "invokevirtual", "p.Boxes", "g", "(J)V", "p.Boxes.use:(Ljava/lang/Integer;CSLjava/lang/Object;)V", 39],
+  ["p/Boxes.java", 21, "invokevirtual", "p.Boxes", "h", "(D)V", "p.Boxes.use:(Ljava/lang/Integer;CSLjava/lang/Object;)V", 44],
+  ["p/Boxes.java", 22, "invokevirtual", "p.Boxes", "h", "(Ljava/lang/Integer;)V", "p.Boxes.use:(Ljava/lang/Integer;CSLjava/lang/Object;)V", 49]
+ ],
+ "classes": {
+  "p.Boxes": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(I)V", 0], ["f", "(J)V", 0], ["f", "(Ljava/lang/Integer;)V", 0], ["f", "(Ljava/lang/Object;)V", 0], ["g", "(J)V", 0], ["g", "(Ljava/lang/Integer;)V", 0], ["h", "(D)V", 0], ["h", "(Ljava/lang/Integer;)V", 0], ["use", "(Ljava/lang/Integer;CSLjava/lang/Object;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

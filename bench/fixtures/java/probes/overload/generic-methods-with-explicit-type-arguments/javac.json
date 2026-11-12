@@ -1,0 +1,18 @@
+{
+ "invokes": [
+  ["p/GenericMethods.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.GenericMethods.<init>:()V", 1],
+  ["p/GenericMethods.java", 10, "invokestatic", "p.GenericMethods", "id", "(Ljava/lang/String;)V", "p.GenericMethods.use:()V", 2],
+  ["p/GenericMethods.java", 11, "invokestatic", "p.GenericMethods", "id", "(Ljava/lang/String;)V", "p.GenericMethods.use:()V", 7],
+  ["p/GenericMethods.java", 12, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.GenericMethods.use:()V", 11],
+  ["p/GenericMethods.java", 12, "invokestatic", "p.GenericMethods", "id", "(Ljava/lang/Object;)Ljava/lang/Object;", "p.GenericMethods.use:()V", 14],
+  ["p/GenericMethods.java", 13, "invokestatic", "p.GenericMethods", "max", "(Ljava/lang/Comparable;Ljava/lang/Comparable;)Ljava/lang/Comparable;", "p.GenericMethods.use:()V", 22],
+  ["p/GenericMethods.java", 14, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.GenericMethods.use:()V", 27],
+  ["p/GenericMethods.java", 14, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.GenericMethods.use:()V", 31],
+  ["p/GenericMethods.java", 14, "invokestatic", "p.GenericMethods", "max", "(Ljava/lang/Comparable;Ljava/lang/Comparable;)Ljava/lang/Comparable;", "p.GenericMethods.use:()V", 34],
+  ["p/GenericMethods.java", 15, "invokevirtual", "p.GenericMethods", "put", "(Ljava/lang/Object;)V", "p.GenericMethods.use:()V", 41],
+  ["p/GenericMethods.java", 16, "invokevirtual", "p.GenericMethods", "put", "(Ljava/lang/Object;I)V", "p.GenericMethods.use:()V", 48]
+ ],
+ "classes": {
+  "p.GenericMethods": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["id", "(Ljava/lang/Object;)Ljava/lang/Object;", 8], ["id", "(Ljava/lang/String;)V", 8], ["max", "(Ljava/lang/Comparable;Ljava/lang/Comparable;)Ljava/lang/Comparable;", 8], ["put", "(Ljava/lang/Object;)V", 0], ["put", "(Ljava/lang/Object;I)V", 0], ["use", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

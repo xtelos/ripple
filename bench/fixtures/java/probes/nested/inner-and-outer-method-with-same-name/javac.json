@@ -1,0 +1,19 @@
+{
+ "invokes": [
+  ["p/Outer.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Outer.<init>:()V", 1],
+  ["p/Outer.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Outer$Inner.<init>:(Lp/Outer;)V", 6],
+  ["p/Outer.java", 9, "invokevirtual", "p.Outer$Inner", "m", "(I)V", "p.Outer$Inner.f:()V", 2],
+  ["p/Outer.java", 10, "invokevirtual", "p.Outer", "only", "()V", "p.Outer$Inner.f:()V", 9],
+  ["p/Outer.java", 11, "invokevirtual", "p.Outer", "m", "(Ljava/lang/String;)V", "p.Outer$Inner.f:()V", 18],
+  ["p/Outer.java", 12, "invokevirtual", "p.Outer", "only", "()V", "p.Outer$Inner.f:()V", 25],
+  ["p/Outer.java", 15, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Outer$Nested.<init>:()V", 1],
+  ["p/Outer.java", 18, "invokevirtual", "p.Outer$Nested", "m", "(Ljava/lang/Object;)V", "p.Outer$Nested.g:(Lp/Outer;)V", 3],
+  ["p/Outer.java", 19, "invokevirtual", "p.Outer", "m", "(Ljava/lang/String;)V", "p.Outer$Nested.g:(Lp/Outer;)V", 9],
+  ["p/Outer.java", 20, "invokevirtual", "p.Outer", "only", "()V", "p.Outer$Nested.g:(Lp/Outer;)V", 13]
+ ],
+ "classes": {
+  "p.Outer": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["m", "(Ljava/lang/String;)V", 0], ["only", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Outer$Inner": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/Outer;)V", 0], ["f", "()V", 0], ["m", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.Outer$Nested": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["g", "(Lp/Outer;)V", 0], ["m", "(Ljava/lang/Object;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

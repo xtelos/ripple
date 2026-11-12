@@ -1,0 +1,21 @@
+{
+ "invokes": [
+  ["p/GenComments.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Item.<init>:()V", 1],
+  ["p/GenComments.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Repo.<init>:()V", 1],
+  ["p/GenComments.java", 13, "invokespecial", "java.lang.Object", "<init>", "()V", "p.GenComments.<init>:()V", 1],
+  ["p/GenComments.java", 14, "invokespecial", "p.Repo", "<init>", "()V", "p.GenComments.<init>:()V", 9],
+  ["p/GenComments.java", 15, "invokespecial", "java.util.ArrayList", "<init>", "()V", "p.GenComments.<init>:()V", 20],
+  ["p/GenComments.java", 17, "invokevirtual", "p.Repo", "save", "(Ljava/lang/Object;)V", "p.GenComments.h:(Lp/Item;)V", 5],
+  ["p/GenComments.java", 18, "invokevirtual", "p.Repo", "save", "(Ljava/lang/Object;Z)V", "p.GenComments.h:(Lp/Item;)V", 14],
+  ["p/GenComments.java", 19, "invokevirtual", "p.Item", "m", "()V", "p.GenComments.h:(Lp/Item;)V", 28],
+  ["p/GenComments.java", 19, "invokevirtual", "p.Repo", "map", "(Ljava/lang/Object;)Ljava/lang/Object;", "p.GenComments.h:(Lp/Item;)V", 22],
+  ["p/GenComments.java", 20, "invokeinterface", "java.util.List", "add", "(Ljava/lang/Object;)Z", "p.GenComments.h:(Lp/Item;)V", 36],
+  ["p/GenComments.java", 21, "invokeinterface", "java.util.List", "get", "(I)Ljava/lang/Object;", "p.GenComments.h:(Lp/Item;)V", 47],
+  ["p/GenComments.java", 21, "invokevirtual", "p.Item", "m", "()V", "p.GenComments.h:(Lp/Item;)V", 55]
+ ],
+ "classes": {
+  "p.GenComments": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Lp/Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Repo": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["map", "(Ljava/lang/Object;)Ljava/lang/Object;", 0], ["save", "(Ljava/lang/Object;)V", 0], ["save", "(Ljava/lang/Object;Z)V", 0]], "bridges": [], "compiler": []}
+ }
+}

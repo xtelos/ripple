@@ -1,0 +1,15 @@
+{
+ "invokes": [
+  ["p/Base.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Base.<init>:()V", 1],
+  ["p/Far.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Far.<init>:()V", 1],
+  ["p/Far.java", 5, "invokevirtual", "p.Sub", "m", "(Ljava/lang/String;)V", "p.Far.g:(Lp/Sub;)V", 3],
+  ["p/Sub.java", 3, "invokespecial", "p.Base", "<init>", "()V", "p.Sub.<init>:()V", 1],
+  ["p/Sub.java", 3, "invokespecial", "p.Base", "m", "(Ljava/lang/Object;)V", "p.Sub.m:(Ljava/lang/Object;)V", 2],
+  ["p/Sub.java", 5, "invokevirtual", "p.Sub", "m", "(Ljava/lang/String;)V", "p.Sub.f:()V", 3]
+ ],
+ "classes": {
+  "p.Base": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "(Ljava/lang/Object;)V", 1], ["m", "(Ljava/lang/String;)V", 0]], "bridges": [], "compiler": []},
+  "p.Far": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["g", "(Lp/Sub;)V", 0]], "bridges": [], "compiler": []},
+  "p.Sub": {"supers": ["java.lang.Object", "p.Base"], "methods": [["<init>", "()V", 1], ["f", "()V", 0]], "bridges": [["m", "(Ljava/lang/Object;)V", ""]], "compiler": []}
+ }
+}

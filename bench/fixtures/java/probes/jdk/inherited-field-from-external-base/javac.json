@@ -1,0 +1,17 @@
+{
+ "invokes": [
+  ["p/Fields.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Fields.<init>:()V", 1],
+  ["p/Fields.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Fields$Source.<init>:()V", 1],
+  ["p/Fields.java", 8, "invokespecial", "p.Fields$Source", "<init>", "()V", "p.Fields.<init>:()V", 9],
+  ["p/Fields.java", 11, "invokespecial", "java.io.FilterInputStream", "<init>", "(Ljava/io/InputStream;)V", "p.Fields$Sink.<init>:(Lp/Fields;)V", 2],
+  ["p/Fields.java", 14, "invokevirtual", "java.io.InputStream", "read", "()I", "p.Fields$Sink.f:()I", 4],
+  ["p/Fields.java", 17, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Fields$Plain.<init>:(Lp/Fields;)V", 6],
+  ["p/Fields.java", 19, "invokevirtual", "p.Fields$Source", "read", "()I", "p.Fields$Plain.f:()I", 7]
+ ],
+ "classes": {
+  "p.Fields": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Fields$Plain": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/Fields;)V", 0], ["f", "()I", 0]], "bridges": [], "compiler": []},
+  "p.Fields$Sink": {"supers": ["java.io.Closeable", "java.io.FilterInputStream", "java.io.InputStream", "java.lang.AutoCloseable", "java.lang.Object"], "methods": [["<init>", "(Lp/Fields;)V", 0], ["f", "()I", 0]], "bridges": [], "compiler": []},
+  "p.Fields$Source": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["read", "()I", 0]], "bridges": [], "compiler": []}
+ }
+}

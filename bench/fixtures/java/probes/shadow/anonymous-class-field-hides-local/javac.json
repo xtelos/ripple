@@ -1,0 +1,21 @@
+{
+ "invokes": [
+  ["p/AnonField.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.AnonField.<init>:()V", 1],
+  ["p/AnonField.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.AnonField$Money.<init>:()V", 1],
+  ["p/AnonField.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.AnonField$Item.<init>:()V", 1],
+  ["p/AnonField.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.AnonField$Task.<init>:()V", 1],
+  ["p/AnonField.java", 8, "invokespecial", "p.AnonField$Money", "<init>", "()V", "p.AnonField.f:()V", 4],
+  ["p/AnonField.java", 9, "invokespecial", "p.AnonField$1", "<init>", "(Lp/AnonField;)V", "p.AnonField.f:()V", 13],
+  ["p/AnonField.java", 9, "invokespecial", "p.AnonField$Task", "<init>", "()V", "p.AnonField$1.<init>:(Lp/AnonField;)V", 1],
+  ["p/AnonField.java", 10, "invokespecial", "p.AnonField$Item", "<init>", "()V", "p.AnonField$1.<init>:(Lp/AnonField;)V", 9],
+  ["p/AnonField.java", 12, "invokevirtual", "p.AnonField$Item", "add", "(I)V", "p.AnonField$1.run:()V", 5],
+  ["p/AnonField.java", 15, "invokevirtual", "p.AnonField$Money", "add", "(I)V", "p.AnonField.f:()V", 19]
+ ],
+ "classes": {
+  "p.AnonField": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.AnonField$1": {"supers": ["java.lang.Object", "p.AnonField$Task"], "methods": [["<init>", "(Lp/AnonField;)V", 0], ["run", "()V", 0]], "bridges": [], "compiler": []},
+  "p.AnonField$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.AnonField$Money": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.AnonField$Task": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["run", "()V", 1024]], "bridges": [], "compiler": []}
+ }
+}

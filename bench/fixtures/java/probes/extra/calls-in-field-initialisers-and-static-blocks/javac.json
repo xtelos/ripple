@@ -1,0 +1,20 @@
+{
+ "invokes": [
+  ["p/Eager.java", 6, "invokestatic", "p.Eager", "one", "()I", "p.Eager.<clinit>:()V", 0],
+  ["p/Eager.java", 7, "invokevirtual", "p.Eager", "two", "()I", "p.Eager.<init>:(I)V", 6],
+  ["p/Eager.java", 10, "invokestatic", "p.Eager", "one", "()I", "p.Eager.<clinit>:()V", 6],
+  ["p/Eager.java", 13, "invokevirtual", "p.Eager", "two", "()I", "p.Eager.<init>:(I)V", 13],
+  ["p/Eager.java", 16, "invokespecial", "p.Eager", "<init>", "(I)V", "p.Eager.<init>:()V", 4],
+  ["p/Eager.java", 16, "invokestatic", "p.Eager", "one", "()I", "p.Eager.<init>:()V", 1],
+  ["p/Eager.java", 18, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Eager.<init>:(I)V", 1],
+  ["p/Eager.java", 19, "invokevirtual", "p.Eager", "two", "()I", "p.Eager.<init>:(I)V", 18],
+  ["p/Eager.java", 21, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Eager$Lazy.<init>:()V", 1],
+  ["p/Eager.java", 22, "invokestatic", "p.Eager", "one", "()I", "p.Eager$Lazy.<clinit>:()V", 0],
+  ["p/Eager.java", 23, "invokespecial", "p.Eager", "<init>", "()V", "p.Eager$Lazy.<init>:()V", 9],
+  ["p/Eager.java", 23, "invokevirtual", "p.Eager", "two", "()I", "p.Eager$Lazy.<init>:()V", 12]
+ ],
+ "classes": {
+  "p.Eager": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["<init>", "(I)V", 0], ["one", "()I", 8], ["two", "()I", 0]], "bridges": [], "compiler": []},
+  "p.Eager$Lazy": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

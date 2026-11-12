@@ -1,0 +1,20 @@
+{
+ "invokes": [
+  ["p/a/A.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.a.A.<init>:()V", 1],
+  ["p/a/A.java", 6, "invokevirtual", "p.a.A", "m", "()V", "p.a.A.run:(Lp/a/A;)V", 1],
+  ["p/a/A.java", 6, "invokevirtual", "p.a.A", "pm", "()V", "p.a.A.run:(Lp/a/A;)V", 5],
+  ["p/a/Use.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.a.Use.<init>:()V", 1],
+  ["p/a/Use.java", 5, "invokevirtual", "p.a.A", "m", "()V", "p.a.Use.h:(Lp/a/A;)V", 1],
+  ["p/a/Use.java", 6, "invokevirtual", "p.a.A", "pm", "()V", "p.a.Use.h:(Lp/a/A;)V", 5],
+  ["p/a/Use.java", 7, "invokespecial", "p.b.B", "<init>", "()V", "p.a.Use.h:(Lp/a/A;)V", 12],
+  ["p/a/Use.java", 7, "invokevirtual", "p.b.B", "run", "(Lp/a/A;)V", "p.a.Use.h:(Lp/a/A;)V", 16],
+  ["p/a/Use.java", 8, "invokespecial", "p.b.B", "<init>", "()V", "p.a.Use.h:(Lp/a/A;)V", 23],
+  ["p/a/Use.java", 9, "invokevirtual", "p.a.A", "m", "()V", "p.a.Use.h:(Lp/a/A;)V", 28],
+  ["p/b/B.java", 3, "invokespecial", "p.a.A", "<init>", "()V", "p.b.B.<init>:()V", 1]
+ ],
+ "classes": {
+  "p.a.A": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["m", "()V", 0], ["pm", "()V", 4], ["run", "(Lp/a/A;)V", 1]], "bridges": [], "compiler": []},
+  "p.a.Use": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Lp/a/A;)V", 0]], "bridges": [], "compiler": []},
+  "p.b.B": {"supers": ["java.lang.Object", "p.a.A"], "methods": [["<init>", "()V", 1], ["m", "()V", 0], ["pm", "()V", 1]], "bridges": [], "compiler": []}
+ }
+}

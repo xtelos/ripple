@@ -1,0 +1,18 @@
+{
+ "invokes": [
+  ["p/Nulls.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Nulls.<init>:()V", 1],
+  ["p/Nulls.java", 12, "invokevirtual", "p.Nulls", "f", "(Ljava/lang/String;)V", "p.Nulls.use:()V", 2],
+  ["p/Nulls.java", 13, "invokevirtual", "p.Nulls", "f", "(Ljava/lang/String;)V", "p.Nulls.use:()V", 8],
+  ["p/Nulls.java", 14, "invokevirtual", "p.Nulls", "f", "(Ljava/lang/Object;)V", "p.Nulls.use:()V", 13],
+  ["p/Nulls.java", 15, "invokevirtual", "p.Nulls", "f", "(Ljava/lang/String;)V", "p.Nulls.use:()V", 21],
+  ["p/Nulls.java", 16, "invokevirtual", "p.Nulls", "g", "(Ljava/lang/String;)V", "p.Nulls.use:()V", 29],
+  ["p/Nulls.java", 17, "invokevirtual", "p.Nulls", "h", "(I)V", "p.Nulls.use:()V", 34],
+  ["p/Nulls.java", 18, "invokevirtual", "p.Nulls", "h", "(D)V", "p.Nulls.use:()V", 41],
+  ["p/Nulls.java", 19, "invokevirtual", "p.Nulls", "h", "(D)V", "p.Nulls.use:()V", 48],
+  ["p/Nulls.java", 20, "invokevirtual", "p.Nulls", "h", "(I)V", "p.Nulls.use:()V", 54],
+  ["p/Nulls.java", 21, "invokevirtual", "p.Nulls", "h", "(Ljava/lang/String;)V", "p.Nulls.use:()V", 60]
+ ],
+ "classes": {
+  "p.Nulls": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Ljava/lang/Object;)V", 0], ["f", "(Ljava/lang/String;)V", 0], ["g", "(Ljava/lang/String;)V", 0], ["g", "(Ljava/lang/StringBuilder;)V", 0], ["h", "(D)V", 0], ["h", "(I)V", 0], ["h", "(Ljava/lang/String;)V", 0], ["use", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

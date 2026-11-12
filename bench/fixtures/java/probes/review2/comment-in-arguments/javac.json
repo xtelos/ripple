@@ -1,0 +1,16 @@
+{
+ "invokes": [
+  ["p/K12.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Box12.<init>:(I)V", 1],
+  ["p/K12.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Box12.<init>:(II)V", 1],
+  ["p/K12.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.K12.<init>:()V", 1],
+  ["p/K12.java", 12, "invokevirtual", "p.K12", "f", "(I)V", "p.K12.g:()V", 2],
+  ["p/K12.java", 13, "invokevirtual", "p.K12", "f", "(II)V", "p.K12.g:()V", 8],
+  ["p/K12.java", 15, "invokevirtual", "p.K12", "f", "(I)V", "p.K12.g:()V", 13],
+  ["p/K12.java", 16, "invokespecial", "p.Box12", "<init>", "(I)V", "p.K12.g:()V", 21],
+  ["p/K12.java", 17, "invokevirtual", "p.K12", "f", "(I)V", "p.K12.g:()V", 27]
+ ],
+ "classes": {
+  "p.Box12": {"supers": ["java.lang.Object"], "methods": [["<init>", "(I)V", 0], ["<init>", "(II)V", 0]], "bridges": [], "compiler": []},
+  "p.K12": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(I)V", 0], ["f", "(II)V", 0], ["g", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

@@ -1,0 +1,17 @@
+{
+ "invokes": [
+  ["p/a/Base.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.a.Base.<init>:()V", 1],
+  ["p/a/Base.java", 5, "invokevirtual", "p.a.Base", "m", "()V", "p.a.Base.run:()V", 1],
+  ["p/a/Leaf.java", 3, "invokespecial", "p.b.Mid", "<init>", "()V", "p.a.Leaf.<init>:()V", 1],
+  ["p/a/Use.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.a.Use.<init>:()V", 1],
+  ["p/a/Use.java", 5, "invokevirtual", "p.a.Base", "m", "()V", "p.a.Use.h:(Lp/a/Base;)V", 1],
+  ["p/a/Use.java", 6, "invokevirtual", "p.a.Base", "run", "()V", "p.a.Use.h:(Lp/a/Base;)V", 5],
+  ["p/b/Mid.java", 3, "invokespecial", "p.a.Base", "<init>", "()V", "p.b.Mid.<init>:()V", 1]
+ ],
+ "classes": {
+  "p.a.Base": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["m", "()V", 0], ["run", "()V", 1]], "bridges": [], "compiler": []},
+  "p.a.Leaf": {"supers": ["java.lang.Object", "p.a.Base", "p.b.Mid"], "methods": [["<init>", "()V", 1], ["m", "()V", 0]], "bridges": [], "compiler": []},
+  "p.a.Use": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Lp/a/Base;)V", 0]], "bridges": [], "compiler": []},
+  "p.b.Mid": {"supers": ["java.lang.Object", "p.a.Base"], "methods": [["<init>", "()V", 1], ["m", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

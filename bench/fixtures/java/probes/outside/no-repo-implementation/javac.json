@@ -1,0 +1,21 @@
+{
+ "invokes": [
+  ["p/NoImpl.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Plain.<init>:()V", 1],
+  ["p/NoImpl.java", 7, "invokespecial", "p.Plain", "<init>", "()V", "p.Task.<init>:()V", 1],
+  ["p/NoImpl.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Fine.<init>:()V", 1],
+  ["p/NoImpl.java", 8, "invokevirtual", "p.Fine", "compareTo", "(Lp/Fine;)I", "p.Fine.compareTo:(Ljava/lang/Object;)I", 5],
+  ["p/NoImpl.java", 10, "invokespecial", "java.lang.Object", "<init>", "()V", "p.NoImpl.<init>:()V", 1],
+  ["p/NoImpl.java", 12, "invokeinterface", "java.util.List", "add", "(Ljava/lang/Object;)Z", "p.NoImpl.h:(Ljava/util/List;Ljava/util/function/Supplier;Ljava/lang/Runnable;)V", 3],
+  ["p/NoImpl.java", 13, "invokeinterface", "java.util.List", "size", "()I", "p.NoImpl.h:(Ljava/util/List;Ljava/util/function/Supplier;Ljava/lang/Runnable;)V", 10],
+  ["p/NoImpl.java", 14, "invokeinterface", "java.util.function.Supplier", "get", "()Ljava/lang/Object;", "p.NoImpl.h:(Ljava/util/List;Ljava/util/function/Supplier;Ljava/lang/Runnable;)V", 17],
+  ["p/NoImpl.java", 15, "invokeinterface", "java.lang.Runnable", "run", "()V", "p.NoImpl.h:(Ljava/util/List;Ljava/util/function/Supplier;Ljava/lang/Runnable;)V", 24],
+  ["p/NoImpl.java", 16, "invokevirtual", "java.lang.String", "length", "()I", "p.NoImpl.h:(Ljava/util/List;Ljava/util/function/Supplier;Ljava/lang/Runnable;)V", 31],
+  ["p/NoImpl.java", 17, "invokestatic", "java.lang.Math", "abs", "(I)I", "p.NoImpl.h:(Ljava/util/List;Ljava/util/function/Supplier;Ljava/lang/Runnable;)V", 36]
+ ],
+ "classes": {
+  "p.Fine": {"supers": ["java.lang.Comparable", "java.lang.Object"], "methods": [["<init>", "()V", 0], ["compareTo", "(Lp/Fine;)I", 1]], "bridges": [["compareTo", "(Ljava/lang/Object;)I", "(Lp/Fine;)I"]], "compiler": []},
+  "p.NoImpl": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Ljava/util/List;Ljava/util/function/Supplier;Ljava/lang/Runnable;)V", 0]], "bridges": [], "compiler": []},
+  "p.Plain": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["run", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Task": {"supers": ["java.lang.Object", "p.Plain"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

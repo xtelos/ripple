@@ -1,0 +1,20 @@
+{
+ "invokes": [
+  ["p/Visit.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Visit.<init>:()V", 1],
+  ["p/Visit.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Visit$Node.<init>:()V", 1],
+  ["p/Visit.java", 6, "invokeinterface", "p.Visit$Visitor", "visit", "(Lp/Visit$Node;)Ljava/lang/Object;", "p.Visit$Node.accept:(Lp/Visit$Visitor;)Ljava/lang/Object;", 2],
+  ["p/Visit.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Visit$Printer.<init>:()V", 1],
+  ["p/Visit.java", 8, "invokevirtual", "p.Visit$Printer", "visit", "(Lp/Visit$Node;)Ljava/lang/String;", "p.Visit$Printer.visit:(Lp/Visit$Node;)Ljava/lang/Object;", 2],
+  ["p/Visit.java", 12, "invokevirtual", "p.Visit$Node", "accept", "(Lp/Visit$Visitor;)Ljava/lang/Object;", "p.Visit.use:(Lp/Visit$Node;Lp/Visit$Printer;Lp/Visit$Visitor;)V", 2],
+  ["p/Visit.java", 13, "invokevirtual", "p.Visit$Printer", "visit", "(Lp/Visit$Node;)Ljava/lang/String;", "p.Visit.use:(Lp/Visit$Node;Lp/Visit$Printer;Lp/Visit$Visitor;)V", 8],
+  ["p/Visit.java", 14, "invokeinterface", "p.Visit$Visitor", "visit", "(Lp/Visit$Node;)Ljava/lang/Object;", "p.Visit.use:(Lp/Visit$Node;Lp/Visit$Printer;Lp/Visit$Visitor;)V", 14],
+  ["p/Visit.java", 15, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.Visit.lambda$use$0:(Lp/Visit$Node;)Ljava/lang/Integer;", 1],
+  ["p/Visit.java", 15, "invokevirtual", "p.Visit$Node", "accept", "(Lp/Visit$Visitor;)Ljava/lang/Object;", "p.Visit.use:(Lp/Visit$Node;Lp/Visit$Printer;Lp/Visit$Visitor;)V", 26]
+ ],
+ "classes": {
+  "p.Visit": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Visit$Node;Lp/Visit$Printer;Lp/Visit$Visitor;)V", 0]], "bridges": [], "compiler": []},
+  "p.Visit$Node": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["accept", "(Lp/Visit$Visitor;)Ljava/lang/Object;", 0]], "bridges": [], "compiler": []},
+  "p.Visit$Printer": {"supers": ["java.lang.Object", "p.Visit$Visitor"], "methods": [["<init>", "()V", 0], ["visit", "(Lp/Visit$Node;)Ljava/lang/String;", 1]], "bridges": [["visit", "(Lp/Visit$Node;)Ljava/lang/Object;", "(Lp/Visit$Node;)Ljava/lang/String;"]], "compiler": []},
+  "p.Visit$Visitor": {"supers": ["java.lang.Object"], "methods": [["visit", "(Lp/Visit$Node;)Ljava/lang/Object;", 1025]], "bridges": [], "compiler": []}
+ }
+}

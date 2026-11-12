@@ -1,0 +1,22 @@
+{
+ "invokes": [
+  ["p/RecMethods.java", 4, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Circle.<init>:(D)V", 1],
+  ["p/RecMethods.java", 6, "invokespecial", "p.Circle", "<init>", "(D)V", "p.Circle.unit:()Lp/Circle;", 5],
+  ["p/RecMethods.java", 8, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Square.<init>:(D)V", 1],
+  ["p/RecMethods.java", 13, "invokespecial", "java.lang.Object", "<init>", "()V", "p.RecMethods.<init>:()V", 1],
+  ["p/RecMethods.java", 15, "invokeinterface", "p.Shape", "area", "()D", "p.RecMethods.h:(Lp/Shape;Lp/Circle;Lp/Square;)V", 1],
+  ["p/RecMethods.java", 16, "invokeinterface", "p.Shape", "label", "()Ljava/lang/String;", "p.RecMethods.h:(Lp/Shape;Lp/Circle;Lp/Square;)V", 8],
+  ["p/RecMethods.java", 17, "invokevirtual", "p.Circle", "label", "()Ljava/lang/String;", "p.RecMethods.h:(Lp/Shape;Lp/Circle;Lp/Square;)V", 15],
+  ["p/RecMethods.java", 18, "invokevirtual", "p.Square", "label", "()Ljava/lang/String;", "p.RecMethods.h:(Lp/Shape;Lp/Circle;Lp/Square;)V", 20],
+  ["p/RecMethods.java", 19, "invokestatic", "p.Circle", "unit", "()Lp/Circle;", "p.RecMethods.h:(Lp/Shape;Lp/Circle;Lp/Square;)V", 24],
+  ["p/RecMethods.java", 19, "invokevirtual", "p.Circle", "area", "()D", "p.RecMethods.h:(Lp/Shape;Lp/Circle;Lp/Square;)V", 27],
+  ["p/RecMethods.java", 20, "invokespecial", "p.Square", "<init>", "(D)V", "p.RecMethods.h:(Lp/Shape;Lp/Circle;Lp/Square;)V", 38],
+  ["p/RecMethods.java", 20, "invokevirtual", "p.Square", "area", "()D", "p.RecMethods.h:(Lp/Shape;Lp/Circle;Lp/Square;)V", 41]
+ ],
+ "classes": {
+  "p.Circle": {"supers": ["java.lang.Object", "java.lang.Record", "p.Shape"], "methods": [["<init>", "(D)V", 0], ["area", "()D", 1], ["unit", "()Lp/Circle;", 8]], "bridges": [], "compiler": [["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["r", "()D", 1], ["toString", "()Ljava/lang/String;", 17]]},
+  "p.RecMethods": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Lp/Shape;Lp/Circle;Lp/Square;)V", 0]], "bridges": [], "compiler": []},
+  "p.Shape": {"supers": ["java.lang.Object"], "methods": [["area", "()D", 1025], ["label", "()Ljava/lang/String;", 1]], "bridges": [], "compiler": []},
+  "p.Square": {"supers": ["java.lang.Object", "java.lang.Record", "p.Shape"], "methods": [["<init>", "(D)V", 0], ["area", "()D", 1], ["label", "()Ljava/lang/String;", 1]], "bridges": [], "compiler": [["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["s", "()D", 1], ["toString", "()Ljava/lang/String;", 17]]}
+ }
+}

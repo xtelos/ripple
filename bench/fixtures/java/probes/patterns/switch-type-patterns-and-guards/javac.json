@@ -1,0 +1,22 @@
+{
+ "invokes": [
+  ["p/SwitchPat.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.A.<init>:()V", 1],
+  ["p/SwitchPat.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.B.<init>:()V", 1],
+  ["p/SwitchPat.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Fa.<init>:()V", 1],
+  ["p/SwitchPat.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.SwitchPat.<init>:()V", 1],
+  ["p/SwitchPat.java", 8, "invokespecial", "p.Fa", "<init>", "()V", "p.SwitchPat.<init>:()V", 9],
+  ["p/SwitchPat.java", 10, "invokestatic", "java.util.Objects", "requireNonNull", "(Ljava/lang/Object;)Ljava/lang/Object;", "p.SwitchPat.h:(Ljava/lang/Object;)Ljava/lang/String;", 2],
+  ["p/SwitchPat.java", 11, "invokevirtual", "p.A", "use", "()V", "p.SwitchPat.h:(Ljava/lang/Object;)Ljava/lang/String;", 62],
+  ["p/SwitchPat.java", 12, "invokevirtual", "p.B", "use", "()V", "p.SwitchPat.h:(Ljava/lang/Object;)Ljava/lang/String;", 76],
+  ["p/SwitchPat.java", 13, "invokevirtual", "p.Fa", "use", "()V", "p.SwitchPat.h:(Ljava/lang/Object;)Ljava/lang/String;", 86],
+  ["p/SwitchPat.java", 15, "invokestatic", "java.util.Objects", "requireNonNull", "(Ljava/lang/Object;)Ljava/lang/Object;", "p.SwitchPat.h:(Ljava/lang/Object;)Ljava/lang/String;", 94],
+  ["p/SwitchPat.java", 16, "invokevirtual", "p.A", "use", "()V", "p.SwitchPat.h:(Ljava/lang/Object;)Ljava/lang/String;", 144],
+  ["p/SwitchPat.java", 17, "invokevirtual", "p.B", "use", "()V", "p.SwitchPat.h:(Ljava/lang/Object;)Ljava/lang/String;", 160]
+ ],
+ "classes": {
+  "p.A": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["use", "()V", 0]], "bridges": [], "compiler": []},
+  "p.B": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["use", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Fa": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["use", "()V", 0]], "bridges": [], "compiler": []},
+  "p.SwitchPat": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Ljava/lang/Object;)Ljava/lang/String;", 0]], "bridges": [], "compiler": []}
+ }
+}

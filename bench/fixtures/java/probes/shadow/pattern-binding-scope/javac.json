@@ -1,0 +1,18 @@
+{
+ "invokes": [
+  ["p/Patterns.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Patterns.<init>:()V", 1],
+  ["p/Patterns.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Patterns$Money.<init>:()V", 1],
+  ["p/Patterns.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Patterns$Item.<init>:()V", 1],
+  ["p/Patterns.java", 6, "invokespecial", "p.Patterns$Money", "<init>", "()V", "p.Patterns.<init>:()V", 9],
+  ["p/Patterns.java", 9, "invokevirtual", "p.Patterns$Item", "add", "(I)V", "p.Patterns.f:(Ljava/lang/Object;)V", 14],
+  ["p/Patterns.java", 11, "invokevirtual", "p.Patterns$Money", "add", "(I)V", "p.Patterns.f:(Ljava/lang/Object;)V", 22],
+  ["p/Patterns.java", 15, "invokevirtual", "p.Patterns$Item", "add", "(I)V", "p.Patterns.f:(Ljava/lang/Object;)V", 43],
+  ["p/Patterns.java", 19, "invokevirtual", "p.Patterns$Item", "add", "(I)V", "p.Patterns.g:(Ljava/lang/Object;)V", 18],
+  ["p/Patterns.java", 22, "invokevirtual", "p.Patterns$Money", "add", "(I)V", "p.Patterns.g:(Ljava/lang/Object;)V", 48]
+ ],
+ "classes": {
+  "p.Patterns": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Ljava/lang/Object;)V", 0], ["g", "(Ljava/lang/Object;)V", 0]], "bridges": [], "compiler": []},
+  "p.Patterns$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.Patterns$Money": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []}
+ }
+}

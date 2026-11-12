@@ -1,0 +1,38 @@
+{
+ "invokes": [
+  ["p/K1.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.RunBase.<init>:()V", 1],
+  ["p/K1.java", 6, "invokestatic", "p.Helper", "work", "()V", "p.RunBase.run:()V", 0],
+  ["p/K1.java", 7, "invokespecial", "p.RunBase", "<init>", "()V", "p.Task.<init>:()V", 1],
+  ["p/K1.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Helper.<init>:()V", 1],
+  ["p/K1.java", 9, "invokespecial", "java.lang.Object", "<init>", "()V", "p.GetBase.<init>:()V", 1],
+  ["p/K1.java", 9, "invokestatic", "p.Helper", "work", "()V", "p.GetBase.get:()Ljava/lang/String;", 0],
+  ["p/K1.java", 10, "invokespecial", "p.GetBase", "<init>", "()V", "p.Sup.<init>:()V", 1],
+  ["p/K1.java", 10, "invokespecial", "p.GetBase", "get", "()Ljava/lang/String;", "p.Sup.get:()Ljava/lang/Object;", 1],
+  ["p/K1.java", 11, "invokespecial", "java.lang.Object", "<init>", "()V", "p.CloseBase.<init>:()V", 1],
+  ["p/K1.java", 11, "invokestatic", "p.Helper", "work", "()V", "p.CloseBase.close:()V", 0],
+  ["p/K1.java", 12, "invokespecial", "p.CloseBase", "<init>", "()V", "p.Res.<init>:()V", 1],
+  ["p/K1.java", 13, "invokespecial", "java.lang.Object", "<init>", "()V", "p.NextBase.<init>:()V", 1],
+  ["p/K1.java", 13, "invokestatic", "p.Helper", "work", "()V", "p.NextBase.hasNext:()Z", 0],
+  ["p/K1.java", 14, "invokespecial", "p.NextBase", "<init>", "()V", "p.It.<init>:()V", 1],
+  ["p/K1.java", 16, "invokespecial", "java.lang.Object", "<init>", "()V", "p.K1.<init>:()V", 1],
+  ["p/K1.java", 18, "invokespecial", "p.Task", "<init>", "()V", "p.K1.f:(Ljava/util/Iterator;)V", 4],
+  ["p/K1.java", 19, "invokeinterface", "java.lang.Runnable", "run", "()V", "p.K1.f:(Ljava/util/Iterator;)V", 9],
+  ["p/K1.java", 20, "invokespecial", "p.Sup", "<init>", "()V", "p.K1.f:(Ljava/util/Iterator;)V", 18],
+  ["p/K1.java", 21, "invokeinterface", "java.util.function.Supplier", "get", "()Ljava/lang/Object;", "p.K1.f:(Ljava/util/Iterator;)V", 23],
+  ["p/K1.java", 22, "invokespecial", "p.Res", "<init>", "()V", "p.K1.f:(Ljava/util/Iterator;)V", 33],
+  ["p/K1.java", 23, "invokeinterface", "java.lang.AutoCloseable", "close", "()V", "p.K1.f:(Ljava/util/Iterator;)V", 40],
+  ["p/K1.java", 24, "invokeinterface", "java.util.Iterator", "hasNext", "()Z", "p.K1.f:(Ljava/util/Iterator;)V", 51]
+ ],
+ "classes": {
+  "p.CloseBase": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["close", "()V", 1]], "bridges": [], "compiler": []},
+  "p.GetBase": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["get", "()Ljava/lang/String;", 1]], "bridges": [], "compiler": []},
+  "p.Helper": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["work", "()V", 8]], "bridges": [], "compiler": []},
+  "p.It": {"supers": ["java.lang.Object", "java.util.Iterator", "p.NextBase"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.K1": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Ljava/util/Iterator;)V", 0]], "bridges": [], "compiler": []},
+  "p.NextBase": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["hasNext", "()Z", 1]], "bridges": [], "compiler": []},
+  "p.Res": {"supers": ["java.lang.AutoCloseable", "java.lang.Object", "p.CloseBase"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.RunBase": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["run", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Sup": {"supers": ["java.lang.Object", "java.util.function.Supplier", "p.GetBase"], "methods": [["<init>", "()V", 0]], "bridges": [["get", "()Ljava/lang/Object;", ""]], "compiler": []},
+  "p.Task": {"supers": ["java.lang.Object", "java.lang.Runnable", "p.RunBase"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

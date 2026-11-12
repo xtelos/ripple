@@ -1,0 +1,24 @@
+{
+ "invokes": [
+  ["p/Item.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Item.<init>:()V", 1],
+  ["p/Plain.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Plain.<init>:()V", 1],
+  ["p/Plain.java", 5, "invokevirtual", "p.Item", "add", "(Ljava/lang/String;)V", "p.Plain.f:(Lp/Item;)V", 3],
+  ["p/Single.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Single.<init>:()V", 1],
+  ["p/Single.java", 7, "invokevirtual", "q.Item", "add", "(I)V", "p.Single.f:(Lq/Item;)V", 2],
+  ["p/Single.java", 8, "invokespecial", "q.Item", "<init>", "()V", "p.Single.f:(Lq/Item;)V", 9],
+  ["p/Single.java", 8, "invokevirtual", "q.Item", "add", "(I)V", "p.Single.f:(Lq/Item;)V", 13],
+  ["p/Star.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Star.<init>:()V", 1],
+  ["p/Star.java", 7, "invokevirtual", "p.Item", "add", "(Ljava/lang/String;)V", "p.Star.f:(Lp/Item;)V", 3],
+  ["q/Item.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "q.Item.<init>:()V", 1],
+  ["r/Star.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "r.Star.<init>:()V", 1],
+  ["r/Star.java", 7, "invokevirtual", "q.Item", "add", "(I)V", "r.Star.f:(Lq/Item;)V", 2]
+ ],
+ "classes": {
+  "p.Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["add", "(I)V", 1], ["add", "(Ljava/lang/String;)V", 1]], "bridges": [], "compiler": []},
+  "p.Plain": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Lp/Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.Single": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Lq/Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.Star": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Lp/Item;)V", 0]], "bridges": [], "compiler": []},
+  "q.Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["add", "(I)V", 1]], "bridges": [], "compiler": []},
+  "r.Star": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Lq/Item;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

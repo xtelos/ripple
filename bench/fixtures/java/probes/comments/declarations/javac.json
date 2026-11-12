@@ -1,0 +1,41 @@
+{
+ "invokes": [
+  ["p/Decls.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Util.<init>:()V", 1],
+  ["p/Decls.java", 11, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Base.<init>:()V", 1],
+  ["p/Decls.java", 12, "invokespecial", "p.Base", "<init>", "()V", "p.Impl.<init>:()V", 1],
+  ["p/Decls.java", 13, "invokevirtual", "p.Impl", "hello", "()V", "p.Impl.greet:()V", 1],
+  ["p/Decls.java", 14, "invokevirtual", "p.Impl", "greet", "()V", "p.Impl.shout:()V", 1],
+  ["p/Decls.java", 15, "invokevirtual", "p.Impl", "shout", "()V", "p.Impl.run:()V", 1],
+  ["p/Decls.java", 17, "invokestatic", "java.lang.Enum", "valueOf", "(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Enum;", "p.Mode.valueOf:(Ljava/lang/String;)Lp/Mode;", 3],
+  ["p/Decls.java", 17, "invokestatic", "p.Mode", "$values", "()[Lp/Mode;", "p.Mode.<clinit>:()V", 28],
+  ["p/Decls.java", 17, "invokevirtual", "[Lp.Mode;", "clone", "()Ljava/lang/Object;", "p.Mode.values:()[Lp/Mode;", 3],
+  ["p/Decls.java", 18, "invokespecial", "p.Mode", "<init>", "(Ljava/lang/String;II)V", "p.Mode$1.<init>:(Ljava/lang/String;II)V", 4],
+  ["p/Decls.java", 18, "invokespecial", "p.Mode$1", "<init>", "(Ljava/lang/String;II)V", "p.Mode.<clinit>:()V", 8],
+  ["p/Decls.java", 18, "invokestatic", "p.Util", "twice", "(I)I", "p.Mode$1.greet:()V", 1],
+  ["p/Decls.java", 19, "invokespecial", "p.Mode", "<init>", "(Ljava/lang/String;II)V", "p.Mode$2.<init>:(Ljava/lang/String;II)V", 4],
+  ["p/Decls.java", 19, "invokespecial", "p.Mode$2", "<init>", "(Ljava/lang/String;II)V", "p.Mode.<clinit>:()V", 22],
+  ["p/Decls.java", 21, "invokespecial", "java.lang.Enum", "<init>", "(Ljava/lang/String;I)V", "p.Mode.<init>:(Ljava/lang/String;II)V", 3],
+  ["p/Decls.java", 23, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Pair.<init>:(II)V", 1],
+  ["p/Decls.java", 24, "invokestatic", "p.Util", "twice", "(I)I", "p.Pair.greet:()V", 4],
+  ["p/Decls.java", 27, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Decls.<init>:()V", 1],
+  ["p/Decls.java", 29, "invokeinterface", "p.Loud", "greet", "()V", "p.Decls.h:(Lp/Loud;Lp/Mode;Lp/Pair;)V", 1],
+  ["p/Decls.java", 30, "invokeinterface", "p.Loud", "shout", "()V", "p.Decls.h:(Lp/Loud;Lp/Mode;Lp/Pair;)V", 7],
+  ["p/Decls.java", 31, "invokevirtual", "p.Mode", "greet", "()V", "p.Decls.h:(Lp/Loud;Lp/Mode;Lp/Pair;)V", 13],
+  ["p/Decls.java", 32, "invokevirtual", "p.Pair", "greet", "()V", "p.Decls.h:(Lp/Loud;Lp/Mode;Lp/Pair;)V", 17],
+  ["p/Decls.java", 33, "invokespecial", "p.Impl", "<init>", "()V", "p.Decls.h:(Lp/Loud;Lp/Mode;Lp/Pair;)V", 24],
+  ["p/Decls.java", 33, "invokevirtual", "p.Impl", "run", "()V", "p.Decls.h:(Lp/Loud;Lp/Mode;Lp/Pair;)V", 27],
+  ["p/Decls.java", 34, "invokestatic", "p.Util", "twice", "(I)I", "p.Decls.h:(Lp/Loud;Lp/Mode;Lp/Pair;)V", 31]
+ ],
+ "classes": {
+  "p.Base": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["hello", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Decls": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Lp/Loud;Lp/Mode;Lp/Pair;)V", 0]], "bridges": [], "compiler": []},
+  "p.Greeter": {"supers": ["java.lang.Object"], "methods": [["greet", "()V", 1025]], "bridges": [], "compiler": []},
+  "p.Impl": {"supers": ["java.lang.Object", "java.lang.Runnable", "p.Base", "p.Greeter", "p.Loud"], "methods": [["<init>", "()V", 0], ["greet", "()V", 1], ["run", "()V", 1], ["shout", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Loud": {"supers": ["java.lang.Object", "p.Greeter"], "methods": [["shout", "()V", 1025]], "bridges": [], "compiler": []},
+  "p.Mode": {"supers": ["java.io.Serializable", "java.lang.Comparable", "java.lang.Enum", "java.lang.Object", "java.lang.constant.Constable", "p.Greeter"], "methods": [["<init>", "(Ljava/lang/String;II)V", 2]], "bridges": [], "compiler": [["valueOf", "(Ljava/lang/String;)Lp/Mode;", 9], ["values", "()[Lp/Mode;", 9]]},
+  "p.Mode$1": {"supers": ["java.io.Serializable", "java.lang.Comparable", "java.lang.Enum", "java.lang.Object", "java.lang.constant.Constable", "p.Greeter", "p.Mode"], "methods": [["<init>", "(Ljava/lang/String;II)V", 2], ["greet", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Mode$2": {"supers": ["java.io.Serializable", "java.lang.Comparable", "java.lang.Enum", "java.lang.Object", "java.lang.constant.Constable", "p.Greeter", "p.Mode"], "methods": [["<init>", "(Ljava/lang/String;II)V", 2], ["greet", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Pair": {"supers": ["java.lang.Object", "java.lang.Record", "p.Greeter"], "methods": [["<init>", "(II)V", 0], ["greet", "()V", 1]], "bridges": [], "compiler": [["a", "()I", 1], ["b", "()I", 1], ["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["toString", "()Ljava/lang/String;", 17]]},
+  "p.Util": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["twice", "(I)I", 8]], "bridges": [], "compiler": []}
+ }
+}

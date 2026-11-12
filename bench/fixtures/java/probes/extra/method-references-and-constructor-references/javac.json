@@ -1,0 +1,19 @@
+{
+ "invokes": [
+  ["p/Refs.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Refs.<init>:()V", 1],
+  ["p/Refs.java", 9, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Refs$Item.<init>:()V", 1],
+  ["p/Refs.java", 10, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Refs$Item.<init>:(Ljava/lang/String;)V", 1],
+  ["p/Refs.java", 13, "invokespecial", "p.Refs$Item", "<init>", "(Ljava/lang/String;)V", "p.Refs.make:(Ljava/lang/String;)Lp/Refs$Item;", 5],
+  ["p/Refs.java", 18, "invokeinterface", "java.util.List", "stream", "()Ljava/util/stream/Stream;", "p.Refs.use:(Ljava/util/List;)V", 20],
+  ["p/Refs.java", 18, "invokeinterface", "java.util.stream.Stream", "forEach", "(Ljava/util/function/Consumer;)V", "p.Refs.use:(Ljava/util/List;)V", 51],
+  ["p/Refs.java", 18, "invokeinterface", "java.util.stream.Stream", "map", "(Ljava/util/function/Function;)Ljava/util/stream/Stream;", "p.Refs.use:(Ljava/util/List;)V", 30],
+  ["p/Refs.java", 18, "invokeinterface", "java.util.stream.Stream", "map", "(Ljava/util/function/Function;)Ljava/util/stream/Stream;", "p.Refs.use:(Ljava/util/List;)V", 40],
+  ["p/Refs.java", 19, "invokeinterface", "java.util.function.Function", "apply", "(Ljava/lang/Object;)Ljava/lang/Object;", "p.Refs.use:(Ljava/util/List;)V", 59],
+  ["p/Refs.java", 20, "invokeinterface", "java.util.function.Supplier", "get", "()Ljava/lang/Object;", "p.Refs.use:(Ljava/util/List;)V", 66],
+  ["p/Refs.java", 21, "invokeinterface", "java.util.function.Function", "apply", "(Ljava/lang/Object;)Ljava/lang/Object;", "p.Refs.use:(Ljava/util/List;)V", 76]
+ ],
+ "classes": {
+  "p.Refs": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["make", "(Ljava/lang/String;)Lp/Refs$Item;", 8], ["take", "(Ljava/lang/String;)V", 0], ["use", "(Ljava/util/List;)V", 0]], "bridges": [], "compiler": []},
+  "p.Refs$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["<init>", "(Ljava/lang/String;)V", 0], ["name", "()Ljava/lang/String;", 0]], "bridges": [], "compiler": []}
+ }
+}

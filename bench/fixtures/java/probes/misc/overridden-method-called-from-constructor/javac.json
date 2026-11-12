@@ -1,0 +1,18 @@
+{
+ "invokes": [
+  ["p/Ctor.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Ctor.<init>:()V", 1],
+  ["p/Ctor.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Ctor$Base.<init>:()V", 1],
+  ["p/Ctor.java", 6, "invokevirtual", "p.Ctor$Base", "init", "()V", "p.Ctor$Base.<init>:()V", 5],
+  ["p/Ctor.java", 10, "invokespecial", "p.Ctor$Base", "<init>", "()V", "p.Ctor$Sub.<init>:()V", 1],
+  ["p/Ctor.java", 15, "invokespecial", "p.Ctor$Sub", "<init>", "()V", "p.Ctor$Sub2.<init>:()V", 1],
+  ["p/Ctor.java", 16, "invokevirtual", "p.Ctor$Sub2", "init", "()V", "p.Ctor$Sub2.<init>:()V", 5],
+  ["p/Ctor.java", 20, "invokespecial", "p.Ctor$Sub", "<init>", "()V", "p.Ctor.use:()V", 4],
+  ["p/Ctor.java", 21, "invokespecial", "p.Ctor$Sub2", "<init>", "()V", "p.Ctor.use:()V", 12]
+ ],
+ "classes": {
+  "p.Ctor": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Ctor$Base": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["init", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Ctor$Sub": {"supers": ["java.lang.Object", "p.Ctor$Base"], "methods": [["<init>", "()V", 0], ["init", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Ctor$Sub2": {"supers": ["java.lang.Object", "p.Ctor$Base", "p.Ctor$Sub"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

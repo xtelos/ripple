@@ -1,0 +1,15 @@
+{
+ "invokes": [
+  ["p/Pair.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Pair.<init>:()V", 1],
+  ["p/Pair.java", 4, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Pair$Item.<init>:(Ljava/lang/String;I)V", 1],
+  ["p/Pair.java", 6, "invokespecial", "p.Pair$Item", "<init>", "(Ljava/lang/String;I)V", "p.Pair$Item.<init>:(Ljava/lang/String;)V", 3],
+  ["p/Pair.java", 9, "invokespecial", "p.Pair$Item", "<init>", "(Ljava/lang/String;)V", "p.Pair$Item.<init>:()V", 3],
+  ["p/Pair.java", 13, "invokespecial", "p.Pair$Item", "<init>", "()V", "p.Pair.use:()V", 4],
+  ["p/Pair.java", 14, "invokespecial", "p.Pair$Item", "<init>", "(Ljava/lang/String;)V", "p.Pair.use:()V", 14],
+  ["p/Pair.java", 15, "invokespecial", "p.Pair$Item", "<init>", "(Ljava/lang/String;I)V", "p.Pair.use:()V", 25]
+ ],
+ "classes": {
+  "p.Pair": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Pair$Item": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "()V", 0], ["<init>", "(Ljava/lang/String;)V", 0], ["<init>", "(Ljava/lang/String;I)V", 0]], "bridges": [], "compiler": [["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["name", "()Ljava/lang/String;", 1], ["qty", "()I", 1], ["toString", "()Ljava/lang/String;", 17]]}
+ }
+}

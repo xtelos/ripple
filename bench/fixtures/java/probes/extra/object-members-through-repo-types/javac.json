@@ -1,0 +1,34 @@
+{
+ "invokes": [
+  ["p/Objs.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Objs.<init>:()V", 1],
+  ["p/Objs.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Objs$Circle.<init>:()V", 1],
+  ["p/Objs.java", 11, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Objs$Plain.<init>:()V", 1],
+  ["p/Objs.java", 12, "invokespecial", "p.Objs$Plain", "<init>", "()V", "p.Objs$Fancy.<init>:()V", 1],
+  ["p/Objs.java", 15, "invokespecial", "java.lang.Enum", "<init>", "(Ljava/lang/String;I)V", "p.Objs$Kind.<init>:(Ljava/lang/String;I)V", 3],
+  ["p/Objs.java", 15, "invokestatic", "java.lang.Enum", "valueOf", "(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Enum;", "p.Objs$Kind.valueOf:(Ljava/lang/String;)Lp/Objs$Kind;", 3],
+  ["p/Objs.java", 15, "invokestatic", "p.Objs$Kind", "$values", "()[Lp/Objs$Kind;", "p.Objs$Kind.<clinit>:()V", 26],
+  ["p/Objs.java", 15, "invokevirtual", "[Lp.Objs$Kind;", "clone", "()Ljava/lang/Object;", "p.Objs$Kind.values:()[Lp/Objs$Kind;", 3],
+  ["p/Objs.java", 16, "invokespecial", "p.Objs$Kind", "<init>", "(Ljava/lang/String;I)V", "p.Objs$Kind$1.<init>:(Ljava/lang/String;I)V", 3],
+  ["p/Objs.java", 16, "invokespecial", "p.Objs$Kind$1", "<init>", "(Ljava/lang/String;I)V", "p.Objs$Kind.<clinit>:()V", 7],
+  ["p/Objs.java", 17, "invokespecial", "p.Objs$Kind", "<init>", "(Ljava/lang/String;I)V", "p.Objs$Kind.<clinit>:()V", 20],
+  ["p/Objs.java", 20, "invokeinterface", "p.Objs$Shape", "toString", "()Ljava/lang/String;", "p.Objs.use:(Lp/Objs$Shape;Lp/Objs$Plain;Lp/Objs$Fancy;Lp/Objs$Kind;Lp/Objs$Circle;)V", 1],
+  ["p/Objs.java", 21, "invokeinterface", "p.Objs$Shape", "hashCode", "()I", "p.Objs.use:(Lp/Objs$Shape;Lp/Objs$Plain;Lp/Objs$Fancy;Lp/Objs$Kind;Lp/Objs$Circle;)V", 8],
+  ["p/Objs.java", 22, "invokeinterface", "p.Objs$Shape", "equals", "(Ljava/lang/Object;)Z", "p.Objs.use:(Lp/Objs$Shape;Lp/Objs$Plain;Lp/Objs$Fancy;Lp/Objs$Kind;Lp/Objs$Circle;)V", 16],
+  ["p/Objs.java", 23, "invokevirtual", "java.lang.Object", "toString", "()Ljava/lang/String;", "p.Objs.use:(Lp/Objs$Shape;Lp/Objs$Plain;Lp/Objs$Fancy;Lp/Objs$Kind;Lp/Objs$Circle;)V", 23],
+  ["p/Objs.java", 24, "invokevirtual", "java.lang.Object", "hashCode", "()I", "p.Objs.use:(Lp/Objs$Shape;Lp/Objs$Plain;Lp/Objs$Fancy;Lp/Objs$Kind;Lp/Objs$Circle;)V", 28],
+  ["p/Objs.java", 25, "invokevirtual", "p.Objs$Fancy", "toString", "()Ljava/lang/String;", "p.Objs.use:(Lp/Objs$Shape;Lp/Objs$Plain;Lp/Objs$Fancy;Lp/Objs$Kind;Lp/Objs$Circle;)V", 33],
+  ["p/Objs.java", 26, "invokevirtual", "p.Objs$Kind", "toString", "()Ljava/lang/String;", "p.Objs.use:(Lp/Objs$Shape;Lp/Objs$Plain;Lp/Objs$Fancy;Lp/Objs$Kind;Lp/Objs$Circle;)V", 39],
+  ["p/Objs.java", 27, "invokevirtual", "p.Objs$Kind", "name", "()Ljava/lang/String;", "p.Objs.use:(Lp/Objs$Shape;Lp/Objs$Plain;Lp/Objs$Fancy;Lp/Objs$Kind;Lp/Objs$Circle;)V", 45],
+  ["p/Objs.java", 28, "invokevirtual", "p.Objs$Circle", "toString", "()Ljava/lang/String;", "p.Objs.use:(Lp/Objs$Shape;Lp/Objs$Plain;Lp/Objs$Fancy;Lp/Objs$Kind;Lp/Objs$Circle;)V", 51],
+  ["p/Objs.java", 29, "invokeinterface", "p.Objs$Shape", "getClass", "()Ljava/lang/Class;", "p.Objs.use:(Lp/Objs$Shape;Lp/Objs$Plain;Lp/Objs$Fancy;Lp/Objs$Kind;Lp/Objs$Circle;)V", 56]
+ ],
+ "classes": {
+  "p.Objs": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Objs$Shape;Lp/Objs$Plain;Lp/Objs$Fancy;Lp/Objs$Kind;Lp/Objs$Circle;)V", 0]], "bridges": [], "compiler": []},
+  "p.Objs$Circle": {"supers": ["java.lang.Object", "p.Objs$Shape"], "methods": [["<init>", "()V", 0], ["area", "()D", 1], ["equals", "(Ljava/lang/Object;)Z", 1], ["hashCode", "()I", 1], ["toString", "()Ljava/lang/String;", 1]], "bridges": [], "compiler": []},
+  "p.Objs$Fancy": {"supers": ["java.lang.Object", "p.Objs$Plain"], "methods": [["<init>", "()V", 0], ["toString", "()Ljava/lang/String;", 1]], "bridges": [], "compiler": []},
+  "p.Objs$Kind": {"supers": ["java.io.Serializable", "java.lang.Comparable", "java.lang.Enum", "java.lang.Object", "java.lang.constant.Constable"], "methods": [["<init>", "(Ljava/lang/String;I)V", 2]], "bridges": [], "compiler": [["valueOf", "(Ljava/lang/String;)Lp/Objs$Kind;", 9], ["values", "()[Lp/Objs$Kind;", 9]]},
+  "p.Objs$Kind$1": {"supers": ["java.io.Serializable", "java.lang.Comparable", "java.lang.Enum", "java.lang.Object", "java.lang.constant.Constable", "p.Objs$Kind"], "methods": [["<init>", "(Ljava/lang/String;I)V", 2], ["toString", "()Ljava/lang/String;", 1]], "bridges": [], "compiler": []},
+  "p.Objs$Plain": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Objs$Shape": {"supers": ["java.lang.Object"], "methods": [["area", "()D", 1025]], "bridges": [], "compiler": []}
+ }
+}

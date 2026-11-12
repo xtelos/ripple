@@ -1,0 +1,27 @@
+{
+ "invokes": [
+  ["p/Cases.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Cases.<init>:()V", 1],
+  ["p/Cases.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Cases$Money.<init>:()V", 1],
+  ["p/Cases.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Cases$Item.<init>:()V", 1],
+  ["p/Cases.java", 6, "invokespecial", "p.Cases$Money", "<init>", "()V", "p.Cases.<init>:()V", 9],
+  ["p/Cases.java", 7, "invokespecial", "p.Cases$Money", "<init>", "()V", "p.Cases.<init>:()V", 20],
+  ["p/Cases.java", 11, "invokespecial", "p.Cases$Item", "<init>", "()V", "p.Cases.old:(I)V", 32],
+  ["p/Cases.java", 12, "invokevirtual", "p.Cases$Item", "add", "(I)V", "p.Cases.old:(I)V", 38],
+  ["p/Cases.java", 15, "invokespecial", "p.Cases$Item", "<init>", "()V", "p.Cases.old:(I)V", 48],
+  ["p/Cases.java", 16, "invokevirtual", "p.Cases$Item", "add", "(I)V", "p.Cases.old:(I)V", 54],
+  ["p/Cases.java", 19, "invokevirtual", "p.Cases$Money", "add", "(I)V", "p.Cases.old:(I)V", 65],
+  ["p/Cases.java", 21, "invokevirtual", "p.Cases$Money", "add", "(I)V", "p.Cases.old:(I)V", 73],
+  ["p/Cases.java", 26, "invokespecial", "p.Cases$Item", "<init>", "()V", "p.Cases.arrows:(Ljava/lang/Object;I)V", 24],
+  ["p/Cases.java", 27, "invokevirtual", "p.Cases$Item", "add", "(I)V", "p.Cases.arrows:(Ljava/lang/Object;I)V", 30],
+  ["p/Cases.java", 29, "invokevirtual", "p.Cases$Money", "add", "(I)V", "p.Cases.arrows:(Ljava/lang/Object;I)V", 42],
+  ["p/Cases.java", 31, "invokestatic", "java.util.Objects", "requireNonNull", "(Ljava/lang/Object;)Ljava/lang/Object;", "p.Cases.arrows:(Ljava/lang/Object;I)V", 47],
+  ["p/Cases.java", 32, "invokevirtual", "p.Cases$Item", "add", "(I)V", "p.Cases.arrows:(Ljava/lang/Object;I)V", 101],
+  ["p/Cases.java", 33, "invokevirtual", "p.Cases$Money", "add", "(I)V", "p.Cases.arrows:(Ljava/lang/Object;I)V", 113],
+  ["p/Cases.java", 35, "invokevirtual", "p.Cases$Money", "add", "(I)V", "p.Cases.arrows:(Ljava/lang/Object;I)V", 125]
+ ],
+ "classes": {
+  "p.Cases": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["arrows", "(Ljava/lang/Object;I)V", 0], ["old", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.Cases$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.Cases$Money": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []}
+ }
+}

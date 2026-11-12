@@ -1,0 +1,22 @@
+{
+ "invokes": [
+  ["p/Init.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Init$Item.<init>:()V", 1],
+  ["p/Init.java", 5, "invokespecial", "p.Init$Item", "<init>", "()V", "p.Init.make:()Lp/Init$Item;", 4],
+  ["p/Init.java", 6, "invokestatic", "p.Init", "make", "()Lp/Init$Item;", "p.Init.<clinit>:()V", 0],
+  ["p/Init.java", 7, "invokevirtual", "p.Init$Item", "add", "(I)V", "p.Init.<clinit>:()V", 10],
+  ["p/Init.java", 8, "invokestatic", "p.Init", "make", "()Lp/Init$Item;", "p.Init.<init>:()V", 5],
+  ["p/Init.java", 9, "invokevirtual", "p.Init$Item", "add", "(I)V", "p.Init.<init>:()V", 16],
+  ["p/Init.java", 10, "invokevirtual", "p.Init", "compute", "()I", "p.Init.<init>:()V", 21],
+  ["p/Init.java", 12, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Init.<init>:()V", 1],
+  ["p/Init.java", 13, "invokevirtual", "p.Init$Item", "add", "(I)V", "p.Init.<init>:()V", 32],
+  ["p/Init.java", 16, "invokespecial", "p.Init", "<init>", "()V", "p.Init.<init>:(I)V", 1],
+  ["p/Init.java", 17, "invokevirtual", "p.Init$Item", "add", "(I)V", "p.Init.<init>:(I)V", 9],
+  ["p/Init.java", 20, "invokestatic", "p.Init$Consts", "make2", "()Lp/Init$Item;", "p.Init$Consts.<clinit>:()V", 0],
+  ["p/Init.java", 21, "invokespecial", "p.Init$Item", "<init>", "()V", "p.Init$Consts.make2:()Lp/Init$Item;", 4]
+ ],
+ "classes": {
+  "p.Init": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["<init>", "(I)V", 0], ["compute", "()I", 0], ["make", "()Lp/Init$Item;", 8]], "bridges": [], "compiler": []},
+  "p.Init$Consts": {"supers": ["java.lang.Object"], "methods": [["make2", "()Lp/Init$Item;", 9]], "bridges": [], "compiler": []},
+  "p.Init$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []}
+ }
+}

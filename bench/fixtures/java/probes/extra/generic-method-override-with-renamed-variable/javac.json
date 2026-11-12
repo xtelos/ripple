@@ -1,0 +1,21 @@
+{
+ "invokes": [
+  ["p/Renamed.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Renamed.<init>:()V", 1],
+  ["p/Renamed.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Renamed$Handler.<init>:()V", 1],
+  ["p/Renamed.java", 11, "invokespecial", "p.Renamed$Handler", "<init>", "()V", "p.Renamed$Impl.<init>:()V", 1],
+  ["p/Renamed.java", 17, "invokevirtual", "p.Renamed$Handler", "handle", "(Ljava/lang/Object;)V", "p.Renamed.use:(Lp/Renamed$Handler;Lp/Renamed$Impl;Ljava/util/List;)V", 3],
+  ["p/Renamed.java", 18, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.Renamed.use:(Lp/Renamed$Handler;Lp/Renamed$Impl;Ljava/util/List;)V", 8],
+  ["p/Renamed.java", 18, "invokevirtual", "p.Renamed$Impl", "handle", "(Ljava/lang/Object;)V", "p.Renamed.use:(Lp/Renamed$Handler;Lp/Renamed$Impl;Ljava/util/List;)V", 11],
+  ["p/Renamed.java", 19, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.Renamed.use:(Lp/Renamed$Handler;Lp/Renamed$Impl;Ljava/util/List;)V", 16],
+  ["p/Renamed.java", 19, "invokevirtual", "p.Renamed$Handler", "number", "(Ljava/lang/Number;)V", "p.Renamed.use:(Lp/Renamed$Handler;Lp/Renamed$Impl;Ljava/util/List;)V", 19],
+  ["p/Renamed.java", 20, "invokestatic", "java.lang.Double", "valueOf", "(D)Ljava/lang/Double;", "p.Renamed.use:(Lp/Renamed$Handler;Lp/Renamed$Impl;Ljava/util/List;)V", 26],
+  ["p/Renamed.java", 20, "invokevirtual", "p.Renamed$Impl", "number", "(Ljava/lang/Number;)V", "p.Renamed.use:(Lp/Renamed$Handler;Lp/Renamed$Impl;Ljava/util/List;)V", 29],
+  ["p/Renamed.java", 21, "invokevirtual", "p.Renamed$Impl", "list", "(Ljava/util/List;)V", "p.Renamed.use:(Lp/Renamed$Handler;Lp/Renamed$Impl;Ljava/util/List;)V", 34],
+  ["p/Renamed.java", 22, "invokevirtual", "p.Renamed$Handler", "list", "(Ljava/util/List;)V", "p.Renamed.use:(Lp/Renamed$Handler;Lp/Renamed$Impl;Ljava/util/List;)V", 39]
+ ],
+ "classes": {
+  "p.Renamed": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Renamed$Handler;Lp/Renamed$Impl;Ljava/util/List;)V", 0]], "bridges": [], "compiler": []},
+  "p.Renamed$Handler": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["handle", "(Ljava/lang/Object;)V", 1024], ["list", "(Ljava/util/List;)V", 1024], ["number", "(Ljava/lang/Number;)V", 1024]], "bridges": [], "compiler": []},
+  "p.Renamed$Impl": {"supers": ["java.lang.Object", "p.Renamed$Handler"], "methods": [["<init>", "()V", 0], ["handle", "(Ljava/lang/Object;)V", 0], ["list", "(Ljava/util/List;)V", 0], ["number", "(Ljava/lang/Number;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

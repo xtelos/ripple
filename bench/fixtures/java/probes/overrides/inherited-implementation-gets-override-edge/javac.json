@@ -1,0 +1,26 @@
+{
+ "invokes": [
+  ["p/Inherited.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.A.<init>:()V", 1],
+  ["p/Inherited.java", 5, "invokespecial", "p.A", "<init>", "()V", "p.B.<init>:()V", 1],
+  ["p/Inherited.java", 6, "invokespecial", "p.B", "<init>", "()V", "p.C.<init>:()V", 1],
+  ["p/Inherited.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.D.<init>:()V", 1],
+  ["p/Inherited.java", 9, "invokespecial", "java.lang.Object", "<init>", "()V", "p.E.<init>:()V", 1],
+  ["p/Inherited.java", 11, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Inherited.<init>:()V", 1],
+  ["p/Inherited.java", 13, "invokeinterface", "p.I", "m", "()V", "p.Inherited.h:(Lp/I;Lp/J;)V", 1],
+  ["p/Inherited.java", 14, "invokeinterface", "p.J", "m", "()V", "p.Inherited.h:(Lp/I;Lp/J;)V", 7],
+  ["p/Inherited.java", 15, "invokespecial", "p.B", "<init>", "()V", "p.Inherited.h:(Lp/I;Lp/J;)V", 16],
+  ["p/Inherited.java", 15, "invokevirtual", "p.B", "m", "()V", "p.Inherited.h:(Lp/I;Lp/J;)V", 19],
+  ["p/Inherited.java", 16, "invokespecial", "p.C", "<init>", "()V", "p.Inherited.h:(Lp/I;Lp/J;)V", 26],
+  ["p/Inherited.java", 16, "invokevirtual", "p.C", "m", "()V", "p.Inherited.h:(Lp/I;Lp/J;)V", 29]
+ ],
+ "classes": {
+  "p.A": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 1]], "bridges": [], "compiler": []},
+  "p.B": {"supers": ["java.lang.Object", "p.A", "p.I"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.C": {"supers": ["java.lang.Object", "p.A", "p.B", "p.I"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.D": {"supers": ["java.lang.Object", "p.I"], "methods": [["<init>", "()V", 0], ["m", "()V", 1]], "bridges": [], "compiler": []},
+  "p.E": {"supers": ["java.lang.Object", "p.J"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.I": {"supers": ["java.lang.Object"], "methods": [["m", "()V", 1025]], "bridges": [], "compiler": []},
+  "p.Inherited": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Lp/I;Lp/J;)V", 0]], "bridges": [], "compiler": []},
+  "p.J": {"supers": ["java.lang.Object"], "methods": [["m", "()V", 1]], "bridges": [], "compiler": []}
+ }
+}

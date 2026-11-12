@@ -1,0 +1,16 @@
+{
+ "invokes": [
+  ["p/Hide.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Hide.<init>:()V", 1],
+  ["p/Hide.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Hide$A.<init>:()V", 1],
+  ["p/Hide.java", 7, "invokevirtual", "p.Hide$A", "m", "()V", "p.Hide$A.call:()V", 1],
+  ["p/Hide.java", 10, "invokespecial", "p.Hide$A", "<init>", "()V", "p.Hide$B.<init>:()V", 1],
+  ["p/Hide.java", 14, "invokevirtual", "p.Hide$A", "call", "()V", "p.Hide.use:(Lp/Hide$A;Lp/Hide$B;)V", 1],
+  ["p/Hide.java", 15, "invokevirtual", "p.Hide$B", "call", "()V", "p.Hide.use:(Lp/Hide$A;Lp/Hide$B;)V", 5],
+  ["p/Hide.java", 16, "invokevirtual", "p.Hide$B", "m", "()V", "p.Hide.use:(Lp/Hide$A;Lp/Hide$B;)V", 9]
+ ],
+ "classes": {
+  "p.Hide": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Hide$A;Lp/Hide$B;)V", 0]], "bridges": [], "compiler": []},
+  "p.Hide$A": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["call", "()V", 0], ["m", "()V", 2]], "bridges": [], "compiler": []},
+  "p.Hide$B": {"supers": ["java.lang.Object", "p.Hide$A"], "methods": [["<init>", "()V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

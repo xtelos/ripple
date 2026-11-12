@@ -1,0 +1,25 @@
+{
+ "invokes": [
+  ["p/Abstract2.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Work.<init>:()V", 1],
+  ["p/Abstract2.java", 7, "invokespecial", "java.io.OutputStream", "<init>", "()V", "p.Sink.<init>:()V", 1],
+  ["p/Abstract2.java", 8, "invokestatic", "p.Work", "go", "()V", "p.Sink.write:(I)V", 0],
+  ["p/Abstract2.java", 10, "invokespecial", "p.Sink", "<init>", "()V", "p.Wrapper.<init>:()V", 1],
+  ["p/Abstract2.java", 11, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Fwd.<init>:()V", 1],
+  ["p/Abstract2.java", 11, "invokestatic", "p.Work", "go", "()V", "p.Fwd.flush:()V", 0],
+  ["p/Abstract2.java", 12, "invokespecial", "p.Fwd", "<init>", "()V", "p.FlushSink.<init>:()V", 1],
+  ["p/Abstract2.java", 14, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Abstract2.<init>:()V", 1],
+  ["p/Abstract2.java", 16, "invokevirtual", "java.io.OutputStream", "write", "(I)V", "p.Abstract2.h:(Ljava/io/OutputStream;Lp/Sink;)V", 2],
+  ["p/Abstract2.java", 17, "invokevirtual", "java.io.OutputStream", "flush", "()V", "p.Abstract2.h:(Ljava/io/OutputStream;Lp/Sink;)V", 6],
+  ["p/Abstract2.java", 18, "invokevirtual", "p.Sink", "write", "(I)V", "p.Abstract2.h:(Ljava/io/OutputStream;Lp/Sink;)V", 11],
+  ["p/Abstract2.java", 19, "invokespecial", "p.Wrapper", "<init>", "()V", "p.Abstract2.h:(Ljava/io/OutputStream;Lp/Sink;)V", 18],
+  ["p/Abstract2.java", 19, "invokevirtual", "p.Wrapper", "write", "(I)V", "p.Abstract2.h:(Ljava/io/OutputStream;Lp/Sink;)V", 22]
+ ],
+ "classes": {
+  "p.Abstract2": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Ljava/io/OutputStream;Lp/Sink;)V", 0]], "bridges": [], "compiler": []},
+  "p.FlushSink": {"supers": ["java.lang.Object", "p.Fwd"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Fwd": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["flush", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Sink": {"supers": ["java.io.Closeable", "java.io.Flushable", "java.io.OutputStream", "java.lang.AutoCloseable", "java.lang.Object"], "methods": [["<init>", "()V", 0], ["write", "(I)V", 1]], "bridges": [], "compiler": []},
+  "p.Work": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["go", "()V", 8]], "bridges": [], "compiler": []},
+  "p.Wrapper": {"supers": ["java.io.Closeable", "java.io.Flushable", "java.io.OutputStream", "java.lang.AutoCloseable", "java.lang.Object", "p.Sink"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

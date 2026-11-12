@@ -1,0 +1,24 @@
+{
+ "invokes": [
+  ["p/Registry.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Registry.<init>:()V", 1],
+  ["p/Registry.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Registry$Entry.<init>:()V", 1],
+  ["p/Registry.java", 8, "invokeinterface", "p.Registry$Visitor", "visit", "(Lp/Registry$Entry;)V", "p.Registry$Entry.accept:(Lp/Registry$Visitor;)V", 2],
+  ["p/Registry.java", 10, "invokespecial", "java.lang.Enum", "<init>", "(Ljava/lang/String;I)V", "p.Registry$Kind.<init>:(Ljava/lang/String;I)V", 3],
+  ["p/Registry.java", 10, "invokestatic", "java.lang.Enum", "valueOf", "(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Enum;", "p.Registry$Kind.valueOf:(Ljava/lang/String;)Lp/Registry$Kind;", 3],
+  ["p/Registry.java", 10, "invokestatic", "p.Registry$Kind", "$values", "()[Lp/Registry$Kind;", "p.Registry$Kind.<clinit>:()V", 13],
+  ["p/Registry.java", 10, "invokevirtual", "[Lp.Registry$Kind;", "clone", "()Ljava/lang/Object;", "p.Registry$Kind.values:()[Lp/Registry$Kind;", 3],
+  ["p/Registry.java", 11, "invokespecial", "p.Registry$Kind", "<init>", "(Ljava/lang/String;I)V", "p.Registry$Kind$1.<init>:(Ljava/lang/String;I)V", 3],
+  ["p/Registry.java", 11, "invokespecial", "p.Registry$Kind$1", "<init>", "(Ljava/lang/String;I)V", "p.Registry$Kind.<clinit>:()V", 7],
+  ["p/Registry.java", 12, "invokevirtual", "p.Registry$Entry", "accept", "(Lp/Registry$Visitor;)V", "p.Registry$Kind$1.visit:(Lp/Registry$Entry;)V", 2],
+  ["p/Registry.java", 16, "invokevirtual", "p.Registry$Entry", "accept", "(Lp/Registry$Visitor;)V", "p.Registry.f:(Lp/Registry$Entry;Lp/Registry$Visitor;)V", 2],
+  ["p/Registry.java", 17, "invokevirtual", "p.Registry$Kind", "visit", "(Lp/Registry$Entry;)V", "p.Registry.f:(Lp/Registry$Entry;Lp/Registry$Visitor;)V", 9],
+  ["p/Registry.java", 18, "invokeinterface", "p.Registry$Visitor", "visit", "(Lp/Registry$Entry;)V", "p.Registry.f:(Lp/Registry$Entry;Lp/Registry$Visitor;)V", 14]
+ ],
+ "classes": {
+  "p.Registry": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Lp/Registry$Entry;Lp/Registry$Visitor;)V", 0]], "bridges": [], "compiler": []},
+  "p.Registry$Entry": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["accept", "(Lp/Registry$Visitor;)V", 0]], "bridges": [], "compiler": []},
+  "p.Registry$Kind": {"supers": ["java.io.Serializable", "java.lang.Comparable", "java.lang.Enum", "java.lang.Object", "java.lang.constant.Constable", "p.Registry$Visitor"], "methods": [["<init>", "(Ljava/lang/String;I)V", 2]], "bridges": [], "compiler": [["valueOf", "(Ljava/lang/String;)Lp/Registry$Kind;", 9], ["values", "()[Lp/Registry$Kind;", 9]]},
+  "p.Registry$Kind$1": {"supers": ["java.io.Serializable", "java.lang.Comparable", "java.lang.Enum", "java.lang.Object", "java.lang.constant.Constable", "p.Registry$Kind", "p.Registry$Visitor"], "methods": [["<init>", "(Ljava/lang/String;I)V", 2], ["visit", "(Lp/Registry$Entry;)V", 1]], "bridges": [], "compiler": []},
+  "p.Registry$Visitor": {"supers": ["java.lang.Object"], "methods": [["visit", "(Lp/Registry$Entry;)V", 1025]], "bridges": [], "compiler": []}
+ }
+}

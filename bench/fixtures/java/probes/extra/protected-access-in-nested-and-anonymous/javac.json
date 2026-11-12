@@ -1,0 +1,35 @@
+{
+ "invokes": [
+  ["p/a/Base.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.a.Base.<init>:()V", 1],
+  ["p/a/Base.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.a.Base.<init>:(Ljava/lang/String;)V", 1],
+  ["p/b/Sub.java", 5, "invokestatic", "p.b.Sub", "sTick", "()V", "p.b.Sub.access$300:()V", 0],
+  ["p/b/Sub.java", 5, "invokestatic", "p.b.Sub", "sTick", "()V", "p.b.Sub.access$400:()V", 0],
+  ["p/b/Sub.java", 5, "invokevirtual", "p.b.Sub", "tick", "()V", "p.b.Sub.access$000:(Lp/b/Sub;)V", 1],
+  ["p/b/Sub.java", 5, "invokevirtual", "p.b.Sub", "tick", "()V", "p.b.Sub.access$100:(Lp/b/Sub;)V", 1],
+  ["p/b/Sub.java", 5, "invokevirtual", "p.b.Sub", "tick", "()V", "p.b.Sub.access$200:(Lp/b/Sub;)V", 1],
+  ["p/b/Sub.java", 5, "invokevirtual", "p.b.Sub", "tick", "()V", "p.b.Sub.access$500:(Lp/b/Sub;)V", 1],
+  ["p/b/Sub.java", 7, "invokespecial", "p.a.Base", "<init>", "(Ljava/lang/String;)V", "p.b.Sub.<init>:()V", 3],
+  ["p/b/Sub.java", 9, "invokespecial", "java.lang.Object", "<init>", "()V", "p.b.Sub$Inner.<init>:(Lp/b/Sub;)V", 6],
+  ["p/b/Sub.java", 11, "invokevirtual", "p.b.Sub", "tick", "()V", "p.b.Sub$Inner.f:(Lp/b/Sub;)V", 4],
+  ["p/b/Sub.java", 12, "invokevirtual", "p.b.Sub", "tick", "()V", "p.b.Sub$Inner.f:(Lp/b/Sub;)V", 8],
+  ["p/b/Sub.java", 13, "invokevirtual", "p.b.Sub", "tick", "()V", "p.b.Sub$Inner.f:(Lp/b/Sub;)V", 15],
+  ["p/b/Sub.java", 14, "invokestatic", "p.b.Sub", "sTick", "()V", "p.b.Sub$Inner.f:(Lp/b/Sub;)V", 18],
+  ["p/b/Sub.java", 15, "invokestatic", "p.b.Sub", "sTick", "()V", "p.b.Sub$Inner.f:(Lp/b/Sub;)V", 21],
+  ["p/b/Sub.java", 19, "invokespecial", "java.lang.Object", "<init>", "()V", "p.b.Sub$1.<init>:(Lp/b/Sub;)V", 6],
+  ["p/b/Sub.java", 19, "invokespecial", "p.b.Sub$1", "<init>", "(Lp/b/Sub;)V", "p.b.Sub.g:()V", 5],
+  ["p/b/Sub.java", 21, "invokevirtual", "p.b.Sub", "tick", "()V", "p.b.Sub$1.run:()V", 4],
+  ["p/b/Sub.java", 24, "invokespecial", "p.a.Base", "<init>", "()V", "p.b.Sub$2.<init>:(Lp/b/Sub;)V", 1],
+  ["p/b/Sub.java", 24, "invokespecial", "p.b.Sub$2", "<init>", "(Lp/b/Sub;)V", "p.b.Sub.g:()V", 14],
+  ["p/b/Sub.java", 25, "invokevirtual", "p.b.Sub$2", "tick", "()V", "p.b.Sub$2.extra:()V", 1],
+  ["p/b/Sub.java", 27, "invokespecial", "p.a.Base", "<init>", "(Ljava/lang/String;)V", "p.b.Sub$3.<init>:(Lp/b/Sub;Ljava/lang/String;)V", 2],
+  ["p/b/Sub.java", 27, "invokespecial", "p.b.Sub$3", "<init>", "(Lp/b/Sub;Ljava/lang/String;)V", "p.b.Sub.g:()V", 25]
+ ],
+ "classes": {
+  "p.a.Base": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 4], ["<init>", "(Ljava/lang/String;)V", 4], ["sTick", "()V", 12], ["tick", "()V", 4]], "bridges": [], "compiler": []},
+  "p.b.Sub": {"supers": ["java.lang.Object", "p.a.Base"], "methods": [["<init>", "()V", 0], ["g", "()V", 0]], "bridges": [], "compiler": []},
+  "p.b.Sub$1": {"supers": ["java.lang.Object", "java.lang.Runnable"], "methods": [["<init>", "(Lp/b/Sub;)V", 0], ["run", "()V", 1]], "bridges": [], "compiler": []},
+  "p.b.Sub$2": {"supers": ["java.lang.Object", "p.a.Base"], "methods": [["<init>", "(Lp/b/Sub;)V", 0], ["extra", "()V", 0]], "bridges": [], "compiler": []},
+  "p.b.Sub$3": {"supers": ["java.lang.Object", "p.a.Base"], "methods": [["<init>", "(Lp/b/Sub;Ljava/lang/String;)V", 0]], "bridges": [], "compiler": []},
+  "p.b.Sub$Inner": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/b/Sub;)V", 0], ["f", "(Lp/b/Sub;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

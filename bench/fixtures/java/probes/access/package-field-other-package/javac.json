@@ -1,0 +1,19 @@
+{
+ "invokes": [
+  ["p/a/Base.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.a.Base.<init>:()V", 1],
+  ["p/a/Base.java", 4, "invokespecial", "p.a.Base$Item", "<init>", "()V", "p.a.Base.<init>:()V", 9],
+  ["p/a/Base.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.a.Base$Item.<init>:()V", 1],
+  ["p/b/Holder.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.b.Holder.<init>:()V", 1],
+  ["p/b/Holder.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.b.Holder$Money.<init>:()V", 1],
+  ["p/b/Holder.java", 7, "invokespecial", "p.b.Holder$Money", "<init>", "()V", "p.b.Holder.<init>:()V", 9],
+  ["p/b/Holder.java", 8, "invokespecial", "p.a.Base", "<init>", "()V", "p.b.Holder$Sub.<init>:(Lp/b/Holder;)V", 6],
+  ["p/b/Holder.java", 10, "invokevirtual", "p.b.Holder$Money", "add", "(I)V", "p.b.Holder$Sub.f:()V", 8]
+ ],
+ "classes": {
+  "p.a.Base": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1]], "bridges": [], "compiler": []},
+  "p.a.Base$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["add", "(I)V", 1]], "bridges": [], "compiler": []},
+  "p.b.Holder": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1]], "bridges": [], "compiler": []},
+  "p.b.Holder$Money": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.b.Holder$Sub": {"supers": ["java.lang.Object", "p.a.Base"], "methods": [["<init>", "(Lp/b/Holder;)V", 0], ["f", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

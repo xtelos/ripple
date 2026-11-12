@@ -1,0 +1,17 @@
+{
+ "invokes": [
+  ["p/Impls.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Impls.<init>:()V", 1],
+  ["p/Impls.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Impls$Item.<init>:()V", 1],
+  ["p/Impls.java", 4, "invokevirtual", "p.Impls$Item", "compareTo", "(Lp/Impls$Item;)I", "p.Impls$Item.compareTo:(Ljava/lang/Object;)I", 5],
+  ["p/Impls.java", 9, "invokeinterface", "java.lang.Comparable", "compareTo", "(Ljava/lang/Object;)I", "p.Impls.use:(Ljava/lang/Comparable;Ljava/lang/Runnable;Lp/Impls$Item;)V", 2],
+  ["p/Impls.java", 10, "invokeinterface", "java.lang.Runnable", "run", "()V", "p.Impls.use:(Ljava/lang/Comparable;Ljava/lang/Runnable;Lp/Impls$Item;)V", 9],
+  ["p/Impls.java", 11, "invokevirtual", "p.Impls$Item", "compareTo", "(Lp/Impls$Item;)I", "p.Impls.use:(Ljava/lang/Comparable;Ljava/lang/Runnable;Lp/Impls$Item;)V", 16],
+  ["p/Impls.java", 12, "invokevirtual", "p.Impls$Item", "run", "()V", "p.Impls.use:(Ljava/lang/Comparable;Ljava/lang/Runnable;Lp/Impls$Item;)V", 21],
+  ["p/Impls.java", 13, "invokespecial", "java.lang.Thread", "<init>", "(Ljava/lang/Runnable;)V", "p.Impls.use:(Ljava/lang/Comparable;Ljava/lang/Runnable;Lp/Impls$Item;)V", 29],
+  ["p/Impls.java", 13, "invokevirtual", "java.lang.Thread", "start", "()V", "p.Impls.use:(Ljava/lang/Comparable;Ljava/lang/Runnable;Lp/Impls$Item;)V", 32]
+ ],
+ "classes": {
+  "p.Impls": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Ljava/lang/Comparable;Ljava/lang/Runnable;Lp/Impls$Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.Impls$Item": {"supers": ["java.lang.Comparable", "java.lang.Object", "java.lang.Runnable"], "methods": [["<init>", "()V", 0], ["compareTo", "(Lp/Impls$Item;)I", 1], ["run", "()V", 1]], "bridges": [["compareTo", "(Ljava/lang/Object;)I", "(Lp/Impls$Item;)I"]], "compiler": []}
+ }
+}

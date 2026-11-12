@@ -1,0 +1,30 @@
+{
+ "invokes": [
+  ["p/PatComments.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Item.<init>:()V", 1],
+  ["p/PatComments.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Other.<init>:()V", 1],
+  ["p/PatComments.java", 7, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Pair.<init>:(Lp/Item;Ljava/lang/Object;)V", 1],
+  ["p/PatComments.java", 9, "invokespecial", "java.lang.Object", "<init>", "()V", "p.PatComments.<init>:()V", 1],
+  ["p/PatComments.java", 10, "invokespecial", "p.Other", "<init>", "()V", "p.PatComments.<init>:()V", 9],
+  ["p/PatComments.java", 11, "invokespecial", "p.Other", "<init>", "()V", "p.PatComments.<init>:()V", 20],
+  ["p/PatComments.java", 13, "invokevirtual", "p.Item", "m", "()V", "p.PatComments.h:(Ljava/lang/Object;)V", 13],
+  ["p/PatComments.java", 14, "invokevirtual", "p.Item", "m", "()V", "p.PatComments.h:(Ljava/lang/Object;)V", 48],
+  ["p/PatComments.java", 14, "invokevirtual", "p.Pair", "a", "()Lp/Item;", "p.PatComments.h:(Ljava/lang/Object;)V", 29],
+  ["p/PatComments.java", 14, "invokevirtual", "p.Pair", "b", "()Ljava/lang/Object;", "p.PatComments.h:(Ljava/lang/Object;)V", 38],
+  ["p/PatComments.java", 15, "invokevirtual", "p.Item", "m", "()V", "p.PatComments.lambda$h$0:(Lp/Item;)Lp/Item;", 1],
+  ["p/PatComments.java", 16, "invokestatic", "java.util.Objects", "requireNonNull", "(Ljava/lang/Object;)Ljava/lang/Object;", "p.PatComments.h:(Ljava/lang/Object;)V", 59],
+  ["p/PatComments.java", 17, "invokevirtual", "p.Item", "m", "()V", "p.PatComments.h:(Ljava/lang/Object;)V", 130],
+  ["p/PatComments.java", 17, "invokevirtual", "p.Pair", "a", "()Lp/Item;", "p.PatComments.h:(Ljava/lang/Object;)V", 108],
+  ["p/PatComments.java", 17, "invokevirtual", "p.Pair", "b", "()Ljava/lang/Object;", "p.PatComments.h:(Ljava/lang/Object;)V", 119],
+  ["p/PatComments.java", 18, "invokespecial", "java.lang.MatchException", "<init>", "(Ljava/lang/String;Ljava/lang/Throwable;)V", "p.PatComments.h:(Ljava/lang/Object;)V", 172],
+  ["p/PatComments.java", 18, "invokevirtual", "java.lang.Throwable", "toString", "()Ljava/lang/String;", "p.PatComments.h:(Ljava/lang/Object;)V", 167],
+  ["p/PatComments.java", 18, "invokevirtual", "p.Item", "m", "()V", "p.PatComments.h:(Ljava/lang/Object;)V", 144],
+  ["p/PatComments.java", 21, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.PatComments.lambda$h$1:(Lp/Item;)Ljava/lang/Integer;", 5],
+  ["p/PatComments.java", 21, "invokevirtual", "p.Item", "m", "()V", "p.PatComments.lambda$h$1:(Lp/Item;)Ljava/lang/Integer;", 1]
+ ],
+ "classes": {
+  "p.Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Other": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Pair": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "(Lp/Item;Ljava/lang/Object;)V", 0]], "bridges": [], "compiler": [["a", "()Lp/Item;", 1], ["b", "()Ljava/lang/Object;", 1], ["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["toString", "()Ljava/lang/String;", 17]]},
+  "p.PatComments": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Ljava/lang/Object;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

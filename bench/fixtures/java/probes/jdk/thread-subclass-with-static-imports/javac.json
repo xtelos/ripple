@@ -1,0 +1,17 @@
+{
+ "invokes": [
+  ["p/Single.java", 5, "invokespecial", "java.lang.Thread", "<init>", "()V", "p.Single.<init>:()V", 1],
+  ["p/Single.java", 7, "invokestatic", "p.Util", "helper", "()V", "p.Single.run:()V", 0],
+  ["p/Single.java", 8, "invokevirtual", "p.Single", "interrupt", "()V", "p.Single.run:()V", 4],
+  ["p/Util.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Util.<init>:()V", 1],
+  ["p/Worker.java", 5, "invokespecial", "java.lang.Thread", "<init>", "()V", "p.Worker.<init>:()V", 1],
+  ["p/Worker.java", 7, "invokestatic", "p.Util", "helper", "()V", "p.Worker.run:()V", 0],
+  ["p/Worker.java", 8, "invokevirtual", "p.Worker", "start", "()V", "p.Worker.run:()V", 4],
+  ["p/Worker.java", 9, "invokevirtual", "p.Worker", "getName", "()Ljava/lang/String;", "p.Worker.run:()V", 8]
+ ],
+ "classes": {
+  "p.Single": {"supers": ["java.lang.Object", "java.lang.Runnable", "java.lang.Thread"], "methods": [["<init>", "()V", 1], ["run", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Util": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["helper", "()V", 9], ["start", "()V", 9]], "bridges": [], "compiler": []},
+  "p.Worker": {"supers": ["java.lang.Object", "java.lang.Runnable", "java.lang.Thread"], "methods": [["<init>", "()V", 1], ["run", "()V", 1]], "bridges": [], "compiler": []}
+ }
+}

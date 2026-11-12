@@ -1,0 +1,19 @@
+{
+ "invokes": [
+  ["p/Fn.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Fn.<init>:()V", 1],
+  ["p/Fn.java", 5, "invokeinterface", "p.Fn$Step", "next", "()Lp/Fn$Step;", "p.Fn$Step.twice:()Lp/Fn$Step;", 1],
+  ["p/Fn.java", 5, "invokeinterface", "p.Fn$Step", "next", "()Lp/Fn$Step;", "p.Fn$Step.twice:()Lp/Fn$Step;", 6],
+  ["p/Fn.java", 8, "invokeinterface", "p.Fn$Step", "next", "()Lp/Fn$Step;", "p.Fn.use:(Lp/Fn$Step;)V", 1],
+  ["p/Fn.java", 8, "invokeinterface", "p.Fn$Step", "next", "()Lp/Fn$Step;", "p.Fn.use:(Lp/Fn$Step;)V", 6],
+  ["p/Fn.java", 9, "invokeinterface", "p.Fn$Step", "twice", "()Lp/Fn$Step;", "p.Fn.use:(Lp/Fn$Step;)V", 13],
+  ["p/Fn.java", 10, "invokeinterface", "p.Fn$Step", "twice", "()Lp/Fn$Step;", "p.Fn.use:(Lp/Fn$Step;)V", 22],
+  ["p/Fn.java", 10, "invokestatic", "p.Fn", "build", "()Lp/Fn$Step;", "p.Fn.use:(Lp/Fn$Step;)V", 19],
+  ["p/Fn.java", 11, "invokeinterface", "p.Fn$Step", "next", "()Lp/Fn$Step;", "p.Fn.use:(Lp/Fn$Step;)V", 31],
+  ["p/Fn.java", 11, "invokeinterface", "p.Fn$Step", "twice", "()Lp/Fn$Step;", "p.Fn.use:(Lp/Fn$Step;)V", 36],
+  ["p/Fn.java", 11, "invokestatic", "p.Fn", "build", "()Lp/Fn$Step;", "p.Fn.use:(Lp/Fn$Step;)V", 28]
+ ],
+ "classes": {
+  "p.Fn": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["build", "()Lp/Fn$Step;", 8], ["use", "(Lp/Fn$Step;)V", 0]], "bridges": [], "compiler": []},
+  "p.Fn$Step": {"supers": ["java.lang.Object"], "methods": [["next", "()Lp/Fn$Step;", 1025], ["twice", "()Lp/Fn$Step;", 1]], "bridges": [], "compiler": []}
+ }
+}

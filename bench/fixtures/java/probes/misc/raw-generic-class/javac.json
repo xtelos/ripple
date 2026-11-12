@@ -1,0 +1,17 @@
+{
+ "invokes": [
+  ["p/RawBox.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.RawBox.<init>:()V", 1],
+  ["p/RawBox.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.RawBox$Box.<init>:()V", 1],
+  ["p/RawBox.java", 11, "invokespecial", "p.RawBox$Box", "<init>", "()V", "p.RawBox.use:()V", 4],
+  ["p/RawBox.java", 12, "invokevirtual", "p.RawBox$Box", "put", "(Ljava/lang/Object;)V", "p.RawBox.use:()V", 11],
+  ["p/RawBox.java", 13, "invokevirtual", "p.RawBox$Box", "put", "(Ljava/lang/String;I)V", "p.RawBox.use:()V", 18],
+  ["p/RawBox.java", 14, "invokevirtual", "p.RawBox$Box", "get", "()Ljava/lang/Object;", "p.RawBox.use:()V", 22],
+  ["p/RawBox.java", 15, "invokespecial", "p.RawBox$Box", "<init>", "()V", "p.RawBox.use:()V", 30],
+  ["p/RawBox.java", 16, "invokevirtual", "p.RawBox$Box", "put", "(Ljava/lang/Object;)V", "p.RawBox.use:()V", 37],
+  ["p/RawBox.java", 17, "invokevirtual", "p.RawBox$Box", "get", "()Ljava/lang/Object;", "p.RawBox.use:()V", 41]
+ ],
+ "classes": {
+  "p.RawBox": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "()V", 0]], "bridges": [], "compiler": []},
+  "p.RawBox$Box": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["get", "()Ljava/lang/Object;", 0], ["put", "(Ljava/lang/Object;)V", 0], ["put", "(Ljava/lang/String;I)V", 0]], "bridges": [], "compiler": []}
+ }
+}

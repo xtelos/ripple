@@ -1,0 +1,23 @@
+{
+ "invokes": [
+  ["p/Ctors.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Ctors.<init>:()V", 1],
+  ["p/Ctors.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Ctors.<init>:(Ljava/lang/String;)V", 1],
+  ["p/Ctors.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Ctors.<init>:(Ljava/lang/Object;)V", 1],
+  ["p/Ctors.java", 9, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Ctors.<init>:(ILjava/lang/String;)V", 1],
+  ["p/Ctors.java", 10, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Ctors.<init>:(Ljava/lang/String;I)V", 1],
+  ["p/Ctors.java", 11, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Ctors.<init>:(Ljava/util/List;)V", 1],
+  ["p/Ctors.java", 12, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Ctors.<init>:([Ljava/lang/String;)V", 1],
+  ["p/Ctors.java", 14, "invokespecial", "p.Ctors", "<init>", "()V", "p.Ctors.use:(Ljava/util/List;)V", 4],
+  ["p/Ctors.java", 15, "invokespecial", "p.Ctors", "<init>", "(Ljava/lang/String;)V", "p.Ctors.use:(Ljava/util/List;)V", 14],
+  ["p/Ctors.java", 16, "invokespecial", "p.Ctors", "<init>", "(Ljava/lang/Object;)V", "p.Ctors.use:(Ljava/util/List;)V", 26],
+  ["p/Ctors.java", 16, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.Ctors.use:(Ljava/util/List;)V", 23],
+  ["p/Ctors.java", 17, "invokespecial", "p.Ctors", "<init>", "(ILjava/lang/String;)V", "p.Ctors.use:(Ljava/util/List;)V", 37],
+  ["p/Ctors.java", 18, "invokespecial", "p.Ctors", "<init>", "(Ljava/lang/String;I)V", "p.Ctors.use:(Ljava/util/List;)V", 48],
+  ["p/Ctors.java", 19, "invokespecial", "p.Ctors", "<init>", "(Ljava/util/List;)V", "p.Ctors.use:(Ljava/util/List;)V", 57],
+  ["p/Ctors.java", 20, "invokespecial", "p.Ctors", "<init>", "([Ljava/lang/String;)V", "p.Ctors.use:(Ljava/util/List;)V", 79],
+  ["p/Ctors.java", 21, "invokespecial", "p.Ctors", "<init>", "(Ljava/lang/Object;)V", "p.Ctors.use:(Ljava/util/List;)V", 89]
+ ],
+ "classes": {
+  "p.Ctors": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["<init>", "(ILjava/lang/String;)V", 0], ["<init>", "(Ljava/lang/Object;)V", 0], ["<init>", "(Ljava/lang/String;)V", 0], ["<init>", "(Ljava/lang/String;I)V", 0], ["<init>", "(Ljava/util/List;)V", 0], ["<init>", "([Ljava/lang/String;)V", 128], ["use", "(Ljava/util/List;)V", 8]], "bridges": [], "compiler": []}
+ }
+}
