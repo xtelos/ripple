@@ -1,0 +1,5 @@
+{
+  "name": "@me/util",
+  "main": "./src/index.js",
+  "type": "module"
+}

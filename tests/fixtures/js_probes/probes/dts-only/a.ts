@@ -1,0 +1,12 @@
+import * as m0 from "./x";
+export function call0() { m0.f(); }
+import * as m1 from "./x.js";
+export function call1() { m1.f(); }
+import * as m2 from "./x.d";
+export function call2() { m2.f(); }
+import * as m3 from "./x.d.ts";
+export function call3() { m3.f(); }
+import * as m4 from "./y";
+export function call4() { m4.f(); }
+import * as m5 from "./y.js";
+export function call5() { m5.f(); }

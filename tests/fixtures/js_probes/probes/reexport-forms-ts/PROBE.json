@@ -1,0 +1,28 @@
+{
+  "notes": "",
+  "imports": [
+    [
+      "user.ts",
+      "./barrel"
+    ]
+  ],
+  "generated": [],
+  "calls": [
+    {
+      "in": "user.ts",
+      "call": "fa"
+    },
+    {
+      "in": "user.ts",
+      "call": "renamed"
+    },
+    {
+      "in": "user.ts",
+      "call": "dflt"
+    },
+    {
+      "in": "user.ts",
+      "call": "dd"
+    }
+  ]
+}

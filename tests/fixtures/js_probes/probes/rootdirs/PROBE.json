@@ -1,0 +1,19 @@
+{
+  "notes": "rootDirs make ./x from src/a.ts name generated/x.ts; ripple does not follow rootDirs and must not call it missing.",
+  "imports": [
+    [
+      "src/a.ts",
+      "./x"
+    ],
+    [
+      "src/a.ts",
+      "./y"
+    ]
+  ],
+  "generated": [
+    "src/a.ts"
+  ],
+  "unresolved": {
+    "src/a.ts|./x": "rootDirs: the file is in another root, which ripple does not follow"
+  }
+}

@@ -1,0 +1,10 @@
+require("./x");
+require("./x.mjs");
+require("./y");
+require("./y.cjs");
+require("./z");
+require("./z.mjs");
+require("./z.mts");
+require("./w");
+require("./w.cjs");
+require("./w.cts");

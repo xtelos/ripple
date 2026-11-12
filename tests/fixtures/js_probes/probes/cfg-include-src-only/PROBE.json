@@ -1,0 +1,43 @@
+{
+  "notes": "scripts/ is outside include, so it has no project and no paths.",
+  "imports": [
+    [
+      "src/a.ts",
+      "@p/t"
+    ],
+    [
+      "src/a.ts",
+      "@p/j"
+    ],
+    [
+      "src/a.js",
+      "@p/t"
+    ],
+    [
+      "src/a.js",
+      "@p/j"
+    ],
+    [
+      "scripts/b.ts",
+      "@p/t"
+    ],
+    [
+      "scripts/b.ts",
+      "@p/j"
+    ],
+    [
+      "scripts/b.js",
+      "@p/t"
+    ],
+    [
+      "scripts/b.js",
+      "@p/j"
+    ]
+  ],
+  "generated": [
+    "src/a.ts",
+    "src/a.js",
+    "scripts/b.ts",
+    "scripts/b.js"
+  ]
+}

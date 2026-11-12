@@ -1,0 +1,60 @@
+{
+  "notes": "The tsconfig.json holds no .js file (no allowJs), so the jsconfig.json beside it is the project of each one.",
+  "imports": [
+    [
+      "a.ts",
+      "@p/t"
+    ],
+    [
+      "a.ts",
+      "@p/j"
+    ],
+    [
+      "b.tsx",
+      "@p/t"
+    ],
+    [
+      "b.tsx",
+      "@p/j"
+    ],
+    [
+      "c.js",
+      "@p/t"
+    ],
+    [
+      "c.js",
+      "@p/j"
+    ],
+    [
+      "d.jsx",
+      "@p/t"
+    ],
+    [
+      "d.jsx",
+      "@p/j"
+    ],
+    [
+      "e.mjs",
+      "@p/t"
+    ],
+    [
+      "e.mjs",
+      "@p/j"
+    ],
+    [
+      "f.cjs",
+      "@p/t"
+    ],
+    [
+      "f.cjs",
+      "@p/j"
+    ]
+  ],
+  "generated": [
+    "a.ts",
+    "b.tsx",
+    "c.js",
+    "d.jsx",
+    "e.mjs"
+  ]
+}

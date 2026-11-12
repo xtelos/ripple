@@ -1,0 +1,182 @@
+{
+  "notes": "A directory with index.js and index.mjs: the compiler and Node's require take index.js, Vite and Rollup index.mjs (and index.mts before index.ts).",
+  "imports": [
+    [
+      "a.ts",
+      "./lib"
+    ],
+    [
+      "a.ts",
+      "./lib/"
+    ],
+    [
+      "a.ts",
+      "./lib/index"
+    ],
+    [
+      "a.ts",
+      "./lib/index.js"
+    ],
+    [
+      "a.ts",
+      "./ui"
+    ],
+    [
+      "a.ts",
+      "./ui/"
+    ],
+    [
+      "b.tsx",
+      "./lib"
+    ],
+    [
+      "b.tsx",
+      "./lib/"
+    ],
+    [
+      "b.tsx",
+      "./lib/index"
+    ],
+    [
+      "b.tsx",
+      "./lib/index.js"
+    ],
+    [
+      "b.tsx",
+      "./ui"
+    ],
+    [
+      "b.tsx",
+      "./ui/"
+    ],
+    [
+      "c.js",
+      "./lib"
+    ],
+    [
+      "c.js",
+      "./lib/"
+    ],
+    [
+      "c.js",
+      "./lib/index"
+    ],
+    [
+      "c.js",
+      "./lib/index.js"
+    ],
+    [
+      "c.js",
+      "./ui"
+    ],
+    [
+      "c.js",
+      "./ui/"
+    ],
+    [
+      "d.jsx",
+      "./lib"
+    ],
+    [
+      "d.jsx",
+      "./lib/"
+    ],
+    [
+      "d.jsx",
+      "./lib/index"
+    ],
+    [
+      "d.jsx",
+      "./lib/index.js"
+    ],
+    [
+      "d.jsx",
+      "./ui"
+    ],
+    [
+      "d.jsx",
+      "./ui/"
+    ],
+    [
+      "e.mjs",
+      "./lib"
+    ],
+    [
+      "e.mjs",
+      "./lib/"
+    ],
+    [
+      "e.mjs",
+      "./lib/index"
+    ],
+    [
+      "e.mjs",
+      "./lib/index.js"
+    ],
+    [
+      "e.mjs",
+      "./ui"
+    ],
+    [
+      "e.mjs",
+      "./ui/"
+    ],
+    [
+      "f.cjs",
+      "./lib"
+    ],
+    [
+      "f.cjs",
+      "./lib/"
+    ],
+    [
+      "f.cjs",
+      "./lib/index"
+    ],
+    [
+      "f.cjs",
+      "./lib/index.js"
+    ],
+    [
+      "f.cjs",
+      "./ui"
+    ],
+    [
+      "f.cjs",
+      "./ui/"
+    ]
+  ],
+  "generated": [
+    "a.ts",
+    "b.tsx",
+    "c.js",
+    "d.jsx",
+    "e.mjs"
+  ],
+  "unresolved": {
+    "c.js|./lib": "Vite and Rollup read lib/index.mjs first",
+    "d.jsx|./lib": "Vite and Rollup read lib/index.mjs first",
+    "e.mjs|./lib": "Vite and Rollup read lib/index.mjs first",
+    "f.cjs|./lib": "Vite and Rollup read lib/index.mjs first",
+    "c.js|./lib/": "Vite and Rollup read lib/index.mjs first",
+    "d.jsx|./lib/": "Vite and Rollup read lib/index.mjs first",
+    "e.mjs|./lib/": "Vite and Rollup read lib/index.mjs first",
+    "f.cjs|./lib/": "Vite and Rollup read lib/index.mjs first",
+    "c.js|./lib/index": "Vite and Rollup read lib/index.mjs first",
+    "d.jsx|./lib/index": "Vite and Rollup read lib/index.mjs first",
+    "e.mjs|./lib/index": "Vite and Rollup read lib/index.mjs first",
+    "f.cjs|./lib/index": "Vite and Rollup read lib/index.mjs first",
+    "a.ts|./ui": "Vite reads ui/index.mts before ui/index.ts",
+    "b.tsx|./ui": "Vite reads ui/index.mts before ui/index.ts",
+    "c.js|./ui": "Vite reads ui/index.mts before ui/index.ts",
+    "d.jsx|./ui": "Vite reads ui/index.mts before ui/index.ts",
+    "e.mjs|./ui": "Vite reads ui/index.mts before ui/index.ts",
+    "f.cjs|./ui": "Vite reads ui/index.mts before ui/index.ts",
+    "a.ts|./ui/": "Vite reads ui/index.mts before ui/index.ts",
+    "b.tsx|./ui/": "Vite reads ui/index.mts before ui/index.ts",
+    "c.js|./ui/": "Vite reads ui/index.mts before ui/index.ts",
+    "d.jsx|./ui/": "Vite reads ui/index.mts before ui/index.ts",
+    "e.mjs|./ui/": "Vite reads ui/index.mts before ui/index.ts",
+    "f.cjs|./ui/": "Vite reads ui/index.mts before ui/index.ts"
+  }
+}

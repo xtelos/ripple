@@ -1,0 +1,1 @@
+{"compilerOptions": {"allowJs": true, "outDir": "out", "baseUrl": ".", "paths": {"@p/*": ["paths/*"]}}}

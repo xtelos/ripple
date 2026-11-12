@@ -1,0 +1,116 @@
+{
+  "notes": "x.mjs and x/index.js: Vite takes x.mjs, the compiler and Node's require take the directory.",
+  "imports": [
+    [
+      "a.ts",
+      "./x"
+    ],
+    [
+      "a.ts",
+      "./x/"
+    ],
+    [
+      "a.ts",
+      "./x.mjs"
+    ],
+    [
+      "a.ts",
+      "./x/index"
+    ],
+    [
+      "b.tsx",
+      "./x"
+    ],
+    [
+      "b.tsx",
+      "./x/"
+    ],
+    [
+      "b.tsx",
+      "./x.mjs"
+    ],
+    [
+      "b.tsx",
+      "./x/index"
+    ],
+    [
+      "c.js",
+      "./x"
+    ],
+    [
+      "c.js",
+      "./x/"
+    ],
+    [
+      "c.js",
+      "./x.mjs"
+    ],
+    [
+      "c.js",
+      "./x/index"
+    ],
+    [
+      "d.jsx",
+      "./x"
+    ],
+    [
+      "d.jsx",
+      "./x/"
+    ],
+    [
+      "d.jsx",
+      "./x.mjs"
+    ],
+    [
+      "d.jsx",
+      "./x/index"
+    ],
+    [
+      "e.mjs",
+      "./x"
+    ],
+    [
+      "e.mjs",
+      "./x/"
+    ],
+    [
+      "e.mjs",
+      "./x.mjs"
+    ],
+    [
+      "e.mjs",
+      "./x/index"
+    ],
+    [
+      "f.cjs",
+      "./x"
+    ],
+    [
+      "f.cjs",
+      "./x/"
+    ],
+    [
+      "f.cjs",
+      "./x.mjs"
+    ],
+    [
+      "f.cjs",
+      "./x/index"
+    ]
+  ],
+  "generated": [
+    "a.ts",
+    "b.tsx",
+    "c.js",
+    "d.jsx",
+    "e.mjs"
+  ],
+  "unresolved": {
+    "a.ts|./x": "Vite takes x.mjs, the compiler x/index.js",
+    "b.tsx|./x": "Vite takes x.mjs, the compiler x/index.js",
+    "c.js|./x": "Vite takes x.mjs, the compiler x/index.js",
+    "d.jsx|./x": "Vite takes x.mjs, the compiler x/index.js",
+    "e.mjs|./x": "Vite takes x.mjs, the compiler x/index.js",
+    "f.cjs|./x": "Vite takes x.mjs, the compiler x/index.js"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "app/main.ts",
+      "specifier": "@lib/foo",
+      "resolved": "src/foo.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/foo.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "app/main.js",
+      "specifier": "@lib/foo",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    }
+  ],
+  "definitions": [
+    {
+      "in": "app/main.ts",
+      "call": "foo",
+      "defined_in": "src/foo.ts"
+    }
+  ],
+  "jsx": []
+}

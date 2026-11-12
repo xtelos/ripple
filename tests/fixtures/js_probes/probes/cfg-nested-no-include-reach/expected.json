@@ -1,0 +1,26 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "src/lib/a.ts",
+      "specifier": "@/util",
+      "resolved": "src/util.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/util.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "src/lib/only/b.ts",
+      "specifier": "@/util",
+      "resolved": null,
+      "project": "src/lib/tsconfig.json",
+      "build_project": "src/lib/tsconfig.json",
+      "build": null,
+      "reach_dropped": {}
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

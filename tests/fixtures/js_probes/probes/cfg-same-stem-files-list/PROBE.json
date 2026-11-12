@@ -1,0 +1,17 @@
+{
+  "notes": "files names a file outright, so the priority rule does not drop it.",
+  "imports": [
+    [
+      "m.ts",
+      "@p/t"
+    ],
+    [
+      "m.js",
+      "@p/t"
+    ]
+  ],
+  "generated": [
+    "m.ts",
+    "m.js"
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "notes": "`types` sends the compiler to a declaration file while Node's require runs index.js.",
+  "imports": [
+    [
+      "a.ts",
+      "./pk"
+    ],
+    [
+      "a.ts",
+      "./pk/"
+    ],
+    [
+      "b.tsx",
+      "./pk"
+    ],
+    [
+      "b.tsx",
+      "./pk/"
+    ],
+    [
+      "c.js",
+      "./pk"
+    ],
+    [
+      "c.js",
+      "./pk/"
+    ],
+    [
+      "d.jsx",
+      "./pk"
+    ],
+    [
+      "d.jsx",
+      "./pk/"
+    ],
+    [
+      "e.mjs",
+      "./pk"
+    ],
+    [
+      "e.mjs",
+      "./pk/"
+    ],
+    [
+      "f.cjs",
+      "./pk"
+    ],
+    [
+      "f.cjs",
+      "./pk/"
+    ]
+  ],
+  "generated": [
+    "a.ts",
+    "b.tsx",
+    "c.js",
+    "d.jsx",
+    "e.mjs"
+  ],
+  "unresolved": {
+    "a.ts|./pk": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "a.ts|./pk/": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "b.tsx|./pk": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "b.tsx|./pk/": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "c.js|./pk": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "c.js|./pk/": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "d.jsx|./pk": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "d.jsx|./pk/": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "e.mjs|./pk": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "e.mjs|./pk/": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "f.cjs|./pk": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "f.cjs|./pk/": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it"
+  }
+}

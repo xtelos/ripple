@@ -1,0 +1,32 @@
+{
+  "notes": "The reviewer's probe p9, JavaScript side.",
+  "imports": [
+    [
+      "user.js",
+      "./barrel"
+    ],
+    [
+      "barrel.js",
+      "./t"
+    ]
+  ],
+  "generated": [],
+  "unresolved": {
+    "calls:user.js|bar": "ambiguous star exports",
+    "calls:user.js|from_j": "t.ts may export from_j too: its exports are not read into this graph"
+  },
+  "calls": [
+    {
+      "in": "user.js",
+      "call": "bar"
+    },
+    {
+      "in": "user.js",
+      "call": "from_t"
+    },
+    {
+      "in": "user.js",
+      "call": "from_j"
+    }
+  ]
+}

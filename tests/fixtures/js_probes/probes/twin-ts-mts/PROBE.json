@@ -1,0 +1,116 @@
+{
+  "notes": "",
+  "imports": [
+    [
+      "a.ts",
+      "./x"
+    ],
+    [
+      "a.ts",
+      "./x.ts"
+    ],
+    [
+      "a.ts",
+      "./x.mjs"
+    ],
+    [
+      "a.ts",
+      "./x.mts"
+    ],
+    [
+      "b.tsx",
+      "./x"
+    ],
+    [
+      "b.tsx",
+      "./x.ts"
+    ],
+    [
+      "b.tsx",
+      "./x.mjs"
+    ],
+    [
+      "b.tsx",
+      "./x.mts"
+    ],
+    [
+      "c.js",
+      "./x"
+    ],
+    [
+      "c.js",
+      "./x.ts"
+    ],
+    [
+      "c.js",
+      "./x.mjs"
+    ],
+    [
+      "c.js",
+      "./x.mts"
+    ],
+    [
+      "d.jsx",
+      "./x"
+    ],
+    [
+      "d.jsx",
+      "./x.ts"
+    ],
+    [
+      "d.jsx",
+      "./x.mjs"
+    ],
+    [
+      "d.jsx",
+      "./x.mts"
+    ],
+    [
+      "e.mjs",
+      "./x"
+    ],
+    [
+      "e.mjs",
+      "./x.ts"
+    ],
+    [
+      "e.mjs",
+      "./x.mjs"
+    ],
+    [
+      "e.mjs",
+      "./x.mts"
+    ],
+    [
+      "f.cjs",
+      "./x"
+    ],
+    [
+      "f.cjs",
+      "./x.ts"
+    ],
+    [
+      "f.cjs",
+      "./x.mjs"
+    ],
+    [
+      "f.cjs",
+      "./x.mts"
+    ]
+  ],
+  "generated": [
+    "a.ts",
+    "b.tsx",
+    "c.js",
+    "d.jsx",
+    "e.mjs"
+  ],
+  "unresolved": {
+    "a.ts|./x": "Vite orders .mts before .ts",
+    "b.tsx|./x": "Vite orders .mts before .ts",
+    "c.js|./x": "Vite orders .mts before .ts",
+    "d.jsx|./x": "Vite orders .mts before .ts",
+    "e.mjs|./x": "Vite orders .mts before .ts",
+    "f.cjs|./x": "Vite orders .mts before .ts"
+  }
+}

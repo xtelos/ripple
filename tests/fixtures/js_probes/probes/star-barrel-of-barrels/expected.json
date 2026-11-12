@@ -1,0 +1,28 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "user.ts",
+      "specifier": "./top",
+      "resolved": "top.ts",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    }
+  ],
+  "definitions": [
+    {
+      "in": "user.ts",
+      "call": "deep",
+      "defined_in": "leaf.ts"
+    },
+    {
+      "in": "user.ts",
+      "call": "far",
+      "defined_in": "other.js"
+    }
+  ],
+  "jsx": []
+}

@@ -1,0 +1,33 @@
+{
+  "notes": "",
+  "imports": [
+    [
+      "main.ts",
+      "@m/f"
+    ],
+    [
+      "main.ts",
+      "src/f"
+    ],
+    [
+      "main.ts",
+      "src/g"
+    ],
+    [
+      "main.js",
+      "@m/f"
+    ],
+    [
+      "main.js",
+      "src/f"
+    ],
+    [
+      "main.js",
+      "src/g"
+    ]
+  ],
+  "generated": [
+    "main.ts",
+    "main.js"
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "m.ts",
+      "specifier": "@p/t",
+      "resolved": "paths/t.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "paths/t.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "m.js",
+      "specifier": "@p/t",
+      "resolved": "paths/t.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "paths/t.ts",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

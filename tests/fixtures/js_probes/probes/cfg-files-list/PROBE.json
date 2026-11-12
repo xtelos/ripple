@@ -1,0 +1,43 @@
+{
+  "notes": "",
+  "imports": [
+    [
+      "src/a.ts",
+      "@p/t"
+    ],
+    [
+      "src/a.ts",
+      "@p/j"
+    ],
+    [
+      "src/b.ts",
+      "@p/t"
+    ],
+    [
+      "src/b.ts",
+      "@p/j"
+    ],
+    [
+      "src/c.js",
+      "@p/t"
+    ],
+    [
+      "src/c.js",
+      "@p/j"
+    ],
+    [
+      "src/d.js",
+      "@p/t"
+    ],
+    [
+      "src/d.js",
+      "@p/j"
+    ]
+  ],
+  "generated": [
+    "src/a.ts",
+    "src/b.ts",
+    "src/c.js",
+    "src/d.js"
+  ]
+}

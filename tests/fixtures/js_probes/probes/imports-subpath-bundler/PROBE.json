@@ -1,0 +1,68 @@
+{
+  "notes": "With bundler resolution the compiler reads `imports` too.",
+  "imports": [
+    [
+      "a.ts",
+      "#lib/helper.js"
+    ],
+    [
+      "a.ts",
+      "#nothing"
+    ],
+    [
+      "b.tsx",
+      "#lib/helper.js"
+    ],
+    [
+      "b.tsx",
+      "#nothing"
+    ],
+    [
+      "c.js",
+      "#lib/helper.js"
+    ],
+    [
+      "c.js",
+      "#nothing"
+    ],
+    [
+      "d.jsx",
+      "#lib/helper.js"
+    ],
+    [
+      "d.jsx",
+      "#nothing"
+    ],
+    [
+      "e.mjs",
+      "#lib/helper.js"
+    ],
+    [
+      "e.mjs",
+      "#nothing"
+    ],
+    [
+      "f.cjs",
+      "#lib/helper.js"
+    ],
+    [
+      "f.cjs",
+      "#nothing"
+    ]
+  ],
+  "generated": [
+    "a.ts",
+    "b.tsx",
+    "c.js",
+    "d.jsx",
+    "e.mjs"
+  ],
+  "unresolved": {
+    "a.ts|#lib/helper.js": "a `#` import is mapped by the nearest package.json's `imports`, which ripple does not read",
+    "b.tsx|#lib/helper.js": "a `#` import is mapped by the nearest package.json's `imports`, which ripple does not read",
+    "c.js|#lib/helper.js": "a `#` import is mapped by the nearest package.json's `imports`, which ripple does not read",
+    "d.jsx|#lib/helper.js": "a `#` import is mapped by the nearest package.json's `imports`, which ripple does not read",
+    "e.mjs|#lib/helper.js": "a `#` import is mapped by the nearest package.json's `imports`, which ripple does not read",
+    "f.cjs|#lib/helper.js": "a `#` import is mapped by the nearest package.json's `imports`, which ripple does not read"
+  }
+}

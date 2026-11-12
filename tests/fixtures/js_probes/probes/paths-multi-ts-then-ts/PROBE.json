@@ -1,0 +1,20 @@
+{
+  "notes": "",
+  "imports": [
+    [
+      "main.ts",
+      "@lib/x"
+    ],
+    [
+      "main.ts",
+      "@lib/y"
+    ],
+    [
+      "main.ts",
+      "@lib/z"
+    ]
+  ],
+  "generated": [
+    "main.ts"
+  ]
+}

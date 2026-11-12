@@ -1,0 +1,58 @@
+{
+  "notes": "",
+  "imports": [
+    [
+      "src/a.ts",
+      "x"
+    ],
+    [
+      "src/a.ts",
+      "y"
+    ],
+    [
+      "src/a.ts",
+      "lib"
+    ],
+    [
+      "src/a.ts",
+      "nothing"
+    ],
+    [
+      "src/a.js",
+      "x"
+    ],
+    [
+      "src/a.js",
+      "y"
+    ],
+    [
+      "src/a.js",
+      "lib"
+    ],
+    [
+      "src/a.js",
+      "nothing"
+    ],
+    [
+      "src/a.jsx",
+      "x"
+    ],
+    [
+      "src/a.jsx",
+      "y"
+    ],
+    [
+      "src/a.jsx",
+      "lib"
+    ],
+    [
+      "src/a.jsx",
+      "nothing"
+    ]
+  ],
+  "generated": [
+    "src/a.ts",
+    "src/a.js",
+    "src/a.jsx"
+  ]
+}

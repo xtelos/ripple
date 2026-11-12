@@ -1,0 +1,118 @@
+{
+  "notes": "",
+  "imports": [
+    [
+      "a.ts",
+      "./x"
+    ],
+    [
+      "a.ts",
+      "./x.jsx"
+    ],
+    [
+      "a.ts",
+      "./x.js"
+    ],
+    [
+      "a.ts",
+      "./x.tsx"
+    ],
+    [
+      "b.tsx",
+      "./x"
+    ],
+    [
+      "b.tsx",
+      "./x.jsx"
+    ],
+    [
+      "b.tsx",
+      "./x.js"
+    ],
+    [
+      "b.tsx",
+      "./x.tsx"
+    ],
+    [
+      "c.js",
+      "./x"
+    ],
+    [
+      "c.js",
+      "./x.jsx"
+    ],
+    [
+      "c.js",
+      "./x.js"
+    ],
+    [
+      "c.js",
+      "./x.tsx"
+    ],
+    [
+      "d.jsx",
+      "./x"
+    ],
+    [
+      "d.jsx",
+      "./x.jsx"
+    ],
+    [
+      "d.jsx",
+      "./x.js"
+    ],
+    [
+      "d.jsx",
+      "./x.tsx"
+    ],
+    [
+      "e.mjs",
+      "./x"
+    ],
+    [
+      "e.mjs",
+      "./x.jsx"
+    ],
+    [
+      "e.mjs",
+      "./x.js"
+    ],
+    [
+      "e.mjs",
+      "./x.tsx"
+    ],
+    [
+      "f.cjs",
+      "./x"
+    ],
+    [
+      "f.cjs",
+      "./x.jsx"
+    ],
+    [
+      "f.cjs",
+      "./x.js"
+    ],
+    [
+      "f.cjs",
+      "./x.tsx"
+    ]
+  ],
+  "generated": [
+    "a.ts",
+    "b.tsx",
+    "c.js",
+    "d.jsx",
+    "e.mjs"
+  ],
+  "unresolved": {
+    "c.js|./x": "Vite orders .jsx before .tsx",
+    "d.jsx|./x": "Vite orders .jsx before .tsx",
+    "e.mjs|./x": "Vite orders .jsx before .tsx",
+    "f.cjs|./x": "Vite orders .jsx before .tsx",
+    "c.js|./x.jsx": "compiler reads x.tsx, runtime runs x.jsx",
+    "d.jsx|./x.jsx": "compiler reads x.tsx, runtime runs x.jsx",
+    "e.mjs|./x.jsx": "compiler reads x.tsx, runtime runs x.jsx",
+    "f.cjs|./x.jsx": "compiler reads x.tsx, runtime runs x.jsx"
+  }
+}

@@ -1,0 +1,2 @@
+require("./x");
+require("./x/");

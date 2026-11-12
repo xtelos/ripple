@@ -1,0 +1,116 @@
+{
+  "notes": "The extensionless ./dual is dual.js for the compiler and for Node's require, and dual.mjs for Vite and Rollup (their resolve.extensions lists put .mjs first).",
+  "imports": [
+    [
+      "a.ts",
+      "./dual"
+    ],
+    [
+      "a.ts",
+      "./dual.js"
+    ],
+    [
+      "a.ts",
+      "./dual.mjs"
+    ],
+    [
+      "a.ts",
+      "./dual.cjs"
+    ],
+    [
+      "b.tsx",
+      "./dual"
+    ],
+    [
+      "b.tsx",
+      "./dual.js"
+    ],
+    [
+      "b.tsx",
+      "./dual.mjs"
+    ],
+    [
+      "b.tsx",
+      "./dual.cjs"
+    ],
+    [
+      "c.js",
+      "./dual"
+    ],
+    [
+      "c.js",
+      "./dual.js"
+    ],
+    [
+      "c.js",
+      "./dual.mjs"
+    ],
+    [
+      "c.js",
+      "./dual.cjs"
+    ],
+    [
+      "d.jsx",
+      "./dual"
+    ],
+    [
+      "d.jsx",
+      "./dual.js"
+    ],
+    [
+      "d.jsx",
+      "./dual.mjs"
+    ],
+    [
+      "d.jsx",
+      "./dual.cjs"
+    ],
+    [
+      "e.mjs",
+      "./dual"
+    ],
+    [
+      "e.mjs",
+      "./dual.js"
+    ],
+    [
+      "e.mjs",
+      "./dual.mjs"
+    ],
+    [
+      "e.mjs",
+      "./dual.cjs"
+    ],
+    [
+      "f.cjs",
+      "./dual"
+    ],
+    [
+      "f.cjs",
+      "./dual.js"
+    ],
+    [
+      "f.cjs",
+      "./dual.mjs"
+    ],
+    [
+      "f.cjs",
+      "./dual.cjs"
+    ]
+  ],
+  "generated": [
+    "a.ts",
+    "b.tsx",
+    "c.js",
+    "d.jsx",
+    "e.mjs"
+  ],
+  "unresolved": {
+    "a.ts|./dual": "Vite and Rollup read .mjs first",
+    "b.tsx|./dual": "Vite and Rollup read .mjs first",
+    "c.js|./dual": "Vite and Rollup read .mjs first",
+    "d.jsx|./dual": "Vite and Rollup read .mjs first",
+    "e.mjs|./dual": "Vite and Rollup read .mjs first",
+    "f.cjs|./dual": "Vite and Rollup read .mjs first"
+  }
+}

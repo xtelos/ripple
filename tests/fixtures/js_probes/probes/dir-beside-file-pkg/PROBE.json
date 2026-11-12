@@ -1,0 +1,74 @@
+{
+  "notes": "x.js beside a directory x with a package.json: the compiler's TypeScript pass enters the directory first.",
+  "imports": [
+    [
+      "a.ts",
+      "./x"
+    ],
+    [
+      "a.ts",
+      "./x/"
+    ],
+    [
+      "b.tsx",
+      "./x"
+    ],
+    [
+      "b.tsx",
+      "./x/"
+    ],
+    [
+      "c.js",
+      "./x"
+    ],
+    [
+      "c.js",
+      "./x/"
+    ],
+    [
+      "d.jsx",
+      "./x"
+    ],
+    [
+      "d.jsx",
+      "./x/"
+    ],
+    [
+      "e.mjs",
+      "./x"
+    ],
+    [
+      "e.mjs",
+      "./x/"
+    ],
+    [
+      "f.cjs",
+      "./x"
+    ],
+    [
+      "f.cjs",
+      "./x/"
+    ]
+  ],
+  "generated": [
+    "a.ts",
+    "b.tsx",
+    "c.js",
+    "d.jsx",
+    "e.mjs"
+  ],
+  "unresolved": {
+    "a.ts|./x": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "a.ts|./x/": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "b.tsx|./x": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "b.tsx|./x/": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "c.js|./x": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "c.js|./x/": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "d.jsx|./x": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "d.jsx|./x/": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "e.mjs|./x": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "e.mjs|./x/": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "f.cjs|./x": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "f.cjs|./x/": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it"
+  }
+}

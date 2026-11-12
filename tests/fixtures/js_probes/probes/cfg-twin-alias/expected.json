@@ -1,0 +1,100 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "src/x.tsx",
+      "specifier": "@/lib",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {
+        "tsconfig.json": "src/lib.ts"
+      }
+    },
+    {
+      "importer": "src/x.ts",
+      "specifier": "@/lib",
+      "resolved": "src/lib.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/lib.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "src/p.js",
+      "specifier": "@/lib",
+      "resolved": "src/lib.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/lib.ts",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "src/p.jsx",
+      "specifier": "@/lib",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {
+        "tsconfig.json": "src/lib.ts"
+      }
+    },
+    {
+      "importer": "src/q.ts",
+      "specifier": "@/lib",
+      "resolved": "src/lib.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/lib.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "src/q.js",
+      "specifier": "@/lib",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {
+        "tsconfig.json": "src/lib.ts"
+      },
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "src/r.mts",
+      "specifier": "@/lib",
+      "resolved": "src/lib.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/lib.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "src/r.mjs",
+      "specifier": "@/lib",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {
+        "tsconfig.json": "src/lib.ts"
+      },
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

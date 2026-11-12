@@ -1,0 +1,17 @@
+{
+  "notes": "An outDir that is the rootDir holds the sources.",
+  "imports": [
+    [
+      "src/a.ts",
+      "./b"
+    ]
+  ],
+  "generated": [],
+  "walk": {
+    "indexed": [
+      "src/a.ts",
+      "src/b.ts"
+    ],
+    "skipped": []
+  }
+}

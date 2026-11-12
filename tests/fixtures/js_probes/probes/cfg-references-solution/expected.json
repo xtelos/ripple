@@ -1,0 +1,61 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "app/src/a.ts",
+      "specifier": "@l/u",
+      "resolved": "lib/src/u.ts",
+      "project": "app/tsconfig.json",
+      "build_project": "app/tsconfig.json",
+      "build": "lib/src/u.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "app/src/a.ts",
+      "specifier": "@l/v",
+      "resolved": "lib/src/v.js",
+      "project": "app/tsconfig.json",
+      "build_project": "app/tsconfig.json",
+      "build": "lib/src/v.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "lib/src/w.js",
+      "specifier": "./v",
+      "resolved": "lib/src/v.js",
+      "project": "lib/tsconfig.json",
+      "build_project": "lib/tsconfig.json",
+      "build": "lib/src/v.js",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "lib/src/w.js",
+      "specifier": "./u",
+      "resolved": "lib/src/u.ts",
+      "project": "lib/tsconfig.json",
+      "build_project": "lib/tsconfig.json",
+      "build": "lib/src/u.ts",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "app/scripts/s.ts",
+      "specifier": "@l/u",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

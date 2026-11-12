@@ -1,0 +1,61 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "src/a.ts",
+      "specifier": "@/util",
+      "resolved": "src/util.ts",
+      "project": "tsconfig.build.json",
+      "build_project": "tsconfig.build.json",
+      "build": "src/util.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "src/b.tsx",
+      "specifier": "@/util",
+      "resolved": "src/util.ts",
+      "project": "tsconfig.build.json",
+      "build_project": "tsconfig.build.json",
+      "build": "src/util.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "src/c.js",
+      "specifier": "@/util",
+      "resolved": "src/util.ts",
+      "project": "tsconfig.build.json",
+      "build_project": "tsconfig.build.json",
+      "build": "src/util.ts",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "src/e.mjs",
+      "specifier": "@/util",
+      "resolved": "src/util.ts",
+      "project": "tsconfig.build.json",
+      "build_project": "tsconfig.build.json",
+      "build": "src/util.ts",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "other/x.ts",
+      "specifier": "@/util",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

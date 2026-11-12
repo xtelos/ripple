@@ -1,0 +1,25 @@
+{
+  "notes": "paths are relative to the config that wrote them, not to the one that extends it.",
+  "imports": [
+    [
+      "app/a.ts",
+      "@p/t"
+    ],
+    [
+      "app/a.ts",
+      "@p/j"
+    ],
+    [
+      "app/a.js",
+      "@p/t"
+    ],
+    [
+      "app/a.js",
+      "@p/j"
+    ]
+  ],
+  "generated": [
+    "app/a.ts",
+    "app/a.js"
+  ]
+}

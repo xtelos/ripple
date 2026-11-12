@@ -1,0 +1,78 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "main.ts",
+      "specifier": "@m/f",
+      "resolved": null,
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "main.ts",
+      "specifier": "src/f",
+      "resolved": "src/f.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/f.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "main.ts",
+      "specifier": "src/g",
+      "resolved": "src/g.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/g.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "main.js",
+      "specifier": "@m/f",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "main.js",
+      "specifier": "src/f",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {
+        "tsconfig.json": "src/f.ts"
+      },
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "main.js",
+      "specifier": "src/g",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {
+        "tsconfig.json": "src/g.js"
+      },
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

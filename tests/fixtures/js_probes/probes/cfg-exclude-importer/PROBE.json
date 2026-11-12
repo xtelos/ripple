@@ -1,0 +1,34 @@
+{
+  "notes": "",
+  "imports": [
+    [
+      "src/a.ts",
+      "@p/t"
+    ],
+    [
+      "src/a.ts",
+      "@p/j"
+    ],
+    [
+      "legacy/b.ts",
+      "@p/t"
+    ],
+    [
+      "legacy/b.ts",
+      "@p/j"
+    ],
+    [
+      "legacy/b.js",
+      "@p/t"
+    ],
+    [
+      "legacy/b.js",
+      "@p/j"
+    ]
+  ],
+  "generated": [
+    "src/a.ts",
+    "legacy/b.ts",
+    "legacy/b.js"
+  ]
+}

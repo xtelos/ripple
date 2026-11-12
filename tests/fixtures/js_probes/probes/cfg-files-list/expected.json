@@ -1,0 +1,96 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "src/a.ts",
+      "specifier": "@p/t",
+      "resolved": "paths/t.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "paths/t.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "src/a.ts",
+      "specifier": "@p/j",
+      "resolved": "paths/j.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "paths/j.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "src/b.ts",
+      "specifier": "@p/t",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "src/b.ts",
+      "specifier": "@p/j",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    },
+    {
+      "importer": "src/c.js",
+      "specifier": "@p/t",
+      "resolved": "paths/t.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "paths/t.ts",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "src/c.js",
+      "specifier": "@p/j",
+      "resolved": "paths/j.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "paths/j.js",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "src/d.js",
+      "specifier": "@p/t",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "src/d.js",
+      "specifier": "@p/j",
+      "resolved": null,
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

@@ -1,0 +1,27 @@
+{
+  "notes": "Two stars both providing foo: the compiler reports TS2308 and the name is exported by neither.",
+  "imports": [
+    [
+      "user.ts",
+      "./barrel"
+    ]
+  ],
+  "generated": [],
+  "unresolved": {
+    "calls:user.ts|foo": "TS2308: ambiguous star exports"
+  },
+  "calls": [
+    {
+      "in": "user.ts",
+      "call": "foo"
+    },
+    {
+      "in": "user.ts",
+      "call": "only_a"
+    },
+    {
+      "in": "user.ts",
+      "call": "only_b"
+    }
+  ]
+}

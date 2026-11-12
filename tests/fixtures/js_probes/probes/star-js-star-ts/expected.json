@@ -1,0 +1,50 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "user.js",
+      "specifier": "./barrel",
+      "resolved": "barrel.js",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "barrel.js",
+      "specifier": "./t",
+      "resolved": "t.ts",
+      "project": "inferred",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    }
+  ],
+  "definitions": [
+    {
+      "in": "user.js",
+      "call": "bar",
+      "defined_in": "t.ts"
+    },
+    {
+      "in": "user.js",
+      "call": "from_t",
+      "defined_in": "t.ts"
+    },
+    {
+      "in": "user.js",
+      "call": "from_j",
+      "defined_in": "j.js"
+    }
+  ],
+  "jsx": []
+}

@@ -1,0 +1,60 @@
+{
+  "notes": "",
+  "imports": [
+    [
+      "a.ts",
+      "src/x"
+    ],
+    [
+      "a.ts",
+      "src/y"
+    ],
+    [
+      "b.tsx",
+      "src/x"
+    ],
+    [
+      "b.tsx",
+      "src/y"
+    ],
+    [
+      "c.js",
+      "src/x"
+    ],
+    [
+      "c.js",
+      "src/y"
+    ],
+    [
+      "d.jsx",
+      "src/x"
+    ],
+    [
+      "d.jsx",
+      "src/y"
+    ],
+    [
+      "e.mjs",
+      "src/x"
+    ],
+    [
+      "e.mjs",
+      "src/y"
+    ],
+    [
+      "f.cjs",
+      "src/x"
+    ],
+    [
+      "f.cjs",
+      "src/y"
+    ]
+  ],
+  "generated": [
+    "a.ts",
+    "b.tsx",
+    "c.js",
+    "d.jsx",
+    "e.mjs"
+  ]
+}

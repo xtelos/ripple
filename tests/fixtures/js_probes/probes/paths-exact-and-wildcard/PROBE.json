@@ -1,0 +1,20 @@
+{
+  "notes": "",
+  "imports": [
+    [
+      "main.ts",
+      "app"
+    ],
+    [
+      "main.ts",
+      "app/x"
+    ],
+    [
+      "main.ts",
+      "@u/q"
+    ]
+  ],
+  "generated": [
+    "main.ts"
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "src/legacy/a.ts",
+      "specifier": "@/util",
+      "resolved": null,
+      "project": "src/legacy/jsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/util.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "src/legacy/a.ts",
+      "specifier": "../util",
+      "resolved": "src/util.ts",
+      "project": "src/legacy/jsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/util.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "src/legacy/b.tsx",
+      "specifier": "@/util",
+      "resolved": null,
+      "project": "src/legacy/jsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/util.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "src/legacy/b.tsx",
+      "specifier": "../util",
+      "resolved": "src/util.ts",
+      "project": "src/legacy/jsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/util.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "src/legacy/c.js",
+      "specifier": "@/util",
+      "resolved": null,
+      "project": "src/legacy/jsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/util.ts",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "src/legacy/c.js",
+      "specifier": "../util",
+      "resolved": "src/util.ts",
+      "project": "src/legacy/jsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/util.ts",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "src/legacy/e.mjs",
+      "specifier": "@/util",
+      "resolved": null,
+      "project": "src/legacy/jsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/util.ts",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "src/legacy/e.mjs",
+      "specifier": "../util",
+      "resolved": "src/util.ts",
+      "project": "src/legacy/jsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/util.ts",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

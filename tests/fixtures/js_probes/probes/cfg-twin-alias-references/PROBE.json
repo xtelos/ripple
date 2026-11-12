@@ -1,0 +1,27 @@
+{
+  "notes": "The same twins in a project a solution-style root references.",
+  "imports": [
+    [
+      "app/src/m.ts",
+      "@/lib"
+    ],
+    [
+      "app/src/m.tsx",
+      "@/lib"
+    ],
+    [
+      "app/src/n.js",
+      "@/lib"
+    ],
+    [
+      "app/src/n.jsx",
+      "@/lib"
+    ]
+  ],
+  "generated": [
+    "app/src/m.ts",
+    "app/src/m.tsx",
+    "app/src/n.js",
+    "app/src/n.jsx"
+  ]
+}

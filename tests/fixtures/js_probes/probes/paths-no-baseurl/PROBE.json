@@ -1,0 +1,12 @@
+{
+  "notes": "",
+  "imports": [
+    [
+      "main.ts",
+      "@t/f"
+    ]
+  ],
+  "generated": [
+    "main.ts"
+  ]
+}

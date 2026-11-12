@@ -1,0 +1,27 @@
+{
+  "notes": "paths from a base config, an include in the extending one; scripts/ is outside it.",
+  "imports": [
+    [
+      "src/a.ts",
+      "@/util"
+    ],
+    [
+      "src/c.js",
+      "@/util"
+    ],
+    [
+      "scripts/s.ts",
+      "@/util"
+    ],
+    [
+      "scripts/t.js",
+      "@/util"
+    ]
+  ],
+  "generated": [
+    "src/a.ts",
+    "src/c.js",
+    "scripts/s.ts",
+    "scripts/t.js"
+  ]
+}

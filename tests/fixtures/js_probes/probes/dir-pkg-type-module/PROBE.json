@@ -1,0 +1,128 @@
+{
+  "notes": "A package.json with no entry field and an index file: every tool reads the index (Node's ESM refuses a directory), and ripple still does not read the package.json, so the import is left unresolved; the file named in full is a plain edge.",
+  "imports": [
+    [
+      "a.ts",
+      "./pk"
+    ],
+    [
+      "a.ts",
+      "./pk/index.js"
+    ],
+    [
+      "a.ts",
+      "./ek"
+    ],
+    [
+      "a.ts",
+      "./ek/"
+    ],
+    [
+      "b.tsx",
+      "./pk"
+    ],
+    [
+      "b.tsx",
+      "./pk/index.js"
+    ],
+    [
+      "b.tsx",
+      "./ek"
+    ],
+    [
+      "b.tsx",
+      "./ek/"
+    ],
+    [
+      "c.js",
+      "./pk"
+    ],
+    [
+      "c.js",
+      "./pk/index.js"
+    ],
+    [
+      "c.js",
+      "./ek"
+    ],
+    [
+      "c.js",
+      "./ek/"
+    ],
+    [
+      "d.jsx",
+      "./pk"
+    ],
+    [
+      "d.jsx",
+      "./pk/index.js"
+    ],
+    [
+      "d.jsx",
+      "./ek"
+    ],
+    [
+      "d.jsx",
+      "./ek/"
+    ],
+    [
+      "e.mjs",
+      "./pk"
+    ],
+    [
+      "e.mjs",
+      "./pk/index.js"
+    ],
+    [
+      "e.mjs",
+      "./ek"
+    ],
+    [
+      "e.mjs",
+      "./ek/"
+    ],
+    [
+      "f.cjs",
+      "./pk"
+    ],
+    [
+      "f.cjs",
+      "./pk/index.js"
+    ],
+    [
+      "f.cjs",
+      "./ek"
+    ],
+    [
+      "f.cjs",
+      "./ek/"
+    ]
+  ],
+  "generated": [
+    "a.ts",
+    "b.tsx",
+    "c.js",
+    "d.jsx",
+    "e.mjs"
+  ],
+  "unresolved": {
+    "a.ts|./pk": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "a.ts|./ek": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "a.ts|./ek/": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "b.tsx|./pk": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "b.tsx|./ek": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "b.tsx|./ek/": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "c.js|./pk": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "c.js|./ek": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "c.js|./ek/": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "d.jsx|./pk": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "d.jsx|./ek": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "d.jsx|./ek/": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "e.mjs|./pk": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "e.mjs|./ek": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "e.mjs|./ek/": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "f.cjs|./pk": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "f.cjs|./ek": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it",
+    "f.cjs|./ek/": "the directory's package.json (main, module, types, exports) picks the file, and ripple does not read it"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "notes": "The reviewer's round-2 probe f-configdir: ${configDir} in a shared base's outDir is the extending config's directory.",
+  "imports": [
+    [
+      "packages/core/src/use.ts",
+      "./math"
+    ]
+  ],
+  "generated": [],
+  "symbols": {
+    "clamp": "packages/core/src/math:clamp",
+    "math:clamp": "packages/core/src/math:clamp",
+    "u": "packages/core/src/use:u"
+  },
+  "walk": {
+    "indexed": [
+      "packages/core/src/math.ts"
+    ],
+    "not_indexed": [
+      "packages/core/dist/math.js",
+      "packages/core/dist/use.js"
+    ],
+    "skipped": [
+      "packages/core/dist"
+    ]
+  }
+}

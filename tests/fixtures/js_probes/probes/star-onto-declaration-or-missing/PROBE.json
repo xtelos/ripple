@@ -1,0 +1,36 @@
+{
+  "notes": "The reviewer's round-2 probe i-stars: a star onto a declaration file or a missing file may provide foo too (tsc: TS2308 and TS2307), so no edge to real.ts.",
+  "imports": [
+    [
+      "use1.ts",
+      "./b1"
+    ],
+    [
+      "use3.ts",
+      "./b3"
+    ],
+    [
+      "b1.ts",
+      "./types"
+    ],
+    [
+      "b3.ts",
+      "./missing"
+    ]
+  ],
+  "generated": [],
+  "unresolved": {
+    "calls:use1.ts|foo": "types.d.ts may provide foo too",
+    "calls:use3.ts|foo": "./missing may provide foo too"
+  },
+  "calls": [
+    {
+      "in": "use1.ts",
+      "call": "foo"
+    },
+    {
+      "in": "use3.ts",
+      "call": "foo"
+    }
+  ]
+}

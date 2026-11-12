@@ -1,0 +1,12 @@
+{
+  "notes": "The reviewer's round-2 probe f-outdir-py: the outDir of a TypeScript config is a Python package, which the TypeScript walk skips and the Python walk reads.",
+  "imports": [],
+  "generated": [],
+  "walk": {
+    "indexed": [
+      "app/core.py",
+      "app/run.py",
+      "web/w.ts"
+    ]
+  }
+}

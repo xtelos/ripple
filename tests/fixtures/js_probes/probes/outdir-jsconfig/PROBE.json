@@ -1,0 +1,16 @@
+{
+  "notes": "A jsconfig.json names an outDir as a tsconfig.json does.",
+  "imports": [],
+  "generated": [],
+  "symbols": {
+    "a": "src/a:a"
+  },
+  "walk": {
+    "not_indexed": [
+      "out/a.js"
+    ],
+    "skipped": [
+      "out"
+    ]
+  }
+}

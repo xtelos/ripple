@@ -1,0 +1,1 @@
+{"compilerOptions": {"allowJs": true, "baseUrl": ".", "paths": {"@p/*": ["paths/*"]}}, "files": ["m.ts", "m.js"]}

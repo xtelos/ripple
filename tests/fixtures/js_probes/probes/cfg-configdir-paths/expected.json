@@ -1,0 +1,96 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "packages/a/src/a.ts",
+      "specifier": "@/util",
+      "resolved": "packages/a/src/util.ts",
+      "project": "packages/a/tsconfig.json",
+      "build_project": "packages/a/tsconfig.json",
+      "build": "packages/a/src/util.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "packages/a/src/a.ts",
+      "specifier": "src/util",
+      "resolved": "packages/a/src/util.ts",
+      "project": "packages/a/tsconfig.json",
+      "build_project": "packages/a/tsconfig.json",
+      "build": "packages/a/src/util.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "packages/a/src/c.js",
+      "specifier": "@/util",
+      "resolved": "packages/a/src/util.ts",
+      "project": "packages/a/tsconfig.json",
+      "build_project": "packages/a/tsconfig.json",
+      "build": "packages/a/src/util.ts",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "packages/a/src/c.js",
+      "specifier": "src/util",
+      "resolved": "packages/a/src/util.ts",
+      "project": "packages/a/tsconfig.json",
+      "build_project": "packages/a/tsconfig.json",
+      "build": "packages/a/src/util.ts",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "packages/b/src/a.ts",
+      "specifier": "@/util",
+      "resolved": "packages/b/src/util.ts",
+      "project": "packages/b/tsconfig.json",
+      "build_project": "packages/b/tsconfig.json",
+      "build": "packages/b/src/util.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "packages/b/src/a.ts",
+      "specifier": "src/util",
+      "resolved": "packages/b/src/util.ts",
+      "project": "packages/b/tsconfig.json",
+      "build_project": "packages/b/tsconfig.json",
+      "build": "packages/b/src/util.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "packages/b/src/c.js",
+      "specifier": "@/util",
+      "resolved": "packages/b/src/util.ts",
+      "project": "packages/b/tsconfig.json",
+      "build_project": "packages/b/tsconfig.json",
+      "build": "packages/b/src/util.ts",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "packages/b/src/c.js",
+      "specifier": "src/util",
+      "resolved": "packages/b/src/util.ts",
+      "project": "packages/b/tsconfig.json",
+      "build_project": "packages/b/tsconfig.json",
+      "build": "packages/b/src/util.ts",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

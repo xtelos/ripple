@@ -1,0 +1,13 @@
+{
+  "notes": "The reviewer's probe p10: the jsconfig.json is panel.jsx's project, and it sets jsxFactory h.",
+  "imports": [
+    [
+      "panel.jsx",
+      "./child"
+    ]
+  ],
+  "generated": [],
+  "jsx": [
+    "panel.jsx"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "packages/core/src/use.ts",
+      "specifier": "./math",
+      "resolved": "packages/core/src/math.ts",
+      "project": "packages/core/tsconfig.json",
+      "build_project": "packages/core/tsconfig.json",
+      "build": "packages/core/src/math.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "packages/core/src/use.ts",
+      "specifier": "./math.js",
+      "resolved": "packages/core/src/math.ts",
+      "project": "packages/core/tsconfig.json",
+      "build_project": "packages/core/tsconfig.json",
+      "build": "packages/core/src/math.ts",
+      "reach_dropped": {}
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

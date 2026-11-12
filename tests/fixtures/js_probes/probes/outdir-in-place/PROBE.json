@@ -1,0 +1,17 @@
+{
+  "notes": "outDir ./ is in-place emit.",
+  "imports": [
+    [
+      "ts/a.ts",
+      "./b"
+    ]
+  ],
+  "generated": [],
+  "walk": {
+    "indexed": [
+      "ts/a.ts",
+      "ts/b.ts"
+    ],
+    "skipped": []
+  }
+}

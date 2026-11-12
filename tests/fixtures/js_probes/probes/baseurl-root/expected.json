@@ -1,0 +1,338 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "a.ts",
+      "specifier": "src/x",
+      "resolved": "src/x.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/x.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "a.ts",
+      "specifier": "src/y",
+      "resolved": "src/y.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/y.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "a.ts",
+      "specifier": "src/z",
+      "resolved": "src/z.tsx",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/z.tsx",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "a.ts",
+      "specifier": "lib/w",
+      "resolved": "lib/w.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "lib/w.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "a.ts",
+      "specifier": "src/y.js",
+      "resolved": "src/y.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/y.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "src/x",
+      "resolved": "src/x.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/x.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "src/y",
+      "resolved": "src/y.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/y.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "src/z",
+      "resolved": "src/z.tsx",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/z.tsx",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "lib/w",
+      "resolved": "lib/w.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "lib/w.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "b.tsx",
+      "specifier": "src/y.js",
+      "resolved": "src/y.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/y.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "c.js",
+      "specifier": "src/x",
+      "resolved": "src/x.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/x.ts",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "c.js",
+      "specifier": "src/y",
+      "resolved": "src/y.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/y.js",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "c.js",
+      "specifier": "src/z",
+      "resolved": "src/z.tsx",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/z.tsx",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "c.js",
+      "specifier": "lib/w",
+      "resolved": "lib/w.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "lib/w.js",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "c.js",
+      "specifier": "src/y.js",
+      "resolved": "src/y.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/y.js",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "src/x",
+      "resolved": "src/x.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/x.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "src/y",
+      "resolved": "src/y.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/y.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "src/z",
+      "resolved": "src/z.tsx",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/z.tsx",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "lib/w",
+      "resolved": "lib/w.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "lib/w.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "d.jsx",
+      "specifier": "src/y.js",
+      "resolved": "src/y.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/y.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "src/x",
+      "resolved": "src/x.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/x.ts",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "src/y",
+      "resolved": "src/y.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/y.js",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "src/z",
+      "resolved": "src/z.tsx",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/z.tsx",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "lib/w",
+      "resolved": "lib/w.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "lib/w.js",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "e.mjs",
+      "specifier": "src/y.js",
+      "resolved": "src/y.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/y.js",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "src/x",
+      "resolved": "src/x.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/x.ts",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "src/y",
+      "resolved": "src/y.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/y.js",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "src/z",
+      "resolved": "src/z.tsx",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/z.tsx",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "lib/w",
+      "resolved": "lib/w.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "lib/w.js",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    },
+    {
+      "importer": "f.cjs",
+      "specifier": "src/y.js",
+      "resolved": "src/y.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/y.js",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "MODULE_NOT_FOUND"
+      }
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

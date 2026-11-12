@@ -1,0 +1,53 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "main.ts",
+      "specifier": "a.fx",
+      "resolved": "fx/a.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "fx/a.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "main.ts",
+      "specifier": "b.fx",
+      "resolved": "fx/b.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "fx/b.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "main.ts",
+      "specifier": "@s/c",
+      "resolved": "src/c.js",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/c.js",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "main.ts",
+      "specifier": "@s/d",
+      "resolved": "src/d.ts",
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/d.ts",
+      "reach_dropped": {}
+    },
+    {
+      "importer": "main.ts",
+      "specifier": "@s/c.js",
+      "resolved": null,
+      "project": "tsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": null,
+      "reach_dropped": {}
+    }
+  ],
+  "definitions": [],
+  "jsx": []
+}

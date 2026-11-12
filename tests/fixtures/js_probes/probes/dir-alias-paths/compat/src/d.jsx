@@ -1,0 +1,10 @@
+import * as m0 from "lib/hooks";
+export function call0() { m0.f(); }
+import * as m1 from "lib/plain";
+export function call1() { m1.f(); }
+import * as m2 from "lib/bare";
+export function call2() { m2.f(); }
+import * as m3 from "lib/hooks/src/index.js";
+export function call3() { m3.f(); }
+import * as m4 from "../../plain";
+export function call4() { m4.f(); }

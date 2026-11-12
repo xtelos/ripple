@@ -1,0 +1,27 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "sub/app.js",
+      "specifier": "@/util",
+      "resolved": "sub/lib/util.js",
+      "project": "sub/jsconfig.json",
+      "build_project": "tsconfig.json",
+      "build": "src/util.js",
+      "reach_dropped": {},
+      "node": {
+        "file": null,
+        "error": "ERR_MODULE_NOT_FOUND"
+      }
+    }
+  ],
+  "definitions": [
+    {
+      "in": "sub/app.js",
+      "call": "util",
+      "defined_in": "sub/lib/util.js"
+    }
+  ],
+  "jsx": []
+}

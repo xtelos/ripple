@@ -1,0 +1,4 @@
+{
+  "name": "a-lib",
+  "main": "./src/index.ts"
+}

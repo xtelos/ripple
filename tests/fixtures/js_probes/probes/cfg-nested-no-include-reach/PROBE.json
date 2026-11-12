@@ -1,0 +1,17 @@
+{
+  "notes": "A nested config that holds only src/lib/only gives its file no alias; the root holds src/lib/a.ts.",
+  "imports": [
+    [
+      "src/lib/a.ts",
+      "@/util"
+    ],
+    [
+      "src/lib/only/b.ts",
+      "@/util"
+    ]
+  ],
+  "generated": [
+    "src/lib/a.ts",
+    "src/lib/only/b.ts"
+  ]
+}

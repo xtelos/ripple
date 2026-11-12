@@ -1,0 +1,20 @@
+{
+  "notes": "The reviewer's probe p7: the emitted out/math.js (the reviewer built into dist, which .gitignore keeps out of a commit) is compiler output, which the walk skips (and lists), so find_symbol stays unique.",
+  "imports": [
+    [
+      "packages/core/src/use.ts",
+      "./math"
+    ],
+    [
+      "packages/core/src/use.ts",
+      "./math.js"
+    ]
+  ],
+  "generated": [
+    "packages/core/src/use.ts"
+  ],
+  "symbols": {
+    "clamp": "packages/core/src/math:clamp",
+    "math:clamp": "packages/core/src/math:clamp"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "notes": "",
+  "imports": [
+    [
+      "user.ts",
+      "./barrel"
+    ]
+  ],
+  "generated": [],
+  "calls": [
+    {
+      "in": "user.ts",
+      "call": "foo"
+    },
+    {
+      "in": "u.js",
+      "call": "g"
+    }
+  ]
+}

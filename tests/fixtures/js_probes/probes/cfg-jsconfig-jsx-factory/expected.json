@@ -1,0 +1,25 @@
+{
+  "typescript": "5.9.3",
+  "node": "v24.0.1",
+  "imports": [
+    {
+      "importer": "panel.jsx",
+      "specifier": "./child",
+      "resolved": "child.jsx",
+      "project": "jsconfig.json",
+      "build_project": null,
+      "build": null,
+      "reach_dropped": {}
+    }
+  ],
+  "definitions": [],
+  "jsx": [
+    {
+      "file": "panel.jsx",
+      "project": "jsconfig.json",
+      "jsxFactory": "h",
+      "jsxFragmentFactory": null,
+      "jsxImportSource": null
+    }
+  ]
+}
