@@ -384,3 +384,48 @@ GO = LanguageProfile(
     default_test_command=_no_go_test_command,
     failure_prefixes=(),
 )
+
+
+def _no_rust_test_command(repo: Path) -> list[str]:
+    raise ValueError(
+        "ripple does not know how to run Rust tests yet: pass the command that runs them "
+        "(`--test-command` or RIPPLE_TEST_COMMAND, for example `cargo test`)"
+    )
+
+
+# Rust is read by its own front end (rs_indexer.py), which resolves calls itself and keeps the tables it needs
+# (the prelude, the std derives, the standard macros) as its own constants. So no field below is read by the
+# resolver, and each takes the neutral value a field takes for a language that does not use it: nothing
+# imported, nothing wrapped, no decorators. Cargo.toml says what the crates are, so an edit to it must rebuild.
+RUST = LanguageProfile(
+    name="rust",
+    source_suffixes=(".rs",),
+    excluded_suffixes=(),
+    config_files=("Cargo.toml",),
+    front_end="rust",
+    builtin_names=frozenset(),
+    builtin_types=frozenset(),
+    not_built_as_instance=frozenset(),
+    safe_import_modules=frozenset(),
+    stdlib_module_names=frozenset(),
+    nominal_only_excluded=(),
+    same_class_decorators=frozenset(),
+    same_class_plain_decorators=frozenset(),
+    result_keeping=frozenset(),
+    partial_names=frozenset(),
+    wraps_names=frozenset(),
+    package_imports=True,
+    synchronous_callbacks=frozenset(),
+    component_wrappers=frozenset(),
+    lazy_wrappers=frozenset(),
+    component_bases=frozenset(),
+    fragment_components=frozenset(),
+    child_replacers=frozenset(),
+    constructor_name="",  # a struct has no constructor member: `Type::new` is a function like any other
+    allocator_name="",
+    implicit_base="",
+    has_universal_member=lambda name: False,
+    test_collection=NoTestCollection,
+    default_test_command=_no_rust_test_command,
+    failure_prefixes=("---- ",),
+)

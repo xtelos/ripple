@@ -69,9 +69,9 @@ def format_languages(result: RepoGraph) -> list[str]:
             lines.append(f"  {language.label}: {plural(language.found, 'file')} found, not indexed")
             continue
         line = f"  {language.label}: {plural(language.files, 'file')}"
-        if language.parse_errors:
-            line += f" ({len(language.parse_errors)} could not be parsed)"
-        lines.append(line)
+        counts = [f"{len(language.parse_errors)} could not be parsed"] if language.parse_errors else []
+        counts += [f"{len(language.unread)} not read"] if language.unread else []
+        lines.append(line + (f" ({', '.join(counts)})" if counts else ""))
     return lines
 
 
@@ -90,6 +90,21 @@ def format_unparsable(result: RepoGraph, named: bool) -> list[str]:
     return lines
 
 
+def format_unread(result: RepoGraph, named: bool) -> list[str]:
+    """Each language's files and declarations it did not read (no `mod` declaration reaches the file), the first
+    SHOWN_UNPARSABLE of them, each with its reason: they are not parse failures."""
+    lines = []
+    for language in result.languages:
+        if not language.unread:
+            continue
+        where = f"{language.label}, " if named else ""
+        lines.append(f"note: not read, the reason after each ({where}{plural(len(language.unread), 'item')}):")
+        lines += [f"  {entry}" for entry in language.unread[:SHOWN_UNPARSABLE]]
+        if len(language.unread) > SHOWN_UNPARSABLE:
+            lines.append(f"  ... and {len(language.unread) - SHOWN_UNPARSABLE} more")
+    return lines
+
+
 def format_index(repo: str, result: RepoGraph, reasons: bool = False) -> str:
     graph = result.graph
     stats = graph.stats()
@@ -105,6 +120,7 @@ def format_index(repo: str, result: RepoGraph, reasons: bool = False) -> str:
     if named:
         lines += format_languages(result)
     lines += format_unparsable(result, named)
+    lines += format_unread(result, named)
     if graph.skipped_dirs:
         shown = ", ".join(graph.skipped_dirs[:10])
         more = f" and {len(graph.skipped_dirs) - 10} more" if len(graph.skipped_dirs) > 10 else ""

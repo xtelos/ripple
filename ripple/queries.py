@@ -17,12 +17,61 @@ from .jsx_facts import JSX_NO_RENDERER, JSX_TAG_UNRESOLVED
 from .model import DECORATOR_SCOPE, UNREAD_CLASS, Decoration, Edge, Graph, Symbol, Unresolved
 from .profile import LanguageProfile
 from .pytest_collection import PytestCollection  # noqa: F401 (it was defined here)
-from .registry import folds_files, language_of, module_id, path_suffixes, stem
+from .registry import folds_files, language_of, module_id, path_suffixes, stem, writes_colon_members
 
 MAX_LISTED = 100  # default cap on symbols listed per section, so a hub function cannot flood the agent
 
 
 _CLASH = re.compile(r"#\d+$")
+# The colon that ends the path of a path-shaped query on a Rust id. A Rust member is joined by `::` (`src/lib:Foo::new`),
+# so a colon that is half of `::` is not the one: `Foo::new` has no path, `src/lib:Foo::new` has `src/lib`.
+_PATH_COLON = re.compile(r"(?<!:):(?!:)")
+# What a nested member's id holds: a dot (TypeScript's `Class.method`) or a test title's ` > `; a Rust member's also `::`.
+_NESTED = re.compile(r"[.]| > ")
+_NESTED_RUST = re.compile(r"[.]|::| > ")
+# The name a call text ends with: after the last dot (`self.store.save`); in Rust also after `::` (`Foo::new`).
+_CALLED = re.compile(r"[.]")
+_CALLED_RUST = re.compile(r"[.]|::")
+
+
+def _nested(symbol: Symbol, member: str) -> bool:
+    """Whether a member's id (what follows the module in the id of `symbol`) is of a member of something."""
+    return (_NESTED_RUST if writes_colon_members(symbol.file) else _NESTED).search(member) is not None
+
+
+def _writes_colons(graph: Graph) -> bool:
+    """Whether the graph has a symbol of a language whose ids join members with `::` (kept per graph size)."""
+    cached = getattr(graph, "_colon_symbols", None)
+    if cached is None or cached[0] != len(graph.symbols):
+        cached = (len(graph.symbols), any(writes_colon_members(s.file) for s in graph.symbols.values()))
+        graph._colon_symbols = cached
+    return cached[1]
+
+
+def _split_path(graph: Graph, query: str) -> tuple[str, str, str]:
+    """(path, colon, member) of a query: at its first colon, as str.partition(":"), unless the graph has Rust symbols and
+    the query holds a `::`, then at the first colon that is not half of one, except where the text before the first
+    colon names a file of a language that has no `::` members (a TypeScript test title `a.test.ts::title`). Nothing
+    but a graph with Rust symbols reads a query any other way, so every other language's answers are as they were."""
+    plain = query.partition(":")
+    if "::" not in query or not _writes_colons(graph):
+        return plain
+    found = _PATH_COLON.search(query)
+    colons = (query[: found.start()], ":", query[found.end() :]) if found else (query, "", "")
+    if colons == plain or any(not writes_colon_members(graph.symbols[m].file) for m in _module_ids(graph, plain[0]) if m in graph.symbols):
+        return plain
+    return colons
+
+
+def _has_path(graph: Graph, query: str) -> bool:
+    """Whether a query names a file before a member."""
+    return _split_path(graph, query)[1] != ""
+
+
+def _called_name(text: str, file: str) -> str:
+    """The name an unresolved call's text ends with (it is written in `file`), which is what it is matched to a symbol by."""
+    return (_CALLED_RUST if writes_colon_members(file) else _CALLED).split(text)[-1]
+
 
 # The kinds of edge a question can be about. `calls` is every edge a call makes (a call, `new`, an override, a
 # callback, a decorator); `renders` and `renderer` are the two JSX edges (see ts_indexer.py and jsx.py).
@@ -168,7 +217,7 @@ def _unread_class_calls(graph: Graph, symbol_id: str, kinds) -> dict:
     found = [
         _missed(u)
         for u in graph.unresolved
-        if u.reason in _MISSED_REASONS and u.text.rsplit(".", 1)[-1] == symbol.name and _same_language(u.file, symbol)
+        if u.reason in _MISSED_REASONS and _called_name(u.text, u.file) == symbol.name and _same_language(u.file, symbol)
     ]
     return {"possible_missed_callers": found[:20], "possible_missed_total": len(found)} if found else {}
 
@@ -210,7 +259,7 @@ def _module_ids(graph: Graph, path: str) -> list[str]:
 def _path_matches(graph: Graph, query: str) -> list[str]:
     """The ids a query shaped like a path names: its path part through _module_ids, then the member as
     written, with or without a clash suffix (`A.make` is `A.make` and `A.make#2`)."""
-    path, colon, member = query.partition(":")
+    path, colon, member = _split_path(graph, query)
     found = []
     for module in _module_ids(graph, path):
         if not colon:
@@ -226,12 +275,16 @@ def _matches(graph: Graph, query: str) -> list[str]:
     path in it (a slash, a colon, a TypeScript or JavaScript extension) goes through the file map (_path_matches); any
     other also ends an id at a slash or a colon (a bare TypeScript member or module name), with or
     without a clash suffix."""
-    path_shaped = ":" in query or "/" in query or query.endswith(path_suffixes())
+    path_shaped = _has_path(graph, query) or "/" in query or query.endswith(path_suffixes())
+    # A `Foo::new` in a graph that has Rust symbols is a bare member (type and function) even where a TypeScript module
+    # called Foo makes the plain split of it a path: the member the plain split names, `:new`, matches nothing, so the
+    # Rust reading is added to it and the two together are the answer (one symbol, or an ambiguity that lists both).
+    rust_bare = "::" in query and _writes_colons(graph) and not _PATH_COLON.search(query) and "/" not in query and not query.endswith(path_suffixes())
     found = set()
     for sid in graph.symbols:
         if sid.endswith("." + query):
             found.add(sid)
-        elif not path_shaped and _is_path_id(sid):
+        elif (not path_shaped or rust_bare) and _is_path_id(sid):
             forms = {sid, _CLASH.sub("", sid)}
             if any(f == query or f.endswith(sep + query) for f in forms for sep in ".:/"):
                 found.add(sid)
@@ -279,7 +332,7 @@ def _members(graph: Graph, module: str) -> list[str]:
     found = {
         sid
         for sid, s in graph.symbols.items()
-        if s.kind != "module" and sid.startswith(prefixes) and not re.search(r"[.]| > ", sid[len(module) + 1 :])
+        if s.kind != "module" and sid.startswith(prefixes) and not _nested(s, sid[len(module) + 1 :])
     }
     found.update(alias[0] for key, alias in graph.export_aliases.items() if key.startswith(module + ":"))
     return sorted(found)
@@ -364,12 +417,12 @@ def _own_forms(graph: Graph, query: str) -> list[str]:
     """The `module:Name` ids a question can be asked of in the module a `module:Name` query names: what the module declares at
     its top level (a member of a class is `Class.method`, not listed) and the names it exports under another symbol (the
     id of the export, which resolves to what it wraps). Empty when no module is named."""
-    modules = _module_ids(graph, query.partition(":")[0])
+    modules = _module_ids(graph, _split_path(graph, query)[0])
     found = set()
     for module in modules:
         prefix = module + ":"
         found.update(
-            sid for sid, s in graph.symbols.items() if s.kind != "module" and sid.startswith(prefix) and not re.search(r"[.]| > ", sid[len(prefix) :])
+            sid for sid, s in graph.symbols.items() if s.kind != "module" and sid.startswith(prefix) and not _nested(s, sid[len(prefix) :])
         )
         found.update(key for key, alias in graph.export_aliases.items() if key.startswith(prefix) and alias[0])
     name = _tail(query)
@@ -383,7 +436,7 @@ def _settle_qualified(graph: Graph, query: str) -> dict | None:
 
     Never a pick: a name that two modules of a path tail export as different symbols is the ambiguous answer, and a
     name the module exports as something ripple cannot name as one function or class has no symbol to settle on."""
-    path, _, name = query.partition(":")
+    path, _, name = _split_path(graph, query)
     exports = [(m, graph.export_aliases[f"{m}:{name}"]) for m in _module_ids(graph, path) if f"{m}:{name}" in graph.export_aliases]
     unnamed = [m for m, alias in exports if not alias[0] or alias[0] not in graph.symbols]
     if unnamed:
@@ -406,7 +459,7 @@ def _with_exports(graph: Graph, query: str, matches: list[str]) -> list[str]:
     it names exports as Name under another symbol. A tail that two modules end (`components/SubMenu`) can be one that
     declares Name and another that exports it as a wrapper, and the answer must not settle on the declared one then.
     A module whose `module:Name` is a symbol is not read as an alias (the id is the symbol's)."""
-    path, _, name = query.partition(":")
+    path, _, name = _split_path(graph, query)
     found = set(matches)
     for module in _module_ids(graph, path):
         key = f"{module}:{name}"
@@ -437,25 +490,25 @@ def _find(graph: Graph, query: str) -> dict:
         settled = _settle_bare(graph, query, matches, whole_id)
         if settled is not None:
             return settled
-    if matches and ":" in query:
+    if matches and _has_path(graph, query):
         matches = _with_exports(graph, query, matches)
     if len(matches) == 1:
         return {"symbol": matches[0]}
     if matches:
         return {"error": f"'{query}' is ambiguous; pass one of the candidates", "candidates": matches}
-    if ":" in query:
+    if _has_path(graph, query):
         settled = _settle_qualified(graph, query)
         if settled is not None:
             return settled
     names = {s.name: s.id for s in graph.symbols.values()}
     close = [names[n] for n in difflib.get_close_matches(_tail(query), list(names), n=5)]
-    own = _own_forms(graph, query) if ":" in query else []
+    own = _own_forms(graph, query) if _has_path(graph, query) else []
     if not own:
         return {"error": f"no symbol named '{query}'", "suggestions": close}
     # The module is named and exists: what it declares and exports comes first, as these are the ids that would resolve.
     error = f"no symbol named '{query}'"
     if len(own) > MAX_LISTED:
-        count = len(_module_ids(graph, query.partition(":")[0]))  # a path tail can name several modules: count what is listed
+        count = len(_module_ids(graph, _split_path(graph, query)[0]))  # a path tail can name several modules: count what is listed
         error += (
             f" ({count} modules match, {len(own)} symbols and exports in all, showing {MAX_LISTED})"
             if count > 1
@@ -656,7 +709,7 @@ def impact(
     missed = [
         _missed(u)
         for u in graph.unresolved
-        if u.text.rsplit(".", 1)[-1] == name
+        if _called_name(u.text, u.file) == name
         and _unresolved_group(u) != "renderer"
         and _wanted(_unresolved_group(u), kinds)
         and (u.reason not in _MISSED_REASONS or _same_language(u.file, graph.symbols[symbol_id]))

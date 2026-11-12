@@ -159,6 +159,7 @@ def _index(scan: Scan, fingerprints: dict[str, dict], cache_dir: str | Path | No
             missing[profile.name] = error
             continue
         language.files, language.parse_errors = language.found, list(graph.parse_errors)  # files read, unparsable too
+        language.unread = list(graph.unread)
         graphs.append(graph)
     skipped = []
     for language in languages:

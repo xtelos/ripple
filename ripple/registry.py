@@ -5,7 +5,8 @@ the profile, the label its messages use, and the name of the module that is its 
 is precedence: when two languages define one id (languages.merge_graphs) the earlier one keeps it,
 a file no profile owns is read as the first language's, and the first language's cache is the one
 written without a profile key (cache.profile_key). Python is first. A language whose module ids hold more than one
-file by design (a Go package) says so with folds_files, so sharing an id is not reported as a collision.
+file by design (a Go package) says so with folds_files, so sharing an id is not reported as a collision. A language whose
+members are joined by `::` (Rust) says so with colon_members, so a query is split at the colon that ends the path only for ids that are its.
 
 A front end is a module, imported by name the first time something of it is needed, so nothing of a
 language (and none of its parser, tree-sitter for TypeScript) loads until a file of it is read. It
@@ -57,6 +58,9 @@ class Language:
     # every field of a profile, so a new field there would change the cache key of the languages that already exist.
     path_ids: bool = False
     folds_files: bool = False  # many files are one module id by design (a Go package), so sharing one is no collision
+    # A member of its ids is joined by `::` (`src/lib:Foo::new`), so a `::` in the id is a member separator. Only for such a
+    # language: a TypeScript test title may hold `::` (`tests/a.test:parses a::b`), so the look of an id never decides it.
+    colon_members: bool = False
 
 
 LANGUAGES: dict[str, Language] = {
@@ -106,6 +110,12 @@ def folds_files(file: str) -> bool:
 def rank(file: str) -> int:
     """Where the language that reads a file stands in LANGUAGES (0 is first)."""
     return list(LANGUAGES).index(language_of(file).profile.name)
+
+
+def writes_colon_members(file: str) -> bool:
+    """Whether the language that reads a file joins the members of its ids with `::`. Decided by the file of a symbol
+    (or of an unresolved call), never by how an id looks."""
+    return language_of(file).colon_members
 
 
 def path_suffixes() -> tuple[str, ...]:
