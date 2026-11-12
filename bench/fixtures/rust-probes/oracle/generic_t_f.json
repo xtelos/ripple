@@ -1,0 +1,156 @@
+{
+ "calls": [
+  {
+   "c0": 32,
+   "c1": 33,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 15,
+   "text": "f"
+  },
+  {
+   "c0": 49,
+   "c1": 50,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 15,
+   "text": "f"
+  },
+  {
+   "c0": 58,
+   "c1": 59,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 15,
+   "text": "g"
+  },
+  {
+   "c0": 15,
+   "c1": 22,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 17,
+   "text": "default"
+  },
+  {
+   "c0": 7,
+   "c1": 8,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 18,
+   "text": "f"
+  },
+  {
+   "c0": 27,
+   "c1": 28,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 22,
+   "text": "f"
+  },
+  {
+   "c0": 39,
+   "c1": 40,
+   "defs": [
+    [
+     "src/lib.rs",
+     23
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 22,
+   "text": "k"
+  },
+  {
+   "c0": 24,
+   "c1": 27,
+   "defs": [
+    [
+     "src/lib.rs",
+     15
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 25,
+   "text": "run"
+  },
+  {
+   "c0": 37,
+   "c1": 40,
+   "defs": [
+    [
+     "src/lib.rs",
+     15
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 25,
+   "text": "run"
+  },
+  {
+   "c0": 50,
+   "c1": 51,
+   "defs": [
+    [
+     "src/lib.rs",
+     20
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 25,
+   "text": "W"
+  },
+  {
+   "c0": 58,
+   "c1": 59,
+   "defs": [
+    [
+     "src/lib.rs",
+     22
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 25,
+   "text": "h"
+  }
+ ],
+ "complete": true,
+ "probe": "generic_t_f",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

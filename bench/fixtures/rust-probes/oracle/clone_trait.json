@@ -1,0 +1,108 @@
+{
+ "calls": [
+  {
+   "c0": 2,
+   "c1": 8,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 2,
+   "text": "derive"
+  },
+  {
+   "c0": 27,
+   "c1": 28,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 6,
+   "text": "M"
+  },
+  {
+   "c0": 15,
+   "c1": 20,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "lost",
+   "line": 9,
+   "text": "clone"
+  },
+  {
+   "c0": 19,
+   "c1": 24,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "lost",
+   "line": 10,
+   "text": "clone"
+  },
+  {
+   "c0": 26,
+   "c1": 31,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "lost",
+   "line": 11,
+   "text": "clone"
+  },
+  {
+   "c0": 15,
+   "c1": 20,
+   "defs": [
+    [
+     "src/lib.rs",
+     6
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 12,
+   "text": "clone"
+  },
+  {
+   "c0": 19,
+   "c1": 24,
+   "defs": [
+    [
+     "src/lib.rs",
+     6
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 13,
+   "text": "clone"
+  },
+  {
+   "c0": 26,
+   "c1": 31,
+   "defs": [
+    [
+     "src/lib.rs",
+     6
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 14,
+   "text": "clone"
+  },
+  {
+   "c0": 19,
+   "c1": 24,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 15,
+   "text": "clone"
+  }
+ ],
+ "complete": true,
+ "probe": "clone_trait",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

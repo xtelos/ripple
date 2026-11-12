@@ -1,0 +1,7 @@
+[package]
+name = "r3_macro_use_extern_std_names"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+extmacros = { path = "../_ext/extmacros" }

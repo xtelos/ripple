@@ -1,0 +1,67 @@
+{
+ "calls": [
+  {
+   "c0": 26,
+   "c1": 32,
+   "defs": [
+    [
+     "src/lib.rs",
+     6
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 7,
+   "text": "helper"
+  },
+  {
+   "c0": 31,
+   "c1": 37,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 9,
+   "text": "derive"
+  },
+  {
+   "c0": 21,
+   "c1": 28,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "lost",
+   "line": 11,
+   "text": "default"
+  },
+  {
+   "c0": 53,
+   "c1": 56,
+   "defs": [
+    [
+     "src/lib.rs",
+     7
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 13,
+   "text": "run"
+  },
+  {
+   "c0": 83,
+   "c1": 84,
+   "defs": [
+    [
+     "src/lib.rs",
+     11
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 13,
+   "text": "d"
+  }
+ ],
+ "complete": true,
+ "probe": "r3_cfg_attr_forms",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

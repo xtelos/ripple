@@ -1,0 +1,4 @@
+[package]
+name = "prelude_trait_shadow"
+version = "0.1.0"
+edition = "2021"

@@ -1,0 +1,4 @@
+[package]
+name = "r3_thread_local_inherent_module"
+version = "0.1.0"
+edition = "2021"

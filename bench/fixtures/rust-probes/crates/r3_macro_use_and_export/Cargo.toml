@@ -1,0 +1,4 @@
+[package]
+name = "r3_macro_use_and_export"
+version = "0.1.0"
+edition = "2021"

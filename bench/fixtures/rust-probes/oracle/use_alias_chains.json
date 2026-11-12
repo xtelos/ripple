@@ -1,0 +1,119 @@
+{
+ "calls": [
+  {
+   "c0": 7,
+   "c1": 8,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 19,
+   "text": "f"
+  },
+  {
+   "c0": 16,
+   "c1": 17,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 19,
+   "text": "g"
+  },
+  {
+   "c0": 25,
+   "c1": 27,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 19,
+   "text": "zz"
+  },
+  {
+   "c0": 35,
+   "c1": 36,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 19,
+   "text": "g"
+  },
+  {
+   "c0": 44,
+   "c1": 46,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 19,
+   "text": "zz"
+  },
+  {
+   "c0": 54,
+   "c1": 56,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 19,
+   "text": "ff"
+  },
+  {
+   "c0": 64,
+   "c1": 67,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 19,
+   "text": "zed"
+  },
+  {
+   "c0": 75,
+   "c1": 77,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 19,
+   "text": "ff"
+  }
+ ],
+ "complete": true,
+ "probe": "use_alias_chains",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

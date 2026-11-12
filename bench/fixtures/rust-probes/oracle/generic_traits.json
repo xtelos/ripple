@@ -1,0 +1,91 @@
+{
+ "calls": [
+  {
+   "c0": 21,
+   "c1": 25,
+   "defs": [
+    [
+     "src/lib.rs",
+     8
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 15,
+   "text": "conv"
+  },
+  {
+   "c0": 28,
+   "c1": 32,
+   "defs": [
+    [
+     "src/lib.rs",
+     11
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 16,
+   "text": "conv"
+  },
+  {
+   "c0": 28,
+   "c1": 32,
+   "defs": [
+    [
+     "src/lib.rs",
+     12
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 17,
+   "text": "make"
+  },
+  {
+   "c0": 27,
+   "c1": 31,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 18,
+   "text": "make"
+  },
+  {
+   "c0": 10,
+   "c1": 14,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 19,
+   "text": "Conv"
+  },
+  {
+   "c0": 22,
+   "c1": 26,
+   "defs": [
+    [
+     "src/lib.rs",
+     8
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 19,
+   "text": "conv"
+  }
+ ],
+ "complete": true,
+ "probe": "generic_traits",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

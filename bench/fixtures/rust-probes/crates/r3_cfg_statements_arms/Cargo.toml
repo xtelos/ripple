@@ -1,0 +1,4 @@
+[package]
+name = "r3_cfg_statements_arms"
+version = "0.1.0"
+edition = "2021"

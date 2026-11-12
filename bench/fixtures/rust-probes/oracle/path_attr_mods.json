@@ -1,0 +1,105 @@
+{
+ "calls": [
+  {
+   "c0": 41,
+   "c1": 42,
+   "defs": [
+    [
+     "src/plain.rs",
+     1
+    ]
+   ],
+   "file": "src/inl/x.rs",
+   "kind": "repo",
+   "line": 1,
+   "text": "b"
+  },
+  {
+   "c0": 31,
+   "c1": 32,
+   "defs": [
+    [
+     "src/other/real.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 9,
+   "text": "a"
+  },
+  {
+   "c0": 44,
+   "c1": 45,
+   "defs": [
+    [
+     "src/plain.rs",
+     1
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 9,
+   "text": "b"
+  },
+  {
+   "c0": 64,
+   "c1": 65,
+   "defs": [
+    [
+     "src/inl/x.rs",
+     1
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 9,
+   "text": "c"
+  },
+  {
+   "c0": 84,
+   "c1": 85,
+   "defs": [
+    [
+     "src/other/sub.rs",
+     1
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 9,
+   "text": "d"
+  },
+  {
+   "c0": 34,
+   "c1": 35,
+   "defs": [
+    [
+     "src/plain.rs",
+     1
+    ]
+   ],
+   "file": "src/other/real.rs",
+   "kind": "repo",
+   "line": 2,
+   "text": "b"
+  },
+  {
+   "c0": 45,
+   "c1": 46,
+   "defs": [
+    [
+     "src/other/sub.rs",
+     1
+    ]
+   ],
+   "file": "src/other/real.rs",
+   "kind": "repo",
+   "line": 2,
+   "text": "d"
+  }
+ ],
+ "complete": true,
+ "probe": "path_attr_mods",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

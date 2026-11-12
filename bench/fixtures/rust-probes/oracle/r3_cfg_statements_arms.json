@@ -1,0 +1,95 @@
+{
+ "calls": [
+  {
+   "c0": 4,
+   "c1": 10,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 6,
+   "text": "helper"
+  },
+  {
+   "c0": 8,
+   "c1": 12,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 11,
+   "text": "Some"
+  },
+  {
+   "c0": 43,
+   "c1": 49,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 11,
+   "text": "helper"
+  },
+  {
+   "c0": 13,
+   "c1": 19,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 12,
+   "text": "helper"
+  },
+  {
+   "c0": 48,
+   "c1": 52,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 16,
+   "text": "stmt"
+  },
+  {
+   "c0": 63,
+   "c1": 66,
+   "defs": [
+    [
+     "src/lib.rs",
+     8
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 16,
+   "text": "arm"
+  },
+  {
+   "c0": 67,
+   "c1": 71,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 16,
+   "text": "Some"
+  }
+ ],
+ "complete": true,
+ "probe": "r3_cfg_statements_arms",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

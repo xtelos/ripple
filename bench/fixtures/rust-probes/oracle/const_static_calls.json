@@ -1,0 +1,95 @@
+{
+ "calls": [
+  {
+   "c0": 15,
+   "c1": 18,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 4,
+   "text": "two"
+  },
+  {
+   "c0": 58,
+   "c1": 61,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 5,
+   "text": "new"
+  },
+  {
+   "c0": 8,
+   "c1": 11,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 7,
+   "text": "two"
+  },
+  {
+   "c0": 19,
+   "c1": 22,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 11,
+   "text": "two"
+  },
+  {
+   "c0": 40,
+   "c1": 45,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 12,
+   "text": "three"
+  },
+  {
+   "c0": 25,
+   "c1": 36,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 14,
+   "text": "get_or_init"
+  },
+  {
+   "c0": 49,
+   "c1": 52,
+   "defs": [
+    [
+     "src/lib.rs",
+     12
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 14,
+   "text": "get"
+  }
+ ],
+ "complete": true,
+ "probe": "const_static_calls",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

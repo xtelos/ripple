@@ -1,0 +1,7 @@
+[package]
+name = "bad-binname"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = 7

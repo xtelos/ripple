@@ -1,0 +1,4 @@
+[package]
+name = "edition_2018_prelude"
+version = "0.1.0"
+edition = "2018"

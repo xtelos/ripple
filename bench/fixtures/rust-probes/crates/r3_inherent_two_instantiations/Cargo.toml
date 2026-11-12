@@ -1,0 +1,4 @@
+[package]
+name = "r3_inherent_two_instantiations"
+version = "0.1.0"
+edition = "2021"

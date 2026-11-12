@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ripple-code"
 version = "0.1.0"
-description = "An MCP server that tells a coding agent what breaks before it edits Python, TypeScript, JavaScript or Go code."
+description = "An MCP server that tells a coding agent what breaks before it edits Python, TypeScript, JavaScript, Go or Rust code."
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "Dylan Fodor" }]
@@ -21,6 +21,10 @@ typescript = ["tree-sitter>=0.25,<0.27", "tree-sitter-typescript>=0.23.2,<0.24"]
 # Go indexing, loaded the same way. tree-sitter-go 0.25 is ABI 15, which tree-sitter 0.25 and 0.26 both read, so one
 # core serves both grammars. The grammar is held to the 0.25 line the node and field names were written against.
 go = ["tree-sitter>=0.25,<0.27", "tree-sitter-go>=0.25,<0.26"]
+# Rust indexing, likewise loaded only when the first .rs file is parsed. tree-sitter-rust 0.24 is ABI 15, which both
+# tree-sitter 0.25 and 0.26 read; the grammar is held to the 0.24 line whose node shapes the front end reads. Cargo.toml
+# is read with tomllib, which the standard library has from Python 3.11.
+rust = ["tree-sitter>=0.25,<0.27", "tree-sitter-rust>=0.24.2,<0.25", "tomli>=2; python_version < '3.11'"]
 
 [project.scripts]
 ripple = "ripple.cli:main"

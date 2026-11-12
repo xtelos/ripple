@@ -1,0 +1,266 @@
+{
+ "calls": [
+  {
+   "c0": 46,
+   "c1": 49,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 7,
+   "text": "new"
+  },
+  {
+   "c0": 22,
+   "c1": 26,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 8,
+   "text": "with"
+  },
+  {
+   "c0": 33,
+   "c1": 36,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 8,
+   "text": "set"
+  },
+  {
+   "c0": 39,
+   "c1": 42,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 8,
+   "text": "get"
+  },
+  {
+   "c0": 26,
+   "c1": 30,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 9,
+   "text": "with"
+  },
+  {
+   "c0": 37,
+   "c1": 40,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 9,
+   "text": "get"
+  },
+  {
+   "c0": 19,
+   "c1": 24,
+   "defs": [
+    [
+     "src/lib.rs",
+     17
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 21,
+   "text": "other"
+  },
+  {
+   "c0": 28,
+   "c1": 32,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 21,
+   "text": "drop"
+  },
+  {
+   "c0": 59,
+   "c1": 63,
+   "defs": [
+    [
+     "src/lib.rs",
+     8
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 27,
+   "text": "mark"
+  },
+  {
+   "c0": 93,
+   "c1": 96,
+   "defs": [
+    [
+     "src/lib.rs",
+     27
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 31,
+   "text": "fmt"
+  },
+  {
+   "c0": 62,
+   "c1": 66,
+   "defs": [
+    [
+     "src/lib.rs",
+     31
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 35,
+   "text": "show"
+  },
+  {
+   "c0": 33,
+   "c1": 37,
+   "defs": [
+    [
+     "src/lib.rs",
+     8
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 40,
+   "text": "mark"
+  },
+  {
+   "c0": 34,
+   "c1": 38,
+   "defs": [
+    [
+     "src/lib.rs",
+     8
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 46,
+   "text": "mark"
+  },
+  {
+   "c0": 11,
+   "c1": 14,
+   "defs": [
+    [
+     "src/lib.rs",
+     21
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 55,
+   "text": "run"
+  },
+  {
+   "c0": 33,
+   "c1": 38,
+   "defs": [
+    [
+     "src/lib.rs",
+     33
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 56,
+   "text": "Outer"
+  },
+  {
+   "c0": 39,
+   "c1": 44,
+   "defs": [
+    [
+     "src/lib.rs",
+     25
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 56,
+   "text": "Inner"
+  },
+  {
+   "c0": 19,
+   "c1": 22,
+   "defs": [
+    [
+     "src/lib.rs",
+     9
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 57,
+   "text": "ran"
+  },
+  {
+   "c0": 22,
+   "c1": 25,
+   "defs": [
+    [
+     "src/lib.rs",
+     41
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 58,
+   "text": "run"
+  },
+  {
+   "c0": 19,
+   "c1": 22,
+   "defs": [
+    [
+     "src/lib.rs",
+     9
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 59,
+   "text": "ran"
+  },
+  {
+   "c0": 11,
+   "c1": 14,
+   "defs": [
+    [
+     "src/lib.rs",
+     47
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 60,
+   "text": "run"
+  },
+  {
+   "c0": 19,
+   "c1": 22,
+   "defs": [
+    [
+     "src/lib.rs",
+     9
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 61,
+   "text": "ran"
+  }
+ ],
+ "complete": true,
+ "probe": "r2_q2_glob_vis_macro_use",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

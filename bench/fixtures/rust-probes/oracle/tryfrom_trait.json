@@ -1,0 +1,135 @@
+{
+ "calls": [
+  {
+   "c0": 60,
+   "c1": 62,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 6,
+   "text": "Ok"
+  },
+  {
+   "c0": 63,
+   "c1": 68,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 6,
+   "text": "Small"
+  },
+  {
+   "c0": 88,
+   "c1": 91,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 6,
+   "text": "Err"
+  },
+  {
+   "c0": 19,
+   "c1": 27,
+   "defs": [
+    [
+     "src/lib.rs",
+     6
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 9,
+   "text": "try_from"
+  },
+  {
+   "c0": 34,
+   "c1": 40,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 9,
+   "text": "unwrap"
+  },
+  {
+   "c0": 37,
+   "c1": 45,
+   "defs": [
+    [
+     "src/lib.rs",
+     6
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 10,
+   "text": "try_from"
+  },
+  {
+   "c0": 52,
+   "c1": 58,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 10,
+   "text": "unwrap"
+  },
+  {
+   "c0": 28,
+   "c1": 36,
+   "defs": [
+    [
+     "src/lib.rs",
+     6
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 11,
+   "text": "try_from"
+  },
+  {
+   "c0": 43,
+   "c1": 49,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 11,
+   "text": "unwrap"
+  },
+  {
+   "c0": 16,
+   "c1": 24,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 12,
+   "text": "try_from"
+  },
+  {
+   "c0": 33,
+   "c1": 42,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 12,
+   "text": "unwrap_or"
+  },
+  {
+   "c0": 35,
+   "c1": 43,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 13,
+   "text": "try_into"
+  }
+ ],
+ "complete": true,
+ "probe": "tryfrom_trait",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

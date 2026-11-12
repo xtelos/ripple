@@ -1,0 +1,4 @@
+[package]
+name = "r3_blanket_assoc_reason"
+version = "0.1.0"
+edition = "2021"

@@ -1,0 +1,114 @@
+{
+ "calls": [
+  {
+   "c0": 20,
+   "c1": 21,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 8,
+   "text": "a"
+  },
+  {
+   "c0": 2,
+   "c1": 8,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 9,
+   "text": "derive"
+  },
+  {
+   "c0": 39,
+   "c1": 43,
+   "defs": [
+    [
+     "src/lib.rs",
+     13
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 15,
+   "text": "make"
+  },
+  {
+   "c0": 36,
+   "c1": 40,
+   "defs": [
+    [
+     "src/lib.rs",
+     13
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 19,
+   "text": "make"
+  },
+  {
+   "c0": 47,
+   "c1": 49,
+   "defs": [
+    [
+     "src/lib.rs",
+     15
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 19,
+   "text": "go"
+  },
+  {
+   "c0": 54,
+   "c1": 55,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 19,
+   "text": "a"
+  },
+  {
+   "c0": 37,
+   "c1": 38,
+   "defs": [
+    [
+     "src/lib.rs",
+     8
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 24,
+   "text": "b"
+  },
+  {
+   "c0": 33,
+   "c1": 39,
+   "defs": [
+    [
+     "src/lib.rs",
+     19
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 26,
+   "text": "use_it"
+  }
+ ],
+ "complete": true,
+ "probe": "r3_attr_inert_control",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

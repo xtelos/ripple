@@ -1,0 +1,188 @@
+{
+ "calls": [
+  {
+   "c0": 4,
+   "c1": 5,
+   "defs": [
+    [
+     "src/lib.rs",
+     8
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "local",
+   "line": 9,
+   "text": "f"
+  },
+  {
+   "c0": 38,
+   "c1": 39,
+   "defs": [
+    [
+     "src/lib.rs",
+     11
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "local",
+   "line": 11,
+   "text": "g"
+  },
+  {
+   "c0": 33,
+   "c1": 34,
+   "defs": [
+    [
+     "src/lib.rs",
+     13
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "local",
+   "line": 13,
+   "text": "h"
+  },
+  {
+   "c0": 4,
+   "c1": 9,
+   "defs": [
+    [
+     "src/lib.rs",
+     13
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "local",
+   "line": 14,
+   "text": "apply"
+  },
+  {
+   "c0": 33,
+   "c1": 37,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 17,
+   "text": "Some"
+  },
+  {
+   "c0": 11,
+   "c1": 15,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 18,
+   "text": "Some"
+  },
+  {
+   "c0": 25,
+   "c1": 26,
+   "defs": [
+    [
+     "src/lib.rs",
+     18
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "local",
+   "line": 18,
+   "text": "k"
+  },
+  {
+   "c0": 8,
+   "c1": 12,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 22,
+   "text": "Some"
+  },
+  {
+   "c0": 19,
+   "c1": 20,
+   "defs": [
+    [
+     "src/lib.rs",
+     22
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "local",
+   "line": 22,
+   "text": "m"
+  },
+  {
+   "c0": 16,
+   "c1": 17,
+   "defs": [
+    [
+     "src/lib.rs",
+     6
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 23,
+   "text": "m"
+  },
+  {
+   "c0": 23,
+   "c1": 24,
+   "defs": [
+    [
+     "src/lib.rs",
+     28
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "local",
+   "line": 28,
+   "text": "h"
+  },
+  {
+   "c0": 8,
+   "c1": 9,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 29,
+   "text": "h"
+  },
+  {
+   "c0": 21,
+   "c1": 22,
+   "defs": [
+    [
+     "src/lib.rs",
+     32
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "local",
+   "line": 32,
+   "text": "f"
+  },
+  {
+   "c0": 4,
+   "c1": 5,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 33,
+   "text": "f"
+  }
+ ],
+ "complete": true,
+ "probe": "shadow_locals",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

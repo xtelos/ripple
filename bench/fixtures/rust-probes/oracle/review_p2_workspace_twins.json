@@ -1,0 +1,287 @@
+{
+ "calls": [
+  {
+   "c0": 14,
+   "c1": 16,
+   "defs": [
+    [
+     "app/src/imp/unix.rs",
+     1
+    ]
+   ],
+   "file": "app/src/imp/mod.rs",
+   "kind": "repo",
+   "line": 9,
+   "text": "go"
+  },
+  {
+   "c0": 10,
+   "c1": 16,
+   "defs": [
+    [
+     "core/src/lib.rs",
+     1
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 5,
+   "text": "shared"
+  },
+  {
+   "c0": 31,
+   "c1": 38,
+   "defs": [
+    [
+     "core/src/lib.rs",
+     8
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 5,
+   "text": "renamed"
+  },
+  {
+   "c0": 26,
+   "c1": 27,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     8
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 15,
+   "proof": "runtime",
+   "text": "g"
+  },
+  {
+   "c0": 4,
+   "c1": 6,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     14
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 22,
+   "text": "up"
+  },
+  {
+   "c0": 41,
+   "c1": 42,
+   "defs": [
+    [
+     "app/src/twins.rs",
+     1
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 27,
+   "text": "g"
+  },
+  {
+   "c0": 32,
+   "c1": 33,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     32
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 32,
+   "proof": "runtime",
+   "text": "g"
+  },
+  {
+   "c0": 26,
+   "c1": 41,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     25
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 39,
+   "text": "std_macro_block"
+  },
+  {
+   "c0": 26,
+   "c1": 45,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     30
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 40,
+   "text": "std_macro_nested_fn"
+  },
+  {
+   "c0": 32,
+   "c1": 34,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     14
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 41,
+   "text": "up"
+  },
+  {
+   "c0": 24,
+   "c1": 25,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     4
+    ]
+   ],
+   "file": "app/src/main.rs",
+   "kind": "repo",
+   "line": 2,
+   "text": "f"
+  },
+  {
+   "c0": 35,
+   "c1": 36,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     8
+    ]
+   ],
+   "file": "app/src/main.rs",
+   "kind": "repo",
+   "line": 2,
+   "proof": "runtime",
+   "text": "g"
+  },
+  {
+   "c0": 45,
+   "c1": 46,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     8
+    ]
+   ],
+   "file": "app/src/main.rs",
+   "kind": "repo",
+   "line": 5,
+   "proof": "runtime",
+   "text": "g"
+  },
+  {
+   "c0": 4,
+   "c1": 8,
+   "defs": [
+    [
+     "app/src/twins.rs",
+     6
+    ]
+   ],
+   "file": "app/src/twins.rs",
+   "kind": "repo",
+   "line": 27,
+   "text": "plat"
+  },
+  {
+   "c0": 16,
+   "c1": 17,
+   "defs": [
+    [
+     "app/src/twins.rs",
+     17
+    ]
+   ],
+   "file": "app/src/twins.rs",
+   "kind": "repo",
+   "line": 27,
+   "text": "p"
+  },
+  {
+   "c0": 34,
+   "c1": 37,
+   "defs": [
+    [
+     "app/src/imp/mod.rs",
+     8
+    ]
+   ],
+   "file": "app/src/twins.rs",
+   "kind": "repo",
+   "line": 27,
+   "text": "sys"
+  },
+  {
+   "c0": 11,
+   "c1": 23,
+   "defs": [],
+   "file": "app/tests/common/mod.rs",
+   "kind": "shared",
+   "line": 3,
+   "proof": "runtime",
+   "text": "local_helper"
+  },
+  {
+   "c0": 23,
+   "c1": 28,
+   "defs": [
+    [
+     "app/tests/common/mod.rs",
+     2
+    ]
+   ],
+   "file": "app/tests/one.rs",
+   "kind": "repo",
+   "line": 9,
+   "text": "setup"
+  },
+  {
+   "c0": 23,
+   "c1": 28,
+   "defs": [
+    [
+     "app/tests/common/mod.rs",
+     2
+    ]
+   ],
+   "file": "app/tests/two.rs",
+   "kind": "repo",
+   "line": 9,
+   "text": "setup"
+  },
+  {
+   "c0": 4,
+   "c1": 5,
+   "defs": [
+    [
+     "old/src/lib.rs",
+     4
+    ]
+   ],
+   "file": "old/src/lib.rs",
+   "kind": "repo",
+   "line": 2,
+   "text": "b"
+  }
+ ],
+ "complete": true,
+ "probe": "review_p2_workspace_twins",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

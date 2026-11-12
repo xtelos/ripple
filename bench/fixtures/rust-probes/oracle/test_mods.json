@@ -1,0 +1,77 @@
+{
+ "calls": [
+  {
+   "c0": 25,
+   "c1": 39,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 3,
+   "text": "private_helper"
+  },
+  {
+   "c0": 26,
+   "c1": 32,
+   "defs": [
+    [
+     "src/lib.rs",
+     5
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 6,
+   "text": "secret"
+  },
+  {
+   "c0": 19,
+   "c1": 33,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 14,
+   "text": "private_helper"
+  },
+  {
+   "c0": 19,
+   "c1": 25,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 15,
+   "text": "public"
+  },
+  {
+   "c0": 19,
+   "c1": 22,
+   "defs": [
+    [
+     "src/lib.rs",
+     6
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 16,
+   "text": "run"
+  }
+ ],
+ "complete": true,
+ "probe": "test_mods",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

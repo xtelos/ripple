@@ -1,0 +1,15 @@
+[package]
+name = "warehouse-app"
+version = "0.1.0"
+edition = "2021"
+# the lib and the bin of this package are both called warehouse_app
+
+[dependencies]
+# renamed: the code names this package's library `money`, whatever the package and its [lib] are called
+money = { package = "pricing-core", path = "../pricing-core" }
+# a hyphen in the dependency key is an underscore in the code: `tax_rules`
+tax-rules = { path = "../tax-rules" }
+
+[[bin]]
+name = "stock-report"
+path = "reports/stock.rs"

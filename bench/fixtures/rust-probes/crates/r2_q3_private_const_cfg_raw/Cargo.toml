@@ -1,0 +1,4 @@
+[package]
+name = "r2_q3_private_const_cfg_raw"
+version = "0.1.0"
+edition = "2021"

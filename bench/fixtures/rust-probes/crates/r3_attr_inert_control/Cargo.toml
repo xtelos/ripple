@@ -1,0 +1,4 @@
+[package]
+name = "r3_attr_inert_control"
+version = "0.1.0"
+edition = "2021"

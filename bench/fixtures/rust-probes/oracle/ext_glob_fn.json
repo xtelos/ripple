@@ -1,0 +1,85 @@
+{
+ "calls": [
+  {
+   "c0": 4,
+   "c1": 10,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 7,
+   "text": "helper"
+  },
+  {
+   "c0": 15,
+   "c1": 24,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 7,
+   "text": "repo_only"
+  },
+  {
+   "c0": 30,
+   "c1": 36,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 9,
+   "text": "helper"
+  },
+  {
+   "c0": 26,
+   "c1": 31,
+   "defs": [
+    [
+     "src/lib.rs",
+     12
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 13,
+   "text": "extra"
+  },
+  {
+   "c0": 36,
+   "c1": 42,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 13,
+   "text": "helper"
+  },
+  {
+   "c0": 34,
+   "c1": 40,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 15,
+   "text": "helper"
+  },
+  {
+   "c0": 51,
+   "c1": 56,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 15,
+   "text": "extra"
+  }
+ ],
+ "complete": true,
+ "probe": "ext_glob_fn",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

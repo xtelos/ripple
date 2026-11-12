@@ -1,0 +1,8 @@
+[package]
+name = "bad-ws"
+version = "0.1.0"
+edition = "2021"
+workspace = 4
+
+[workspace]
+dependencies = 9

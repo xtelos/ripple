@@ -1,0 +1,63 @@
+{
+ "calls": [
+  {
+   "c0": 29,
+   "c1": 31,
+   "defs": [
+    [
+     "lib/inner.rs",
+     1
+    ]
+   ],
+   "file": "lib/odd.rs",
+   "kind": "repo",
+   "line": 2,
+   "text": "go"
+  },
+  {
+   "c0": 41,
+   "c1": 42,
+   "defs": [
+    [
+     "aux/src/lib.rs",
+     1
+    ]
+   ],
+   "file": "lib/odd.rs",
+   "kind": "repo",
+   "line": 2,
+   "text": "a"
+  },
+  {
+   "c0": 28,
+   "c1": 31,
+   "defs": [
+    [
+     "lib/odd.rs",
+     2
+    ]
+   ],
+   "file": "tools/tool.rs",
+   "kind": "repo",
+   "line": 2,
+   "text": "run"
+  },
+  {
+   "c0": 41,
+   "c1": 42,
+   "defs": [
+    [
+     "aux/src/lib.rs",
+     1
+    ]
+   ],
+   "file": "tools/tool.rs",
+   "kind": "repo",
+   "line": 2,
+   "text": "a"
+  }
+ ],
+ "complete": true,
+ "probe": "odd_manifest",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

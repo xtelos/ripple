@@ -1,0 +1,95 @@
+{
+ "calls": [
+  {
+   "c0": 26,
+   "c1": 27,
+   "defs": [
+    [
+     "src/lib.rs",
+     13
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 14,
+   "text": "f"
+  },
+  {
+   "c0": 28,
+   "c1": 29,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 15,
+   "text": "g"
+  },
+  {
+   "c0": 26,
+   "c1": 31,
+   "defs": [
+    [
+     "src/lib.rs",
+     23
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 28,
+   "text": "drop2"
+  },
+  {
+   "c0": 36,
+   "c1": 40,
+   "defs": [
+    [
+     "src/lib.rs",
+     24
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 28,
+   "text": "real"
+  },
+  {
+   "c0": 27,
+   "c1": 31,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 29,
+   "text": "drop"
+  },
+  {
+   "c0": 19,
+   "c1": 23,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 35,
+   "text": "drop"
+  },
+  {
+   "c0": 18,
+   "c1": 21,
+   "defs": [
+    [
+     "src/lib.rs",
+     14
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 39,
+   "text": "run"
+  }
+ ],
+ "complete": true,
+ "probe": "macro_vs_glob",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

@@ -1,0 +1,213 @@
+{
+ "calls": [
+  {
+   "c0": 31,
+   "c1": 32,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 4,
+   "proof": "runtime",
+   "text": "f"
+  },
+  {
+   "c0": 32,
+   "c1": 33,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 10,
+   "text": "u"
+  },
+  {
+   "c0": 27,
+   "c1": 28,
+   "defs": [
+    [
+     "src/main.rs",
+     2
+    ]
+   ],
+   "file": "src/local.rs",
+   "kind": "repo",
+   "line": 1,
+   "proof": "runtime",
+   "text": "f"
+  },
+  {
+   "c0": 38,
+   "c1": 39,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/local.rs",
+   "kind": "repo",
+   "line": 1,
+   "proof": "runtime",
+   "text": "f"
+  },
+  {
+   "c0": 24,
+   "c1": 25,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/main.rs",
+   "kind": "repo",
+   "line": 4,
+   "proof": "runtime",
+   "text": "f"
+  },
+  {
+   "c0": 30,
+   "c1": 31,
+   "defs": [
+    [
+     "src/main.rs",
+     2
+    ]
+   ],
+   "file": "src/main.rs",
+   "kind": "repo",
+   "line": 4,
+   "proof": "runtime",
+   "text": "f"
+  },
+  {
+   "c0": 43,
+   "c1": 44,
+   "defs": [
+    [
+     "src/local.rs",
+     1
+    ]
+   ],
+   "file": "src/main.rs",
+   "kind": "repo",
+   "line": 4,
+   "text": "g"
+  },
+  {
+   "c0": 60,
+   "c1": 61,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/main.rs",
+   "kind": "repo",
+   "line": 4,
+   "text": "u"
+  },
+  {
+   "c0": 73,
+   "c1": 74,
+   "defs": [
+    [
+     "src/main.rs",
+     2
+    ]
+   ],
+   "file": "src/main.rs",
+   "kind": "repo",
+   "line": 4,
+   "proof": "runtime",
+   "text": "f"
+  },
+  {
+   "c0": 26,
+   "c1": 27,
+   "defs": [
+    [
+     "src/main.rs",
+     2
+    ]
+   ],
+   "file": "src/main.rs",
+   "kind": "repo",
+   "line": 10,
+   "proof": "runtime",
+   "text": "f"
+  },
+  {
+   "c0": 33,
+   "c1": 34,
+   "defs": [
+    [
+     "src/local.rs",
+     1
+    ]
+   ],
+   "file": "src/main.rs",
+   "kind": "repo",
+   "line": 11,
+   "text": "g"
+  },
+  {
+   "c0": 33,
+   "c1": 34,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/main.rs",
+   "kind": "repo",
+   "line": 17,
+   "proof": "runtime",
+   "text": "f"
+  },
+  {
+   "c0": 60,
+   "c1": 61,
+   "defs": [
+    [
+     "src/main.rs",
+     2
+    ]
+   ],
+   "file": "src/main.rs",
+   "kind": "repo",
+   "line": 17,
+   "proof": "runtime",
+   "text": "f"
+  },
+  {
+   "c0": 88,
+   "c1": 89,
+   "defs": [
+    [
+     "src/main.rs",
+     2
+    ]
+   ],
+   "file": "src/main.rs",
+   "kind": "repo",
+   "line": 17,
+   "proof": "runtime",
+   "text": "f"
+  }
+ ],
+ "complete": true,
+ "probe": "lib_bin_same_name",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

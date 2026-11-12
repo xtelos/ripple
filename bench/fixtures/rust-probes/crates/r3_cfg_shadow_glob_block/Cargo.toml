@@ -1,0 +1,4 @@
+[package]
+name = "r3_cfg_shadow_glob_block"
+version = "0.1.0"
+edition = "2021"

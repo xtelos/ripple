@@ -132,8 +132,8 @@ def test_an_explicit_language_reads_only_that_language(mixed):
 
 
 def test_an_unknown_language_is_refused(make_repo):
-    with pytest.raises(RepoError, match="rust"):
-        scan_repo(make_repo(PY_ONLY), "rust")
+    with pytest.raises(RepoError, match="cobol"):
+        scan_repo(make_repo(PY_ONLY), "cobol")
 
 
 # ---- a repo with nothing to read
@@ -161,7 +161,7 @@ def test_an_empty_directory_is_an_error_that_says_what_it_looked_for(tmp_path, c
     with pytest.raises(RepoError) as raised:
         load_repo(tmp_path)
     looked_for = f"no {registry.join([language.label for language in registry.LANGUAGES.values()], 'or')} source files"
-    assert looked_for == "no Python, TypeScript, JavaScript or Go source files"
+    assert looked_for == "no Python, TypeScript, JavaScript, Go or Rust source files"
     assert looked_for in str(raised.value)
     assert main(["index", str(tmp_path)]) == 2
     assert looked_for in capsys.readouterr().err
