@@ -1,0 +1,14 @@
+{
+ "digest": "910a86ab59918fe31f72b7957b73d3ba161cce5ea6fe4c51ab70fd05e136d3fb",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 20, "col": 2, "end": "20:9", "kind": "E", "callee": "sync:Mutex.Lock", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 21, "col": 2, "end": "21:11", "kind": "E", "callee": "sync:Mutex.Unlock", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 22, "col": 2, "end": "22:10", "kind": "E", "callee": "os:File.Close", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 23, "col": 6, "end": "23:13", "kind": "E", "callee": "os:File.Name", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:10", "kind": "E", "callee": "example.com/embedded_stdlib_struct:Closer.Close", "at": "a.go", "variants": "all"}
+ ]
+}

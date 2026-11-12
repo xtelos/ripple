@@ -1,0 +1,14 @@
+{
+ "digest": "6236249f7d4426b332a3c2754fdb343dda460effce218bb38352d044a812b15e",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "d/broken.go": "all",
+  "d/use.go": "all",
+  "lib/lib.go": "all",
+  "use/use.go": "all"
+ },
+ "calls": [
+  {"file": "d/use.go", "line": 4, "col": 2, "end": "4:6", "kind": "E", "callee": "example.com/parse_error_other_package/d:T.M", "at": "d/broken.go", "variants": "all"},
+  {"file": "use/use.go", "line": 6, "col": 2, "end": "6:6", "kind": "E", "callee": "example.com/parse_error_other_package/d:T.M", "at": "d/broken.go", "variants": "all"}
+ ]
+}

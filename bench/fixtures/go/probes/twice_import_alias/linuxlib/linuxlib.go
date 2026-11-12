@@ -1,0 +1,3 @@
+package linuxlib
+
+func Do() {}

@@ -1,0 +1,13 @@
+{
+ "why": "the oracle runs with CGO_ENABLED=0 and cannot load a file that imports C; C code may call back into any //export-ed Go function of the repo, so every C call is unresolved, never external and never an edge",
+ "unresolved": [
+  [
+   "c.go",
+   22
+  ],
+  [
+   "c.go",
+   23
+  ]
+ ]
+}

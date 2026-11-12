@@ -16,7 +16,7 @@ pytest.importorskip("tree_sitter_typescript", reason="TypeScript support is not 
 from ripple import registry  # noqa: E402
 from ripple.cache import load_repo, profile_key  # noqa: E402
 from ripple.cli import main  # noqa: E402
-from ripple.profile import JAVASCRIPT, TYPESCRIPT, LanguageProfile  # noqa: E402
+from ripple.profile import GO, JAVASCRIPT, TYPESCRIPT, LanguageProfile  # noqa: E402
 from ripple.queries import callees, callers, find_symbol  # noqa: E402
 
 WAREHOUSE = FIXTURES / "ts" / "warehouse-ts"
@@ -116,10 +116,15 @@ def test_a_js_importer_of_util_js_beside_util_ts_is_unresolved_because_the_compi
 # ---- a TypeScript repo with the JavaScript language registered (behaviour 4)
 
 
-def test_a_typescript_only_repo_answers_the_same_with_and_without_javascript_registered(monkeypatch):
+def test_a_typescript_only_repo_answers_the_same_with_and_without_javascript_registered():
     with_js = load_repo(WAREHOUSE, lang="typescript")
-    monkeypatch.delitem(registry.LANGUAGES, "javascript")
-    without_js = load_repo(WAREHOUSE, lang="typescript")
+    registered = dict(registry.LANGUAGES)
+    del registry.LANGUAGES["javascript"]
+    try:
+        without_js = load_repo(WAREHOUSE, lang="typescript")
+    finally:  # put them all back in their order: it is the precedence, and a later test reads it
+        registry.LANGUAGES.clear()
+        registry.LANGUAGES.update(registered)
     assert with_js.graph.to_dict() == without_js.graph.to_dict()
     assert json.dumps(with_js.graph.to_dict()) == json.dumps(without_js.graph.to_dict())
 
@@ -166,7 +171,7 @@ def test_the_index_output_counts_each_language_by_its_label(make_repo, capsys):
 
 
 def test_the_registry_says_which_languages_have_path_ids_and_how_a_path_is_folded():
-    assert registry.path_suffixes() == (*TYPESCRIPT.source_suffixes, *JAVASCRIPT.source_suffixes)
+    assert registry.path_suffixes() == (*TYPESCRIPT.source_suffixes, *JAVASCRIPT.source_suffixes, *GO.source_suffixes)
     assert not registry.LANGUAGES["python"].path_ids
     assert [registry.module_id(f) for f in ("lib/app.js", "src/index.mjs", "a.tsx", "index.cjs", "src/index")] == [
         "lib/app",

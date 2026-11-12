@@ -1,0 +1,14 @@
+{
+ "digest": "b74514b64817ca99afb8aba994fa98494e440d138685f7a34d8541e8813d7397",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "lib/lib.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 10, "col": 2, "end": "10:6", "kind": "E", "callee": "example.com/alias_imported/lib:T.M", "at": "lib/lib.go", "variants": "all"},
+  {"file": "a.go", "line": 12, "col": 2, "end": "12:6", "kind": "E", "callee": "example.com/alias_imported/lib:T.M", "at": "lib/lib.go", "variants": "all"},
+  {"file": "a.go", "line": 13, "col": 7, "end": "13:15", "kind": "E", "callee": "example.com/alias_imported/lib:New", "at": "lib/lib.go", "variants": "all"},
+  {"file": "a.go", "line": 14, "col": 2, "end": "14:6", "kind": "E", "callee": "example.com/alias_imported/lib:T.M", "at": "lib/lib.go", "variants": "all"}
+ ]
+}

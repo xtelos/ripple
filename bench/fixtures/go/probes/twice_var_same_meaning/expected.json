@@ -1,0 +1,12 @@
+{
+ "digest": "f6c3e2ce5aa222df1633f14c5cf448c097294c0988bc17c01d7a7082543c7189",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "common.go": "all",
+  "x_linux.go": ["linux-amd64/prod", "linux-arm64/prod"],
+  "x_other.go": ["darwin-arm64/prod", "windows-amd64/prod"]
+ },
+ "calls": [
+  {"file": "common.go", "line": 8, "col": 2, "end": "8:15", "kind": "E", "callee": "example.com/twice_var_same_meaning:Std.Close", "at": "common.go", "variants": "all"}
+ ]
+}

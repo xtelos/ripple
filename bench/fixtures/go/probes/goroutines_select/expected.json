@@ -1,0 +1,14 @@
+{
+ "digest": "75e2b4bb5d87be25a73618e445517c60e4d652f18f3a65b4326507f0de062efb",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 9, "col": 5, "end": "9:9", "kind": "E", "callee": "example.com/goroutines_select:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 12, "col": 3, "end": "12:7", "kind": "E", "callee": "example.com/goroutines_select:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 14, "col": 3, "end": "14:7", "kind": "E", "callee": "example.com/goroutines_select:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 18, "col": 3, "end": "18:7", "kind": "E", "callee": "example.com/goroutines_select:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 22, "col": 2, "end": "22:6", "kind": "E", "callee": "example.com/goroutines_select:T.M", "at": "a.go", "variants": "all"}
+ ]
+}

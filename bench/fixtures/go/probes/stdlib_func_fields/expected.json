@@ -1,0 +1,21 @@
+{
+ "digest": "8a0ffc9cc74ea0c17804cba2f82cf9c916b9f4abbacea4f48c850324962bcc79",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "main.go": "all"
+ },
+ "calls": [
+  {"file": "main.go", "line": 14, "col": 22, "end": "14:32", "kind": "E", "callee": "example.com/stdlib_func_fields:printHelp", "at": "main.go", "variants": "all"},
+  {"file": "main.go", "line": 15, "col": 2, "end": "15:11", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "main.go", "line": 16, "col": 6, "end": "16:18", "kind": "E", "callee": "flag:FlagSet.Parse", "at": "", "variants": "all"},
+  {"file": "main.go", "line": 18, "col": 2, "end": "18:13", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "main.go", "line": 20, "col": 28, "end": "20:38", "kind": "E", "callee": "example.com/stdlib_func_fields:printHelp", "at": "main.go", "variants": "all"},
+  {"file": "main.go", "line": 21, "col": 6, "end": "21:15", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "main.go", "line": 22, "col": 35, "end": "22:45", "kind": "E", "callee": "example.com/stdlib_func_fields:printHelp", "at": "main.go", "variants": "all"},
+  {"file": "main.go", "line": 23, "col": 6, "end": "23:12", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "main.go", "line": 24, "col": 6, "end": "24:12", "kind": "E", "callee": "sync:Pool.Get", "at": "", "variants": "all"},
+  {"file": "main.go", "line": 26, "col": 74, "end": "26:84", "kind": "E", "callee": "example.com/stdlib_func_fields:printHelp", "at": "main.go", "variants": "all"},
+  {"file": "main.go", "line": 27, "col": 6, "end": "27:31", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "main.go", "line": 29, "col": 2, "end": "29:10", "kind": "E", "callee": "sync:WaitGroup.Wait", "at": "", "variants": "all"}
+ ]
+}

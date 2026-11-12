@@ -1,0 +1,16 @@
+{
+ "digest": "d85a8edd6c1894f58d52a444d48d88f05e44716f544a37e03f63d763aa83ad9a",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "d/d.go": "all"
+ },
+ "calls": [
+  {"file": "d/d.go", "line": 11, "col": 36, "end": "11:38", "kind": "E", "callee": "example.com/p4/d:g", "at": "d/d.go", "variants": "all"},
+  {"file": "d/d.go", "line": 17, "col": 2, "end": "17:6", "kind": "E", "callee": "example.com/p4/d:T.M", "at": "d/d.go", "variants": "all"},
+  {"file": "d/d.go", "line": 20, "col": 26, "end": "20:28", "kind": "E", "callee": "example.com/p4/d:g", "at": "d/d.go", "variants": "all"},
+  {"file": "d/d.go", "line": 26, "col": 2, "end": "26:6", "kind": "E", "callee": "example.com/p4/d:T.N", "at": "d/d.go", "variants": "all"},
+  {"file": "d/d.go", "line": 27, "col": 2, "end": "27:9", "kind": "E", "callee": "example.com/p4/d:helper", "at": "d/d.go", "variants": "all"},
+  {"file": "d/d.go", "line": 32, "col": 36, "end": "32:40", "kind": "E", "callee": "example.com/p4/d:T.M", "at": "d/d.go", "variants": "all"},
+  {"file": "d/d.go", "line": 38, "col": 24, "end": "38:28", "kind": "E", "callee": "example.com/p4/d:V.M", "at": "d/d.go", "variants": "all"}
+ ]
+}

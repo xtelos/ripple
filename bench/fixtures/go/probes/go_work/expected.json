@@ -1,0 +1,12 @@
+{
+ "digest": "dcab8728ddd3b4ba8f723cfaf29e3d612552023b2e04095eb208d94928315a91",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "app/main.go": "all",
+  "lib/util/util.go": "all"
+ },
+ "calls": [
+  {"file": "app/main.go", "line": 6, "col": 2, "end": "6:10", "kind": "E", "callee": "example.com/gw/lib/util:Do", "at": "lib/util/util.go", "variants": "all"},
+  {"file": "app/main.go", "line": 8, "col": 2, "end": "8:6", "kind": "E", "callee": "example.com/gw/lib/util:T.M", "at": "lib/util/util.go", "variants": "all"}
+ ]
+}

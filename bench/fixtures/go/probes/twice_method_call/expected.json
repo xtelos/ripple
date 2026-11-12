@@ -1,0 +1,15 @@
+{
+ "digest": "92d8dd0d9d3c3fdfc4033643c24637009e75891564e1b2a413ac2c91566466b3",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "common.go": "all",
+  "x_linux.go": ["linux-amd64/prod", "linux-arm64/prod"],
+  "x_other.go": ["darwin-arm64/prod", "windows-amd64/prod"]
+ },
+ "calls": [
+  {"file": "common.go", "line": 6, "col": 2, "end": "6:6", "kind": "E", "callee": "example.com/twice_method_call:T.M", "at": "x_linux.go", "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "common.go", "line": 6, "col": 2, "end": "6:6", "kind": "E", "callee": "example.com/twice_method_call:T.M", "at": "x_other.go", "variants": ["darwin-arm64/prod", "windows-amd64/prod"]},
+  {"file": "x_linux.go", "line": 3, "col": 16, "end": "3:24", "kind": "E", "callee": "example.com/twice_method_call:helperL", "at": "x_linux.go", "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "x_other.go", "line": 5, "col": 16, "end": "5:24", "kind": "E", "callee": "example.com/twice_method_call:helperO", "at": "x_other.go", "variants": ["darwin-arm64/prod", "windows-amd64/prod"]}
+ ]
+}

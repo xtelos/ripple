@@ -1,0 +1,12 @@
+{
+ "digest": "d2236d4092246570ee341890017778c5ac40c4587ff18424f3b0115aff72f9c9",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "gen.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 4, "col": 2, "end": "4:6", "kind": "E", "callee": "example.com/generated_files:Gen", "at": "gen.go", "variants": "all"},
+  {"file": "a.go", "line": 6, "col": 2, "end": "6:6", "kind": "E", "callee": "example.com/generated_files:T.M", "at": "gen.go", "variants": "all"}
+ ]
+}

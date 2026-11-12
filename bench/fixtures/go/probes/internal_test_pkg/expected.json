@@ -1,0 +1,17 @@
+{
+ "digest": "977907c2e3108b144e95490cf13b89f59e39a48875860f5df44230ff7d7ffb3e",
+ "variants": ["darwin-arm64/prod", "darwin-arm64/test", "linux-amd64/prod", "linux-amd64/test", "linux-arm64/prod", "linux-arm64/test", "windows-amd64/prod", "windows-amd64/test"],
+ "built": {
+  "a.go": "all",
+  "a_test.go": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]
+ },
+ "calls": [
+  {"file": "a.go", "line": 9, "col": 2, "end": "9:6", "kind": "E", "callee": "example.com/internal_test_pkg:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a_test.go", "line": 10, "col": 2, "end": "10:6", "kind": "E", "callee": "example.com/internal_test_pkg:Run", "at": "a.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "a_test.go", "line": 15, "col": 2, "end": "15:6", "kind": "E", "callee": "example.com/internal_test_pkg:T.M", "at": "a.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "a_test.go", "line": 16, "col": 2, "end": "16:10", "kind": "E", "callee": "example.com/internal_test_pkg:fake.Extra", "at": "a_test.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "a_test.go", "line": 17, "col": 2, "end": "17:9", "kind": "E", "callee": "example.com/internal_test_pkg:helper", "at": "a_test.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "a_test.go", "line": 18, "col": 2, "end": "18:11", "kind": "E", "callee": "testing:common.Helper", "at": "", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "a_test.go", "line": 19, "col": 2, "end": "19:11", "kind": "E", "callee": "testing:common.Log", "at": "", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]}
+ ]
+}

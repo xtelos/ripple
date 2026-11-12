@@ -1,0 +1,11 @@
+{
+ "digest": "da4ace15f57991e534ee8bab3103b0fdcea6d42bc426c2d9c845084cfbac1bbb",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "broken.go": "all",
+  "use.go": "all"
+ },
+ "calls": [
+  {"file": "use.go", "line": 12, "col": 2, "end": "12:6", "kind": "E", "callee": "example.com/swallow_hidden_alias:A.M", "at": "use.go", "variants": "all"}
+ ]
+}

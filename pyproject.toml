@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ripple-code"
 version = "0.1.0"
-description = "An MCP server that tells a coding agent what breaks before it edits Python, TypeScript or JavaScript code."
+description = "An MCP server that tells a coding agent what breaks before it edits Python, TypeScript, JavaScript or Go code."
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "Dylan Fodor" }]
@@ -18,6 +18,9 @@ dev = ["pytest>=8"]
 # .ts file is parsed. tree-sitter 0.25 and 0.26 both read the grammar's ABI 14. The grammar has had one
 # release line since 2024 and is held to it, as a newer tree-sitter core could stop accepting its ABI.
 typescript = ["tree-sitter>=0.25,<0.27", "tree-sitter-typescript>=0.23.2,<0.24"]
+# Go indexing, loaded the same way. tree-sitter-go 0.25 is ABI 15, which tree-sitter 0.25 and 0.26 both read, so one
+# core serves both grammars. The grammar is held to the 0.25 line the node and field names were written against.
+go = ["tree-sitter>=0.25,<0.27", "tree-sitter-go>=0.25,<0.26"]
 
 [project.scripts]
 ripple = "ripple.cli:main"

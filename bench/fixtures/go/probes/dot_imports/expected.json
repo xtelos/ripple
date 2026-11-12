@@ -1,0 +1,19 @@
+{
+ "digest": "cadec9ce1113024bd6ef08e16f74c1beb9b810d8b35a2f5d2919eefffd926858",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "lib/lib.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 9, "col": 2, "end": "9:4", "kind": "E", "callee": "example.com/dot_imports/lib:F", "at": "lib/lib.go", "variants": "all"},
+  {"file": "a.go", "line": 11, "col": 2, "end": "11:6", "kind": "E", "callee": "example.com/dot_imports/lib:T.M", "at": "lib/lib.go", "variants": "all"},
+  {"file": "a.go", "line": 12, "col": 2, "end": "12:10", "kind": "E", "callee": "example.com/dot_imports/lib:T.M", "at": "lib/lib.go", "variants": "all"},
+  {"file": "a.go", "line": 12, "col": 2, "end": "12:6", "kind": "E", "callee": "example.com/dot_imports/lib:New", "at": "lib/lib.go", "variants": "all"},
+  {"file": "a.go", "line": 13, "col": 2, "end": "13:6", "kind": "E", "callee": "example.com/dot_imports/lib:T.M", "at": "lib/lib.go", "variants": "all"},
+  {"file": "a.go", "line": 14, "col": 6, "end": "14:23", "kind": "E", "callee": "strings:Contains", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 15, "col": 6, "end": "15:17", "kind": "E", "callee": "strings:ToUpper", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 20, "col": 2, "end": "20:4", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "lib/lib.go", "line": 11, "col": 9, "end": "11:13", "kind": "E", "callee": "example.com/dot_imports/lib:New", "at": "lib/lib.go", "variants": "all"}
+ ]
+}

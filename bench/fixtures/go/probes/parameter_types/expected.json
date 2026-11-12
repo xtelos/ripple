@@ -1,0 +1,16 @@
+{
+ "digest": "339eb3e600eb204bd144c570e6399201bc38232c42ccd97acde92e0277851b9d",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 8, "col": 2, "end": "8:10", "kind": "E", "callee": "example.com/parameter_types:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 12, "col": 2, "end": "12:14", "kind": "E", "callee": "example.com/parameter_types:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 13, "col": 2, "end": "13:10", "kind": "E", "callee": "example.com/parameter_types:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 14, "col": 2, "end": "14:5", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 14, "col": 2, "end": "14:9", "kind": "E", "callee": "example.com/parameter_types:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 15, "col": 2, "end": "15:11", "kind": "E", "callee": "example.com/parameter_types:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 16, "col": 2, "end": "16:7", "kind": "D", "callee": "-", "at": "", "variants": "all"}
+ ]
+}

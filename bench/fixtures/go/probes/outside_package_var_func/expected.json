@@ -1,0 +1,19 @@
+{
+ "digest": "8e2834d7f036679bbee7f2e8b3a945571cc3aed11863cdd6cbdd16c1e5724b69",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "dot.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 15, "col": 2, "end": "15:13", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 16, "col": 2, "end": "16:13", "kind": "E", "callee": "flag:Parse", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 17, "col": 2, "end": "17:17", "kind": "E", "callee": "log:Println", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 18, "col": 2, "end": "18:61", "kind": "E", "callee": "sort:Slice", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 19, "col": 2, "end": "19:42", "kind": "E", "callee": "net/http:ServeMux.HandleFunc", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 20, "col": 2, "end": "20:27", "kind": "E", "callee": "os:File.WriteString", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 21, "col": 6, "end": "21:19", "kind": "E", "callee": "os:Getenv", "at": "", "variants": "all"},
+  {"file": "dot.go", "line": 6, "col": 2, "end": "6:8", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "dot.go", "line": 7, "col": 2, "end": "7:8", "kind": "E", "callee": "flag:Parse", "at": "", "variants": "all"}
+ ]
+}

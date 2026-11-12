@@ -1,0 +1,15 @@
+{
+ "digest": "0a36d0806e8caa1b18602b79c0adfb54eeb169fcce02e58493046165f3a10903",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 17, "col": 2, "end": "17:6", "kind": "E", "callee": "example.com/alias_receiver:A.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 19, "col": 2, "end": "19:6", "kind": "E", "callee": "example.com/alias_receiver:A.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 20, "col": 2, "end": "20:9", "kind": "E", "callee": "example.com/alias_receiver:Base.Only", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 21, "col": 2, "end": "21:6", "kind": "E", "callee": "example.com/alias_receiver:Base.P", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 23, "col": 2, "end": "23:7", "kind": "E", "callee": "example.com/alias_receiver:A.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 31, "col": 2, "end": "31:6", "kind": "E", "callee": "example.com/alias_receiver:Base.M", "at": "a.go", "variants": "all"}
+ ]
+}

@@ -1,0 +1,12 @@
+{
+ "digest": "8c60546ffd516b4e843c774a4da1d53b0a34cf402d81b60ed13f2415f9de94a1",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "common.go": "all",
+  "x_linux.go": ["linux-amd64/prod", "linux-arm64/prod"],
+  "x_other.go": ["darwin-arm64/prod", "windows-amd64/prod"]
+ },
+ "calls": [
+  {"file": "common.go", "line": 10, "col": 2, "end": "10:8", "kind": "E", "callee": "example.com/twice_generic_type_method:Box.Get", "at": "common.go", "variants": "all"}
+ ]
+}

@@ -1,0 +1,14 @@
+{
+ "digest": "cf4768aa41f67a14d599d47398a316765b92b99558f2294664669c58e79028fc",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 24, "col": 2, "end": "24:6", "kind": "E", "callee": "example.com/embedded_generic:Base.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 6, "end": "25:12", "kind": "E", "callee": "example.com/embedded_generic:Box.Get", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 27, "col": 2, "end": "27:6", "kind": "E", "callee": "example.com/embedded_generic:Base.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 28, "col": 6, "end": "28:12", "kind": "E", "callee": "example.com/embedded_generic:Box.Get", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 30, "col": 6, "end": "30:12", "kind": "E", "callee": "example.com/embedded_generic:Inner.Len", "at": "a.go", "variants": "all"}
+ ]
+}

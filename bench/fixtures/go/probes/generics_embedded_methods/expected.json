@@ -1,0 +1,13 @@
+{
+ "digest": "93e80e53eacdf3b90ac115a8fbd116e2d700777d80b94ed1a28469ae62492739",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 15, "col": 2, "end": "15:9", "kind": "E", "callee": "example.com/generics_embedded_methods:Outer.Set", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 16, "col": 6, "end": "16:12", "kind": "E", "callee": "example.com/generics_embedded_methods:Inner.Get", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 18, "col": 2, "end": "18:11", "kind": "E", "callee": "example.com/generics_embedded_methods:Outer.Set", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 19, "col": 6, "end": "19:12", "kind": "E", "callee": "example.com/generics_embedded_methods:Inner.Get", "at": "a.go", "variants": "all"}
+ ]
+}

@@ -1,0 +1,13 @@
+{
+ "digest": "fd12bb27292813bdf6b78cf23a175d29229820871a61d8bddc24bbfbcc204ea3",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 17, "col": 2, "end": "17:10", "kind": "E", "callee": "net/http:Server.Close", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 18, "col": 2, "end": "18:20", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 19, "col": 2, "end": "19:32", "kind": "E", "callee": "net/http:Server.RegisterOnShutdown", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 20, "col": 2, "end": "20:12", "kind": "I", "callee": "io:Reader.Read", "at": "", "variants": "all"}
+ ]
+}

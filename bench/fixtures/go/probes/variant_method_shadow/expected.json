@@ -1,0 +1,13 @@
+{
+ "digest": "6ba8781301159e30d30cddbd02e34d86959a8e91861d1edd1f9d4642081b08cf",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "common.go": "all",
+  "x_linux.go": ["linux-amd64/prod", "linux-arm64/prod"]
+ },
+ "calls": [
+  {"file": "common.go", "line": 12, "col": 2, "end": "12:6", "kind": "E", "callee": "example.com/variant_method_shadow:Base.M", "at": "common.go", "variants": ["darwin-arm64/prod", "windows-amd64/prod"]},
+  {"file": "common.go", "line": 12, "col": 2, "end": "12:6", "kind": "E", "callee": "example.com/variant_method_shadow:T.M", "at": "x_linux.go", "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "common.go", "line": 13, "col": 2, "end": "13:6", "kind": "E", "callee": "example.com/variant_method_shadow:Base.K", "at": "common.go", "variants": "all"}
+ ]
+}

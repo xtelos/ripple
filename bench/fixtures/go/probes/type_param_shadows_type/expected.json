@@ -1,0 +1,12 @@
+{
+ "digest": "b176e46b613a2b0b6fd9d633f10e394989664e785a3ad07e27506f6806e7902c",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 8, "col": 2, "end": "8:6", "kind": "I", "callee": "example.com/type_param_shadows_type:?.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 19, "col": 2, "end": "19:7", "kind": "E", "callee": "example.com/type_param_shadows_type:F", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 21, "col": 2, "end": "21:6", "kind": "E", "callee": "example.com/type_param_shadows_type:T.M", "at": "a.go", "variants": "all"}
+ ]
+}

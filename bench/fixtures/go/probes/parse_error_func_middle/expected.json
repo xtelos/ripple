@@ -1,0 +1,16 @@
+{
+ "digest": "07b1c4b291dd2658717e8566c53014188362519161cb8ce2dcb524d3c79e7ba7",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "broken.go": "all",
+  "use.go": "all"
+ },
+ "calls": [
+  {"file": "broken.go", "line": 5, "col": 43, "end": "5:45", "kind": "E", "callee": "example.com/parse_error_func_middle:g", "at": "broken.go", "variants": "all"},
+  {"file": "broken.go", "line": 9, "col": 16, "end": "9:23", "kind": "E", "callee": "example.com/parse_error_func_middle:helper", "at": "broken.go", "variants": "all"},
+  {"file": "use.go", "line": 11, "col": 2, "end": "11:6", "kind": "E", "callee": "example.com/parse_error_func_middle:T.M", "at": "broken.go", "variants": "all"},
+  {"file": "use.go", "line": 12, "col": 2, "end": "12:6", "kind": "E", "callee": "example.com/parse_error_func_middle:T.N", "at": "broken.go", "variants": "all"},
+  {"file": "use.go", "line": 13, "col": 2, "end": "13:9", "kind": "E", "callee": "example.com/parse_error_func_middle:helper", "at": "broken.go", "variants": "all"},
+  {"file": "use.go", "line": 14, "col": 6, "end": "14:8", "kind": "E", "callee": "example.com/parse_error_func_middle:g", "at": "broken.go", "variants": "all"}
+ ]
+}

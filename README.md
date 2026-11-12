@@ -1,7 +1,7 @@
 # ripple
 
 **Know what breaks before you change it.** ripple is an MCP server that gives a coding agent
-(Claude Code, Cursor, anything that speaks MCP) the call graph of a Python, TypeScript or JavaScript repository, so the agent
+(Claude Code, Cursor, anything that speaks MCP) the call graph of a Python, TypeScript, JavaScript or Go repository, so the agent
 can ask "who calls this, and which tests reach it?" before it edits, and run just those tests after.
 
 ## Why
@@ -158,7 +158,7 @@ TypeScript is read by tree-sitter, which is an optional extra: it adds `tree-sit
 uv tool install "ripple-code[typescript] @ git+https://github.com/xtelos/ripple"   # or pip install 'ripple-code[typescript]'
 ```
 
-`--lang auto|python|typescript|javascript` (default `auto`; `RIPPLE_LANG` sets it for every command, and
+`--lang auto|python|typescript|javascript|go` (default `auto`; `RIPPLE_LANG` sets it for every command, and
 `build_server` takes a `lang` argument) chooses how the repo is read. `auto` looks at the file names: `.py`
 for Python, `.ts`, `.tsx`, `.mts` and `.cts` for TypeScript, `.js`, `.jsx`, `.mjs` and `.cjs` for JavaScript (see
 JavaScript below), skipping `.d.ts`, `node_modules` and virtualenvs. A repo with none of them, or one that does
@@ -480,6 +480,60 @@ both languages define, and when TypeScript cannot be indexed: a TypeScript-only 
 install command and the reason, and a mixed repo is indexed as Python. The parser is "unavailable" whether it is
 missing or installed but does not fit (an ABI or version mismatch), and the reason is in the message. A result
 with no `warnings` key covers everything the repo has.
+
+## Go
+
+Go is read by tree-sitter as well (`pip install 'ripple-code[go]'`, which adds `tree-sitter` and `tree-sitter-go`; without
+it a Go-only repo is refused and a mixed repo is answered without its Go files, with a warning). `--lang go` or `auto` (`.go`).
+It has a resolver of its own (`ripple/go_indexer.py`), because Go has no overriding and a call `T(x)` is a conversion.
+
+**Symbols** are import paths: `github.com/spf13/cobra:Command.Execute` (package, colon, `Type.Method`; value and pointer
+receivers are one method set), a package is `github.com/spf13/cobra`, and every file of a directory is that one package. An
+external test package is `github.com/spf13/cobra_test`, a second declaration of a name under build constraints is `#2`. The
+id is found by `Command.Execute`, `cobra:Command.Execute`, `command.go:Command.Execute`, or a directory (`doc/`).
+
+**Proven**: a function called by name or through an import (go.mod, `replace` to a local directory and go.work say which
+directory an import names; a module of the repo that is neither replaced nor in the workspace is built from its published
+version, so it counts as outside), and a method called on a value whose type is written in the source (receiver, parameter,
+`x := T{}`, `NewT()`, a field, an element, a range variable, a type assertion, embedded structs by the language's depth
+rule; a method declared on an alias is its target's, and keeps the alias's name). **Unresolved, each with its reason**: an
+interface method call (the reason names the interface), function values (a parameter, a local, a field, a package variable),
+type parameters, a value whose type is not written, anything that depends on which of several build-constrained definitions
+wins. Build constraints are never evaluated: a function defined under several has an edge to each variant, and a variable, a
+type, a result that the variants read differently, a method that only some builds declare (a `//go:build` line, a `_linux.go`
+name, a `_test.go` file) while another is promoted, or a method declared on an alias that is itself declared twice, is
+unresolved.
+
+**External** (a call that provably cannot reach repo code, which an agent may skip) is only what the Go standard library's own
+source proves: a func declaration of a standard library package, a method of a standard library type that is not an interface,
+a method of a standard library interface that no repo type declares, a builtin. Ripple reads no package outside the repo, so a
+member of one it cannot prove is unresolved, not external: `pkg.F(x)` of any other outside package (a function, or a variable
+holding one), `flag.Usage()` (a variable), `tp.DialContext(...)` or `cmd.RunE(...)` (a field of function type, which can hold a
+repo function), a value whose type ripple cannot write. The proof is `ripple/go_stdlib.py`, generated from GOROOT by
+`bench/go_stdlib/generate.py` over every platform `go tool dist list` names. A `C.f(x)` call is unresolved as well: C code may
+call back into an `//export`-ed function of the repo. On cobra, gin, zap, chi and etcd the external count fell by 286, 2617,
+814, 272 and 12419 and the unresolved count rose by 286, 2598, 808, 109 and 12274 (the rest are conversions such as
+`http.HandlerFunc(f)`, which are no call and are no longer counted); no edge changed.
+
+`vendor`, `testdata` and `_x` directories (wherever a go.mod sits: a module fixture under `testdata` is not read) and files
+no build includes (`//go:build ignore`) are skipped as the go tool skips them, and `ripple index` lists the directories
+(`.x` ones, which no language reads, are left out like the other languages'); generated files are read, because the rest of
+the package calls into them. A file tree-sitter-go 0.25 cannot parse (Go 1.26 `new(expr)`) is listed. If the broken code is
+inside a function body whose braces, read with Go's lexical rules, close it at its last byte, only that function's calls are
+unresolved. If it is anywhere else, tree-sitter loses the declarations after it, so the whole package is treated as having
+unread declarations, whatever the layout or comments around them: a name or method is still proven when a declaration of
+it is built in every build (no constraint, no platform file name), because a second one would not compile, but a name or
+method declared only in constrained files, a promoted method, a missing member or a universe name (`len`) in that package
+(or in a package that imports it) is unresolved with a reason naming the file, and a call on an outside type is not counted
+external when the file's text declares a method of that name. `check` has no Go test runner yet: pass `--test-command`.
+
+`bench/fixtures/go/probes` holds 131 small legal Go modules, each with what the Go compiler's type checker says every call
+site calls on linux, windows and darwin (`bench/go_oracle/generate.py`, run by hand with Go installed), plus the cgo ones that
+state their own answer. `tests/test_go_probes.py` needs no Go: an edge ripple makes must be the compiler's callee, declared in
+the file ripple edged to, on every platform that builds the file, and a call it counts external must have no callee inside
+the probe and must not be a function value, each checked at the call's own position (so two calls on one line are each held
+to their own answer). `tests/test_go_layout.py` writes every probe and golden fixture again with comments after every token,
+with the indentation stripped or doubled and with CRLF line ends, and requires the same graph.
 
 ## How it works
 

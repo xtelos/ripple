@@ -1,0 +1,16 @@
+{
+ "digest": "8bfff32bc708fae64f67e3e953bf5f5ebcc235335a9fb1d27d99228f01a5fa4c",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "d.go": "all"
+ },
+ "calls": [
+  {"file": "d.go", "line": 11, "col": 36, "end": "11:38", "kind": "E", "callee": "example.com/parse_error_swallows_later_types:g", "at": "d.go", "variants": "all"},
+  {"file": "d.go", "line": 17, "col": 2, "end": "17:6", "kind": "E", "callee": "example.com/parse_error_swallows_later_types:T.M", "at": "d.go", "variants": "all"},
+  {"file": "d.go", "line": 20, "col": 26, "end": "20:28", "kind": "E", "callee": "example.com/parse_error_swallows_later_types:g", "at": "d.go", "variants": "all"},
+  {"file": "d.go", "line": 26, "col": 2, "end": "26:6", "kind": "E", "callee": "example.com/parse_error_swallows_later_types:T.N", "at": "d.go", "variants": "all"},
+  {"file": "d.go", "line": 27, "col": 2, "end": "27:9", "kind": "E", "callee": "example.com/parse_error_swallows_later_types:helper", "at": "d.go", "variants": "all"},
+  {"file": "d.go", "line": 32, "col": 36, "end": "32:40", "kind": "E", "callee": "example.com/parse_error_swallows_later_types:T.M", "at": "d.go", "variants": "all"},
+  {"file": "d.go", "line": 38, "col": 24, "end": "38:28", "kind": "E", "callee": "example.com/parse_error_swallows_later_types:V.M", "at": "d.go", "variants": "all"}
+ ]
+}

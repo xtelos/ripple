@@ -1,0 +1,17 @@
+{
+ "digest": "1b3e142836c15edbe40876a503a9c3e87eb26555279e55d9156dba8f86af666c",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 30, "col": 2, "end": "30:8", "kind": "E", "callee": "example.com/embedded_pointer_and_interface:Base.Ptr", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 31, "col": 2, "end": "31:8", "kind": "I", "callee": "example.com/embedded_pointer_and_interface:Runner.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 32, "col": 2, "end": "32:8", "kind": "E", "callee": "example.com/embedded_pointer_and_interface:Wrapper.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 33, "col": 2, "end": "33:15", "kind": "I", "callee": "example.com/embedded_pointer_and_interface:Runner.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 34, "col": 2, "end": "34:8", "kind": "I", "callee": "example.com/embedded_pointer_and_interface:Runner.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 35, "col": 2, "end": "35:9", "kind": "I", "callee": "example.com/embedded_pointer_and_interface:Both.Stop", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 37, "col": 2, "end": "37:8", "kind": "E", "callee": "example.com/embedded_pointer_and_interface:Impl.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 39, "col": 2, "end": "39:8", "kind": "I", "callee": "example.com/embedded_pointer_and_interface:Runner.Run", "at": "a.go", "variants": "all"}
+ ]
+}

@@ -1,0 +1,12 @@
+{
+ "digest": "6cffdc4372567a3aa3392d34fe7c95d4c5d517ed474a17479e17c2fb09823d9c",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "broken.go": "all",
+  "use.go": "all"
+ },
+ "calls": [
+  {"file": "use.go", "line": 4, "col": 6, "end": "4:18", "kind": "E", "callee": "example.com/parse_error_shadows_builtin:len", "at": "broken.go", "variants": "all"},
+  {"file": "use.go", "line": 5, "col": 2, "end": "5:7", "kind": "E", "callee": "example.com/parse_error_shadows_builtin:new2", "at": "broken.go", "variants": "all"}
+ ]
+}

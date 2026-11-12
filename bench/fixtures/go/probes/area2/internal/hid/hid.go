@@ -1,0 +1,3 @@
+package hid
+
+func F() {}

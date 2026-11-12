@@ -1,0 +1,19 @@
+{
+ "digest": "02c6d405b718f03d7fcfd08f6f038556ce864b8b02e654d38b1521ed92240f6d",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 14, "col": 2, "end": "14:9", "kind": "E", "callee": "example.com/shadow_decl_order:helper", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 16, "col": 2, "end": "16:8", "kind": "E", "callee": "example.com/shadow_decl_order:T.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 18, "col": 3, "end": "18:9", "kind": "E", "callee": "example.com/shadow_decl_order:T.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 20, "col": 3, "end": "20:9", "kind": "E", "callee": "example.com/shadow_decl_order:U.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 22, "col": 19, "end": "22:26", "kind": "E", "callee": "example.com/shadow_decl_order:helper", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 23, "col": 2, "end": "23:4", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:9", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 28, "col": 3, "end": "28:9", "kind": "E", "callee": "example.com/shadow_decl_order:T.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 36, "col": 3, "end": "36:9", "kind": "E", "callee": "example.com/shadow_decl_order:T.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 41, "col": 3, "end": "41:9", "kind": "E", "callee": "example.com/shadow_decl_order:U.Run", "at": "a.go", "variants": "all"}
+ ]
+}

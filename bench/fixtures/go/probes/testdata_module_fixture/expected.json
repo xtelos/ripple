@@ -1,0 +1,10 @@
+{
+ "digest": "b3ed41add7c1cfc8f0c5f025db450beba9a4ea3ad977b6c6ff843d1959536c68",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "lib/lib.go": "all"
+ },
+ "calls": [
+  {"file": "lib/lib.go", "line": 6, "col": 2, "end": "6:9", "kind": "E", "callee": "example.com/testdata_module_fixture/lib:Helper", "at": "lib/lib.go", "variants": "all"}
+ ]
+}

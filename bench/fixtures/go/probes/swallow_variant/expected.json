@@ -1,0 +1,13 @@
+{
+ "digest": "f23a6831ea14c5db87baf19b03b8537544db441a6406487a86b1956f6b598e77",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "common.go": "all",
+  "x_linux.go": ["linux-amd64/prod", "linux-arm64/prod"],
+  "x_other.go": ["darwin-arm64/prod", "windows-amd64/prod"]
+ },
+ "calls": [
+  {"file": "common.go", "line": 7, "col": 2, "end": "7:6", "kind": "E", "callee": "example.com/swv:T.M", "at": "x_linux.go", "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "common.go", "line": 7, "col": 2, "end": "7:6", "kind": "E", "callee": "example.com/swv:T.M", "at": "x_other.go", "variants": ["darwin-arm64/prod", "windows-amd64/prod"]}
+ ]
+}

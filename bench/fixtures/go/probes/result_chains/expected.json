@@ -1,0 +1,27 @@
+{
+ "digest": "550589841f622b6e975ec66b5a7078adce64166a5052f18ae0cfb1275f642dbe",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 16, "col": 2, "end": "16:11", "kind": "E", "callee": "example.com/result_chains:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 16, "col": 2, "end": "16:15", "kind": "E", "callee": "example.com/result_chains:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 16, "col": 2, "end": "16:7", "kind": "E", "callee": "example.com/result_chains:NewT", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 17, "col": 2, "end": "17:11", "kind": "E", "callee": "example.com/result_chains:T.P", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 17, "col": 2, "end": "17:15", "kind": "E", "callee": "example.com/result_chains:T.P", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 17, "col": 2, "end": "17:7", "kind": "E", "callee": "example.com/result_chains:NewT", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 18, "col": 12, "end": "18:17", "kind": "E", "callee": "example.com/result_chains:Pair", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 20, "col": 2, "end": "20:6", "kind": "E", "callee": "example.com/result_chains:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 21, "col": 2, "end": "21:13", "kind": "I", "callee": "example.com/result_chains:I.Do", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 21, "col": 2, "end": "21:8", "kind": "E", "callee": "example.com/result_chains:Iface", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 22, "col": 2, "end": "22:10", "kind": "E", "callee": "example.com/result_chains:Closure", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 22, "col": 2, "end": "22:12", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 22, "col": 2, "end": "22:16", "kind": "E", "callee": "example.com/result_chains:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 23, "col": 7, "end": "23:12", "kind": "E", "callee": "example.com/result_chains:NewT", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 24, "col": 7, "end": "24:11", "kind": "E", "callee": "example.com/result_chains:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:6", "kind": "E", "callee": "example.com/result_chains:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 27, "col": 2, "end": "27:6", "kind": "E", "callee": "example.com/result_chains:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 29, "col": 2, "end": "29:6", "kind": "E", "callee": "example.com/result_chains:T.P", "at": "a.go", "variants": "all"}
+ ]
+}

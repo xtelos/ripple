@@ -1,0 +1,13 @@
+{
+ "digest": "91cfb5f95f237946f10f68fe5ccb1b9590a6c668dee1e302082bc057c27feb73",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "lib/x_linux.go": ["linux-amd64/prod", "linux-arm64/prod"],
+  "lib/x_other.go": ["darwin-arm64/prod", "windows-amd64/prod"],
+  "main.go": "all"
+ },
+ "calls": [
+  {"file": "main.go", "line": 6, "col": 2, "end": "6:8", "kind": "D", "callee": "-", "at": "", "variants": ["darwin-arm64/prod", "windows-amd64/prod"]},
+  {"file": "main.go", "line": 6, "col": 2, "end": "6:8", "kind": "E", "callee": "example.com/swallow_cross_package/lib:F", "at": "lib/x_linux.go", "variants": ["linux-amd64/prod", "linux-arm64/prod"]}
+ ]
+}

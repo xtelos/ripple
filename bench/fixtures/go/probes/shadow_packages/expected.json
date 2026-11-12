@@ -1,0 +1,17 @@
+{
+ "digest": "5fb77399e2490004f80391709aeb097e67939aa3308ae20f9a062b74a3a3eb1b",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "lib/lib.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 16, "col": 2, "end": "16:12", "kind": "E", "callee": "example.com/shadow_packages:Local.Close", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 17, "col": 6, "end": "17:31", "kind": "E", "callee": "strings:Contains", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 22, "col": 2, "end": "22:10", "kind": "E", "callee": "example.com/shadow_packages:Local.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 3, "end": "25:11", "kind": "E", "callee": "example.com/shadow_packages:Local.Close", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 30, "col": 2, "end": "30:10", "kind": "E", "callee": "example.com/shadow_packages/lib:Run", "at": "lib/lib.go", "variants": "all"},
+  {"file": "a.go", "line": 32, "col": 2, "end": "32:14", "kind": "E", "callee": "example.com/shadow_packages:Local.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 36, "col": 2, "end": "36:14", "kind": "E", "callee": "fmt:Println", "at": "", "variants": "all"}
+ ]
+}

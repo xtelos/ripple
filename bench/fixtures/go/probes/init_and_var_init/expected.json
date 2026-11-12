@@ -1,0 +1,24 @@
+{
+ "digest": "a244749035f98ae76d69c626d39520e145f2220801c227c955c89118873d996d",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "b.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 15, "col": 13, "end": "15:27", "kind": "E", "callee": "example.com/init_and_var_init:record", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 16, "col": 14, "end": "16:29", "kind": "E", "callee": "example.com/init_and_var_init:record", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 18, "col": 12, "end": "18:21", "kind": "E", "callee": "example.com/init_and_var_init:T.Make", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 19, "col": 9, "end": "19:23", "kind": "E", "callee": "example.com/init_and_var_init:record", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 20, "col": 10, "end": "20:46", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 20, "col": 30, "end": "20:42", "kind": "E", "callee": "example.com/init_and_var_init:record", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:17", "kind": "E", "callee": "example.com/init_and_var_init:record", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 26, "col": 2, "end": "26:11", "kind": "E", "callee": "example.com/init_and_var_init:T.Run", "at": "a.go", "variants": "all"},
+  {"file": "b.go", "line": 4, "col": 2, "end": "4:17", "kind": "E", "callee": "example.com/init_and_var_init:record", "at": "a.go", "variants": "all"},
+  {"file": "b.go", "line": 5, "col": 2, "end": "5:4", "kind": "E", "callee": "example.com/init_and_var_init:a", "at": "a.go", "variants": "all"},
+  {"file": "b.go", "line": 8, "col": 13, "end": "8:23", "kind": "E", "callee": "example.com/init_and_var_init:T.Make", "at": "a.go", "variants": "all"},
+  {"file": "b.go", "line": 11, "col": 2, "end": "11:11", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "b.go", "line": 12, "col": 2, "end": "12:11", "kind": "E", "callee": "example.com/init_and_var_init:T.Run", "at": "a.go", "variants": "all"},
+  {"file": "b.go", "line": 13, "col": 2, "end": "13:12", "kind": "E", "callee": "example.com/init_and_var_init:T.Run", "at": "a.go", "variants": "all"}
+ ]
+}

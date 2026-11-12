@@ -1,0 +1,15 @@
+{
+ "digest": "45a5e67ed2a138083f171fe64d56e22e35933d0e9b1435e60d55acda385139fb",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "main.go": "all"
+ },
+ "calls": [
+  {"file": "main.go", "line": 11, "col": 8, "end": "11:45", "kind": "E", "callee": "flag:NewFlagSet", "at": "", "variants": "all"},
+  {"file": "main.go", "line": 13, "col": 23, "end": "13:33", "kind": "E", "callee": "example.com/p9:printHelp", "at": "main.go", "variants": "all"},
+  {"file": "main.go", "line": 14, "col": 2, "end": "14:12", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "main.go", "line": 16, "col": 2, "end": "16:13", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "main.go", "line": 18, "col": 28, "end": "18:38", "kind": "E", "callee": "example.com/p9:printHelp", "at": "main.go", "variants": "all"},
+  {"file": "main.go", "line": 19, "col": 6, "end": "19:15", "kind": "D", "callee": "-", "at": "", "variants": "all"}
+ ]
+}

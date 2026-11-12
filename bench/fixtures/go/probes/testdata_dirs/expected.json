@@ -1,0 +1,10 @@
+{
+ "digest": "a623b0044ddc4e25b8e590899d1ec463adbcde36e27b75665f17fabfc11f8d28",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 6, "col": 2, "end": "6:4", "kind": "E", "callee": "example.com/testdata_dirs:A", "at": "a.go", "variants": "all"}
+ ]
+}

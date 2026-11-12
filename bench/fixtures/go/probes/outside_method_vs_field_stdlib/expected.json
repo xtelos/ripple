@@ -1,0 +1,15 @@
+{
+ "digest": "942a904c2874c7cc0b6d9a0f2189f87ccb66fbe7830910ec62b0d82940a12a44",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 10, "col": 2, "end": "10:25", "kind": "E", "callee": "net/http:Client.CloseIdleConnections", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 11, "col": 2, "end": "11:24", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 12, "col": 2, "end": "12:12", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 13, "col": 2, "end": "13:8", "kind": "E", "callee": "sync:Pool.Get", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 14, "col": 2, "end": "14:8", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 15, "col": 2, "end": "15:19", "kind": "E", "callee": "strings:Builder.WriteString", "at": "", "variants": "all"}
+ ]
+}
