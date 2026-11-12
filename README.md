@@ -1,7 +1,7 @@
 # ripple
 
 **Know what breaks before you change it.** ripple is an MCP server that gives a coding agent
-(Claude Code, Cursor, anything that speaks MCP) the call graph of a Python, TypeScript, JavaScript, Go or Rust repository, so the agent
+(Claude Code, Cursor, anything that speaks MCP) the call graph of a Python, TypeScript, JavaScript, Go, Rust or Java repository, so the agent
 can ask "who calls this, and which tests reach it?" before it edits, and run just those tests after.
 
 ## Why
@@ -158,10 +158,10 @@ TypeScript is read by tree-sitter, which is an optional extra: it adds `tree-sit
 uv tool install "ripple-code[typescript] @ git+https://github.com/xtelos/ripple"   # or pip install 'ripple-code[typescript]'
 ```
 
-`--lang auto|python|typescript|javascript|go|rust` (default `auto`; `RIPPLE_LANG` sets it for every command, and
+`--lang auto|python|typescript|javascript|go|rust|java` (default `auto`; `RIPPLE_LANG` sets it for every command, and
 `build_server` takes a `lang` argument) chooses how the repo is read. `auto` looks at the file names: `.py`
 for Python, `.ts`, `.tsx`, `.mts` and `.cts` for TypeScript, `.js`, `.jsx`, `.mjs` and `.cjs` for JavaScript (see
-JavaScript below), `.go` for Go, `.rs` for Rust, skipping `.d.ts`, `node_modules` and virtualenvs. A repo with none of them, or one that does
+JavaScript below), `.go` for Go, `.rs` for Rust, `.java` for Java, skipping `.d.ts`, `node_modules` and virtualenvs. A repo with none of them, or one that does
 not exist, is an error (exit status 2), not "0 files".
 
 **Symbols** are the file's path without the extension, a colon and the member: `src/util/math:clamp`,
@@ -591,6 +591,84 @@ and it is a function. Calls that happen with no call site (`Drop`, `Display` thr
 operators) are not edges, so a trait impl's method can show no callers.
 `check` has no default command for Rust yet (pass `--test-command`).
 
+## Java
+
+**Experimental.** Java is the newest front end and the least proven. Its answers agree with javac on every call site of
+the five source trees it was checked on (see "Checked against the compiler" below), but its resolver went through two
+rounds of fixes for wrong edges in legal Java those trees did not contain, and its JDK member tables are JDK 21's only.
+Read its unresolved reasons, and report an edge that javac would not make.
+
+Java is read by tree-sitter too, as its own optional extra (`tree-sitter` and `tree-sitter-java`):
+
+```sh
+uv tool install "ripple-code[java] @ git+https://github.com/xtelos/ripple"   # or pip install 'ripple-code[java]'
+```
+
+`--lang java` or `auto` (which looks for `.java` files, skipping `package-info.java`, `module-info.java` and the
+output directories `target/` beside a `pom.xml`, `build/` beside a `build.gradle` and an IDE's `out/` and `bin/`,
+which `ripple index` lists with the other skipped directories) reads a repo as Java. A Java-only repo without the extra is refused with the install command, and a repo with Python
+and Java answers for Python and says Java was skipped.
+
+**Symbols** are dotted, like Python's, and a method carries the simple names of its parameter types as written, so
+overloads have their own ids: `com.acme.shop.Cart` (a member class is `Cart.Line`), `com.acme.shop.Cart.add(Item)`,
+`Cart.<init>(List)` for a constructor, `Log.info(String,Object...)` for varargs, `Ledger.runAll(List)$1` for the first
+anonymous class in a method, `Op.ADD` for an enum constant with a body. A file is its path with the extension
+(`src/main/java/com/acme/shop/Cart.java`, found by any tail of that path, `shop/Cart.java` too), so `Cart` is the class.
+Any of these finds it: the full id, `Cart.add(Item)`,
+`Cart.add` when only one method has that name, or the bare name. A name that two overloads share is not answered for
+one of them: the overloads are listed as candidates. A class's callers include the callers of each of its constructors.
+
+**What is an edge.** The Java resolver (`ripple/java_resolver.py`) does not use the shared one, because Java picks a
+method by its name and its parameter types from the whole class hierarchy. A call is proven from declared types, imports,
+the enclosing class that has the name (the "comb rule"), and the arguments' types: with several overloads of the right
+number of arguments it picks one only when every argument's type is known and equals that overload's parameter types,
+and otherwise says "N overloads of m take n arguments". Only the methods a type has as members and the caller may call
+are candidates (a private method is not inherited, a package-private one is not seen from another package, a protected
+one needs a subclass body), and a parameter written with type arguments takes only an argument written with the same
+ones. Two imports of one method name, a name that a local class or a pattern variable may or may not hide, and a type
+name that a supertype from outside the repo may have as a member type are not decided either. A call on an interface or a class with subtypes also gets an
+`override` edge to each method in a repo subtype that overrides it (anonymous classes and enum constant bodies included;
+a type variable counts as what the subtype's `implements Visitor<Item>` makes of it, and a method a subtype inherits from
+a superclass counts too), but not `super.m()`, `Type.m()` or `new T().m()`. Generics are erased, so a value typed by a type variable, an array
+element, the result of a call into the JDK or an untyped lambda parameter is unresolved.
+
+**ripple does not know the JDK's or a library's members, so it does not guess them.** A method of a class that extends or
+implements a type from outside the repo (`class Ledger extends Writer`) cannot be proven to be the one a call means,
+because that type may declare another method of the name: the call is unresolved, with that reason. The one exception is
+the three types the language itself puts under every class, enum and record (`Object`, `Enum`, `Record`), whose members
+are built in, and a short list of JDK types whose supertypes, member types and members were read off the JDK (a name such
+a type lacks is not its own, and a marker interface like `Serializable` declares nothing). A comment can stand between
+any two tokens and changes no answer. A call is counted
+as outside the repo only when it cannot run repo code: a call into the JDK or a library from a type it can name, or a call
+of a name no repo source declares with that many arguments (unless a Lombok annotation is in the repo). A value typed
+with an external class or interface, or `Object`, may be an instance of a repo class (`List l = new MyList(); l.add(x)`
+runs `MyList.add`), so a call of a name such a class declares is unresolved, unless the JDK class is final (`String`).
+
+Not followed, and never an edge: method references (`this::show` names a method, it does not call it), reflection,
+Lombok and annotation-processor output, qualified inner-class creation (`outer.new Inner()`), `check` for Maven and
+Gradle (a Java repo has no default test command yet, and no test is collected), and JDK 25 syntax the grammar does not
+know (those files are listed with the ones that could not be parsed, and read as far as the parser recovers).
+A file whose directory does not end in its `package` path is not indexed and is listed with the reason (a Java file a test
+compiles as data), and two files that define one fully qualified name (Android product flavours) are indexed as neither:
+their types have no symbol, calls of them are unresolved, and `ripple index` warns that the files share a module name.
+
+**Limits.** The member tables of the JDK types in `KNOWN_SUPERTYPES` are JDK 21's, read off it once and kept as constants in
+`ripple/java_resolver.py`: no JDK member table is shipped as data yet, so any other type from outside the repo stays
+unresolved. `check` has no default test command for Java, and no test is collected.
+
+**Checked against the compiler.** `bench/fixtures/java/probes` holds 171 small legal Java programs, each with `javac.json`:
+every invoke instruction javac wrote for it (`bench/java_probes.py`, run by hand with a JDK). `tests/test_java_probes.py`
+needs no JDK and requires every edge ripple makes to be the method javac invoked, every `override` edge a method the
+receiver's subtypes really run, and every call it counts outside the repo one that cannot run repo code (ripple may be
+silent, but it may not be wrong). `tests/test_java_comment_injection.py` writes every probe and the golden fixture again with
+comments between the tokens and requires the same graph. `bench/java_corpus.py` is the same judgement on a real source tree
+(javac compiles it, `javap` reads every class, each call site is paired with its invoke instruction) and its bar is zero wrong
+calls, overrides and externals. It met that bar on gson (3,406 call sites), commons-lang (11,138), the JUnit platform modules
+(7,047), auto's `common` (1,319) and the golden fixture, each compiled with JDK 21. That check is weaker in one place: javac
+names `java.lang.Object` as the owner of an `Object` method the receiver's class does not declare (`equals`, `hashCode`), so
+the bytecode does not say which class the receiver is, and those sites (52 in those corpora) are listed apart rather than
+judged. `tests/test_java_javac.py` does it for the golden fixture and runs only when `javac -version` reports 21 or newer.
+
 ## How it works
 
 The core has no parser dependency: the Python front end reads files with the standard library `ast`
@@ -598,6 +676,8 @@ module, and the base install needs only the `mcp` SDK. The TypeScript front end 
 writes the same per-file facts from a tree-sitter parse, so one resolver builds both graphs. The languages
 are listed once, in precedence order, in `ripple/registry.py`: a language is a profile (`ripple/profile.py`)
 and one entry there naming its front end module, which is imported only when a file of that language is read.
+The Java front end (`ripple/java_indexer.py`) declares the types and members, and its own resolver
+(`ripple/java_resolver.py`) decides each call and writes the graph, so only the first step below is shared with it.
 
 1. **Collect** (`ripple/indexer.py`): each file is read on its own. For every module, class and
    function it records what names are bound (defs, imports, assignments and what they suggest about

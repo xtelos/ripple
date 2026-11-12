@@ -13,8 +13,8 @@ jobs:
         python-version: ["3.10", "3.12"]
         # "dev" is the base install: the tests of every optional language must skip there, and everything else must pass.
         # "dev,typescript" adds the optional parser, so the TypeScript and JavaScript tests and the benchmark run.
-        # "dev,typescript,go,rust" adds Go's and Rust's, so the Go and Rust tests run beside the others (they skip without them).
-        extras: ["dev", "dev,typescript", "dev,typescript,go,rust"]
+        # "dev,typescript,go,rust,java" adds Go's, Rust's and Java's, so their tests run beside the others (they skip without them).
+        extras: ["dev", "dev,typescript", "dev,typescript,go,rust,java"]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
