@@ -1,5 +1,11 @@
-"""The TypeScript front end: read .ts, .tsx, .mts and .cts files and write the same facts indexer.py
-writes for Python (facts.py), so the resolver can build the call graph from either.
+"""The TypeScript front end: read .ts, .tsx, .mts and .cts files, and .js, .jsx, .mjs and .cjs files, and write the
+same facts indexer.py writes for Python (facts.py), so the resolver can build the call graph from any of them.
+
+JavaScript is read with the tsx grammar (JSX is legal in a .js file, and the grammar parses plain JavaScript) by the same code,
+as its own language with its own graph (profile.JAVASCRIPT). What only TypeScript means is refused in a .js file: `f < a > (b)`
+is two comparisons there, not a call with type arguments. Flow annotations are read as the TypeScript annotations they look like,
+at the same trust. Only ES modules are followed: CommonJS (`require`, `module.exports`) is not modelled, so a call through one
+stays unresolved, and a JavaScript file's calls into TypeScript, and the reverse, are not followed either (ts_modules.py).
 
 Like the Python front end this is purely syntactic, one file at a time, and it never decides what a
 call points at. It needs the repo in view for one thing only, which file an import names
@@ -44,7 +50,7 @@ symbol the name resolves to, so a question about that symbol can list where it i
 arguments are read, as calls of that same scope.
 
 Not supported (the call is unresolved or the code is skipped, never guessed): what a decorator does, class fields that
-hold an arrow function, class expressions, object literal methods, enums, namespaces, `require`, and a tsconfig
+hold an arrow function, class expressions, object literal methods, enums, namespaces, `require` and `module.exports`, and a tsconfig
 `extends` that names a package.
 """
 
@@ -74,7 +80,14 @@ from .facts import (
 from .jsx_facts import JsxElement, JsxModule, JsxScope, Placement
 from .model import DECORATOR_SCOPE, UNREAD_CLASS, Graph
 from .profile import TYPESCRIPT, LanguageProfile
-from .ts_modules import ModuleMap, config_files  # noqa: F401 (config_files: the registry asks this module for it)
+from .ts_modules import (  # noqa: F401 (config_files, module_id, output_dirs, presence_files: the registry asks this module for them)
+    JS_SUFFIXES,
+    ModuleMap,
+    config_files,
+    module_id,
+    output_dirs,
+    presence_files,
+)
 
 INSTALL_HINT = "pip install 'ripple-code[typescript]'"
 REINSTALL = f"it needs tree-sitter>=0.25,<0.27 and tree-sitter-typescript>=0.23.2,<0.24, which {INSTALL_HINT} installs"
@@ -94,6 +107,16 @@ DESTRUCTURED = "the receiver is destructured from an object or array, whose type
 CALLBACK_PARAMETER = "the receiver is a parameter of an anonymous function, whose type ripple does not infer"
 THIS_TAG = "the tag is a member of `this`, which ripple does not follow for components"
 COMPUTED_TAG = "the tag is not a name or a dotted name"
+JS_TYPE_ARGUMENTS = (
+    "the call has type arguments, which JavaScript does not have: `f < a > (b)` there is two comparisons, "
+    "so whether it is a call is not known"
+)
+JS_AFTER_ERROR = (
+    "the call is inside or right after a syntax error the parser recovered from, usually a name the TypeScript grammar reads "
+    "as a keyword (`abstract.foo()` is `abstract.` and a call of foo there), so what it calls is not known"
+)
+# what ends the climb from a call to see whether a syntax error comes right before it (the statement that holds it)
+STATEMENT_END = ("statement_block", "program", "class_body", "switch_body")
 
 
 class TypeScriptNotInstalled(ImportError):
@@ -377,7 +400,8 @@ JSX_PRAGMA = re.compile(r"@(jsx|jsxImportSource|jsxFrag|jsxRuntime)[ \t]+([^\s*]
 REACT_PRAGMAS = {"jsx": "React.createElement", "jsxImportSource": "react", "jsxFrag": "React.Fragment"}
 MUTATORS = (["Object", "assign"], ["Object", "defineProperty"], ["Object", "defineProperties"], ["Object", "setPrototypeOf"])
 HOST_TAG = re.compile(r"[a-z]")  # a JSX tag that starts with a lowercase letter is a host element, whatever it is called
-ACCESSOR_NAME = re.compile(r"\b(?:get|set)\s+#?([A-Za-z_$][\w$]*)\s*[(<]")
+_GAP = r"(?:\s|/\*[\s\S]*?\*/|//[^\n]*)"  # white space and comments, which may stand between the tokens of `get name(`
+ACCESSOR_NAME = re.compile(rf"\b(?:get|set){_GAP}+#?([A-Za-z_$][\w$]*){_GAP}*[(<]")
 
 
 class FileBuilder:
@@ -391,6 +415,7 @@ class FileBuilder:
         self.accessors = accessors
         self.profile = profile
         self.file = file
+        self.js = file.endswith(JS_SUFFIXES)  # JavaScript, read with the TypeScript grammar: what only TypeScript means is not trusted
         self.damaged = root.has_error  # tree-sitter recovered from a syntax error: where an element is placed is not trusted
         self.runtime = self._runtime_problem(root)  # why this file's JSX is not React's, "" when it is
         self.titles: list[str] = []  # the describe() titles whose callbacks are being read
@@ -774,6 +799,11 @@ class FileBuilder:
                     self.module.exports[text(ns)] = bound
             elif target is not None:  # export * from "m"
                 self.module.star_imports.append(target)
+            else:
+                # a star onto a file ripple does not read into this graph (the other language's, say, or a declaration file
+                # or a path that names no file): which names it provides is not known, so no name this module does not
+                # declare is taken from another star
+                self.module.unread_stars.append(self.not_known.get(spec) or f"`{spec}` names no file ripple reads (it is missing, or a declaration file, which holds types and no code)")
         elif clause is not None:  # export { a, b as c }
             for item in named(clause):
                 name, alias = field_of(item, "name"), field_of(item, "alias")
@@ -1327,6 +1357,9 @@ class FileBuilder:
 
     def visit_assignment_expression(self, node) -> None:
         left, right = field_of(node, "left"), field_of(node, "right")
+        chain = dotted(left) if left is not None else None
+        if chain and (chain[:2] == ["module", "exports"] or (chain[0] == "exports" and len(chain) > 1)):
+            self.module.commonjs = True
         if right is not None:
             self.visit(right)
         evidence = self._evidence(right)
@@ -1454,6 +1487,19 @@ class FileBuilder:
             if pattern is not None and pattern.type == "identifier":
                 self._bind(text(pattern), [unknown_ref(CALLBACK_PARAMETER)])
 
+    def _after_error(self, node) -> bool:
+        """Whether the call is inside a syntax error node, or its statement comes right after one. A name the grammar
+        takes for a TypeScript keyword breaks the statement that starts with it: `abstract.foo();` is an error holding
+        `abstract.` and then the call `foo()`, which no JavaScript text makes."""
+        if not self.damaged:
+            return False
+        cursor = node
+        while cursor is not None and cursor.type not in STATEMENT_END:
+            if cursor.type == "ERROR" or (cursor.prev_sibling is not None and cursor.prev_sibling.type == "ERROR"):
+                return True
+            cursor = cursor.parent
+        return False
+
     def visit_call_expression(self, node) -> None:
         func = field_of(node, "function")
         args = field_of(node, "arguments")
@@ -1466,7 +1512,13 @@ class FileBuilder:
         here = self.scope
         line = line_of(node)
         call = None
-        if func.type == "super":
+        typed = self.js and field_of(node, "type_arguments") is not None
+        refused = typed or (self.js and self._after_error(node))
+        if refused:
+            # The TypeScript grammar reads `f < a > (b)` as the call f<a>(b); in a .js file it is two comparisons. It also
+            # reads a name it takes for a keyword (`abstract.foo()`) as an error and a call of what follows.
+            call = RawCall(None, short(func), line, special="computed", why=JS_TYPE_ARGUMENTS if typed else JS_AFTER_ERROR)
+        elif func.type == "super":
             call = RawCall([self.profile.constructor_name], "super(...)", line, special="super")
         elif func.type == "import":
             call = RawCall(None, "import(...)", line, special="computed", why=COMPUTED_OTHER)
@@ -1493,7 +1545,8 @@ class FileBuilder:
         if call is not None:
             here.calls.append(call)
             self.call_nodes[node.id] = call
-            self._callbacks(call, func, args, here)
+            if not refused:
+                self._callbacks(call, func, args, here)
         self._visit_callee(func)
         if args is not None:
             self.generic(args)
@@ -1653,7 +1706,7 @@ class FileBuilder:
             for kind, value in JSX_PRAGMA.findall(text(root)):
                 if kind in REACT_PRAGMAS and value != REACT_PRAGMAS[kind]:
                     return f"the file says @{kind} {value}, not React's runtime, so when a component runs is not known"
-        return self.modules.config.jsx_runtime
+        return self.modules.jsx_runtime(self.file)
 
     def _walk(self, start) -> Placement:
         if self.damaged:
@@ -1986,13 +2039,15 @@ def collect_scopes(
     read: dict[str, str] = {}
     # A file another file's module id clashes with (a.ts and a/index.ts) is indexed under an id of its own and
     # listed with the files that did not parse cleanly, as is a tsconfig.json that could not be read: both
-    # change what ripple can say, and neither may be silent.
-    errors += [rel for rel in modules.shadowed if rel in {p.relative_to(repo).as_posix() for p in readable}]
+    # change what ripple can say, and neither may be silent. The exception is a dual-format JavaScript package
+    # (x.js beside x.mjs): that is one source shipped twice, read in full under its own id, and cli.py says so apart.
+    errors += [rel for rel in modules.shadowed if rel in {p.relative_to(repo).as_posix() for p in readable} and rel not in modules.dual_format]
     errors += modules.problems  # the configs (the root one is tsconfig.json) that could not be read
     for path in readable:
         rel = path.relative_to(repo).as_posix()
         try:
-            tree = (tsx if path.suffix == ".tsx" else typescript).parse(path.read_bytes())
+            # JSX is legal in a .js file, so every JavaScript suffix goes to the tsx grammar, which reads plain JavaScript as well
+            tree = (tsx if path.suffix == ".tsx" or path.name.endswith(JS_SUFFIXES) else typescript).parse(path.read_bytes())
             builder = FileBuilder(modules.modules[rel], rel, tree.root_node, modules, accessors, profile)
         except Exception:  # noqa: BLE001 (a file the front end cannot read must cost that file, not the index)
             # Most often RecursionError (nested deeper than even build_graph's raised limit allows) or an

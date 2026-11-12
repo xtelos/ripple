@@ -12,7 +12,7 @@ and holds exactly the values they used to hard-code.
 A field is here only because some code reads it. A language that needs another one adds it
 when it needs it, and gives PYTHON the value it has always had.
 
-TYPESCRIPT, at the bottom, is the second profile. Its front end is ts_indexer.py.
+TYPESCRIPT, at the bottom, is the second profile. Its front end is ts_indexer.py, which reads JAVASCRIPT too.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ import builtins
 import shutil
 import sys
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -301,4 +301,28 @@ TYPESCRIPT = LanguageProfile(
     test_collection=NoTestCollection,
     default_test_command=_no_test_command,
     failure_prefixes=("FAIL ", " FAIL "),
+)
+
+
+def _no_js_test_command(repo: Path) -> list[str]:
+    raise ValueError(
+        "ripple does not know how to run JavaScript tests yet: pass the command that runs them "
+        "(`--test-command` or RIPPLE_TEST_COMMAND, for example `npx vitest run`)"
+    )
+
+
+# JavaScript is TypeScript's profile with its own files: the same front end reads it, with the tsx grammar (JSX is
+# legal in a .js file, so every suffix goes to the grammar that has it), and what a program can name without declaring
+# it is the same. Flow annotations in a .js file are read as the TypeScript annotations they look like, at the same trust
+# as those: ripple does not check either. Resolution differs where the module system does (ts_modules.py).
+# jsconfig.json is read like a tsconfig.json. mocha puts before and after in scope without an import, as jest does
+# describe and it.
+JAVASCRIPT = replace(
+    TYPESCRIPT,
+    name="javascript",
+    source_suffixes=(".js", ".jsx", ".mjs", ".cjs"),
+    excluded_suffixes=(),
+    config_files=("jsconfig.json", "tsconfig.json"),
+    builtin_names=TYPESCRIPT.builtin_names | {"before", "after"},
+    default_test_command=_no_js_test_command,
 )
