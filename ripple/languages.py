@@ -67,6 +67,7 @@ class LanguageIndex:
     found: int  # source files the walk found
     files: int = 0  # files read into the graph (0 when skipped)
     parse_errors: list[str] = field(default_factory=list)
+    unread: list[str] = field(default_factory=list)  # files the front end did not read, which is not a parse failure
     cached: bool = False
     skipped: bool = False  # its parser is not installed
 
@@ -157,7 +158,7 @@ def merge_graphs(graphs: list[Graph]) -> Graph:
     if len(graphs) == 1:
         return graphs[0]
     symbols, owners = {}, {}
-    merged = {"edges": [], "unresolved": [], "decorations": [], "parse_errors": [], "modules": {}, "bases": {}, "external_bases": {}, "export_aliases": {}}
+    merged = {"edges": [], "unresolved": [], "decorations": [], "parse_errors": [], "unread": [], "modules": {}, "bases": {}, "external_bases": {}, "export_aliases": {}}
     skipped_dirs, external_calls, reasons = set(), 0, {}
     for graph in graphs:
         drop = {sid for sid in graph.symbols if sid in symbols}
@@ -173,6 +174,7 @@ def merge_graphs(graphs: list[Graph]) -> Graph:
             {key: alias for key, alias in graph.export_aliases.items() if key.partition(":")[0] not in drop and alias[0] not in drop}
         )
         merged["parse_errors"] += graph.parse_errors
+        merged["unread"] += graph.unread
         merged["modules"].update(graph.modules)
         for cls, bases in graph.bases.items():
             kept = [base for base in bases if base not in drop]

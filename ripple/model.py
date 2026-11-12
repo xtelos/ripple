@@ -29,14 +29,20 @@ class Symbol:
         A TypeScript id is a path, a colon and a member (`src/util/math:clamp`, `src/cart:Cart.add#2`):
         its name is the member's last segment without the clash suffix, `clamp` and `add`, and for a
         module the last directory or file name. A test callback (`tests/a.test:suite > case`) is named by
-        its whole title chain, which a dot in a title could not be split from.
+        its whole title chain, which a dot in a title could not be split from. A member of a Rust symbol is joined
+        by `::` (`src/x:Foo::new`, `src/x:<Foo as Display>::fmt`): its name is the part after the last `::`. That
+        is decided by the symbol's file (a TypeScript test title may hold `::`), not by the look of the id.
         """
         if ":" not in self.id:
             return self.id.rsplit(".", 1)[-1] if "/" not in self.id else self.id.rsplit("/", 1)[-1]
         member = self.id.split(":", 1)[1]
         if " > " in member:
             return member
-        return re.sub(r"#\d+$", "", member).rsplit(".", 1)[-1]
+        member = re.sub(r"#\d+$", "", member)
+        # not imported at the top: the registry reads profiles, which read this module
+        from .registry import writes_colon_members
+
+        return member.rsplit("::", 1)[-1] if "::" in member and writes_colon_members(self.file) else member.rsplit(".", 1)[-1]
 
 
 @dataclass(frozen=True)
@@ -129,6 +135,9 @@ class Graph:
     # declares a function or class of that name AND exports the name as something ripple cannot name, so a question
     # about the name is ambiguous. Empty for Python.
     export_aliases: dict[str, list[str]] = field(default_factory=dict)
+    # Rust: files no `mod` declaration reaches, and `mod x;` declarations that name no file, each with its reason. They
+    # were not read (a parse failure is in parse_errors). Empty for Python and TypeScript.
+    unread: list[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self._index()
@@ -150,7 +159,7 @@ class Graph:
         for s in self.symbols.values():
             kinds[s.kind] += 1
         files = self.modules or {s.file for s in self.symbols.values() if s.kind == "module"}
-        return {
+        found = {
             "files": len(files),
             "symbols": dict(sorted(kinds.items())),
             "edges": len(self.edges),
@@ -160,6 +169,9 @@ class Graph:
             "parse_errors": len(self.parse_errors),
             "module_collisions": len(self.module_collisions()),
         }
+        if self.unread:  # only a graph that has some says so, so a Python graph's statistics are as they were
+            found["unread"] = len(self.unread)
+        return found
 
     def module_collisions(self) -> dict[str, list[str]]:
         """{module name: files} for module names more than one file maps to.
@@ -190,6 +202,8 @@ class Graph:
             data["decorations"] = [asdict(d) for d in self.decorations]
         if self.export_aliases:  # likewise: a Python graph has no key
             data["export_aliases"] = self.export_aliases
+        if self.unread:
+            data["unread"] = self.unread
         return data
 
     @classmethod
@@ -207,4 +221,5 @@ class Graph:
             external_reasons=data.get("external_reasons", {}),
             decorations=[Decoration(**d) for d in data.get("decorations", [])],
             export_aliases=data.get("export_aliases", {}),
+            unread=data.get("unread", []),
         )
