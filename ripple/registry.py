@@ -6,7 +6,8 @@ is precedence: when two languages define one id (languages.merge_graphs) the ear
 a file no profile owns is read as the first language's, and the first language's cache is the one
 written without a profile key (cache.profile_key). Python is first. A language whose module ids hold more than one
 file by design (a Go package) says so with folds_files, so sharing an id is not reported as a collision. A language whose
-members are joined by `::` (Rust) says so with colon_members, so a query is split at the colon that ends the path only for ids that are its.
+members are joined by `::` (Rust) says so with colon_members, so a query is split at the colon that ends the path only for ids that are its. A language whose method ids end in the parameter
+list of an overload (Java: `Cart.add(Item)`) says so with parameter_ids, so a query without the types lists every overload.
 
 A front end is a module, imported by name the first time something of it is needed, so nothing of a
 language (and none of its parser, tree-sitter for TypeScript) loads until a file of it is read. It
@@ -61,6 +62,10 @@ class Language:
     # A member of its ids is joined by `::` (`src/lib:Foo::new`), so a `::` in the id is a member separator. Only for such a
     # language: a TypeScript test title may hold `::` (`tests/a.test:parses a::b`), so the look of an id never decides it.
     colon_members: bool = False
+    # Its method ids end in the parameter list of an overload (`shop.Cart.add(Item)`, `Cart.<init>(String,int)`), so a
+    # query without the types names every overload. Decided by the file of a symbol, never by how an id looks: a Python
+    # module `report(old).py` has parentheses and no list.
+    parameter_ids: bool = False
 
 
 LANGUAGES: dict[str, Language] = {
@@ -117,6 +122,12 @@ def writes_colon_members(file: str) -> bool:
     """Whether the language that reads a file joins the members of its ids with `::`. Decided by the file of a symbol
     (or of an unresolved call), never by how an id looks."""
     return language_of(file).colon_members
+
+
+def writes_parameter_lists(file: str) -> bool:
+    """Whether the language that reads a file ends its method ids in the parameter list of an overload. Decided by the
+    file of a symbol, never by how an id looks."""
+    return language_of(file).parameter_ids
 
 
 def path_suffixes() -> tuple[str, ...]:

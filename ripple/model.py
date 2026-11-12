@@ -12,6 +12,20 @@ from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 
 
+# The parameter list an id of a language with overloads carries: `Cart.add(Item)`, `Cart.add(String,int)`,
+# `Log.info(String,Object...)`, `Cart.<init>()`, and `(...)#2` for the second of two overloads written alike. Only a
+# list of type names counts (simple names, `[]` and `...` allowed). Which ids are read as having one is not decided
+# here but by the language of the symbol's file (Symbol.has_parameter_list).
+_TYPE_NAME = r"(?:[^\W\d]|\$)[\w$]*(?:\.\.\.|(?:\[\])*)"
+PARAMETERS = re.compile(rf"\((?:{_TYPE_NAME}(?:,{_TYPE_NAME})*)?\)(?:#\d+)?")
+
+
+def without_parameters(symbol_id: str) -> str:
+    """The id with the parameter lists of its overloads taken out: `a.Cart.add(Item)#2` is `a.Cart.add`. Only for an id
+    of a language that writes them (Symbol.has_parameter_list): any other id is not to be read this way."""
+    return PARAMETERS.sub("", symbol_id) if ")" in symbol_id else symbol_id
+
+
 @dataclass(frozen=True)
 class Symbol:
     """A module, class, function or method, identified by its dotted path."""
@@ -23,6 +37,17 @@ class Symbol:
     end_line: int
 
     @property
+    def has_parameter_list(self) -> bool:
+        """Whether the id may end a method's name in the parameter list of an overload. That is a fact about the
+        language that reads the symbol's file (registry.writes_parameter_lists), never about how the id looks: a
+        Python module `report(old).py` or a TypeScript test titled `calls Cart.add(item)` has parentheses and no list."""
+        if ")" not in self.id:
+            return False
+        from .registry import writes_parameter_lists  # the registry imports profile, which imports this module
+
+        return writes_parameter_lists(self.file)
+
+    @property
     def name(self) -> str:
         """The last part of the id, the name a call site writes: `price_order` for `shop.pricing.price_order`.
 
@@ -31,10 +56,13 @@ class Symbol:
         module the last directory or file name. A test callback (`tests/a.test:suite > case`) is named by
         its whole title chain, which a dot in a title could not be split from. A member of a Rust symbol is joined
         by `::` (`src/x:Foo::new`, `src/x:<Foo as Display>::fmt`): its name is the part after the last `::`. That
-        is decided by the symbol's file (a TypeScript test title may hold `::`), not by the look of the id.
+        is decided by the symbol's file (a TypeScript test title may hold `::`), not by the look of the id. An id
+        may carry the parameter list of an overload (`shop.Cart.add(Item)`), again by the symbol's file: the name
+        is `add`, without it.
         """
         if ":" not in self.id:
-            return self.id.rsplit(".", 1)[-1] if "/" not in self.id else self.id.rsplit("/", 1)[-1]
+            ident = without_parameters(self.id) if self.has_parameter_list else self.id
+            return ident.rsplit(".", 1)[-1] if "/" not in ident else ident.rsplit("/", 1)[-1]
         member = self.id.split(":", 1)[1]
         if " > " in member:
             return member

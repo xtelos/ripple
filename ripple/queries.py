@@ -14,7 +14,7 @@ import re
 from collections import deque
 
 from .jsx_facts import JSX_NO_RENDERER, JSX_TAG_UNRESOLVED
-from .model import DECORATOR_SCOPE, UNREAD_CLASS, Decoration, Edge, Graph, Symbol, Unresolved
+from .model import DECORATOR_SCOPE, PARAMETERS, UNREAD_CLASS, Decoration, Edge, Graph, Symbol, Unresolved, without_parameters
 from .profile import LanguageProfile
 from .pytest_collection import PytestCollection  # noqa: F401 (it was defined here)
 from .registry import folds_files, language_of, module_id, path_suffixes, stem, writes_colon_members
@@ -71,6 +71,27 @@ def _has_path(graph: Graph, query: str) -> bool:
 def _called_name(text: str, file: str) -> str:
     """The name an unresolved call's text ends with (it is written in `file`), which is what it is matched to a symbol by."""
     return (_CALLED_RUST if writes_colon_members(file) else _CALLED).split(text)[-1]
+
+
+_OVERLOAD_CLASH = re.compile(r"(?<=\))#\d+$")  # the `#2` that follows a parameter list
+_TRAILING_PARAMETERS = re.compile(PARAMETERS.pattern + "$")
+
+
+def _overload_forms(symbol: Symbol) -> set[str]:
+    """The ways a question can write the id of a symbol of a language whose ids carry a parameter list: whole,
+    without a trailing clash suffix (`Cart.add(Item)` names `Cart.add(Item)#2` too: the two are one question), and
+    with the lists taken out (`Cart.add` names every overload of add, so it is ambiguous when there are two and
+    never a pick). Any other symbol is named only by its id."""
+    if not symbol.has_parameter_list:
+        return {symbol.id}
+    return {symbol.id, _OVERLOAD_CLASH.sub("", symbol.id), without_parameters(symbol.id)}
+
+
+def _constructors_of(graph: Graph, symbol_id: str, constructor: str) -> list[str]:
+    """The constructor symbols of a class: `Cls.<constructor>`, and every `Cls.<constructor>(...)` of an
+    overloaded one (with or without a clash suffix) in a language whose ids carry a parameter list."""
+    own = f"{symbol_id}.{constructor}"
+    return [sid for sid, s in graph.symbols.items() if sid == own or (sid.startswith(own + "(") and s.has_parameter_list)]
 
 
 # The kinds of edge a question can be about. `calls` is every edge a call makes (a call, `new`, an override, a
@@ -172,7 +193,9 @@ def _decorations_of_callers(graph: Graph, distance: dict[str, int], kinds, profi
     for sid in distance:
         applied.setdefault(sid, []).append(sid)
         suffix = "." + _profile_of(graph.symbols[sid], profile).constructor_name
-        owner = sid[: -len(suffix)] if sid.endswith(suffix) else ""
+        # the constructor of an overloaded class carries its parameter list
+        plain = _TRAILING_PARAMETERS.sub("", sid) if graph.symbols[sid].has_parameter_list else sid
+        owner = plain[: -len(suffix)] if plain.endswith(suffix) else ""
         if owner in graph.symbols and graph.symbols[owner].kind == "class":
             applied.setdefault(owner, []).append(sid)
     sites = sorted(
@@ -274,15 +297,16 @@ def _matches(graph: Graph, query: str) -> list[str]:
     """Every id the query names. At a dot it ends an id (Python, and a TypeScript member). A query with a
     path in it (a slash, a colon, a TypeScript or JavaScript extension) goes through the file map (_path_matches); any
     other also ends an id at a slash or a colon (a bare TypeScript member or module name), with or
-    without a clash suffix."""
+    without a clash suffix. An id that carries a parameter list is also ended by a query without it
+    (`Cart.add` for `a.Cart.add(Item)`), so a name shared by overloads matches each of them."""
     path_shaped = _has_path(graph, query) or "/" in query or query.endswith(path_suffixes())
     # A `Foo::new` in a graph that has Rust symbols is a bare member (type and function) even where a TypeScript module
     # called Foo makes the plain split of it a path: the member the plain split names, `:new`, matches nothing, so the
     # Rust reading is added to it and the two together are the answer (one symbol, or an ambiguity that lists both).
     rust_bare = "::" in query and _writes_colons(graph) and not _PATH_COLON.search(query) and "/" not in query and not query.endswith(path_suffixes())
     found = set()
-    for sid in graph.symbols:
-        if sid.endswith("." + query):
+    for sid, symbol in graph.symbols.items():
+        if sid.endswith("." + query) or (")" in sid and any(f.endswith("." + query) for f in _overload_forms(symbol))):
             found.add(sid)
         elif (not path_shaped or rust_bare) and _is_path_id(sid):
             forms = {sid, _CLASH.sub("", sid)}
@@ -547,12 +571,13 @@ def _targets(graph: Graph, symbol_id: str, profile: LanguageProfile | None) -> s
     """Ids whose callers count as callers of symbol_id.
 
     Calling a class runs its constructor (__init__ in Python), and ripple records that edge against
-    the constructor, so a question about the class includes both.
+    the constructor, so a question about the class includes both. A class whose constructors are
+    overloaded has one symbol for each, and its callers include the callers of every one.
     """
     targets = {symbol_id}
-    constructor = f"{symbol_id}.{_profile_of(graph.symbols[symbol_id], profile).constructor_name}"
-    if graph.symbols[symbol_id].kind == "class" and constructor in graph.symbols:
-        targets.add(constructor)
+    if graph.symbols[symbol_id].kind == "class":
+        constructor = _profile_of(graph.symbols[symbol_id], profile).constructor_name
+        targets.update(_constructors_of(graph, symbol_id, constructor))
     return targets
 
 
