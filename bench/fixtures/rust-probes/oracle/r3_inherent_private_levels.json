@@ -1,0 +1,175 @@
+{
+ "calls": [
+  {
+   "c0": 41,
+   "c1": 42,
+   "defs": [
+    [
+     "src/lib.rs",
+     6
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 22,
+   "text": "f"
+  },
+  {
+   "c0": 49,
+   "c1": 50,
+   "defs": [
+    [
+     "src/lib.rs",
+     7
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 22,
+   "text": "g"
+  },
+  {
+   "c0": 57,
+   "c1": 58,
+   "defs": [
+    [
+     "src/lib.rs",
+     8
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 22,
+   "text": "h"
+  },
+  {
+   "c0": 65,
+   "c1": 66,
+   "defs": [
+    [
+     "src/lib.rs",
+     9
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 22,
+   "text": "i"
+  },
+  {
+   "c0": 73,
+   "c1": 74,
+   "defs": [
+    [
+     "src/lib.rs",
+     10
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 22,
+   "text": "j"
+  },
+  {
+   "c0": 33,
+   "c1": 34,
+   "defs": [
+    [
+     "src/lib.rs",
+     13
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 26,
+   "text": "f"
+  },
+  {
+   "c0": 41,
+   "c1": 42,
+   "defs": [
+    [
+     "src/lib.rs",
+     7
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 26,
+   "text": "g"
+  },
+  {
+   "c0": 49,
+   "c1": 50,
+   "defs": [
+    [
+     "src/lib.rs",
+     8
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 26,
+   "text": "h"
+  },
+  {
+   "c0": 57,
+   "c1": 58,
+   "defs": [
+    [
+     "src/lib.rs",
+     16
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 26,
+   "text": "i"
+  },
+  {
+   "c0": 65,
+   "c1": 66,
+   "defs": [
+    [
+     "src/lib.rs",
+     10
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 26,
+   "text": "j"
+  },
+  {
+   "c0": 47,
+   "c1": 52,
+   "defs": [
+    [
+     "src/lib.rs",
+     26
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 28,
+   "text": "outer"
+  },
+  {
+   "c0": 102,
+   "c1": 107,
+   "defs": [
+    [
+     "src/lib.rs",
+     22
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 28,
+   "text": "calls"
+  }
+ ],
+ "complete": true,
+ "probe": "r3_inherent_private_levels",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

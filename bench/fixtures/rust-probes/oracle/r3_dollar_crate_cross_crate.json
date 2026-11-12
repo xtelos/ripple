@@ -1,0 +1,104 @@
+{
+ "calls": [
+  {
+   "c0": 32,
+   "c1": 36,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     5
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 8,
+   "text": "make"
+  },
+  {
+   "c0": 39,
+   "c1": 43,
+   "defs": [],
+   "file": "app/src/lib.rs",
+   "kind": "lost",
+   "line": 9,
+   "text": "make"
+  },
+  {
+   "c0": 47,
+   "c1": 51,
+   "defs": [],
+   "file": "app/src/lib.rs",
+   "kind": "lost",
+   "line": 10,
+   "text": "make"
+  },
+  {
+   "c0": 28,
+   "c1": 32,
+   "defs": [],
+   "file": "app/src/lib.rs",
+   "kind": "lost",
+   "line": 11,
+   "text": "make"
+  },
+  {
+   "c0": 48,
+   "c1": 58,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     8
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 13,
+   "text": "w_inherent"
+  },
+  {
+   "c0": 69,
+   "c1": 76,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     9
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 13,
+   "text": "w_trait"
+  },
+  {
+   "c0": 87,
+   "c1": 98,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     10
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 13,
+   "text": "z_qualified"
+  },
+  {
+   "c0": 109,
+   "c1": 115,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     11
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 13,
+   "text": "z_type"
+  }
+ ],
+ "complete": true,
+ "probe": "r3_dollar_crate_cross_crate",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

@@ -1,0 +1,104 @@
+{
+ "calls": [
+  {
+   "c0": 28,
+   "c1": 31,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 9,
+   "text": "new"
+  },
+  {
+   "c0": 26,
+   "c1": 29,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 12,
+   "text": "new"
+  },
+  {
+   "c0": 39,
+   "c1": 42,
+   "defs": [
+    [
+     "src/lib.rs",
+     9
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 13,
+   "text": "new"
+  },
+  {
+   "c0": 26,
+   "c1": 29,
+   "defs": [
+    [
+     "src/lib.rs",
+     9
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 14,
+   "text": "new"
+  },
+  {
+   "c0": 9,
+   "c1": 17,
+   "defs": [
+    [
+     "src/lib.rs",
+     8
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 16,
+   "text": "first_or"
+  },
+  {
+   "c0": 45,
+   "c1": 53,
+   "defs": [
+    [
+     "src/lib.rs",
+     8
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 16,
+   "text": "first_or"
+  },
+  {
+   "c0": 63,
+   "c1": 66,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 16,
+   "text": "Vec"
+  },
+  {
+   "c0": 74,
+   "c1": 82,
+   "defs": [
+    [
+     "src/lib.rs",
+     8
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 16,
+   "text": "first_or"
+  }
+ ],
+ "complete": true,
+ "probe": "foreign_impls",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

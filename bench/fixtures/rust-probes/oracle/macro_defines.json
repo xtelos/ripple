@@ -1,0 +1,144 @@
+{
+ "calls": [
+  {
+   "c0": 22,
+   "c1": 26,
+   "defs": [
+    [
+     "src/lib.rs",
+     19
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 23,
+   "text": "made"
+  },
+  {
+   "c0": 36,
+   "c1": 41,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "lost",
+   "line": 23,
+   "text": "inner"
+  },
+  {
+   "c0": 46,
+   "c1": 51,
+   "defs": [
+    [
+     "src/lib.rs",
+     21
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 23,
+   "proof": "runtime",
+   "text": "plain"
+  },
+  {
+   "c0": 4,
+   "c1": 9,
+   "defs": [
+    [
+     "src/lib.rs",
+     25
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "local",
+   "line": 26,
+   "text": "plain"
+  },
+  {
+   "c0": 4,
+   "c1": 9,
+   "defs": [
+    [
+     "src/lib.rs",
+     29
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 30,
+   "proof": "runtime",
+   "text": "plain"
+  },
+  {
+   "c0": 28,
+   "c1": 34,
+   "defs": [
+    [
+     "src/lib.rs",
+     22
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 32,
+   "text": "lookup"
+  },
+  {
+   "c0": 26,
+   "c1": 29,
+   "defs": [
+    [
+     "src/lib.rs",
+     23
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 37,
+   "text": "run"
+  },
+  {
+   "c0": 26,
+   "c1": 31,
+   "defs": [
+    [
+     "src/lib.rs",
+     24
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 38,
+   "text": "local"
+  },
+  {
+   "c0": 26,
+   "c1": 35,
+   "defs": [
+    [
+     "src/lib.rs",
+     28
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 39,
+   "text": "also_item"
+  },
+  {
+   "c0": 26,
+   "c1": 35,
+   "defs": [
+    [
+     "src/lib.rs",
+     32
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 40,
+   "text": "untouched"
+  }
+ ],
+ "complete": true,
+ "probe": "macro_defines",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

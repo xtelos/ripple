@@ -1,0 +1,86 @@
+{
+ "calls": [
+  {
+   "c0": 27,
+   "c1": 28,
+   "defs": [],
+   "file": "app/src/lib.rs",
+   "kind": "lost",
+   "line": 6,
+   "text": "d"
+  },
+  {
+   "c0": 34,
+   "c1": 35,
+   "defs": [
+    [
+     "base/src/lib.rs",
+     2
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 7,
+   "text": "d"
+  },
+  {
+   "c0": 44,
+   "c1": 45,
+   "defs": [
+    [
+     "base/src/lib.rs",
+     2
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 8,
+   "text": "d"
+  },
+  {
+   "c0": 48,
+   "c1": 49,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     6
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 10,
+   "text": "l"
+  },
+  {
+   "c0": 60,
+   "c1": 66,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     7
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 10,
+   "text": "s_type"
+  },
+  {
+   "c0": 77,
+   "c1": 80,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     8
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 10,
+   "text": "s_q"
+  }
+ ],
+ "complete": true,
+ "probe": "r3_cross_crate_macro_taint",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

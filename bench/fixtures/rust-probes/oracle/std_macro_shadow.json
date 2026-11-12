@@ -1,0 +1,21 @@
+{
+ "calls": [
+  {
+   "c0": 50,
+   "c1": 55,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 11,
+   "text": "other"
+  }
+ ],
+ "complete": true,
+ "probe": "std_macro_shadow",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

@@ -1,0 +1,62 @@
+{
+ "calls": [
+  {
+   "c0": 15,
+   "c1": 22,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 16,
+   "text": "default"
+  },
+  {
+   "c0": 15,
+   "c1": 20,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 17,
+   "text": "clone"
+  },
+  {
+   "c0": 28,
+   "c1": 35,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 18,
+   "text": "default"
+  },
+  {
+   "c0": 29,
+   "c1": 36,
+   "defs": [
+    [
+     "src/lib.rs",
+     12
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 19,
+   "text": "default"
+  },
+  {
+   "c0": 48,
+   "c1": 53,
+   "defs": [
+    [
+     "src/lib.rs",
+     13
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 19,
+   "text": "clone"
+  }
+ ],
+ "complete": false,
+ "probe": "derive_runtime",
+ "source": "the crate's own #[test] assertions"
+}

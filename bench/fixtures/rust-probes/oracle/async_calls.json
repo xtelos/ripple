@@ -1,0 +1,105 @@
+{
+ "calls": [
+  {
+   "c0": 22,
+   "c1": 23,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 3,
+   "text": "f"
+  },
+  {
+   "c0": 40,
+   "c1": 41,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 3,
+   "text": "f"
+  },
+  {
+   "c0": 28,
+   "c1": 29,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 4,
+   "text": "g"
+  },
+  {
+   "c0": 40,
+   "c1": 41,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 4,
+   "text": "f"
+  },
+  {
+   "c0": 58,
+   "c1": 61,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 5,
+   "text": "run"
+  },
+  {
+   "c0": 67,
+   "c1": 68,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 6,
+   "text": "f"
+  },
+  {
+   "c0": 79,
+   "c1": 80,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 6,
+   "text": "g"
+  }
+ ],
+ "complete": true,
+ "probe": "async_calls",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

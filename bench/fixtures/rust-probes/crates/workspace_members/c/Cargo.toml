@@ -1,0 +1,8 @@
+[package]
+name = "c"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+a = { path = "../a" }
+b.workspace = true

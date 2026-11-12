@@ -1,0 +1,3 @@
+[workspace]
+members = ["app", "pricing-core", "tax-rules"]
+resolver = "2"

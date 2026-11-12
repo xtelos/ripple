@@ -1,0 +1,30 @@
+{
+ "calls": [
+  {
+   "c0": 26,
+   "c1": 27,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "lost",
+   "line": 7,
+   "text": "f"
+  },
+  {
+   "c0": 47,
+   "c1": 51,
+   "defs": [
+    [
+     "src/lib.rs",
+     7
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 9,
+   "text": "call"
+  }
+ ],
+ "complete": true,
+ "probe": "r3_macro_named_like_std",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

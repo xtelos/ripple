@@ -1,0 +1,119 @@
+{
+ "calls": [
+  {
+   "c0": 7,
+   "c1": 8,
+   "defs": [
+    [
+     "b/src/lib.rs",
+     2
+    ]
+   ],
+   "file": "a/src/lib.rs",
+   "kind": "repo",
+   "line": 4,
+   "text": "f"
+  },
+  {
+   "c0": 13,
+   "c1": 14,
+   "defs": [
+    [
+     "b/src/lib.rs",
+     4
+    ]
+   ],
+   "file": "a/src/lib.rs",
+   "kind": "repo",
+   "line": 4,
+   "text": "g"
+  },
+  {
+   "c0": 29,
+   "c1": 32,
+   "defs": [
+    [
+     "b/src/lib.rs",
+     8
+    ]
+   ],
+   "file": "a/src/lib.rs",
+   "kind": "repo",
+   "line": 4,
+   "text": "new"
+  },
+  {
+   "c0": 49,
+   "c1": 53,
+   "defs": [
+    [
+     "b/src/lib.rs",
+     9
+    ]
+   ],
+   "file": "a/src/lib.rs",
+   "kind": "repo",
+   "line": 4,
+   "text": "make"
+  },
+  {
+   "c0": 28,
+   "c1": 33,
+   "defs": [
+    [
+     "b/src/lib.rs",
+     6
+    ]
+   ],
+   "file": "b/src/lib.rs",
+   "kind": "repo",
+   "line": 8,
+   "text": "Thing"
+  },
+  {
+   "c0": 40,
+   "c1": 44,
+   "defs": [
+    [
+     "b/src/lib.rs",
+     9
+    ]
+   ],
+   "file": "b/src/lib.rs",
+   "kind": "repo",
+   "line": 8,
+   "text": "make"
+  },
+  {
+   "c0": 22,
+   "c1": 25,
+   "defs": [
+    [
+     "a/src/lib.rs",
+     3
+    ]
+   ],
+   "file": "c/src/main.rs",
+   "kind": "repo",
+   "line": 2,
+   "text": "run"
+  },
+  {
+   "c0": 33,
+   "c1": 34,
+   "defs": [
+    [
+     "b/src/lib.rs",
+     2
+    ]
+   ],
+   "file": "c/src/main.rs",
+   "kind": "repo",
+   "line": 2,
+   "text": "f"
+  }
+ ],
+ "complete": true,
+ "probe": "workspace_members",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

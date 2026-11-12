@@ -1,0 +1,119 @@
+{
+ "calls": [
+  {
+   "c0": 28,
+   "c1": 29,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 7,
+   "text": "f"
+  },
+  {
+   "c0": 41,
+   "c1": 42,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 7,
+   "text": "f"
+  },
+  {
+   "c0": 61,
+   "c1": 64,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 7,
+   "text": "top"
+  },
+  {
+   "c0": 76,
+   "c1": 79,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 7,
+   "text": "top"
+  },
+  {
+   "c0": 90,
+   "c1": 91,
+   "defs": [
+    [
+     "src/lib.rs",
+     8
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 7,
+   "text": "h"
+  },
+  {
+   "c0": 39,
+   "c1": 40,
+   "defs": [
+    [
+     "src/lib.rs",
+     8
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 10,
+   "text": "h"
+  },
+  {
+   "c0": 59,
+   "c1": 60,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 10,
+   "text": "f"
+  },
+  {
+   "c0": 86,
+   "c1": 89,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 10,
+   "text": "top"
+  }
+ ],
+ "complete": true,
+ "probe": "use_super_crate",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

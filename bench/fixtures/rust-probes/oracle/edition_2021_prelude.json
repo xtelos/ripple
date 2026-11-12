@@ -1,0 +1,61 @@
+{
+ "calls": [
+  {
+   "c0": 34,
+   "c1": 42,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 3,
+   "text": "try_from"
+  },
+  {
+   "c0": 46,
+   "c1": 52,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 3,
+   "text": "unwrap"
+  },
+  {
+   "c0": 33,
+   "c1": 41,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 4,
+   "text": "try_from"
+  },
+  {
+   "c0": 45,
+   "c1": 51,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 4,
+   "text": "unwrap"
+  },
+  {
+   "c0": 75,
+   "c1": 83,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 5,
+   "text": "try_from"
+  },
+  {
+   "c0": 44,
+   "c1": 53,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 6,
+   "text": "from_iter"
+  }
+ ],
+ "complete": true,
+ "probe": "edition_2021_prelude",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

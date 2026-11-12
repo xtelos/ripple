@@ -1,0 +1,17 @@
+[package]
+name = "odd-pkg"
+version = "0.1.0"
+edition = "2021"
+autobins = false
+build = false
+
+[lib]
+name = "odd_lib"
+path = "lib/odd.rs"
+
+[[bin]]
+name = "tool"
+path = "tools/tool.rs"
+
+[target.'cfg(unix)'.dependencies]
+aux = { package = "aux-pkg", path = "aux" }

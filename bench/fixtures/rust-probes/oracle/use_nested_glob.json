@@ -1,0 +1,119 @@
+{
+ "calls": [
+  {
+   "c0": 26,
+   "c1": 28,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 14,
+   "text": "fb"
+  },
+  {
+   "c0": 33,
+   "c1": 35,
+   "defs": [
+    [
+     "src/lib.rs",
+     7
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 14,
+   "text": "fc"
+  },
+  {
+   "c0": 40,
+   "c1": 42,
+   "defs": [
+    [
+     "src/lib.rs",
+     8
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 14,
+   "text": "fz"
+  },
+  {
+   "c0": 26,
+   "c1": 28,
+   "defs": [
+    [
+     "src/lib.rs",
+     7
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 18,
+   "text": "fc"
+  },
+  {
+   "c0": 36,
+   "c1": 38,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 18,
+   "text": "fb"
+  },
+  {
+   "c0": 46,
+   "c1": 48,
+   "defs": [
+    [
+     "src/lib.rs",
+     8
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 18,
+   "text": "fz"
+  },
+  {
+   "c0": 29,
+   "c1": 31,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 24,
+   "text": "fb"
+  },
+  {
+   "c0": 43,
+   "c1": 45,
+   "defs": [
+    [
+     "src/lib.rs",
+     7
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 24,
+   "text": "fc"
+  }
+ ],
+ "complete": true,
+ "probe": "use_nested_glob",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

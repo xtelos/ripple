@@ -1,0 +1,4 @@
+[package]
+name = "macro_shadows_use"
+version = "0.1.0"
+edition = "2021"

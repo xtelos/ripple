@@ -1,0 +1,173 @@
+{
+ "calls": [
+  {
+   "c0": 16,
+   "c1": 23,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 8,
+   "text": "Counter"
+  },
+  {
+   "c0": 21,
+   "c1": 25,
+   "defs": [
+    [
+     "src/lib.rs",
+     5
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 9,
+   "text": "next"
+  },
+  {
+   "c0": 22,
+   "c1": 26,
+   "defs": [
+    [
+     "src/lib.rs",
+     5
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 10,
+   "text": "next"
+  },
+  {
+   "c0": 35,
+   "c1": 39,
+   "defs": [
+    [
+     "src/lib.rs",
+     5
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 11,
+   "text": "next"
+  },
+  {
+   "c0": 22,
+   "c1": 25,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 12,
+   "text": "map"
+  },
+  {
+   "c0": 26,
+   "c1": 33,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 12,
+   "text": "Counter"
+  },
+  {
+   "c0": 49,
+   "c1": 54,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 12,
+   "text": "count"
+  },
+  {
+   "c0": 21,
+   "c1": 26,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 13,
+   "text": "count"
+  },
+  {
+   "c0": 27,
+   "c1": 34,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 13,
+   "text": "Counter"
+  },
+  {
+   "c0": 39,
+   "c1": 48,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 14,
+   "text": "into_iter"
+  },
+  {
+   "c0": 49,
+   "c1": 56,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 14,
+   "text": "Counter"
+  },
+  {
+   "c0": 26,
+   "c1": 35,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 15,
+   "text": "into_iter"
+  },
+  {
+   "c0": 36,
+   "c1": 43,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 15,
+   "text": "Counter"
+  },
+  {
+   "c0": 22,
+   "c1": 31,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 16,
+   "text": "size_hint"
+  }
+ ],
+ "complete": true,
+ "probe": "iterator_trait",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

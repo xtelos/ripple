@@ -1,0 +1,11 @@
+#![allow(warnings)]
+pub trait T { fn f() -> u32; }
+pub struct S;
+impl T for S { fn f() -> u32 { 1 } }
+pub fn setup() {
+    macro_rules! m { ($t:ty) => { impl $t { pub fn f() -> u32 { 2 } } } }
+    m!(S);
+}
+pub fn call() -> u32 { S::f() }
+#[cfg(test)]
+mod t { #[test] fn which() { assert_eq!(super::call(), 2); } }

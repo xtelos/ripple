@@ -1,0 +1,136 @@
+{
+ "calls": [
+  {
+   "c0": 12,
+   "c1": 13,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 14,
+   "text": "A"
+  },
+  {
+   "c0": 15,
+   "c1": 16,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 15,
+   "text": "A"
+  },
+  {
+   "c0": 12,
+   "c1": 13,
+   "defs": [
+    [
+     "src/lib.rs",
+     7
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 16,
+   "text": "W"
+  },
+  {
+   "c0": 12,
+   "c1": 16,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 17,
+   "text": "Some"
+  },
+  {
+   "c0": 29,
+   "c1": 31,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 18,
+   "text": "Ok"
+  },
+  {
+   "c0": 31,
+   "c1": 40,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 19,
+   "text": "into_iter"
+  },
+  {
+   "c0": 43,
+   "c1": 46,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 19,
+   "text": "map"
+  },
+  {
+   "c0": 53,
+   "c1": 60,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 19,
+   "text": "collect"
+  },
+  {
+   "c0": 4,
+   "c1": 10,
+   "defs": [
+    [
+     "src/lib.rs",
+     11
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 21,
+   "text": "helper"
+  },
+  {
+   "c0": 15,
+   "c1": 17,
+   "defs": [
+    [
+     "src/lib.rs",
+     10
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 21,
+   "text": "Cc"
+  },
+  {
+   "c0": 4,
+   "c1": 6,
+   "defs": [
+    [
+     "src/lib.rs",
+     5
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 26,
+   "text": "Cc"
+  }
+ ],
+ "complete": true,
+ "probe": "enum_variants",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

@@ -1,0 +1,118 @@
+{
+ "calls": [
+  {
+   "c0": 31,
+   "c1": 32,
+   "defs": [
+    [
+     "src/lib.rs",
+     11
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 13,
+   "text": "G"
+  },
+  {
+   "c0": 15,
+   "c1": 18,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 17,
+   "text": "new"
+  },
+  {
+   "c0": 16,
+   "c1": 19,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 18,
+   "text": "new"
+  },
+  {
+   "c0": 15,
+   "c1": 18,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 19,
+   "text": "new"
+  },
+  {
+   "c0": 15,
+   "c1": 28,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 20,
+   "text": "with_capacity"
+  },
+  {
+   "c0": 16,
+   "c1": 19,
+   "defs": [
+    [
+     "src/lib.rs",
+     13
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 21,
+   "text": "new"
+  },
+  {
+   "c0": 20,
+   "c1": 22,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 22,
+   "text": "Ok"
+  },
+  {
+   "c0": 8,
+   "c1": 12,
+   "defs": [
+    [
+     "src/lib.rs",
+     5
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 23,
+   "text": "make"
+  },
+  {
+   "c0": 23,
+   "c1": 27,
+   "defs": [
+    [
+     "src/lib.rs",
+     5
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 23,
+   "text": "make"
+  }
+ ],
+ "complete": true,
+ "probe": "type_aliases",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

@@ -1,0 +1,11 @@
+lib = 3
+bin = 5
+test = "x"
+example = [1, 2]
+bench = { name = 4 }
+
+[package]
+name = "bad-arrays"
+version = "0.1.0"
+edition = "2021"
+build = 7

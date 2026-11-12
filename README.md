@@ -1,7 +1,7 @@
 # ripple
 
 **Know what breaks before you change it.** ripple is an MCP server that gives a coding agent
-(Claude Code, Cursor, anything that speaks MCP) the call graph of a Python, TypeScript, JavaScript or Go repository, so the agent
+(Claude Code, Cursor, anything that speaks MCP) the call graph of a Python, TypeScript, JavaScript, Go or Rust repository, so the agent
 can ask "who calls this, and which tests reach it?" before it edits, and run just those tests after.
 
 ## Why
@@ -158,10 +158,10 @@ TypeScript is read by tree-sitter, which is an optional extra: it adds `tree-sit
 uv tool install "ripple-code[typescript] @ git+https://github.com/xtelos/ripple"   # or pip install 'ripple-code[typescript]'
 ```
 
-`--lang auto|python|typescript|javascript|go` (default `auto`; `RIPPLE_LANG` sets it for every command, and
+`--lang auto|python|typescript|javascript|go|rust` (default `auto`; `RIPPLE_LANG` sets it for every command, and
 `build_server` takes a `lang` argument) chooses how the repo is read. `auto` looks at the file names: `.py`
 for Python, `.ts`, `.tsx`, `.mts` and `.cts` for TypeScript, `.js`, `.jsx`, `.mjs` and `.cjs` for JavaScript (see
-JavaScript below), skipping `.d.ts`, `node_modules` and virtualenvs. A repo with none of them, or one that does
+JavaScript below), `.go` for Go, `.rs` for Rust, skipping `.d.ts`, `node_modules` and virtualenvs. A repo with none of them, or one that does
 not exist, is an error (exit status 2), not "0 files".
 
 **Symbols** are the file's path without the extension, a colon and the member: `src/util/math:clamp`,
@@ -534,6 +534,62 @@ the file ripple edged to, on every platform that builds the file, and a call it 
 the probe and must not be a function value, each checked at the call's own position (so two calls on one line are each held
 to their own answer). `tests/test_go_layout.py` writes every probe and golden fixture again with comments after every token,
 with the indentation stripped or doubled and with CRLF line ends, and requires the same graph.
+
+## Rust
+
+Rust is read by tree-sitter too, as an optional extra that adds `tree-sitter`, `tree-sitter-rust` (and `tomli` before
+Python 3.11, to read Cargo.toml). The base install is unchanged, and a repo of any other language is read without it
+(a Rust-only repo is refused with the install command; a mixed repo is answered without its Rust files, with a warning).
+
+```sh
+uv tool install "ripple-code[rust] @ git+https://github.com/xtelos/ripple"   # or pip install 'ripple-code[rust]'
+```
+
+`--lang rust` (or `auto`, which finds `.rs` files) reads the repo. The crate graph comes from Cargo.toml and the
+source: every package and the crates it builds (the library, binaries, tests, examples, benches and `build.rs`, with
+`[lib]` and `[[bin]]` path overrides), the dependencies each can name (path dependencies, renamed ones, hyphens as
+underscores, a library under its own name), and the `mod` tree from each crate root (`mod x;`, `#[path]`, inline
+modules, `mod.rs`). A `.rs` file no `mod` reaches and a `mod` that names no file are listed as not read (a note of
+their own, apart from the files ripple could not parse), and so is a Cargo.toml that cannot be read; one with a field of
+the wrong type costs its package, and whatever depends on it finds its library unread, never the rest of the repo.
+A `target` directory beside a Cargo.toml is not walked.
+
+**Symbols** are the file's path without `.rs` (`x/mod.rs` is `x`; `lib.rs` and `main.rs` are not folded), a colon and
+the member joined by `::`: `src/cli:parse_args`, `src/x:Foo::new`, `src/lib:tests::it_works`, `src/x:Tr::m` (a trait's
+declaration), `src/x:<Foo as Display>::fmt` (a trait impl: its file is the impl block's, not the type's). A second
+definition of one id (two `fn imp` under different cfgs) gets `#2`. Any of these finds a symbol when it names one:
+the id, the file with or without `.rs`, `Foo::new`, or the bare `new`.
+
+**Resolved:** a call by path: `f()`, `m::f()`, `crate::`, `self::`, `super::`, `Type::f()`, `Self::f()`, `Trait::f(x)`
+(the declaration, with each impl in the repo as an `override` edge) and `<T as Trait>::f()`, through `use` lists,
+aliases, globs (only the names visible to the importing module) and `pub use` re-exports, and the arguments of the
+standard macros (`println!`, `format!`, `vec!`, `assert_eq!`, ...), which are parsed again as expressions. A constructor
+(`Some(x)`, `Pair(1, 2)`) runs no code and is neither an edge nor unresolved. `Type::f()` is an edge for an inherent
+function of a repo type, and for a function of a repo trait that has one impl for the type and no blanket impl; a trait
+from outside the repo is never one (the standard library may implement it for the type in ways ripple does not read).
+**Calls outside the repo** are counted with the reason (the standard library, a crate from outside, the prelude, a
+primitive, a derive), and only when nothing of the repo can be what runs: a path through a trait (`fmt::Display::fmt(&x, f)`,
+`FromStr::from_str(s)`) that a repo impl of that trait could answer is unresolved.
+**Unresolved, with the reason:** every method call `recv.m()` (what it calls depends on the receiver's type, which is not
+followed yet: `impact` lists same-named ones under `possible_missed_callers`), a name two definitions share (cfg twins),
+a name a pattern or closure binds, a call inside a macro other than the standard ones, a glob from outside the repo in a
+block, a generic parameter used as a path (`T::new()`), any path that goes through the `use` items of a crate of edition
+2015 (and every call written in one), a file that several crates share (`mod common;` in each integration test) that
+they do not resolve alike, and any name looked up in a scope where a macro may define names (a module or a block that
+invokes a macro other than the standard ones that define nothing, or an attribute macro): the macro's expansion is not
+visible, so it can neither be proven absent nor chosen between. The same goes for what a `#[cfg]` or `#[cfg_attr]` guards
+(ripple evaluates no condition, so a definition that may not exist is not chosen over what would stand in its place), and
+for an item under an attribute that is not a built-in one (`#[tokio::test]`, `#[pm::attr]`, any attribute macro): calls
+inside it and the name it declares are unresolved, though a name beside a derive that no `use` brings in is that derive's
+helper (`#[serde(..)]`) and rewrites nothing. `Type::f()` and `<T as Trait>::f()` also need the impls ripple read to be all
+there are: a macro invoked anywhere in a crate that can name the type (an item, an impl or trait body, a block), an
+attribute macro, a derive that is not a standard one, or an impl header that names a path ripple could not resolve, may
+add an impl, so the call is unresolved with the macro or the impl named, except an inherent function (rustc accepts one
+impl of a name for a type) and the one impl of a trait with no parameters that a path names. An inherent function is the
+target only when its impl is for every instantiation of the type or for the one the call writes, it is visible at the call
+and it is a function. Calls that happen with no call site (`Drop`, `Display` through `format!`, `?` through `From`,
+operators) are not edges, so a trait impl's method can show no callers.
+`check` has no default command for Rust yet (pass `--test-command`).
 
 ## How it works
 

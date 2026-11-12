@@ -1,0 +1,262 @@
+{
+ "calls": [
+  {
+   "c0": 26,
+   "c1": 32,
+   "defs": [],
+   "file": "app/src/lib.rs",
+   "kind": "lost",
+   "line": 7,
+   "text": "helper"
+  },
+  {
+   "c0": 4,
+   "c1": 10,
+   "defs": [],
+   "file": "app/src/lib.rs",
+   "kind": "lost",
+   "line": 13,
+   "proof": "runtime",
+   "text": "helper"
+  },
+  {
+   "c0": 46,
+   "c1": 49,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     7
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 17,
+   "text": "run"
+  },
+  {
+   "c0": 75,
+   "c1": 78,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     10
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 17,
+   "text": "blk"
+  },
+  {
+   "c0": 32,
+   "c1": 48,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 4,
+   "text": "split_whitespace"
+  },
+  {
+   "c0": 51,
+   "c1": 58,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 4,
+   "text": "collect"
+  },
+  {
+   "c0": 19,
+   "c1": 23,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 5,
+   "text": "iter"
+  },
+  {
+   "c0": 26,
+   "c1": 34,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 5,
+   "text": "position"
+  },
+  {
+   "c0": 54,
+   "c1": 60,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 5,
+   "text": "unwrap"
+  },
+  {
+   "c0": 18,
+   "c1": 34,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 6,
+   "text": "trim_end_matches"
+  },
+  {
+   "c0": 48,
+   "c1": 63,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 6,
+   "text": "is_alphanumeric"
+  },
+  {
+   "c0": 79,
+   "c1": 88,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 6,
+   "text": "to_string"
+  },
+  {
+   "c0": 51,
+   "c1": 56,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 11,
+   "text": "parse"
+  },
+  {
+   "c0": 59,
+   "c1": 65,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 11,
+   "text": "unwrap"
+  },
+  {
+   "c0": 9,
+   "c1": 18,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 16,
+   "text": "to_string"
+  },
+  {
+   "c0": 21,
+   "c1": 28,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 16,
+   "text": "replace"
+  },
+  {
+   "c0": 47,
+   "c1": 52,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 16,
+   "text": "parse"
+  },
+  {
+   "c0": 55,
+   "c1": 61,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 16,
+   "text": "unwrap"
+  },
+  {
+   "c0": 20,
+   "c1": 29,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 21,
+   "text": "to_string"
+  },
+  {
+   "c0": 15,
+   "c1": 25,
+   "defs": [
+    [
+     "pm/src/lib.rs",
+     3
+    ]
+   ],
+   "file": "pm/src/lib.rs",
+   "kind": "repo",
+   "line": 22,
+   "text": "name_after"
+  },
+  {
+   "c0": 70,
+   "c1": 75,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 23,
+   "text": "parse"
+  },
+  {
+   "c0": 78,
+   "c1": 84,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 23,
+   "text": "unwrap"
+  },
+  {
+   "c0": 20,
+   "c1": 29,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 28,
+   "text": "to_string"
+  },
+  {
+   "c0": 15,
+   "c1": 25,
+   "defs": [
+    [
+     "pm/src/lib.rs",
+     3
+    ]
+   ],
+   "file": "pm/src/lib.rs",
+   "kind": "repo",
+   "line": 29,
+   "text": "name_after"
+  },
+  {
+   "c0": 61,
+   "c1": 66,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 30,
+   "text": "parse"
+  },
+  {
+   "c0": 69,
+   "c1": 75,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 30,
+   "text": "unwrap"
+  }
+ ],
+ "complete": true,
+ "probe": "r2_q8_attr_proc_macro",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

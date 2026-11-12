@@ -36,8 +36,8 @@ PACKAGE = {
 # ---- the registry entry and the cache ---------------------------------------------------------------
 
 
-def test_go_is_registered_last_and_is_the_only_language_that_folds_files():
-    assert list(registry.LANGUAGES) == ["python", "typescript", "javascript", "go"]
+def test_go_is_registered_after_javascript_and_is_the_only_language_that_folds_files():
+    assert list(registry.LANGUAGES)[:4] == ["python", "typescript", "javascript", "go"]
     assert registry.language_of("x/y.go").label == "Go"
     assert [name for name, language in registry.LANGUAGES.items() if language.folds_files] == ["go"]
     assert registry.folds_files("pkg/a.go") and not registry.folds_files("a.py") and not registry.folds_files("a.ts")

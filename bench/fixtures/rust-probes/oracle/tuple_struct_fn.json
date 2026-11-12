@@ -1,0 +1,91 @@
+{
+ "calls": [
+  {
+   "c0": 15,
+   "c1": 16,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 9,
+   "text": "P"
+  },
+  {
+   "c0": 12,
+   "c1": 13,
+   "defs": [
+    [
+     "src/lib.rs",
+     6
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 10,
+   "text": "Q"
+  },
+  {
+   "c0": 15,
+   "c1": 17,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 11,
+   "text": "P2"
+  },
+  {
+   "c0": 12,
+   "c1": 14,
+   "defs": [
+    [
+     "src/lib.rs",
+     7
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 12,
+   "text": "Q2"
+  },
+  {
+   "c0": 26,
+   "c1": 27,
+   "defs": [
+    [
+     "src/lib.rs",
+     16
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 17,
+   "text": "Q"
+  },
+  {
+   "c0": 26,
+   "c1": 27,
+   "defs": [
+    [
+     "src/lib.rs",
+     6
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 21,
+   "text": "Q"
+  }
+ ],
+ "complete": true,
+ "probe": "tuple_struct_fn",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

@@ -1,0 +1,103 @@
+{
+ "calls": [
+  {
+   "c0": 8,
+   "c1": 12,
+   "defs": [
+    [
+     "src/lib.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 10,
+   "text": "drop"
+  },
+  {
+   "c0": 13,
+   "c1": 16,
+   "defs": [
+    [
+     "src/lib.rs",
+     5
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 11,
+   "text": "new"
+  },
+  {
+   "c0": 8,
+   "c1": 12,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 16,
+   "text": "drop"
+  },
+  {
+   "c0": 50,
+   "c1": 53,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 17,
+   "text": "new"
+  },
+  {
+   "c0": 24,
+   "c1": 27,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 18,
+   "text": "new"
+  },
+  {
+   "c0": 21,
+   "c1": 24,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 19,
+   "text": "new"
+  },
+  {
+   "c0": 22,
+   "c1": 25,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 23,
+   "text": "Vec"
+  },
+  {
+   "c0": 33,
+   "c1": 36,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 23,
+   "text": "new"
+  },
+  {
+   "c0": 9,
+   "c1": 12,
+   "defs": [
+    [
+     "src/lib.rs",
+     5
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 24,
+   "text": "new"
+  }
+ ],
+ "complete": true,
+ "probe": "shadow_prelude",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

@@ -1,0 +1,94 @@
+{
+ "calls": [
+  {
+   "c0": 34,
+   "c1": 37,
+   "defs": [
+    [
+     "src/lib.rs",
+     9
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 10,
+   "proof": "runtime",
+   "text": "new"
+  },
+  {
+   "c0": 7,
+   "c1": 10,
+   "defs": [
+    [
+     "src/lib.rs",
+     9
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 12,
+   "proof": "runtime",
+   "text": "new"
+  },
+  {
+   "c0": 18,
+   "c1": 23,
+   "defs": [
+    [
+     "src/lib.rs",
+     10
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 12,
+   "text": "twice"
+  },
+  {
+   "c0": 27,
+   "c1": 30,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 14,
+   "proof": "runtime",
+   "text": "new"
+  },
+  {
+   "c0": 26,
+   "c1": 29,
+   "defs": [
+    [
+     "src/lib.rs",
+     6
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 19,
+   "text": "run"
+  },
+  {
+   "c0": 26,
+   "c1": 31,
+   "defs": [
+    [
+     "src/lib.rs",
+     14
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 20,
+   "text": "other"
+  }
+ ],
+ "complete": true,
+ "probe": "impl_in_fn_body",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

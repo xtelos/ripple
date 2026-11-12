@@ -1,0 +1,8 @@
+[package]
+name = "pricing-core"
+version = "0.1.0"
+edition = "2021"
+
+# the library is not called like its package: a crate that depends on it still names it `pricing_core`
+[lib]
+name = "pricing"

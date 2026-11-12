@@ -1,0 +1,289 @@
+{
+ "calls": [
+  {
+   "c0": 10,
+   "c1": 19,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 10,
+   "text": "write_str"
+  },
+  {
+   "c0": 22,
+   "c1": 25,
+   "defs": [
+    [
+     "src/lib.rs",
+     9
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 18,
+   "text": "fmt"
+  },
+  {
+   "c0": 8,
+   "c1": 10,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 26,
+   "text": "Ok"
+  },
+  {
+   "c0": 11,
+   "c1": 14,
+   "defs": [
+    [
+     "src/lib.rs",
+     22
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 26,
+   "text": "Num"
+  },
+  {
+   "c0": 13,
+   "c1": 21,
+   "defs": [
+    [
+     "src/lib.rs",
+     25
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 31,
+   "text": "from_str"
+  },
+  {
+   "c0": 27,
+   "c1": 33,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 31,
+   "text": "unwrap"
+  },
+  {
+   "c0": 10,
+   "c1": 16,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 42,
+   "text": "borrow"
+  },
+  {
+   "c0": 8,
+   "c1": 15,
+   "defs": [
+    [
+     "src/lib.rs",
+     45
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 48,
+   "text": "Celsius"
+  },
+  {
+   "c0": 32,
+   "c1": 36,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 53,
+   "text": "from"
+  },
+  {
+   "c0": 8,
+   "c1": 14,
+   "defs": [
+    [
+     "src/lib.rs",
+     56
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 61,
+   "text": "helper"
+  },
+  {
+   "c0": 12,
+   "c1": 18,
+   "defs": [
+    [
+     "src/lib.rs",
+     56
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 66,
+   "text": "helper"
+  },
+  {
+   "c0": 4,
+   "c1": 10,
+   "defs": [
+    [
+     "src/lib.rs",
+     76
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "local",
+   "line": 78,
+   "text": "helper"
+  },
+  {
+   "c0": 8,
+   "c1": 13,
+   "defs": [
+    [
+     "src/lib.rs",
+     86
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 91,
+   "text": "other"
+  },
+  {
+   "c0": 8,
+   "c1": 12,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 93,
+   "text": "drop"
+  },
+  {
+   "c0": 26,
+   "c1": 37,
+   "defs": [
+    [
+     "src/lib.rs",
+     75
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 100,
+   "text": "macro_local"
+  },
+  {
+   "c0": 18,
+   "c1": 21,
+   "defs": [
+    [
+     "src/lib.rs",
+     90
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 101,
+   "text": "run"
+  },
+  {
+   "c0": 26,
+   "c1": 35,
+   "defs": [
+    [
+     "src/lib.rs",
+     51
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 102,
+   "text": "reflexive"
+  },
+  {
+   "c0": 43,
+   "c1": 50,
+   "defs": [
+    [
+     "src/lib.rs",
+     45
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 102,
+   "text": "Celsius"
+  },
+  {
+   "c0": 26,
+   "c1": 40,
+   "defs": [
+    [
+     "src/lib.rs",
+     59
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 103,
+   "text": "via_self_alias"
+  },
+  {
+   "c0": 23,
+   "c1": 27,
+   "defs": [
+    [
+     "src/lib.rs",
+     34
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 104,
+   "text": "Name"
+  },
+  {
+   "c0": 32,
+   "c1": 36,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 104,
+   "text": "into"
+  },
+  {
+   "c0": 26,
+   "c1": 28,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 105,
+   "text": "eq"
+  },
+  {
+   "c0": 36,
+   "c1": 47,
+   "defs": [
+    [
+     "src/lib.rs",
+     40
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 105,
+   "text": "borrow_self"
+  }
+ ],
+ "complete": true,
+ "probe": "review_p1_traits_externself_macros",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

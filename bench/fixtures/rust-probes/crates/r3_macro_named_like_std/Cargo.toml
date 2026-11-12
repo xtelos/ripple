@@ -1,0 +1,4 @@
+[package]
+name = "r3_macro_named_like_std"
+version = "0.1.0"
+edition = "2021"

@@ -1,0 +1,4 @@
+[package]
+name = "mod_name_equals_fn"
+version = "0.1.0"
+edition = "2021"

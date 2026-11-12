@@ -1,0 +1,161 @@
+{
+ "calls": [
+  {
+   "c0": 30,
+   "c1": 31,
+   "defs": [
+    [
+     "src/a/c/mod.rs",
+     1
+    ]
+   ],
+   "file": "src/a/b.rs",
+   "kind": "repo",
+   "line": 1,
+   "text": "h"
+  },
+  {
+   "c0": 60,
+   "c1": 61,
+   "defs": [
+    [
+     "src/nm/deep.rs",
+     1
+    ]
+   ],
+   "file": "src/a/b.rs",
+   "kind": "repo",
+   "line": 1,
+   "text": "d"
+  },
+  {
+   "c0": 23,
+   "c1": 24,
+   "defs": [
+    [
+     "src/a/b.rs",
+     1
+    ]
+   ],
+   "file": "src/a/mod.rs",
+   "kind": "repo",
+   "line": 3,
+   "text": "g"
+  },
+  {
+   "c0": 40,
+   "c1": 41,
+   "defs": [
+    [
+     "src/nm.rs",
+     2
+    ]
+   ],
+   "file": "src/a/mod.rs",
+   "kind": "repo",
+   "line": 3,
+   "text": "n"
+  },
+  {
+   "c0": 25,
+   "c1": 26,
+   "defs": [
+    [
+     "src/a/mod.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 4,
+   "text": "f"
+  },
+  {
+   "c0": 37,
+   "c1": 38,
+   "defs": [
+    [
+     "src/a/b.rs",
+     1
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 4,
+   "text": "g"
+  },
+  {
+   "c0": 49,
+   "c1": 50,
+   "defs": [
+    [
+     "src/a/c/mod.rs",
+     1
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 4,
+   "text": "h"
+  },
+  {
+   "c0": 59,
+   "c1": 60,
+   "defs": [
+    [
+     "src/nm.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 4,
+   "text": "n"
+  },
+  {
+   "c0": 75,
+   "c1": 76,
+   "defs": [
+    [
+     "src/nm/deep.rs",
+     1
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 4,
+   "text": "d"
+  },
+  {
+   "c0": 32,
+   "c1": 33,
+   "defs": [
+    [
+     "src/nm/deep.rs",
+     1
+    ]
+   ],
+   "file": "src/nm.rs",
+   "kind": "repo",
+   "line": 2,
+   "text": "d"
+  },
+  {
+   "c0": 33,
+   "c1": 34,
+   "defs": [
+    [
+     "src/a/c/mod.rs",
+     1
+    ]
+   ],
+   "file": "src/nm/deep.rs",
+   "kind": "repo",
+   "line": 1,
+   "text": "h"
+  }
+ ],
+ "complete": true,
+ "probe": "mod_layouts",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

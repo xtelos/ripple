@@ -1,0 +1,63 @@
+{
+ "calls": [
+  {
+   "c0": 26,
+   "c1": 28,
+   "defs": [
+    [
+     "src/lib.rs",
+     5
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 6,
+   "text": "go"
+  },
+  {
+   "c0": 32,
+   "c1": 34,
+   "defs": [
+    [
+     "src/lib.rs",
+     8
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 9,
+   "text": "go"
+  },
+  {
+   "c0": 48,
+   "c1": 50,
+   "defs": [
+    [
+     "src/lib.rs",
+     6
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 11,
+   "text": "go"
+  },
+  {
+   "c0": 61,
+   "c1": 68,
+   "defs": [
+    [
+     "src/lib.rs",
+     9
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 11,
+   "text": "solo_go"
+  }
+ ],
+ "complete": true,
+ "probe": "r3_cfg_mods",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

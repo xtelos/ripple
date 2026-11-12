@@ -1,0 +1,90 @@
+{
+ "calls": [
+  {
+   "c0": 37,
+   "c1": 38,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "lost",
+   "line": 8,
+   "text": "f"
+  },
+  {
+   "c0": 49,
+   "c1": 50,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "lost",
+   "line": 8,
+   "text": "g"
+  },
+  {
+   "c0": 30,
+   "c1": 31,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "lost",
+   "line": 10,
+   "text": "f"
+  },
+  {
+   "c0": 42,
+   "c1": 43,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 11,
+   "text": "f"
+  },
+  {
+   "c0": 28,
+   "c1": 36,
+   "defs": [
+    [
+     "src/lib.rs",
+     10
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 16,
+   "text": "via_type"
+  },
+  {
+   "c0": 58,
+   "c1": 66,
+   "defs": [
+    [
+     "src/lib.rs",
+     8
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 16,
+   "text": "via_self"
+  },
+  {
+   "c0": 85,
+   "c1": 98,
+   "defs": [
+    [
+     "src/lib.rs",
+     11
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 16,
+   "text": "via_qualified"
+  }
+ ],
+ "complete": true,
+ "probe": "r3_macro_inherent_in_impl_body",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

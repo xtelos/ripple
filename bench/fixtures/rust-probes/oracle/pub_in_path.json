@@ -1,0 +1,63 @@
+{
+ "calls": [
+  {
+   "c0": 28,
+   "c1": 29,
+   "defs": [
+    [
+     "src/lib.rs",
+     5
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 6,
+   "text": "g"
+  },
+  {
+   "c0": 34,
+   "c1": 35,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 6,
+   "text": "f"
+  },
+  {
+   "c0": 29,
+   "c1": 30,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 8,
+   "text": "f"
+  },
+  {
+   "c0": 38,
+   "c1": 39,
+   "defs": [
+    [
+     "src/lib.rs",
+     6
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 8,
+   "text": "h"
+  }
+ ],
+ "complete": true,
+ "probe": "pub_in_path",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

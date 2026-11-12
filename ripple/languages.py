@@ -1,7 +1,7 @@
 """Which languages a repository is written in, and one graph from them.
 
 `--lang` (or RIPPLE_LANG, or the server's lang argument) is the name of a language in registry.py
-("python", "typescript", "javascript", "go") or "auto", the default. Auto reads the repo's file names: each profile's source suffixes (profile.py) are looked for
+("python", "typescript", "javascript", "go", "rust") or "auto", the default. Auto reads the repo's file names: each profile's source suffixes (profile.py) are looked for
 in one walk that skips node_modules, virtualenvs and declaration files like every other walk. A repo
 with files of one language is indexed with that language's profile, exactly as before. A repo with
 both is MIXED: each language is indexed with its own profile, and cached under its own key (cache.py),

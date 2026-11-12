@@ -1,0 +1,91 @@
+{
+ "calls": [
+  {
+   "c0": 23,
+   "c1": 24,
+   "defs": [
+    [
+     "src/lib.rs",
+     5
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 10,
+   "text": "f"
+  },
+  {
+   "c0": 23,
+   "c1": 24,
+   "defs": [
+    [
+     "src/lib.rs",
+     9
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 11,
+   "text": "f"
+  },
+  {
+   "c0": 32,
+   "c1": 33,
+   "defs": [
+    [
+     "src/lib.rs",
+     9
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 12,
+   "text": "f"
+  },
+  {
+   "c0": 48,
+   "c1": 49,
+   "defs": [
+    [
+     "src/lib.rs",
+     10
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 14,
+   "text": "c"
+  },
+  {
+   "c0": 60,
+   "c1": 61,
+   "defs": [
+    [
+     "src/lib.rs",
+     11
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 14,
+   "text": "d"
+  },
+  {
+   "c0": 72,
+   "c1": 74,
+   "defs": [
+    [
+     "src/lib.rs",
+     12
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 14,
+   "text": "dq"
+  }
+ ],
+ "complete": true,
+ "probe": "r3_inherent_const_assoc_type",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

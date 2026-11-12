@@ -1,0 +1,105 @@
+{
+ "calls": [
+  {
+   "c0": 4,
+   "c1": 5,
+   "defs": [
+    [
+     "src/lib.rs",
+     16
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "local",
+   "line": 17,
+   "text": "f"
+  },
+  {
+   "c0": 24,
+   "c1": 25,
+   "defs": [
+    [
+     "src/lib.rs",
+     21
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "local",
+   "line": 21,
+   "text": "g"
+  },
+  {
+   "c0": 8,
+   "c1": 9,
+   "defs": [
+    [
+     "src/lib.rs",
+     4
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 22,
+   "text": "g"
+  },
+  {
+   "c0": 4,
+   "c1": 5,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 27,
+   "text": "f"
+  },
+  {
+   "c0": 26,
+   "c1": 29,
+   "defs": [
+    [
+     "src/lib.rs",
+     14
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 33,
+   "text": "run"
+  },
+  {
+   "c0": 26,
+   "c1": 37,
+   "defs": [
+    [
+     "src/lib.rs",
+     19
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 34,
+   "text": "inner_block"
+  },
+  {
+   "c0": 26,
+   "c1": 35,
+   "defs": [
+    [
+     "src/lib.rs",
+     24
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 35,
+   "text": "noop_only"
+  }
+ ],
+ "complete": true,
+ "probe": "macro_shadows_use",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

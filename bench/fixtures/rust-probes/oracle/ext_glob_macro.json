@@ -1,0 +1,21 @@
+{
+ "calls": [
+  {
+   "c0": 43,
+   "c1": 50,
+   "defs": [
+    [
+     "src/lib.rs",
+     9
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 10,
+   "text": "repo_fn"
+  }
+ ],
+ "complete": true,
+ "probe": "ext_glob_macro",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

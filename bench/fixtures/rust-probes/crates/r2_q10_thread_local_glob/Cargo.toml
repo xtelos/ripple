@@ -1,0 +1,4 @@
+[package]
+name = "r2_q10_thread_local_glob"
+version = "0.1.0"
+edition = "2021"

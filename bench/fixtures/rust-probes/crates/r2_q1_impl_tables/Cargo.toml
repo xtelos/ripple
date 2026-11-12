@@ -1,0 +1,4 @@
+[package]
+name = "r2_q1_impl_tables"
+version = "0.1.0"
+edition = "2021"

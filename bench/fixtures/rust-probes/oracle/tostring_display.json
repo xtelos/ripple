@@ -1,0 +1,139 @@
+{
+ "calls": [
+  {
+   "c0": 44,
+   "c1": 47,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 9,
+   "text": "new"
+  },
+  {
+   "c0": 14,
+   "c1": 23,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 12,
+   "text": "to_string"
+  },
+  {
+   "c0": 27,
+   "c1": 30,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 12,
+   "text": "len"
+  },
+  {
+   "c0": 13,
+   "c1": 22,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 13,
+   "text": "to_string"
+  },
+  {
+   "c0": 26,
+   "c1": 29,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 13,
+   "text": "len"
+  },
+  {
+   "c0": 27,
+   "c1": 36,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 14,
+   "text": "to_string"
+  },
+  {
+   "c0": 40,
+   "c1": 43,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 14,
+   "text": "len"
+  },
+  {
+   "c0": 13,
+   "c1": 22,
+   "defs": [
+    [
+     "src/lib.rs",
+     9
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 15,
+   "text": "to_string"
+  },
+  {
+   "c0": 26,
+   "c1": 29,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 15,
+   "text": "len"
+  },
+  {
+   "c0": 20,
+   "c1": 29,
+   "defs": [
+    [
+     "src/lib.rs",
+     9
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 16,
+   "text": "to_string"
+  },
+  {
+   "c0": 33,
+   "c1": 36,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 16,
+   "text": "len"
+  },
+  {
+   "c0": 27,
+   "c1": 36,
+   "defs": [
+    [
+     "src/lib.rs",
+     9
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 17,
+   "text": "to_string"
+  },
+  {
+   "c0": 40,
+   "c1": 43,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 17,
+   "text": "len"
+  }
+ ],
+ "complete": true,
+ "probe": "tostring_display",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

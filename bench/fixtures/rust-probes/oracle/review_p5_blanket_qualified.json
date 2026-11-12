@@ -1,0 +1,35 @@
+{
+ "calls": [
+  {
+   "c0": 20,
+   "c1": 24,
+   "defs": [
+    [
+     "src/lib.rs",
+     11
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 16,
+   "text": "conv"
+  },
+  {
+   "c0": 15,
+   "c1": 18,
+   "defs": [
+    [
+     "src/lib.rs",
+     15
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 20,
+   "text": "run"
+  }
+ ],
+ "complete": true,
+ "probe": "review_p5_blanket_qualified",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}
