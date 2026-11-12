@@ -2080,7 +2080,7 @@ index_files = build_ts_graph
 NotInstalled = TypeScriptNotInstalled
 
 
-def reads_as_source(path: Path, profile: LanguageProfile) -> bool:
+def reads_as_source(path: Path, profile: LanguageProfile, repo: Path | None = None) -> bool:
     """False for a `.ts` file that is not TypeScript, by its first bytes. The suffix is shared: a Qt Linguist
     translation file is XML (`<?xml`, `<!DOCTYPE TS>` or `<TS`), and a transport stream (video) is
     binary. Neither is read, counted or warned about. Any other file, and a file that cannot be opened (so

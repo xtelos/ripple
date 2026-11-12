@@ -326,3 +326,61 @@ JAVASCRIPT = replace(
     builtin_names=TYPESCRIPT.builtin_names | {"before", "after"},
     default_test_command=_no_js_test_command,
 )
+
+
+def _no_go_test_command(repo: Path) -> list[str]:
+    raise ValueError(
+        "ripple does not know how to run Go tests yet: pass the command that runs them "
+        "(`--test-command` or RIPPLE_TEST_COMMAND, for example `go test ./...`)"
+    )
+
+
+# What a Go program can name without declaring it (the universe block). A bare name that no scope declares and
+# is one of these is the language's own: calling a builtin function is calling code outside the repo, and calling
+# a type is a conversion, which runs no code.
+GO_BUILTIN_FUNCTIONS = (
+    "append cap clear close complex copy delete imag len make max min new panic print println real recover"
+).split()
+GO_BUILTIN_TYPES = (
+    "any bool byte comparable complex64 complex128 error float32 float64 int int8 int16 int32 int64 rune string "
+    "uint uint8 uint16 uint32 uint64 uintptr"
+).split()
+GO_BUILTIN_VALUES = "true false nil iota".split()
+# Go is read by its own resolver (go_indexer.py), not the shared one, so most of this record is neutral: the
+# fields only the shared resolver, the TypeScript front end and JSX read are empty. builtin_names is the one a Go
+# graph depends on, and it is hashed into the cache key like every field. What the standard library's types and
+# functions are is not a profile field: go_stdlib.py holds it, generated from the library's own source.
+GO = LanguageProfile(
+    name="go",
+    source_suffixes=(".go",),
+    excluded_suffixes=(),
+    # The module path and replaces decide what an import names, so the cache must notice an edit to them. The front
+    # end's config_files adds every nested go.mod and go.work.
+    config_files=("go.mod", "go.work"),
+    front_end="go",
+    builtin_names=frozenset(GO_BUILTIN_FUNCTIONS + GO_BUILTIN_TYPES + GO_BUILTIN_VALUES),
+    builtin_types=frozenset(),
+    not_built_as_instance=frozenset(),
+    safe_import_modules=frozenset(),
+    stdlib_module_names=frozenset(),
+    nominal_only_excluded=(),
+    same_class_decorators=frozenset(),
+    same_class_plain_decorators=frozenset(),
+    result_keeping=frozenset(),
+    partial_names=frozenset(),
+    wraps_names=frozenset(),
+    package_imports=False,
+    synchronous_callbacks=frozenset(),
+    component_wrappers=frozenset(),
+    lazy_wrappers=frozenset(),
+    component_bases=frozenset(),
+    fragment_components=frozenset(),
+    child_replacers=frozenset(),
+    constructor_name="",  # Go has no constructors: NewT is a plain function
+    allocator_name="",
+    implicit_base="",
+    has_universal_member=lambda name: False,
+    test_collection=NoTestCollection,
+    default_test_command=_no_go_test_command,
+    failure_prefixes=(),
+)

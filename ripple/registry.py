@@ -4,7 +4,8 @@ LANGUAGES is the one list. Adding a language is a LanguageProfile (profile.py) a
 the profile, the label its messages use, and the name of the module that is its front end. The order
 is precedence: when two languages define one id (languages.merge_graphs) the earlier one keeps it,
 a file no profile owns is read as the first language's, and the first language's cache is the one
-written without a profile key (cache.profile_key). Python is first.
+written without a profile key (cache.profile_key). Python is first. A language whose module ids hold more than one
+file by design (a Go package) says so with folds_files, so sharing an id is not reported as a collision.
 
 A front end is a module, imported by name the first time something of it is needed, so nothing of a
 language (and none of its parser, tree-sitter for TypeScript) loads until a file of it is read. It
@@ -20,8 +21,13 @@ and may define
   output_dirs(repo, directory, filenames) -> list[str]     repo-relative directories that the config files in
                                                            `directory` name as build output, which the walk
                                                            skips and lists (compiled code is not source)
-  reads_as_source(path, profile) -> bool                   False for a file the walk should not count
-                                                           though its suffix says it is source
+  reads_as_source(path, profile, repo) -> bool             False for a file the walk should not count
+                                                           though its suffix says it is source (repo is the
+                                                           directory the walk started from)
+  ignored_directory(path, profile, repo) -> str | None     the repo-relative directory a source file is not
+                                                           indexed for (the go tool skips `vendor`, `testdata`
+                                                           and `_x`), which the walk lists with the skipped
+                                                           directories; None when the file is skipped for another reason
   module_id(file) -> str                                   the id a source file's path names (a language
                                                            whose Language.path_ids is set defines it)
   NotInstalled                                            the ImportError subclass that says its parser
@@ -46,9 +52,11 @@ class Language:
     label: str  # how messages name the language
     front_end: str  # the module that reads its sources, imported when first needed
     # The language's ids are a file path and a member (`src/cart:total`), so a query may name a symbol by its
-    # file's path, with or without the extension. Kept here and not on the profile: cache.profile_key hashes
+    # file's path, with or without the extension (a Go id is an import path and a member, and a file's path finds it
+    # the same way). Kept here and not on the profile: cache.profile_key hashes
     # every field of a profile, so a new field there would change the cache key of the languages that already exist.
     path_ids: bool = False
+    folds_files: bool = False  # many files are one module id by design (a Go package), so sharing one is no collision
 
 
 LANGUAGES: dict[str, Language] = {
@@ -87,6 +95,11 @@ def language_of(file: str) -> Language:
         if file.endswith(profile.source_suffixes) and not file.endswith(profile.excluded_suffixes):
             return language
     return default_language()
+
+
+def folds_files(file: str) -> bool:
+    """Whether the language that reads a file gives all the files of a directory one module id."""
+    return language_of(file).folds_files
 
 
 def rank(file: str) -> int:
