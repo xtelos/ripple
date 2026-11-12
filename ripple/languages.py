@@ -1,14 +1,14 @@
 """Which languages a repository is written in, and one graph from them.
 
 `--lang` (or RIPPLE_LANG, or the server's lang argument) is the name of a language in registry.py
-("python", "typescript") or "auto", the default. Auto reads the repo's file names: each profile's source suffixes (profile.py) are looked for
+("python", "typescript", "javascript") or "auto", the default. Auto reads the repo's file names: each profile's source suffixes (profile.py) are looked for
 in one walk that skips node_modules, virtualenvs and declaration files like every other walk. A repo
 with files of one language is indexed with that language's profile, exactly as before. A repo with
 both is MIXED: each language is indexed with its own profile, and cached under its own key (cache.py),
 and the graphs are merged here.
 
 The merge is a union, and nearly always the languages cannot mix up their symbols, because of how ids
-are written: a Python id is dotted (`app.core.total`) and a TypeScript id is a path (`web/src/cart:total`).
+are written: a Python id is dotted (`app.core.total`) and a TypeScript or JavaScript id is a path (`web/src/cart:total`).
 But ANY id can be defined by both, not only a module: a root file with a dotted name is a dotted module id
 (`app.config.ts` is `app.config`, the id of `def config` in app.py, and `util.ts` is `util` like util.py), and
 so on for a class or a member. The merge cannot keep both: one id would carry both languages' callers and
@@ -32,7 +32,7 @@ from pathlib import Path
 from .indexer import walk_languages
 from .model import Graph
 from .profile import LanguageProfile
-from .registry import LANGUAGES, default_language, join, label, language_of, profiles, rank
+from .registry import LANGUAGES, default_language, join, label, language_of, module_id, profiles, rank
 
 SHOWN_UNPARSABLE = 10  # files listed per language before "... and N more"
 SHOWN_AMBIGUOUS = 5
@@ -225,6 +225,23 @@ def module_collisions(graph: Graph) -> dict[str, list[str]]:
     for (module, _), files in sorted(groups.items()):
         if len(files) > 1:
             found.setdefault(module, []).extend(sorted(files))
+    return found
+
+
+def dual_format_files(graph: Graph) -> dict[str, str]:
+    """{file: the file beside it that keeps the id} for each JavaScript file that is one source shipped in another format
+    of a file with the same path (x.mjs and x.cjs beside x.js, the layout of a package with both module systems). Both are
+    read in full, the one that an import of `./x` reaches under `x` and the others under their own path (`x.mjs`), so this
+    is a note on what to ask about, not a file that failed to parse (which is what parse_errors lists)."""
+    owners = {module: file for file, module in graph.modules.items()}
+    unparsed = set(graph.parse_errors)
+    found = {}
+    for file, module in graph.modules.items():
+        if not language_of(file).path_ids or file in unparsed:
+            continue
+        keeper = owners.get(module_id(file))
+        if keeper is not None and keeper != file and module != module_id(file):
+            found[file] = keeper
     return found
 
 

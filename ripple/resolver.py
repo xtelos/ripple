@@ -45,6 +45,7 @@ from .model import Decoration, Edge, Graph, Symbol, Unresolved
 from .profile import PYTHON, LanguageProfile
 
 MAX_IMPORT_HOPS = 8
+UNREAD_STAR = "may come from an `export *`"  # starts the reason of a name looked up through a module that stars an unread file
 
 # A type stored as "external:threading.Event" is a class that lives outside the
 # repo: the standard library, or a dependency the repo subclasses.
@@ -1020,6 +1021,8 @@ class Resolver:
             self._rebound_names = {n for s in self.scopes.values() if s.kind == "module" for n in s.rebinds}
         if name in self._rebound_names:
             return "another module assigns the name"
+        if getattr(module, "unread_stars", None):
+            return "its module has a star import that could define it"
         for star in module.star_imports:
             if star not in self.modules:
                 return "its module has a star import that could define it"
@@ -1260,24 +1263,36 @@ class Resolver:
         if binding is not None:
             return self.binding_target(scope, binding, depth, name)
         if name != "default":
+            unread = getattr(scope, "unread_stars", None)
+            if unread:
+                # a star onto a file ripple does not read may provide the name, and then it and a star ripple does read
+                # provide it twice (the compiler reports that as ambiguous): no name the module does not declare is known
+                return unknown(f"'{name}' {UNREAD_STAR} of module {module} that ripple does not follow: {unread[0]}")
             # A name two `export *` provide is exported by neither (the compiler reports it as ambiguous and
             # a native import fails to link), and a package's star may provide any name: the repo's own
             # answer stands only when it is the one answer.
             found_here: list[Target] = []
             from_package = False
+            opaque = ""
             for star in scope.star_imports:
                 if star not in self.modules:
                     from_package = True
                     continue
                 found = self.exported_member(star, name, depth + 1)
-                if found.kind != "unknown" and found not in found_here:
+                if found.kind == "unknown" and UNREAD_STAR in found.reason:
+                    opaque = opaque or found.reason  # a barrel behind this star has names ripple cannot list
+                elif found.kind != "unknown" and found not in found_here:
                     found_here.append(found)
+            if opaque:
+                return unknown(opaque)
             if len(found_here) == 1 and not from_package:
                 return found_here[0]
             if found_here:
                 return unknown(f"'{name}' is exported by more than one `export *` of module {module}, so it is ambiguous")
             if from_package:
                 return external(full, EXT_IMPORT)
+        if getattr(scope, "commonjs", False):
+            return unknown(f"module {module} is CommonJS (it assigns module.exports or exports), which ripple does not model, so what '{name}' is there is not known")
         return unknown(f"'{name}' is not exported by module {module}")
 
     # -- attributes --------------------------------------------------------

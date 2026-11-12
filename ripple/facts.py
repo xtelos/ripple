@@ -206,10 +206,14 @@ class ExportingModule(Scope):
     mapped to its binding. `export function f` puts f in both, `export { f as g }` and
     `export { x } from "./m"` only put g and x in exports. A Python module has no such list (every
     name is an attribute), so the Python front end writes a plain Scope and the resolver reads
-    attributes from names. star_imports lists the modules `export *` re-exports.
+    attributes from names. star_imports lists the modules `export *` re-exports, and unread_stars says why each `export *`
+    of a file that is not in this graph (the other language's) is not followed: such a module's export set has names
+    ripple cannot list, so a name it does not declare itself is not known to be any other star's.
     """
 
     exports: dict = field(default_factory=dict)
+    unread_stars: list = field(default_factory=list)
+    commonjs: bool = False  # the file assigns `module.exports` or `exports.x`: a CommonJS module, whose exports are not modelled
 
 
 @dataclass

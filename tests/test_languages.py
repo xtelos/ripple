@@ -160,9 +160,9 @@ def test_an_empty_directory_is_an_error_that_says_what_it_looked_for(tmp_path, c
     (tmp_path / "notes.md").write_text("nothing to index\n")
     with pytest.raises(RepoError) as raised:
         load_repo(tmp_path)
-    assert "no Python or TypeScript source files" in str(raised.value)
+    assert "no Python, TypeScript or JavaScript source files" in str(raised.value)
     assert main(["index", str(tmp_path)]) == 2
-    assert "no Python or TypeScript source files" in capsys.readouterr().err
+    assert "no Python, TypeScript or JavaScript source files" in capsys.readouterr().err
 
 
 def test_an_explicit_language_the_repo_has_none_of_is_an_error(make_repo):

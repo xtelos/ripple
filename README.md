@@ -1,7 +1,7 @@
 # ripple
 
 **Know what breaks before you change it.** ripple is an MCP server that gives a coding agent
-(Claude Code, Cursor, anything that speaks MCP) the call graph of a Python or TypeScript repository, so the agent
+(Claude Code, Cursor, anything that speaks MCP) the call graph of a Python, TypeScript or JavaScript repository, so the agent
 can ask "who calls this, and which tests reach it?" before it edits, and run just those tests after.
 
 ## Why
@@ -158,10 +158,11 @@ TypeScript is read by tree-sitter, which is an optional extra: it adds `tree-sit
 uv tool install "ripple-code[typescript] @ git+https://github.com/xtelos/ripple"   # or pip install 'ripple-code[typescript]'
 ```
 
-`--lang auto|python|typescript` (default `auto`; `RIPPLE_LANG` sets it for every command, and
+`--lang auto|python|typescript|javascript` (default `auto`; `RIPPLE_LANG` sets it for every command, and
 `build_server` takes a `lang` argument) chooses how the repo is read. `auto` looks at the file names: `.py`
-for Python, `.ts`, `.tsx`, `.mts` and `.cts` for TypeScript, skipping `.d.ts`, `node_modules` and virtualenvs.
-A repo with neither, or one that does not exist, is an error (exit status 2), not "0 files".
+for Python, `.ts`, `.tsx`, `.mts` and `.cts` for TypeScript, `.js`, `.jsx`, `.mjs` and `.cjs` for JavaScript (see
+JavaScript below), skipping `.d.ts`, `node_modules` and virtualenvs. A repo with none of them, or one that does
+not exist, is an error (exit status 2), not "0 files".
 
 **Symbols** are the file's path without the extension, a colon and the member: `src/util/math:clamp`,
 `src/cart/cart:Cart.add` (an `index` file is its directory, a second declaration of a name under one parent
@@ -201,23 +202,32 @@ include's `**` and the default include do not), a `\` in a path a config writes 
 and when `exclude` is not written it defaults to `node_modules`, `bower_components`, `jspm_packages` and `outDir`.
 When a nested config (an app's) governs a file, its
 `paths` decide and the root's are not consulted. A relative `extends` contributes `paths`, `baseUrl`, `files`,
-`include` and `exclude`, each pattern relative to the config that wrote it, and a list the extending config writes
-replaces the base's. `references` are followed: a config that does not cover a file hands it to the first project it
+`include` and `exclude`, each pattern relative to the config that wrote it (a `${configDir}` in `baseUrl`, `paths`,
+`files`, `include`, `exclude`, `rootDir` or `outDir` is the directory of the config being compiled, the extending one),
+and a list the extending config writes replaces the base's. `references` are followed: a config that does not cover a file hands it to the first project it
 references that does (the layout of a Vite or shadcn app, where the root `tsconfig.json` is `"files": []` plus
 references to `tsconfig.app.json` and the like), and that project's `paths` and `baseUrl` apply. A reference is a path
 relative to the config that lists it: a `.json` path is that config and any other is a directory holding a
 `tsconfig.json`. References are read four levels down, each config once (so a cycle ends), a path that names no
 config is ignored, and a config does not inherit the references of one it extends. A file no config governs has no
-aliases, so a bare import in it is a package, never a file of the repo, with one exception: when a config above the
+aliases, so a bare import in it is a package, never a file of the repo, with two exceptions. When a config above the
 file lists references and a config in that tree maps the specifier (a `paths` entry it matches, or a repo file its
 `baseUrl` reaches), the import is left unresolved with the reason (which project owns the file is the open question),
 and a call through it is listed as an unresolved call, not counted as code outside the repo. That is the
 case that matters in a monorepo: an app the root `include` leaves out, which depends on a published copy of a package
-the root `paths` maps to its own source, is not given the source (the app runs the published copy). The same rule
-leaves a workspace package that an app names by its package name (`"pkg": "workspace:*"`) unresolved, since ripple
-does not read `package.json` dependencies; that costs those edges, and none is guessed. A config that cannot be read
+the root `paths` maps to its own source, is not given the source (the app runs the published copy). And when a config's
+`include` names the file but a same-named file of higher extension priority (`x.tsx` beside `x.ts`) takes its place in
+the program, the file is in no project yet is built like its twin, so an alias that config maps is unresolved, with the
+reason, never a package and never an edge. A file that no `include` names has no aliases at all. A bare import whose
+package name is the `name` of a `package.json` in the repo (a package importing itself, or a workspace package named by
+another: `"pkg": "workspace:*"`) is unresolved, with the reason: it reaches repo code through that package's `exports`,
+which ripple does not read. Ripple reads nothing else of a `package.json`, and only the `name` of those in a directory
+above or holding a source file; that costs those edges, and none is guessed. A config that cannot be read
 governs everything under it with no aliases and is listed with the files that did not parse. The JSX settings
-(`jsxFactory` and the others, under JSX) are read from the root config only.
+(`jsxFactory` and the others, under JSX) are those of the config that governs the file, and the root config's too. A
+`jsconfig.json` is a config like any other and beside a `tsconfig.json` it governs the files that one does not hold (see
+JavaScript). A relative import that names no file is unresolved, not missing, under a config that sets `rootDirs`, which
+ripple does not follow.
 
 **Decorators.** A decorator (`@tag`, `@route("/x")`) written on a class, a method, a property or a parameter is not a
 call edge: what it does to the thing it decorates is not followed, and a member it decorates is never resolved. It
@@ -275,6 +285,81 @@ TypeScript-only repo until it is given the command (`--test-command` or `RIPPLE_
 `npx vitest run`), with the refusal as an ordinary error. In a mixed repo `check` runs pytest by default, unless
 the server was started with `--lang typescript`. It takes TypeScript test file paths only: ripple's own test ids
 (`tests/a.test:suite > case`) and a runner's line filter (`tests/a.test.ts:12`) are refused.
+
+### JavaScript
+
+JavaScript is its own language, read by the same front end and the same tree-sitter extra as TypeScript (no new
+dependency): the `tsx` grammar parses `.js`, `.jsx`, `.mjs` and `.cjs`, JSX included, because JSX is legal in a `.js` file.
+Its ids are paths like TypeScript's (`lib/app:helper`, and `lib/app.js:helper`, `app:helper` or `lib/app.js` find the same
+things). `--lang javascript` reads only the JavaScript files, `--lang typescript` only the TypeScript ones, and `auto`
+reads both, each into a graph of its own, cached under its own key, with TypeScript first. `ripple index` counts each by
+its label (`TypeScript: 21 files`, `JavaScript: 1 file`).
+
+**ES modules only.** `import` and `export` are followed (default, `export *`, `export { a as b } from`, a directory's
+`index.js`, `..` and `../` for the directory above). CommonJS (`require`, `module.exports`) is not modelled yet: a call
+through one is unresolved with its reason, never an edge. That includes an ES import of a file that assigns
+`module.exports` or `exports.x` (Node gives it named exports), whose reason says the module is CommonJS.
+
+**Which file an import names** is the TypeScript compiler's answer where Node and the bundlers agree with it, and
+unresolved, with the reason, where they do not. The compiler tries every TypeScript extension (`.ts`, `.tsx`, then the
+directory's `index`) across all the places an alias names, and only then the JavaScript ones (`.js`, `.jsx`), for a
+JavaScript importer too; `.mjs` and `.cjs` are named in full. A TypeScript importer takes the `x.ts` that `./x` and `./x.js`
+name (the `x.js` beside it is what the build makes of it). Node and the bundlers run the `x.js` a JavaScript importer
+names, so a JavaScript importer of `./x` or `./x.js` with an `x.ts` beside is unresolved. An extensionless `./dual` beside
+`dual.js` and `dual.mjs` is `dual.js` for the compiler and for Node's `require` and `dual.mjs` for Vite and Rollup (whose
+`resolve.extensions` put `.mjs` first, and `.js` before `.ts`), so it is unresolved too, as is `./x` with an `x.mjs` beside
+`x/index.js`, and a TypeScript importer's `./x` with an `x.mts` beside the `x.ts`. A trailing slash names a directory. A
+package that ships one source as `x.js`, `x.mjs` and `x.cjs` has one id for all three, which the first of them keeps (`.js`,
+then `.mjs`, then `.cjs`); the others are read in full under their own path (`x.mjs:f`), and `ripple index` says so in a
+note rather than listing them as unparsable.
+
+**What a `package.json` decides, ripple leaves open.** A specifier that names a directory of the repo (written relative,
+through `paths` or `baseUrl`, or reached by any of an alias's targets) is never a package and never a missing path: when
+the directory has a `package.json` its `main`, `module`, `types` or `exports` picks the file, and the compiler, Node
+and a bundler each read them their own way, so the import is unresolved with the reason even when an `index.js` is there
+(a `package.json` with a `main` that is not `index.js` is the case that draws a wrong edge, and the one without a `main`
+the case that merely loses a right one). A directory with no `package.json` and no index file ripple reads is unresolved
+too. A `.js` file found beside such a directory (`x.js` beside `x/package.json`) is unresolved, for the compiler's
+TypeScript pass enters the directory first. A `#` specifier is mapped by the nearest `package.json`'s `imports` and is always
+unresolved. A bare specifier is a package unless a config maps it or it names a package of the repo (see "Which tsconfig a
+file gets"). These rules apply to TypeScript importers too.
+
+**The two languages do not follow each other.** A TypeScript file that imports a `.js` file (or the reverse, through a relative
+path, `baseUrl` or `paths`) has an unresolved call with the reason "names src/x.js, a JavaScript file, whose calls ripple does
+not follow from TypeScript": not a package, so not counted as code outside the repo, and not an edge. That holds for a file
+that only the other language's index reads (a `.js` file in `dist/` is no file to either). An `export *` from such a file
+leaves the barrel's export set unknown: a name the barrel does not declare itself is unresolved with that reason, never
+taken from another `export *` (two stars that both provide it are an error to the compiler and fail to link at runtime).
+Where both define an id (`x.ts` beside `x.js`), the TypeScript symbol is kept and the JavaScript one left out, with the
+warning and exit status 3 described under "Both languages in one repo".
+
+**Config.** A `jsconfig.json` is read like a `tsconfig.json` (`baseUrl`, `paths`, `extends`, `include`, and the JSX settings
+under JSX), for a file of either language. tsserver tries a directory's `tsconfig.json` and then its `jsconfig.json`, so a
+`jsconfig.json` is the project of every file the `tsconfig.json` beside it does not hold: a `.js` file, when the
+`tsconfig.json` has no `allowJs`, or a file its `include` leaves out. A config governs a `.js` file only when it allows
+JavaScript (`allowJs` or `checkJs`, and a `jsconfig.json` always does). A `.ts` file is the build's: the nearest
+`tsconfig.json` that holds it governs it, however near a `jsconfig.json` is (`tsc` builds it with that `tsconfig.json`'s
+`paths`, where tsserver would open it in the nearer `jsconfig.json`), and only a file no `tsconfig.json` holds goes to the
+`jsconfig.json` above it that does, which is the project tsserver gives it. A wildcard `include` also drops a file when a
+same-named file of a higher extension priority is in it (`m.js` beside `m.ts`, `p.jsx` beside `p.js`, `r.mjs` beside
+`r.mts`): the compiler holds the other, so the dropped one is in no project (a name in `files` is always held). In
+JavaScript `f < a > (b)` is two comparisons, so a `.js` call that carries type arguments is left unresolved (the same
+text in a `.ts` file is a call), and so is a call inside or right after a syntax error: a name the grammar takes for a
+TypeScript keyword (`abstract.foo()`, `using.foo()`) breaks its statement and the grammar then reads a call of `foo`. Flow
+annotations in a `.js` file are read as the TypeScript annotations they look like, at the same trust: ripple checks
+neither. mocha's `before` and `after` are known globals.
+
+**Compiled output is not source.** A directory that a `tsconfig.json` or `jsconfig.json` names as `outDir` (through the
+configs it extends and the ones it references in the repo, `${configDir}` meaning the directory of the config that extends
+the base) is skipped at any depth in the TypeScript and JavaScript walks, and listed with the skipped directories, for the
+compiler leaves it out of the program: `packages/core/dist/math.js` beside `packages/core/src/math.ts` would otherwise
+define every function twice and make `find_symbol("clamp")` ambiguous. It is not skipped when it is, or is above, the
+directory of the config that names it, its `rootDir`, or a root of its `include` or `files` (emit in place, or the sources
+themselves), nor when it holds a `.ts` file that is no declaration (a compiler writes none), and the Python walk never skips
+it (a Python package may live where a TypeScript config writes its output; the directory is still listed, as skipped for
+TypeScript and JavaScript). The root `build` and `dist` are skipped as
+before. Emitted code that no config names (a build run with `--outDir`, or emit in place beside the sources) is read, and
+an id both languages define is the ambiguity warning described above.
 
 ### JSX
 
@@ -380,7 +465,7 @@ library's configuration, which is where the false edge came from.
 **Both languages in one repo** are indexed each with its own profile and merged into one graph; the cache
 keeps one entry per language (the Python one is named as it always was, so a Python repo's cache and output
 are what they were), and an edit to one language rebuilds only that language's graph. Python ids are dotted
-and TypeScript ids are paths, so nearly always no symbol or edge can be confused with the other language's.
+and TypeScript and JavaScript ids are paths, so nearly always no symbol or edge can be confused with the other language's.
 But any id can be defined by both: a root `app.config.ts` is the dotted module `app.config`, the id of `def
 config` in `app.py`, and `util.py` and `util.ts` are both `util`. For such an id ripple keeps the Python symbol
 and its edges, leaves out the TypeScript symbol and every TypeScript call that names it (so no chain runs from
@@ -933,8 +1018,9 @@ Static analysis of a dynamic language misses things. ripple does not follow:
   (`tests/test_x.py` and `src/tests/test_x.py`) share one set of symbol ids, so a name defined in
   both is one symbol; `ripple index` warns when that happens and names the files.
 - directories that hold dependencies or build output: hidden directories, `__pycache__`,
-  `node_modules`, `site-packages`, `venv` and any directory with a `pyvenv.cfg` anywhere, and `build`,
-  `dist` and `env` at the repo root only. `ripple index` lists the skipped directories, except
+  `node_modules`, `site-packages`, `venv` and any directory with a `pyvenv.cfg` anywhere, any directory a
+  `build`, `dist` and `env` at the repo root only (a directory a `tsconfig.json` names as `outDir` is skipped for TypeScript and
+  JavaScript, never for Python). `ripple index` lists the skipped directories, except
   hidden ones and `__pycache__`.
 - custom pytest collection settings (`python_files`, `python_functions`, `python_classes`): test node
   ids follow pytest's defaults. ripple sees only the repo's own classes, so a class counts as a

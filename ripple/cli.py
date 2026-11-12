@@ -27,7 +27,17 @@ from collections import Counter
 from . import queries
 from .cache import load_repo
 from .checker import run_check
-from .languages import SHOWN_UNPARSABLE, RepoError, RepoGraph, check_profile, choices, module_collisions, plural, with_warnings
+from .languages import (
+    SHOWN_UNPARSABLE,
+    RepoError,
+    RepoGraph,
+    check_profile,
+    choices,
+    dual_format_files,
+    module_collisions,
+    plural,
+    with_warnings,
+)
 from .registry import LANGUAGES, default_language, join
 
 MORE = "  ... and {n} more {what} not listed; raise --limit to see them"
@@ -99,6 +109,14 @@ def format_index(repo: str, result: RepoGraph, reasons: bool = False) -> str:
         shown = ", ".join(graph.skipped_dirs[:10])
         more = f" and {len(graph.skipped_dirs) - 10} more" if len(graph.skipped_dirs) > 10 else ""
         lines.append(f"skipped directories (not indexed): {shown}{more}")
+    dual = dual_format_files(graph)
+    if dual:
+        shown = ", ".join(f"{file} (beside {keeper})" for file, keeper in list(dual.items())[:SHOWN_UNPARSABLE])
+        more = f" and {len(dual) - SHOWN_UNPARSABLE} more" if len(dual) > SHOWN_UNPARSABLE else ""
+        lines.append(
+            "note: dual-format files (one source shipped as .js, .mjs and .cjs) are each read in full: the file named first is "
+            f"indexed under its own path, and the one in brackets keeps the module id: {shown}{more}"
+        )
     collisions = module_collisions(graph)
     if collisions:
         lines.append("warning: files share a module name, so their symbols share ids:")
@@ -282,7 +300,7 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument(
             "--test-command",
             default=os.environ.get("RIPPLE_TEST_COMMAND"),
-            help="test command (default: python -m pytest -q, using the repo's .venv or venv if present; a TypeScript-only repo, or --lang typescript, has no default)",
+            help="test command (default: python -m pytest -q, using the repo's .venv or venv if present; a repo with no Python, or --lang typescript or javascript, has no default)",
         )
         p.add_argument("--timeout", type=float, default=300, help="seconds before the test run is killed")
 

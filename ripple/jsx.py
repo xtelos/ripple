@@ -31,8 +31,8 @@ Two kinds of edge come out of a JsxElement (jsx_facts.py), and they answer diffe
             not what the caller passed, so nothing the component does with it is proven.
             All of this is React's order of work (a component runs when React renders it, not when its element is made),
             so a file whose JSX is compiled by another runtime (a `@jsx h` or `@jsxImportSource` pragma that is not
-            React's, or a tsconfig `jsxFactory`, `jsxFragmentFactory` or `jsxImportSource` that is not) has creator edges
-            only. A bundler's own setting outside tsconfig is not read.
+            React's, or a tsconfig or jsconfig `jsxFactory`, `jsxFragmentFactory` or `jsxImportSource` that is not) has creator edges
+            only. A bundler's own setting outside tsconfig and jsconfig is not read.
 
 A function is a COMPONENT, so that what it returns is rendered inside it, when some element in the repo has it for a tag
 and nothing in the repo calls it as a function or hands it on by name as a prop (`render={Home}`): `Dual()` and `<Dual />`

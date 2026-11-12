@@ -21,6 +21,7 @@ import sys
 import threading
 import tokenize
 import unicodedata
+from collections.abc import Callable
 from pathlib import Path
 
 from .facts import (
@@ -80,20 +81,43 @@ def walk_languages(repo: Path, profiles: list[LanguageProfile]) -> tuple[dict[st
     """
     files: dict[str, list[Path]] = {profile.name: [] for profile in profiles}
     skipped = []
+    # A front end may name the directories a config in a directory says are build output (see registry.py: output_dirs):
+    # compiled JavaScript at packages/core/dist, which sits beside the TypeScript it was built from, is not source. That
+    # holds for the languages whose front end names them (the compiler's), never for the others: a Python package may be
+    # the directory a tsconfig.json writes its output to.
+    output_hooks: dict[int, Callable] | None = None  # asked for at the first config file, so a repo with none loads no front end for it
+    output_profiles: set[str] = set()  # the profiles the hooks speak for
+    outputs: set[str] = set()
     for dirpath, dirnames, filenames in os.walk(repo):
         here = Path(dirpath)
+        if any(name in filenames for name in ("tsconfig.json", "jsconfig.json")):
+            if output_hooks is None:
+                output_hooks = {id(h): h for p in profiles if (h := getattr(front_end(p), "output_dirs", None)) is not None}
+                output_profiles = {p.name for p in profiles if getattr(front_end(p), "output_dirs", None) is not None}
+            for hook in output_hooks.values():
+                outputs.update(hook(repo, here.relative_to(repo).as_posix().removeprefix("."), filenames))
+        # a directory is left unwalked only when every language of this walk calls it output: otherwise another one may read it
+        prune = outputs if len(output_profiles) == len(profiles) else set()
         keep = []
         for d in sorted(dirnames):
             if d.startswith(".") or d == "__pycache__" or d.endswith(".egg-info"):
                 continue
-            if d in SKIP_ANYWHERE or (here == repo and d in SKIP_AT_ROOT) or _holds_venv_or_is_locked(here / d):
+            if (
+                d in SKIP_ANYWHERE
+                or (here == repo and d in SKIP_AT_ROOT)
+                or (here / d).relative_to(repo).as_posix() in prune
+                or _holds_venv_or_is_locked(here / d)
+            ):
                 skipped.append((here / d).relative_to(repo).as_posix())
             else:
                 keep.append(d)
         dirnames[:] = keep
         # isfile follows symlinks, so a dangling or looping link, a named pipe
         # (reading one blocks forever) and a directory called x.py are all left out.
+        in_output = any(here.relative_to(repo).as_posix() == out or here.relative_to(repo).as_posix().startswith(out + "/") for out in outputs)
         for profile in profiles:
+            if in_output and profile.name in output_profiles:
+                continue  # an output directory a language that does not prune it still walks: its files are not that language's source
             files[profile.name].extend(
                 here / f
                 for f in sorted(filenames)
@@ -102,6 +126,13 @@ def walk_languages(repo: Path, profiles: list[LanguageProfile]) -> tuple[dict[st
                 and _may_be_file(here / f)
                 and _reads_as_source(here / f, profile)
             )
+    if outputs:
+        # a config may name a directory the walk already went through (base.json's `out` beside the config that extends it)
+        under = tuple(out + "/" for out in outputs)
+        for name, found in files.items():
+            if name in output_profiles:
+                files[name] = [path for path in found if not path.relative_to(repo).as_posix().startswith(under)]
+        skipped += [out for out in outputs if out not in skipped and (repo / out).is_dir()]
     return files, sorted(skipped)
 
 

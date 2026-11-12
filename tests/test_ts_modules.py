@@ -91,9 +91,9 @@ def test_a_relative_import_that_names_no_source_file_is_not_a_guess(make_repo):
     modules, _ = mapper(make_repo, ["src/a.ts", "src/data.json", "src/legacy.js", "src/styles.css"])
     here = "src/a.ts"
     assert modules.resolve("./nothing", here) == ("missing", "./nothing")
-    # a file that exists but is not source (json, css, javascript) is outside what ripple reads
+    # a file that exists but is not source (json, css) is outside what ripple reads
     assert modules.resolve("./data.json", here) == ("package", "./data.json")
-    assert modules.resolve("./legacy.js", here) == ("package", "./legacy.js")
+    assert modules.resolve("./legacy.js", here)[0] == "unresolved"  # a JavaScript file: the other language's, not a package
     assert modules.resolve("./styles.css", here) == ("package", "./styles.css")
     assert modules.resolve("../../outside", here) == ("package", "../../outside")  # above the repo root
 

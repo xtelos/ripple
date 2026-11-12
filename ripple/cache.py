@@ -38,7 +38,7 @@ from .registry import default_language, front_end, is_missing_parser
 
 # Bump when the graph format or the resolution rules change, so old caches
 # are ignored rather than served.
-CACHE_FORMAT = f"{__version__}-14"
+CACHE_FORMAT = f"{__version__}-16"
 
 
 def default_cache_dir() -> Path:
@@ -50,7 +50,7 @@ def default_cache_dir() -> Path:
 
 def fingerprint(repo: Path, profile: LanguageProfile = PYTHON, sources: list[Path] | None = None) -> dict[str, list[int]]:
     """{relative path: [mtime_ns, size]} for every file the indexer would read, and for the
-    profile's config files (tsconfig.json) that are there: an edit to one changes the index too. For TypeScript
+    profile's config files (tsconfig.json, jsconfig.json) that are there: an edit to one changes the index too. For TypeScript and JavaScript
     that includes every tsconfig.json above an indexed file and every config each extends inside the repo,
     which the indexer reads as well (the front end's config_files, registry.py).
     sources are the profile's files when the caller has already walked the repo for them."""
@@ -66,6 +66,12 @@ def fingerprint(repo: Path, profile: LanguageProfile = PYTHON, sources: list[Pat
         except OSError:
             continue  # deleted since the walk, or a link that stopped resolving
         result[path.relative_to(repo).as_posix()] = [stat.st_mtime_ns, stat.st_size]
+    # files the answers depend on only by their being there (another language's sources): no size or time, so an edit
+    # to one leaves this language's cache alone and adding or deleting one does not
+    presence = getattr(front_end(profile), "presence_files", None)
+    if presence is not None:
+        for name in presence(repo, sources):
+            result.setdefault(name, [0, 0])
     return result
 
 

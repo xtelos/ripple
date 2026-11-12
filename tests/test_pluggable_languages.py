@@ -80,8 +80,8 @@ CLASH = {
 }
 
 
-def test_the_registry_lists_python_then_typescript_and_every_message_reads_from_it():
-    assert list(registry.LANGUAGES) == ["python", "typescript"]
+def test_the_registry_lists_python_then_typescript_then_javascript_and_every_message_reads_from_it():
+    assert list(registry.LANGUAGES) == ["python", "typescript", "javascript"]
     assert registry.default_language().profile.name == "python"
     assert registry.join(["Python", "TypeScript"]) == "Python and TypeScript"
     assert registry.join(["a", "b", "c"], "or") == "a, b or c"

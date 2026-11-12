@@ -17,8 +17,7 @@ from .jsx_facts import JSX_NO_RENDERER, JSX_TAG_UNRESOLVED
 from .model import DECORATOR_SCOPE, UNREAD_CLASS, Decoration, Edge, Graph, Symbol, Unresolved
 from .profile import LanguageProfile
 from .pytest_collection import PytestCollection  # noqa: F401 (it was defined here)
-from .registry import language_of
-from .ts_modules import SUFFIXES, module_id  # no parser needed to read an id
+from .registry import language_of, module_id, path_suffixes, stem
 
 MAX_LISTED = 100  # default cap on symbols listed per section, so a hub function cannot flood the agent
 
@@ -175,12 +174,8 @@ def _unread_class_calls(graph: Graph, symbol_id: str, kinds) -> dict:
 
 
 def _is_path_id(symbol_id: str) -> bool:
-    """A TypeScript id: a path, and for a member a colon (src/util/math:clamp). A Python id has neither."""
+    """A TypeScript or JavaScript id: a path, and for a member a colon (src/util/math:clamp). A Python id has neither."""
     return ":" in symbol_id or "/" in symbol_id
-
-
-def _stem(file: str) -> str:
-    return next((file[: -len(suffix)] for suffix in SUFFIXES if file.endswith(suffix)), file)
 
 
 def _module_ids(graph: Graph, path: str) -> list[str]:
@@ -194,15 +189,15 @@ def _module_ids(graph: Graph, path: str) -> list[str]:
     returned, for the caller to call ambiguous.
     """
     known = graph.modules or {s.file: s.id for s in graph.symbols.values() if s.kind == "module"}
-    files = {f: m for f, m in known.items() if f.endswith(SUFFIXES)}
+    files = {f: m for f, m in known.items() if f.endswith(path_suffixes())}
     if path.endswith("/"):
         directory = path.rstrip("/")
-        return sorted({m for f, m in files.items() if _stem(f) == (directory + "/index").lstrip("/")})
-    exact = {m for f, m in files.items() if path in (f, _stem(f))} | ({path} & set(files.values()))
+        return sorted({m for f, m in files.items() if stem(f) == (directory + "/index").lstrip("/")})
+    exact = {m for f, m in files.items() if path in (f, stem(f))} | ({path} & set(files.values()))
     if exact:
         return sorted(exact)
     tail = "/" + path
-    return sorted({m for f, m in files.items() if f.endswith(tail) or _stem(f).endswith(tail) or m.endswith(tail)})
+    return sorted({m for f, m in files.items() if f.endswith(tail) or stem(f).endswith(tail) or m.endswith(tail)})
 
 
 def _path_matches(graph: Graph, query: str) -> list[str]:
@@ -221,10 +216,10 @@ def _path_matches(graph: Graph, query: str) -> list[str]:
 
 def _matches(graph: Graph, query: str) -> list[str]:
     """Every id the query names. At a dot it ends an id (Python, and a TypeScript member). A query with a
-    path in it (a slash, a colon, a TypeScript extension) goes through the file map (_path_matches); any
+    path in it (a slash, a colon, a TypeScript or JavaScript extension) goes through the file map (_path_matches); any
     other also ends an id at a slash or a colon (a bare TypeScript member or module name), with or
     without a clash suffix."""
-    path_shaped = ":" in query or "/" in query or query.endswith(SUFFIXES)
+    path_shaped = ":" in query or "/" in query or query.endswith(path_suffixes())
     found = set()
     for sid in graph.symbols:
         if sid.endswith("." + query):
@@ -250,7 +245,7 @@ def _tail(query: str) -> str:
 def find_symbol(graph: Graph, query: str) -> dict:
     """{"symbol": id} on a unique match, else {"error", "candidates" | "suggestions"}.
 
-    A Python id is dotted (pkg.mod.Class.method) and a suffix at a dot names it. A TypeScript id is a
+    A Python id is dotted (pkg.mod.Class.method) and a suffix at a dot names it. A TypeScript or JavaScript id is a
     path and a member (src/util/math:clamp): it is also named by the path with its extension, by the
     tail of the path (util/math:clamp), by Class.method or by the bare member, whichever of them
     is only one symbol's. More than one symbol is never picked between: they are listed.

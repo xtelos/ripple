@@ -23,12 +23,12 @@ from .languages import RepoError, check_profile, check_repo, selected_profiles, 
 
 INSTRUCTIONS = """\
 ripple answers questions about the call graph of this repository, written in
-Python, TypeScript or both. Before changing a function, call impact on it to
+Python, TypeScript, JavaScript or a mix. Before changing a function, call impact on it to
 see what calls it (grouped by file) and which tests reach it; after the
-change, call check with the node_id of each of those tests (TypeScript tests
-are not collected yet: every caller of a TypeScript symbol is listed as code).
+change, call check with the node_id of each of those tests (TypeScript and JavaScript tests
+are not collected yet: every caller of one of their symbols is listed as code).
 A Python symbol is a full dotted path (pkg.module.Class.method), a suffix
-(Class.method) or a bare name. A TypeScript symbol is its file path without
+(Class.method) or a bare name. A TypeScript or JavaScript symbol is its file path without
 the extension, a colon and the member (src/util/math:clamp, src/cart/cart:Cart.add),
 and Class.method, the path tail (math:clamp) or a bare member name work too. An
 ambiguous name returns candidates; pick one, ripple never does.
@@ -43,7 +43,7 @@ with a note that what a decorator does to what it decorates is not modelled. In 
 <Child />, so changing Child can break it) and renderer (the component React runs Child inside, only when the
 source proves it). Every answer follows all kinds by default; pass kinds (calls, renders, renderer, comma
 separated) to follow some, and an entry that has a JSX edge says which kinds in edge_kinds. If a result has a warnings list, part of the repository
-was left out (TypeScript without a parser that loads, or ids both languages
+was left out (TypeScript and JavaScript without a parser that loads, or ids two languages
 define): the answer covers only the rest, and the warning says what and why.
 """
 
