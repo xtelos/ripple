@@ -1,0 +1,31 @@
+{
+ "invokes": [
+  ["p/K6.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Money.<init>:()V", 1],
+  ["p/K6.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.PItem.<init>:()V", 1],
+  ["p/K6.java", 5, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Pair.<init>:(Ljava/lang/Object;Ljava/lang/Object;)V", 1],
+  ["p/K6.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.K6.<init>:()V", 1],
+  ["p/K6.java", 12, "invokevirtual", "p.PItem", "add", "(I)V", "p.K6.lambda$f$0:(Lp/PItem;)V", 2],
+  ["p/K6.java", 16, "invokespecial", "java.lang.MatchException", "<init>", "(Ljava/lang/String;Ljava/lang/Throwable;)V", "p.K6.g:(Ljava/lang/Object;)V", 60],
+  ["p/K6.java", 16, "invokevirtual", "java.lang.Throwable", "toString", "()Ljava/lang/String;", "p.K6.g:(Ljava/lang/Object;)V", 56],
+  ["p/K6.java", 16, "invokevirtual", "p.Pair", "a", "()Ljava/lang/Object;", "p.K6.g:(Ljava/lang/Object;)V", 13],
+  ["p/K6.java", 16, "invokevirtual", "p.Pair", "b", "()Ljava/lang/Object;", "p.K6.g:(Ljava/lang/Object;)V", 33],
+  ["p/K6.java", 17, "invokevirtual", "p.PItem", "add", "(I)V", "p.K6.g:(Ljava/lang/Object;)V", 44],
+  ["p/K6.java", 21, "invokestatic", "java.util.Objects", "requireNonNull", "(Ljava/lang/Object;)Ljava/lang/Object;", "p.K6.h:(Ljava/lang/Object;)V", 2],
+  ["p/K6.java", 22, "invokespecial", "java.lang.MatchException", "<init>", "(Ljava/lang/String;Ljava/lang/Throwable;)V", "p.K6.h:(Ljava/lang/Object;)V", 108],
+  ["p/K6.java", 22, "invokevirtual", "java.lang.Throwable", "toString", "()Ljava/lang/String;", "p.K6.h:(Ljava/lang/Object;)V", 104],
+  ["p/K6.java", 22, "invokevirtual", "p.PItem", "add", "(I)V", "p.K6.h:(Ljava/lang/Object;)V", 86],
+  ["p/K6.java", 22, "invokevirtual", "p.Pair", "a", "()Ljava/lang/Object;", "p.K6.h:(Ljava/lang/Object;)V", 44],
+  ["p/K6.java", 22, "invokevirtual", "p.Pair", "b", "()Ljava/lang/Object;", "p.K6.h:(Ljava/lang/Object;)V", 66],
+  ["p/K6.java", 27, "invokespecial", "java.lang.MatchException", "<init>", "(Ljava/lang/String;Ljava/lang/Throwable;)V", "p.K6.k:(Ljava/lang/Object;)V", 60],
+  ["p/K6.java", 27, "invokevirtual", "java.lang.Throwable", "toString", "()Ljava/lang/String;", "p.K6.k:(Ljava/lang/Object;)V", 56],
+  ["p/K6.java", 27, "invokevirtual", "p.Pair", "a", "()Ljava/lang/Object;", "p.K6.k:(Ljava/lang/Object;)V", 13],
+  ["p/K6.java", 27, "invokevirtual", "p.Pair", "b", "()Ljava/lang/Object;", "p.K6.k:(Ljava/lang/Object;)V", 33],
+  ["p/K6.java", 28, "invokevirtual", "p.PItem", "add", "(I)V", "p.K6.k:(Ljava/lang/Object;)V", 44]
+ ],
+ "classes": {
+  "p.K6": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Ljava/lang/Object;)V", 0], ["g", "(Ljava/lang/Object;)V", 0], ["h", "(Ljava/lang/Object;)V", 0], ["k", "(Ljava/lang/Object;)V", 0]], "bridges": [], "compiler": []},
+  "p.Money": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.PItem": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.Pair": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "(Ljava/lang/Object;Ljava/lang/Object;)V", 0]], "bridges": [], "compiler": [["a", "()Ljava/lang/Object;", 1], ["b", "()Ljava/lang/Object;", 1], ["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["toString", "()Ljava/lang/String;", 17]]}
+ }
+}

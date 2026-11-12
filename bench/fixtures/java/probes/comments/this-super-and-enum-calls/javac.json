@@ -1,0 +1,26 @@
+{
+ "invokes": [
+  ["p/Ctors.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Base.<init>:(I)V", 1],
+  ["p/Ctors.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Base.<init>:(II)V", 1],
+  ["p/Ctors.java", 8, "invokespecial", "p.Derived", "<init>", "(I)V", "p.Derived.<init>:()V", 2],
+  ["p/Ctors.java", 9, "invokespecial", "p.Base", "<init>", "(I)V", "p.Derived.<init>:(I)V", 2],
+  ["p/Ctors.java", 10, "invokespecial", "p.Base", "<init>", "(II)V", "p.Derived.<init>:(II)V", 3],
+  ["p/Ctors.java", 13, "invokestatic", "java.lang.Enum", "valueOf", "(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Enum;", "p.Level.valueOf:(Ljava/lang/String;)Lp/Level;", 3],
+  ["p/Ctors.java", 13, "invokestatic", "p.Level", "$values", "()[Lp/Level;", "p.Level.<clinit>:()V", 29],
+  ["p/Ctors.java", 13, "invokevirtual", "[Lp.Level;", "clone", "()Ljava/lang/Object;", "p.Level.values:()[Lp/Level;", 3],
+  ["p/Ctors.java", 14, "invokespecial", "p.Level", "<init>", "(Ljava/lang/String;II)V", "p.Level.<clinit>:()V", 8],
+  ["p/Ctors.java", 15, "invokespecial", "p.Level", "<init>", "(Ljava/lang/String;III)V", "p.Level.<clinit>:()V", 23],
+  ["p/Ctors.java", 16, "invokespecial", "java.lang.Enum", "<init>", "(Ljava/lang/String;I)V", "p.Level.<init>:(Ljava/lang/String;II)V", 3],
+  ["p/Ctors.java", 17, "invokespecial", "java.lang.Enum", "<init>", "(Ljava/lang/String;I)V", "p.Level.<init>:(Ljava/lang/String;III)V", 3],
+  ["p/Ctors.java", 20, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Ctors.<init>:()V", 1],
+  ["p/Ctors.java", 22, "invokespecial", "p.Derived", "<init>", "(I)V", "p.Ctors.h:()V", 5],
+  ["p/Ctors.java", 23, "invokespecial", "p.Derived", "<init>", "(II)V", "p.Ctors.h:()V", 15],
+  ["p/Ctors.java", 24, "invokespecial", "p.Derived", "<init>", "()V", "p.Ctors.h:()V", 23]
+ ],
+ "classes": {
+  "p.Base": {"supers": ["java.lang.Object"], "methods": [["<init>", "(I)V", 0], ["<init>", "(II)V", 0]], "bridges": [], "compiler": []},
+  "p.Ctors": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Derived": {"supers": ["java.lang.Object", "p.Base"], "methods": [["<init>", "()V", 0], ["<init>", "(I)V", 0], ["<init>", "(II)V", 0]], "bridges": [], "compiler": []},
+  "p.Level": {"supers": ["java.io.Serializable", "java.lang.Comparable", "java.lang.Enum", "java.lang.Object", "java.lang.constant.Constable"], "methods": [["<init>", "(Ljava/lang/String;II)V", 2], ["<init>", "(Ljava/lang/String;III)V", 2]], "bridges": [], "compiler": [["valueOf", "(Ljava/lang/String;)Lp/Level;", 9], ["values", "()[Lp/Level;", 9]]}
+ }
+}

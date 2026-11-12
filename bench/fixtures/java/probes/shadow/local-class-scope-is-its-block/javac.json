@@ -1,0 +1,20 @@
+{
+ "invokes": [
+  ["p/Cart.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Cart.<init>:()V", 1],
+  ["p/Scope.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Scope.<init>:()V", 1],
+  ["p/Scope.java", 5, "invokespecial", "p.Cart", "<init>", "()V", "p.Scope.f:(Z)V", 4],
+  ["p/Scope.java", 5, "invokevirtual", "p.Cart", "add", "(Ljava/lang/String;)V", "p.Scope.f:(Z)V", 9],
+  ["p/Scope.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Scope$1Cart.<init>:(Lp/Scope;)V", 1],
+  ["p/Scope.java", 11, "invokespecial", "p.Scope$1Cart", "<init>", "(Lp/Scope;)V", "p.Scope.f:(Z)V", 21],
+  ["p/Scope.java", 11, "invokevirtual", "p.Scope$1Cart", "add", "(Ljava/lang/String;)V", "p.Scope.f:(Z)V", 26],
+  ["p/Scope.java", 12, "invokestatic", "p.Scope$1Cart", "sm", "()V", "p.Scope.f:(Z)V", 29],
+  ["p/Scope.java", 14, "invokespecial", "p.Cart", "<init>", "()V", "p.Scope.f:(Z)V", 36],
+  ["p/Scope.java", 14, "invokevirtual", "p.Cart", "add", "(Ljava/lang/String;)V", "p.Scope.f:(Z)V", 41],
+  ["p/Scope.java", 15, "invokestatic", "p.Cart", "sm", "()V", "p.Scope.f:(Z)V", 44]
+ ],
+ "classes": {
+  "p.Cart": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["add", "(Ljava/lang/String;)V", 0], ["sm", "()V", 8]], "bridges": [], "compiler": []},
+  "p.Scope": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Z)V", 0]], "bridges": [], "compiler": []},
+  "p.Scope$1Cart": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/Scope;)V", 0], ["add", "(Ljava/lang/String;)V", 0], ["sm", "()V", 8]], "bridges": [], "compiler": []}
+ }
+}

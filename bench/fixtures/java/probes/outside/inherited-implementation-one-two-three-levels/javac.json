@@ -1,0 +1,38 @@
+{
+ "invokes": [
+  ["p/Levels.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Work.<init>:()V", 1],
+  ["p/Levels.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.A1.<init>:()V", 1],
+  ["p/Levels.java", 4, "invokestatic", "p.Work", "go", "()V", "p.A1.run:()V", 0],
+  ["p/Levels.java", 5, "invokespecial", "p.A1", "<init>", "()V", "p.Task1.<init>:()V", 1],
+  ["p/Levels.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.A2.<init>:()V", 1],
+  ["p/Levels.java", 7, "invokestatic", "p.Work", "go", "()V", "p.A2.run:()V", 0],
+  ["p/Levels.java", 8, "invokespecial", "p.A2", "<init>", "()V", "p.B2.<init>:()V", 1],
+  ["p/Levels.java", 9, "invokespecial", "p.B2", "<init>", "()V", "p.Task2.<init>:()V", 1],
+  ["p/Levels.java", 11, "invokespecial", "java.lang.Object", "<init>", "()V", "p.A3.<init>:()V", 1],
+  ["p/Levels.java", 11, "invokestatic", "p.Work", "go", "()V", "p.A3.run:()V", 0],
+  ["p/Levels.java", 12, "invokespecial", "p.A3", "<init>", "()V", "p.B3.<init>:()V", 1],
+  ["p/Levels.java", 13, "invokespecial", "p.B3", "<init>", "()V", "p.C3.<init>:()V", 1],
+  ["p/Levels.java", 14, "invokespecial", "p.C3", "<init>", "()V", "p.Task3.<init>:()V", 1],
+  ["p/Levels.java", 16, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Levels.<init>:()V", 1],
+  ["p/Levels.java", 18, "invokespecial", "p.Task1", "<init>", "()V", "p.Levels.h:()V", 4],
+  ["p/Levels.java", 19, "invokespecial", "p.Task2", "<init>", "()V", "p.Levels.h:()V", 12],
+  ["p/Levels.java", 20, "invokespecial", "p.Task3", "<init>", "()V", "p.Levels.h:()V", 20],
+  ["p/Levels.java", 21, "invokeinterface", "java.lang.Runnable", "run", "()V", "p.Levels.h:()V", 25],
+  ["p/Levels.java", 22, "invokeinterface", "java.lang.Runnable", "run", "()V", "p.Levels.h:()V", 31],
+  ["p/Levels.java", 23, "invokeinterface", "java.lang.Runnable", "run", "()V", "p.Levels.h:()V", 37],
+  ["p/Levels.java", 25, "invokeinterface", "java.lang.Runnable", "run", "()V", "p.Levels.h:()V", 51]
+ ],
+ "classes": {
+  "p.A1": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["run", "()V", 1]], "bridges": [], "compiler": []},
+  "p.A2": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["run", "()V", 1]], "bridges": [], "compiler": []},
+  "p.A3": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["run", "()V", 1]], "bridges": [], "compiler": []},
+  "p.B2": {"supers": ["java.lang.Object", "p.A2"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.B3": {"supers": ["java.lang.Object", "p.A3"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.C3": {"supers": ["java.lang.Object", "p.A3", "p.B3"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Levels": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Task1": {"supers": ["java.lang.Object", "java.lang.Runnable", "p.A1"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Task2": {"supers": ["java.lang.Object", "java.lang.Runnable", "p.A2", "p.B2"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Task3": {"supers": ["java.lang.Object", "java.lang.Runnable", "p.A3", "p.B3", "p.C3"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Work": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["go", "()V", 8]], "bridges": [], "compiler": []}
+ }
+}

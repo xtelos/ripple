@@ -1,0 +1,22 @@
+{
+ "invokes": [
+  ["p/Scope.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.A.<init>:()V", 1],
+  ["p/Scope.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Fa.<init>:()V", 1],
+  ["p/Scope.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Scope.<init>:()V", 1],
+  ["p/Scope.java", 7, "invokespecial", "p.Fa", "<init>", "()V", "p.Scope.<init>:()V", 9],
+  ["p/Scope.java", 9, "invokevirtual", "p.A", "ok", "()Z", "p.Scope.andScope:(Ljava/lang/Object;)V", 13],
+  ["p/Scope.java", 10, "invokevirtual", "p.A", "use", "()V", "p.Scope.andScope:(Ljava/lang/Object;)V", 20],
+  ["p/Scope.java", 12, "invokevirtual", "p.Fa", "use", "()V", "p.Scope.andScope:(Ljava/lang/Object;)V", 27],
+  ["p/Scope.java", 15, "invokevirtual", "p.A", "ok", "()Z", "p.Scope.orScope:(Ljava/lang/Object;)V", 13],
+  ["p/Scope.java", 16, "invokevirtual", "java.lang.Object", "getClass", "()Ljava/lang/Class;", "p.Scope.orScope:(Ljava/lang/Object;)V", 23],
+  ["p/Scope.java", 21, "invokevirtual", "p.A", "use", "()V", "p.Scope.orScope:(Ljava/lang/Object;)V", 44],
+  ["p/Scope.java", 25, "invokespecial", "p.A", "<init>", "()V", "p.Scope.whileScope:(Ljava/lang/Object;)V", 19],
+  ["p/Scope.java", 27, "invokevirtual", "p.A", "use", "()V", "p.Scope.whileScope:(Ljava/lang/Object;)V", 27],
+  ["p/Scope.java", 30, "invokevirtual", "p.A", "ok", "()Z", "p.Scope.ternary:(Ljava/lang/Object;)Z", 13]
+ ],
+ "classes": {
+  "p.A": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["ok", "()Z", 0], ["use", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Fa": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["ok", "()Z", 0], ["use", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Scope": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["andScope", "(Ljava/lang/Object;)V", 0], ["orScope", "(Ljava/lang/Object;)V", 0], ["ternary", "(Ljava/lang/Object;)Z", 0], ["whileScope", "(Ljava/lang/Object;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

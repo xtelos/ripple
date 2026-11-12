@@ -1,0 +1,13 @@
+{
+ "invokes": [
+  ["p/a/A.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.a.A.<init>:()V", 1],
+  ["p/a/C.java", 3, "invokespecial", "p.b.B", "<init>", "()V", "p.a.C.<init>:()V", 1],
+  ["p/a/C.java", 5, "invokevirtual", "p.a.C", "m", "(Ljava/lang/Object;)V", "p.a.C.f:()V", 3],
+  ["p/b/B.java", 3, "invokespecial", "p.a.A", "<init>", "()V", "p.b.B.<init>:()V", 1]
+ ],
+ "classes": {
+  "p.a.A": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["m", "(Ljava/lang/Object;)V", 1], ["m", "(Ljava/lang/String;)V", 0]], "bridges": [], "compiler": []},
+  "p.a.C": {"supers": ["java.lang.Object", "p.a.A", "p.b.B"], "methods": [["<init>", "()V", 1], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.b.B": {"supers": ["java.lang.Object", "p.a.A"], "methods": [["<init>", "()V", 1]], "bridges": [], "compiler": []}
+ }
+}

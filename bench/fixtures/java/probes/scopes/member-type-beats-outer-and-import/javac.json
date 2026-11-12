@@ -1,0 +1,21 @@
+{
+ "invokes": [
+  ["p/Members.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Base$List.<init>:()V", 1],
+  ["p/Members.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Base.<init>:()V", 1],
+  ["p/Members.java", 6, "invokespecial", "p.Base", "<init>", "()V", "p.Sub.<init>:()V", 1],
+  ["p/Members.java", 7, "invokevirtual", "p.Base$List", "size", "()V", "p.Sub.f:(Lp/Base$List;)V", 1],
+  ["p/Members.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Sub$In.<init>:(Lp/Sub;)V", 1],
+  ["p/Members.java", 9, "invokevirtual", "p.Base$List", "size", "()V", "p.Sub$In.g:(Lp/Base$List;)V", 1],
+  ["p/Members.java", 12, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Unrelated.<init>:()V", 1],
+  ["p/Members.java", 13, "invokeinterface", "java.util.List", "size", "()I", "p.Unrelated.f:(Ljava/util/List;)V", 1],
+  ["p/Members.java", 15, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Members.<init>:()V", 1]
+ ],
+ "classes": {
+  "p.Base": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Base$List": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["size", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Members": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Sub": {"supers": ["java.lang.Object", "p.Base"], "methods": [["<init>", "()V", 0], ["f", "(Lp/Base$List;)V", 0]], "bridges": [], "compiler": []},
+  "p.Sub$In": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/Sub;)V", 0], ["g", "(Lp/Base$List;)V", 0]], "bridges": [], "compiler": []},
+  "p.Unrelated": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["f", "(Ljava/util/List;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

@@ -1,0 +1,19 @@
+{
+ "invokes": [
+  ["p/Colors.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Colors.<init>:()V", 1],
+  ["p/Colors.java", 5, "invokestatic", "java.lang.Enum", "valueOf", "(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Enum;", "p.Colors$Color.valueOf:(Ljava/lang/String;)Lp/Colors$Color;", 3],
+  ["p/Colors.java", 5, "invokestatic", "p.Colors$Color", "$values", "()[Lp/Colors$Color;", "p.Colors$Color.<clinit>:()V", 30],
+  ["p/Colors.java", 5, "invokevirtual", "[Lp.Colors$Color;", "clone", "()Ljava/lang/Object;", "p.Colors$Color.values:()[Lp/Colors$Color;", 3],
+  ["p/Colors.java", 6, "invokespecial", "p.Colors$Color", "<init>", "(Ljava/lang/String;II)V", "p.Colors$Color.<clinit>:()V", 10],
+  ["p/Colors.java", 6, "invokespecial", "p.Colors$Color", "<init>", "(Ljava/lang/String;II)V", "p.Colors$Color.<clinit>:()V", 24],
+  ["p/Colors.java", 6, "invokestatic", "p.Colors", "make", "()I", "p.Colors$Color.<clinit>:()V", 7],
+  ["p/Colors.java", 8, "invokespecial", "java.lang.Enum", "<init>", "(Ljava/lang/String;I)V", "p.Colors$Color.<init>:(Ljava/lang/String;II)V", 3],
+  ["p/Colors.java", 12, "invokevirtual", "p.Colors$Color", "ordinal", "()I", "p.Colors.f:(Lp/Colors$Color;)I", 1],
+  ["p/Colors.java", 14, "invokevirtual", "p.Colors$Color", "get", "()I", "p.Colors.f:(Lp/Colors$Color;)I", 25],
+  ["p/Colors.java", 16, "invokevirtual", "p.Colors$Color", "get", "()I", "p.Colors.f:(Lp/Colors$Color;)I", 32]
+ ],
+ "classes": {
+  "p.Colors": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Lp/Colors$Color;)I", 0], ["make", "()I", 8]], "bridges": [], "compiler": []},
+  "p.Colors$Color": {"supers": ["java.io.Serializable", "java.lang.Comparable", "java.lang.Enum", "java.lang.Object", "java.lang.constant.Constable"], "methods": [["<init>", "(Ljava/lang/String;II)V", 2], ["get", "()I", 0]], "bridges": [], "compiler": [["valueOf", "(Ljava/lang/String;)Lp/Colors$Color;", 9], ["values", "()[Lp/Colors$Color;", 9]]}
+ }
+}

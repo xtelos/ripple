@@ -1,0 +1,22 @@
+{
+ "invokes": [
+  ["p/Repo.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Repo.<init>:()V", 1],
+  ["p/Repo.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Repo$Store.<init>:()V", 1],
+  ["p/Repo.java", 12, "invokespecial", "p.Repo$Store", "<init>", "()V", "p.Repo$Names.<init>:()V", 1],
+  ["p/Repo.java", 12, "invokevirtual", "p.Repo$Names", "put", "(Ljava/lang/String;I)V", "p.Repo$Names.put:(Ljava/lang/Object;I)V", 6],
+  ["p/Repo.java", 16, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.Repo.use:(Lp/Repo$Store;Lp/Repo$Names;Lp/Repo$Store;)V", 2],
+  ["p/Repo.java", 16, "invokevirtual", "p.Repo$Store", "put", "(Ljava/lang/Object;)V", "p.Repo.use:(Lp/Repo$Store;Lp/Repo$Names;Lp/Repo$Store;)V", 5],
+  ["p/Repo.java", 17, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.Repo.use:(Lp/Repo$Store;Lp/Repo$Names;Lp/Repo$Store;)V", 10],
+  ["p/Repo.java", 17, "invokevirtual", "p.Repo$Store", "put", "(Ljava/lang/Object;I)V", "p.Repo.use:(Lp/Repo$Store;Lp/Repo$Names;Lp/Repo$Store;)V", 14],
+  ["p/Repo.java", 18, "invokevirtual", "p.Repo$Store", "put", "([C)V", "p.Repo.use:(Lp/Repo$Store;Lp/Repo$Names;Lp/Repo$Store;)V", 21],
+  ["p/Repo.java", 19, "invokevirtual", "p.Repo$Names", "put", "(Ljava/lang/String;I)V", "p.Repo.use:(Lp/Repo$Store;Lp/Repo$Names;Lp/Repo$Store;)V", 28],
+  ["p/Repo.java", 20, "invokevirtual", "p.Repo$Names", "put", "(Ljava/lang/Object;)V", "p.Repo.use:(Lp/Repo$Store;Lp/Repo$Names;Lp/Repo$Store;)V", 34],
+  ["p/Repo.java", 21, "invokevirtual", "p.Repo$Store", "put", "([C)V", "p.Repo.use:(Lp/Repo$Store;Lp/Repo$Names;Lp/Repo$Store;)V", 41],
+  ["p/Repo.java", 22, "invokevirtual", "p.Repo$Store", "put", "(Ljava/lang/Object;I)V", "p.Repo.use:(Lp/Repo$Store;Lp/Repo$Names;Lp/Repo$Store;)V", 47]
+ ],
+ "classes": {
+  "p.Repo": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Repo$Store;Lp/Repo$Names;Lp/Repo$Store;)V", 0]], "bridges": [], "compiler": []},
+  "p.Repo$Names": {"supers": ["java.lang.Object", "p.Repo$Store"], "methods": [["<init>", "()V", 0], ["put", "(Ljava/lang/String;I)V", 0]], "bridges": [["put", "(Ljava/lang/Object;I)V", "(Ljava/lang/String;I)V"]], "compiler": []},
+  "p.Repo$Store": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["put", "(Ljava/lang/Object;)V", 0], ["put", "(Ljava/lang/Object;I)V", 0], ["put", "(Ljava/util/List;)V", 0], ["put", "([C)V", 0]], "bridges": [], "compiler": []}
+ }
+}

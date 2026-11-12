@@ -1,0 +1,21 @@
+{
+ "invokes": [
+  ["p/Obscure.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Obscure.<init>:()V", 1],
+  ["p/Obscure.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Obscure$Money.<init>:()V", 1],
+  ["p/Obscure.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Obscure$Cart.<init>:()V", 1],
+  ["p/Obscure.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Obscure$Holder.<init>:()V", 1],
+  ["p/Obscure.java", 6, "invokespecial", "p.Obscure$Money", "<init>", "()V", "p.Obscure$Holder.<init>:()V", 9],
+  ["p/Obscure.java", 7, "invokespecial", "p.Obscure$Money", "<init>", "()V", "p.Obscure.<init>:()V", 9],
+  ["p/Obscure.java", 8, "invokespecial", "p.Obscure$Holder", "<init>", "()V", "p.Obscure.<init>:()V", 20],
+  ["p/Obscure.java", 10, "invokevirtual", "p.Obscure$Money", "add", "(I)V", "p.Obscure.f:()V", 5],
+  ["p/Obscure.java", 11, "invokevirtual", "p.Obscure$Money", "add", "(I)V", "p.Obscure.f:()V", 16],
+  ["u/Helper.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "u.Helper.<init>:()V", 1]
+ ],
+ "classes": {
+  "p.Obscure": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Obscure$Cart": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 8]], "bridges": [], "compiler": []},
+  "p.Obscure$Holder": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Obscure$Money": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "u.Helper": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["add", "(I)V", 9]], "bridges": [], "compiler": []}
+ }
+}

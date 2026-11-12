@@ -1,0 +1,19 @@
+{
+ "invokes": [
+  ["p/Casts.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Casts.<init>:()V", 1],
+  ["p/Casts.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Casts$Item.<init>:()V", 1],
+  ["p/Casts.java", 5, "invokespecial", "p.Casts$Item", "<init>", "()V", "p.Casts$Money.<init>:()V", 1],
+  ["p/Casts.java", 7, "invokevirtual", "p.Casts$Item", "add", "(I)V", "p.Casts.use:(Ljava/lang/Object;Lp/Casts$Item;Z)V", 5],
+  ["p/Casts.java", 8, "invokevirtual", "p.Casts$Money", "pay", "()V", "p.Casts.use:(Ljava/lang/Object;Lp/Casts$Item;Z)V", 12],
+  ["p/Casts.java", 9, "invokevirtual", "p.Casts$Money", "add", "(I)V", "p.Casts.use:(Ljava/lang/Object;Lp/Casts$Item;Z)V", 20],
+  ["p/Casts.java", 10, "invokespecial", "p.Casts$Money", "<init>", "()V", "p.Casts.use:(Ljava/lang/Object;Lp/Casts$Item;Z)V", 35],
+  ["p/Casts.java", 10, "invokevirtual", "p.Casts$Item", "add", "(I)V", "p.Casts.use:(Ljava/lang/Object;Lp/Casts$Item;Z)V", 39],
+  ["p/Casts.java", 11, "invokevirtual", "p.Casts$Item", "add", "(I)V", "p.Casts.use:(Ljava/lang/Object;Lp/Casts$Item;Z)V", 47],
+  ["p/Casts.java", 13, "invokevirtual", "p.Casts$Item", "add", "(I)V", "p.Casts.use:(Ljava/lang/Object;Lp/Casts$Item;Z)V", 64]
+ ],
+ "classes": {
+  "p.Casts": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Ljava/lang/Object;Lp/Casts$Item;Z)V", 0]], "bridges": [], "compiler": []},
+  "p.Casts$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.Casts$Money": {"supers": ["java.lang.Object", "p.Casts$Item"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0], ["pay", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

@@ -1,0 +1,31 @@
+{
+ "invokes": [
+  ["p/LocalTypes.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.LocalTypes.<init>:()V", 1],
+  ["p/LocalTypes.java", 6, "invokespecial", "java.lang.Record", "<init>", "()V", "p.LocalTypes$1Pair.<init>:(Ljava/lang/String;I)V", 1],
+  ["p/LocalTypes.java", 9, "invokespecial", "java.lang.Enum", "<init>", "(Ljava/lang/String;I)V", "p.LocalTypes$1Mode.<init>:(Ljava/lang/String;I)V", 3],
+  ["p/LocalTypes.java", 9, "invokespecial", "p.LocalTypes$1Mode", "<init>", "(Ljava/lang/String;I)V", "p.LocalTypes$1Mode.<clinit>:()V", 7],
+  ["p/LocalTypes.java", 9, "invokespecial", "p.LocalTypes$1Mode", "<init>", "(Ljava/lang/String;I)V", "p.LocalTypes$1Mode.<clinit>:()V", 20],
+  ["p/LocalTypes.java", 9, "invokestatic", "java.lang.Enum", "valueOf", "(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Enum;", "p.LocalTypes$1Mode.valueOf:(Ljava/lang/String;)Lp/LocalTypes$1Mode;", 3],
+  ["p/LocalTypes.java", 9, "invokestatic", "p.LocalTypes$1Mode", "$values", "()[Lp/LocalTypes$1Mode;", "p.LocalTypes$1Mode.<clinit>:()V", 26],
+  ["p/LocalTypes.java", 9, "invokevirtual", "[Lp.LocalTypes$1Mode;", "clone", "()Ljava/lang/Object;", "p.LocalTypes$1Mode.values:()[Lp/LocalTypes$1Mode;", 3],
+  ["p/LocalTypes.java", 11, "invokespecial", "p.LocalTypes$1Pair", "<init>", "(Ljava/lang/String;I)V", "p.LocalTypes.f:()V", 7],
+  ["p/LocalTypes.java", 12, "invokevirtual", "p.LocalTypes$1Pair", "show", "()Ljava/lang/String;", "p.LocalTypes.f:()V", 12],
+  ["p/LocalTypes.java", 13, "invokevirtual", "p.LocalTypes$1Pair", "a", "()Ljava/lang/String;", "p.LocalTypes.f:()V", 17],
+  ["p/LocalTypes.java", 14, "invokevirtual", "p.LocalTypes$1Mode", "on", "()Z", "p.LocalTypes.f:()V", 24],
+  ["p/LocalTypes.java", 15, "invokestatic", "p.LocalTypes$1Mode", "valueOf", "(Ljava/lang/String;)Lp/LocalTypes$1Mode;", "p.LocalTypes.f:()V", 30],
+  ["p/LocalTypes.java", 16, "invokevirtual", "p.LocalTypes$1Pair", "show", "()Ljava/lang/String;", "p.LocalTypes.lambda$f$0:(Lp/LocalTypes$1Pair;)V", 1],
+  ["p/LocalTypes.java", 17, "invokeinterface", "p.LocalTypes$1Local", "go", "()V", "p.LocalTypes.f:()V", 42],
+  ["p/LocalTypes.java", 18, "invokespecial", "java.lang.Object", "<init>", "()V", "p.LocalTypes$1Impl.<init>:(Lp/LocalTypes;Lp/LocalTypes$1Pair;)V", 6],
+  ["p/LocalTypes.java", 19, "invokevirtual", "p.LocalTypes$1Pair", "show", "()Ljava/lang/String;", "p.LocalTypes$1Impl.put:(Ljava/lang/String;)V", 4],
+  ["p/LocalTypes.java", 21, "invokespecial", "p.LocalTypes$1Impl", "<init>", "(Lp/LocalTypes;Lp/LocalTypes$1Pair;)V", "p.LocalTypes.f:()V", 53],
+  ["p/LocalTypes.java", 21, "invokevirtual", "p.LocalTypes$1Impl", "put", "(Ljava/lang/String;)V", "p.LocalTypes.f:()V", 58]
+ ],
+ "classes": {
+  "p.LocalTypes": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.LocalTypes$1Impl": {"supers": ["java.lang.Object", "p.LocalTypes$Sink"], "methods": [["<init>", "(Lp/LocalTypes;Lp/LocalTypes$1Pair;)V", 0], ["put", "(Ljava/lang/String;)V", 1]], "bridges": [], "compiler": []},
+  "p.LocalTypes$1Local": {"supers": ["java.lang.Object"], "methods": [["go", "()V", 1025]], "bridges": [], "compiler": []},
+  "p.LocalTypes$1Mode": {"supers": ["java.io.Serializable", "java.lang.Comparable", "java.lang.Enum", "java.lang.Object", "java.lang.constant.Constable"], "methods": [["<init>", "(Ljava/lang/String;I)V", 2], ["on", "()Z", 0]], "bridges": [], "compiler": [["valueOf", "(Ljava/lang/String;)Lp/LocalTypes$1Mode;", 9], ["values", "()[Lp/LocalTypes$1Mode;", 9]]},
+  "p.LocalTypes$1Pair": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "(Ljava/lang/String;I)V", 0]], "bridges": [], "compiler": [["a", "()Ljava/lang/String;", 1], ["b", "()I", 1], ["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["show", "()Ljava/lang/String;", 0], ["toString", "()Ljava/lang/String;", 17]]},
+  "p.LocalTypes$Sink": {"supers": ["java.lang.Object"], "methods": [["put", "(Ljava/lang/String;)V", 1025]], "bridges": [], "compiler": []}
+ }
+}

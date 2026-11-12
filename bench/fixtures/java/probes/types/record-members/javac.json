@@ -1,0 +1,21 @@
+{
+ "invokes": [
+  ["p/Points.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Points.<init>:()V", 1],
+  ["p/Points.java", 5, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Points$Point.<init>:(II)V", 1],
+  ["p/Points.java", 6, "invokestatic", "p.Points$Point", "check", "(I)V", "p.Points$Point.<init>:(II)V", 5],
+  ["p/Points.java", 9, "invokevirtual", "p.Points$Point", "x", "()I", "p.Points$Point.sum:()I", 1],
+  ["p/Points.java", 9, "invokevirtual", "p.Points$Point", "y", "()I", "p.Points$Point.sum:()I", 5],
+  ["p/Points.java", 11, "invokespecial", "p.Points$Point", "<init>", "(II)V", "p.Points$Point.origin:()Lp/Points$Point;", 6],
+  ["p/Points.java", 14, "invokevirtual", "p.Points$Point", "x", "()I", "p.Points.use:(Lp/Points$Point;)V", 1],
+  ["p/Points.java", 15, "invokevirtual", "p.Points$Point", "y", "()I", "p.Points.use:(Lp/Points$Point;)V", 6],
+  ["p/Points.java", 16, "invokevirtual", "p.Points$Point", "sum", "()I", "p.Points.use:(Lp/Points$Point;)V", 11],
+  ["p/Points.java", 17, "invokevirtual", "p.Points$Point", "toString", "()Ljava/lang/String;", "p.Points.use:(Lp/Points$Point;)V", 16],
+  ["p/Points.java", 18, "invokevirtual", "p.Points$Point", "hashCode", "()I", "p.Points.use:(Lp/Points$Point;)V", 21],
+  ["p/Points.java", 19, "invokestatic", "p.Points$Point", "origin", "()Lp/Points$Point;", "p.Points.use:(Lp/Points$Point;)V", 25],
+  ["p/Points.java", 20, "invokespecial", "p.Points$Point", "<init>", "(II)V", "p.Points.use:(Lp/Points$Point;)V", 35]
+ ],
+ "classes": {
+  "p.Points": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Points$Point;)V", 0]], "bridges": [], "compiler": []},
+  "p.Points$Point": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "(II)V", 0], ["check", "(I)V", 8], ["origin", "()Lp/Points$Point;", 8], ["sum", "()I", 0]], "bridges": [], "compiler": [["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["toString", "()Ljava/lang/String;", 17], ["x", "()I", 1], ["y", "()I", 1]]}
+ }
+}

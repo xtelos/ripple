@@ -1,0 +1,12 @@
+{
+ "invokes": [
+  ["p/Boxed.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Boxed.<init>:()V", 1],
+  ["p/Boxed.java", 5, "invokevirtual", "p.Item", "add", "(I)V", "p.Boxed.f:(Ljava/lang/Object;Lp/Item;)V", 2],
+  ["p/Boxed.java", 8, "invokevirtual", "p.Item", "add", "(I)V", "p.Boxed.g:(Lp/Item;)V", 2],
+  ["p/Item.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Item.<init>:()V", 1]
+ ],
+ "classes": {
+  "p.Boxed": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Ljava/lang/Object;Lp/Item;)V", 0], ["g", "(Lp/Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["add", "(I)V", 0]], "bridges": [], "compiler": []}
+ }
+}

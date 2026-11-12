@@ -1,0 +1,25 @@
+{
+ "invokes": [
+  ["p/GenRec.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Item.<init>:()V", 1],
+  ["p/GenRec.java", 4, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Box.<init>:(Ljava/lang/Object;)V", 1],
+  ["p/GenRec.java", 5, "invokespecial", "p.Box", "<init>", "(Ljava/lang/Object;)V", "p.Box.of:(Ljava/lang/Object;)Lp/Box;", 5],
+  ["p/GenRec.java", 8, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Named.<init>:(Ljava/lang/String;Lp/Item;)V", 1],
+  ["p/GenRec.java", 9, "invokespecial", "p.Item", "<init>", "()V", "p.Named.of:(Ljava/lang/String;)Lp/Named;", 9],
+  ["p/GenRec.java", 9, "invokespecial", "p.Named", "<init>", "(Ljava/lang/String;Lp/Item;)V", "p.Named.of:(Ljava/lang/String;)Lp/Named;", 12],
+  ["p/GenRec.java", 13, "invokespecial", "java.lang.Object", "<init>", "()V", "p.GenRec.<init>:()V", 1],
+  ["p/GenRec.java", 15, "invokespecial", "p.Item", "<init>", "()V", "p.GenRec.h:(Lp/Box;)V", 4],
+  ["p/GenRec.java", 15, "invokestatic", "p.Box", "of", "(Ljava/lang/Object;)Lp/Box;", "p.GenRec.h:(Lp/Box;)V", 7],
+  ["p/GenRec.java", 16, "invokevirtual", "p.Box", "self", "()Lp/Box;", "p.GenRec.h:(Lp/Box;)V", 12],
+  ["p/GenRec.java", 16, "invokevirtual", "p.Box", "self", "()Lp/Box;", "p.GenRec.h:(Lp/Box;)V", 15],
+  ["p/GenRec.java", 17, "invokevirtual", "p.Box", "value", "()Ljava/lang/Object;", "p.GenRec.h:(Lp/Box;)V", 20],
+  ["p/GenRec.java", 18, "invokestatic", "p.Named", "of", "(Ljava/lang/String;)Lp/Named;", "p.GenRec.h:(Lp/Box;)V", 26],
+  ["p/GenRec.java", 18, "invokevirtual", "p.Item", "m", "()V", "p.GenRec.h:(Lp/Box;)V", 32],
+  ["p/GenRec.java", 18, "invokevirtual", "p.Named", "item", "()Lp/Item;", "p.GenRec.h:(Lp/Box;)V", 29]
+ ],
+ "classes": {
+  "p.Box": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "(Ljava/lang/Object;)V", 0], ["of", "(Ljava/lang/Object;)Lp/Box;", 8], ["self", "()Lp/Box;", 0]], "bridges": [], "compiler": [["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["toString", "()Ljava/lang/String;", 17], ["value", "()Ljava/lang/Object;", 1]]},
+  "p.GenRec": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Lp/Box;)V", 0]], "bridges": [], "compiler": []},
+  "p.Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Named": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "(Ljava/lang/String;Lp/Item;)V", 0], ["of", "(Ljava/lang/String;)Lp/Named;", 8]], "bridges": [], "compiler": [["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["item", "()Lp/Item;", 1], ["name", "()Ljava/lang/String;", 1], ["toString", "()Ljava/lang/String;", 17]]}
+ }
+}

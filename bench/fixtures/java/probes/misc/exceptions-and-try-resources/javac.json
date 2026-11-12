@@ -1,0 +1,32 @@
+{
+ "invokes": [
+  ["p/Res.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Res.<init>:()V", 1],
+  ["p/Res.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Res$Conn.<init>:()V", 1],
+  ["p/Res.java", 8, "invokespecial", "java.lang.RuntimeException", "<init>", "()V", "p.Res$Failure.<init>:()V", 1],
+  ["p/Res.java", 12, "invokespecial", "p.Res$Conn", "<init>", "()V", "p.Res.use:()V", 4],
+  ["p/Res.java", 12, "invokespecial", "p.Res$Conn", "<init>", "()V", "p.Res.use:()V", 12],
+  ["p/Res.java", 12, "invokevirtual", "java.lang.Throwable", "addSuppressed", "(Ljava/lang/Throwable;)V", "p.Res.use:()V", 44],
+  ["p/Res.java", 12, "invokevirtual", "java.lang.Throwable", "addSuppressed", "(Ljava/lang/Throwable;)V", "p.Res.use:()V", 67],
+  ["p/Res.java", 12, "invokevirtual", "p.Res$Conn", "close", "()V", "p.Res.use:()V", 33],
+  ["p/Res.java", 12, "invokevirtual", "p.Res$Conn", "close", "()V", "p.Res.use:()V", 58],
+  ["p/Res.java", 13, "invokevirtual", "p.Res$Conn", "send", "()V", "p.Res.use:()V", 17],
+  ["p/Res.java", 14, "invokevirtual", "p.Res$Conn", "send", "()V", "p.Res.use:()V", 21],
+  ["p/Res.java", 15, "invokevirtual", "p.Res$Conn", "close", "()V", "p.Res.use:()V", 25],
+  ["p/Res.java", 15, "invokevirtual", "p.Res$Conn", "close", "()V", "p.Res.use:()V", 50],
+  ["p/Res.java", 16, "invokevirtual", "p.Res$Failure", "report", "()V", "p.Res.use:()V", 87],
+  ["p/Res.java", 18, "invokevirtual", "java.lang.RuntimeException", "getMessage", "()Ljava/lang/String;", "p.Res.use:()V", 105],
+  ["p/Res.java", 20, "invokespecial", "p.Res$Conn", "<init>", "()V", "p.Res.use:()V", 76],
+  ["p/Res.java", 20, "invokespecial", "p.Res$Conn", "<init>", "()V", "p.Res.use:()V", 94],
+  ["p/Res.java", 20, "invokespecial", "p.Res$Conn", "<init>", "()V", "p.Res.use:()V", 113],
+  ["p/Res.java", 20, "invokespecial", "p.Res$Conn", "<init>", "()V", "p.Res.use:()V", 128],
+  ["p/Res.java", 20, "invokevirtual", "p.Res$Conn", "send", "()V", "p.Res.use:()V", 79],
+  ["p/Res.java", 20, "invokevirtual", "p.Res$Conn", "send", "()V", "p.Res.use:()V", 97],
+  ["p/Res.java", 20, "invokevirtual", "p.Res$Conn", "send", "()V", "p.Res.use:()V", 116],
+  ["p/Res.java", 20, "invokevirtual", "p.Res$Conn", "send", "()V", "p.Res.use:()V", 131]
+ ],
+ "classes": {
+  "p.Res": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Res$Conn": {"supers": ["java.lang.AutoCloseable", "java.lang.Object"], "methods": [["<init>", "()V", 0], ["close", "()V", 1], ["send", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Res$Failure": {"supers": ["java.io.Serializable", "java.lang.Exception", "java.lang.Object", "java.lang.RuntimeException", "java.lang.Throwable"], "methods": [["<init>", "()V", 0], ["report", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

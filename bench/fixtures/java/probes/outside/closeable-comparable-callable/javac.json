@@ -1,0 +1,41 @@
+{
+ "invokes": [
+  ["p/Many.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Work.<init>:()V", 1],
+  ["p/Many.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.CloseBase.<init>:()V", 1],
+  ["p/Many.java", 7, "invokestatic", "p.Work", "go", "()V", "p.CloseBase.close:()V", 0],
+  ["p/Many.java", 8, "invokespecial", "p.CloseBase", "<init>", "()V", "p.Res.<init>:()V", 1],
+  ["p/Many.java", 9, "invokespecial", "p.Res", "<init>", "()V", "p.Res2.<init>:()V", 1],
+  ["p/Many.java", 10, "invokespecial", "java.lang.Object", "<init>", "()V", "p.OrderBase.<init>:()V", 1],
+  ["p/Many.java", 10, "invokestatic", "p.Work", "go", "()V", "p.OrderBase.compareTo:(Ljava/lang/Object;)I", 0],
+  ["p/Many.java", 11, "invokespecial", "p.OrderBase", "<init>", "()V", "p.Order.<init>:()V", 1],
+  ["p/Many.java", 12, "invokespecial", "java.lang.Object", "<init>", "()V", "p.CallBase.<init>:()V", 1],
+  ["p/Many.java", 12, "invokestatic", "p.Work", "go", "()V", "p.CallBase.call:()Ljava/lang/String;", 0],
+  ["p/Many.java", 13, "invokespecial", "p.CallBase", "<init>", "()V", "p.Job.<init>:()V", 1],
+  ["p/Many.java", 13, "invokespecial", "p.CallBase", "call", "()Ljava/lang/String;", "p.Job.call:()Ljava/lang/Object;", 1],
+  ["p/Many.java", 14, "invokespecial", "java.lang.Object", "<init>", "()V", "p.FnBase.<init>:()V", 1],
+  ["p/Many.java", 14, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.FnBase.apply:(Ljava/lang/String;)Ljava/lang/Integer;", 4],
+  ["p/Many.java", 14, "invokestatic", "p.Work", "go", "()V", "p.FnBase.apply:(Ljava/lang/String;)Ljava/lang/Integer;", 0],
+  ["p/Many.java", 15, "invokespecial", "p.FnBase", "<init>", "()V", "p.Fn.<init>:()V", 1],
+  ["p/Many.java", 15, "invokespecial", "p.FnBase", "apply", "(Ljava/lang/String;)Ljava/lang/Integer;", "p.Fn.apply:(Ljava/lang/Object;)Ljava/lang/Object;", 5],
+  ["p/Many.java", 17, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Many.<init>:()V", 1],
+  ["p/Many.java", 19, "invokeinterface", "java.lang.AutoCloseable", "close", "()V", "p.Many.h:(Ljava/lang/AutoCloseable;Ljava/lang/Comparable;Ljava/util/concurrent/Callable;Ljava/util/function/Function;)V", 1],
+  ["p/Many.java", 20, "invokeinterface", "java.lang.Comparable", "compareTo", "(Ljava/lang/Object;)I", "p.Many.h:(Ljava/lang/AutoCloseable;Ljava/lang/Comparable;Ljava/util/concurrent/Callable;Ljava/util/function/Function;)V", 9],
+  ["p/Many.java", 21, "invokeinterface", "java.util.concurrent.Callable", "call", "()Ljava/lang/Object;", "p.Many.h:(Ljava/lang/AutoCloseable;Ljava/lang/Comparable;Ljava/util/concurrent/Callable;Ljava/util/function/Function;)V", 16],
+  ["p/Many.java", 22, "invokeinterface", "java.util.function.Function", "apply", "(Ljava/lang/Object;)Ljava/lang/Object;", "p.Many.h:(Ljava/lang/AutoCloseable;Ljava/lang/Comparable;Ljava/util/concurrent/Callable;Ljava/util/function/Function;)V", 26],
+  ["p/Many.java", 23, "invokespecial", "p.Res2", "<init>", "()V", "p.Many.h:(Ljava/lang/AutoCloseable;Ljava/lang/Comparable;Ljava/util/concurrent/Callable;Ljava/util/function/Function;)V", 36],
+  ["p/Many.java", 23, "invokevirtual", "p.Res2", "close", "()V", "p.Many.h:(Ljava/lang/AutoCloseable;Ljava/lang/Comparable;Ljava/util/concurrent/Callable;Ljava/util/function/Function;)V", 39]
+ ],
+ "classes": {
+  "p.CallBase": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["call", "()Ljava/lang/String;", 1]], "bridges": [], "compiler": []},
+  "p.CloseBase": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["close", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Fn": {"supers": ["java.lang.Object", "java.util.function.Function", "p.FnBase"], "methods": [["<init>", "()V", 0]], "bridges": [["apply", "(Ljava/lang/Object;)Ljava/lang/Object;", ""]], "compiler": []},
+  "p.FnBase": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["apply", "(Ljava/lang/String;)Ljava/lang/Integer;", 1]], "bridges": [], "compiler": []},
+  "p.Job": {"supers": ["java.lang.Object", "java.util.concurrent.Callable", "p.CallBase"], "methods": [["<init>", "()V", 0]], "bridges": [["call", "()Ljava/lang/Object;", ""]], "compiler": []},
+  "p.Many": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Ljava/lang/AutoCloseable;Ljava/lang/Comparable;Ljava/util/concurrent/Callable;Ljava/util/function/Function;)V", 0]], "bridges": [], "compiler": []},
+  "p.Order": {"supers": ["java.lang.Comparable", "java.lang.Object", "p.OrderBase"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.OrderBase": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["compareTo", "(Ljava/lang/Object;)I", 1]], "bridges": [], "compiler": []},
+  "p.Res": {"supers": ["java.lang.AutoCloseable", "java.lang.Object", "p.CloseBase"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Res2": {"supers": ["java.lang.AutoCloseable", "java.lang.Object", "p.CloseBase", "p.Res"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Work": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["go", "()V", 8]], "bridges": [], "compiler": []}
+ }
+}

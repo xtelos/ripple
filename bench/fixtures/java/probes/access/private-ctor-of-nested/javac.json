@@ -1,0 +1,15 @@
+{
+ "invokes": [
+  ["p/Client.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Client.<init>:()V", 1],
+  ["p/Client.java", 5, "invokespecial", "p.Single", "<init>", "(Ljava/lang/Object;)V", "p.Client.make:()Lp/Single;", 6],
+  ["p/Single.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Single.<init>:(Ljava/lang/String;)V", 1],
+  ["p/Single.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Single.<init>:(Ljava/lang/Object;)V", 1],
+  ["p/Single.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Single$Maker.<init>:()V", 1],
+  ["p/Single.java", 8, "invokespecial", "p.Single", "<init>", "(Ljava/lang/String;)V", "p.Single$Maker.make:()Lp/Single;", 6]
+ ],
+ "classes": {
+  "p.Client": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["make", "()Lp/Single;", 0]], "bridges": [], "compiler": []},
+  "p.Single": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Ljava/lang/Object;)V", 0], ["<init>", "(Ljava/lang/String;)V", 2]], "bridges": [], "compiler": []},
+  "p.Single$Maker": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["make", "()Lp/Single;", 0]], "bridges": [], "compiler": []}
+ }
+}

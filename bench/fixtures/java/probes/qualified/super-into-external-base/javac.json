@@ -1,0 +1,17 @@
+{
+ "invokes": [
+  ["p/Ext.java", 5, "invokespecial", "java.util.ArrayList", "<init>", "()V", "p.Ext.<init>:()V", 1],
+  ["p/Ext.java", 5, "invokevirtual", "p.Ext", "add", "(Ljava/lang/String;)Z", "p.Ext.add:(Ljava/lang/Object;)Z", 5],
+  ["p/Ext.java", 7, "invokespecial", "java.util.ArrayList", "add", "(Ljava/lang/Object;)Z", "p.Ext.add:(Ljava/lang/String;)Z", 2],
+  ["p/Ext.java", 10, "invokespecial", "java.util.ArrayList", "toString", "()Ljava/lang/String;", "p.Ext.toString:()Ljava/lang/String;", 1],
+  ["p/Ext.java", 10, "invokevirtual", "p.Ext", "size", "()I", "p.Ext.toString:()Ljava/lang/String;", 5],
+  ["p/Ext.java", 13, "invokevirtual", "p.Ext", "add", "(Ljava/lang/String;)Z", "p.Ext.f:()V", 3],
+  ["p/Ext.java", 14, "invokevirtual", "p.Ext", "toString", "()Ljava/lang/String;", "p.Ext.f:()V", 8],
+  ["p/Ext.java", 15, "invokevirtual", "p.Ext", "add", "(Ljava/lang/String;)Z", "p.Ext.f:()V", 15],
+  ["p/Ext.java", 16, "invokespecial", "java.util.ArrayList", "size", "()I", "p.Ext.f:()V", 20],
+  ["p/Ext.java", 17, "invokevirtual", "p.Ext", "hashCode", "()I", "p.Ext.f:()V", 25]
+ ],
+ "classes": {
+  "p.Ext": {"supers": ["java.io.Serializable", "java.lang.Cloneable", "java.lang.Iterable", "java.lang.Object", "java.util.AbstractCollection", "java.util.AbstractList", "java.util.ArrayList", "java.util.Collection", "java.util.List", "java.util.RandomAccess", "java.util.SequencedCollection"], "methods": [["<init>", "()V", 1], ["add", "(Ljava/lang/String;)Z", 1], ["f", "()V", 0], ["toString", "()Ljava/lang/String;", 1]], "bridges": [["add", "(Ljava/lang/Object;)Z", "(Ljava/lang/String;)Z"]], "compiler": []}
+ }
+}

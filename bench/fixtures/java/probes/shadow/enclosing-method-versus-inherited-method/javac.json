@@ -1,0 +1,24 @@
+{
+ "invokes": [
+  ["p/Comb.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Comb.<init>:()V", 1],
+  ["p/Comb.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Comb$Base.<init>:()V", 1],
+  ["p/Comb.java", 9, "invokespecial", "p.Comb$Base", "<init>", "()V", "p.Comb$Inner.<init>:(Lp/Comb;)V", 6],
+  ["p/Comb.java", 11, "invokevirtual", "p.Comb$Inner", "helper", "(I)V", "p.Comb$Inner.f:()V", 2],
+  ["p/Comb.java", 12, "invokevirtual", "p.Comb", "other", "()V", "p.Comb$Inner.f:()V", 9],
+  ["p/Comb.java", 15, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Comb$Plain.<init>:(Lp/Comb;)V", 6],
+  ["p/Comb.java", 17, "invokevirtual", "p.Comb", "helper", "(Ljava/lang/String;)V", "p.Comb$Plain.f:()V", 6],
+  ["p/Comb.java", 18, "invokevirtual", "p.Comb", "other", "()V", "p.Comb$Plain.f:()V", 13],
+  ["p/Comb.java", 21, "invokespecial", "p.Comb$Plain", "<init>", "(Lp/Comb;)V", "p.Comb$Deeper.<init>:(Lp/Comb;)V", 7],
+  ["p/Comb.java", 22, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Comb$Deeper$Deepest.<init>:(Lp/Comb$Deeper;)V", 6],
+  ["p/Comb.java", 24, "invokevirtual", "p.Comb", "other", "()V", "p.Comb$Deeper$Deepest.g:()V", 7],
+  ["p/Comb.java", 25, "invokevirtual", "p.Comb", "helper", "(Ljava/lang/String;)V", "p.Comb$Deeper$Deepest.g:()V", 19]
+ ],
+ "classes": {
+  "p.Comb": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["helper", "(Ljava/lang/String;)V", 0], ["other", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Comb$Base": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["helper", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.Comb$Deeper": {"supers": ["java.lang.Object", "p.Comb$Plain"], "methods": [["<init>", "(Lp/Comb;)V", 0]], "bridges": [], "compiler": []},
+  "p.Comb$Deeper$Deepest": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/Comb$Deeper;)V", 0], ["g", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Comb$Inner": {"supers": ["java.lang.Object", "p.Comb$Base"], "methods": [["<init>", "(Lp/Comb;)V", 0], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Comb$Plain": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/Comb;)V", 0], ["f", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

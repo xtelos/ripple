@@ -1,0 +1,23 @@
+{
+ "invokes": [
+  ["p/Arrays.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Arrays.<init>:()V", 1],
+  ["p/Arrays.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Arrays$Item.<init>:()V", 1],
+  ["p/Arrays.java", 9, "invokevirtual", "p.Arrays$Item", "add", "(I)V", "p.Arrays.use:([Lp/Arrays$Item;[[I[[Lp/Arrays$Item;)V", 4],
+  ["p/Arrays.java", 10, "invokevirtual", "p.Arrays$Item", "add", "(I)V", "p.Arrays.use:([Lp/Arrays$Item;[[I[[Lp/Arrays$Item;)V", 13],
+  ["p/Arrays.java", 11, "invokevirtual", "[Lp.Arrays$Item;", "clone", "()Ljava/lang/Object;", "p.Arrays.use:([Lp/Arrays$Item;[[I[[Lp/Arrays$Item;)V", 17],
+  ["p/Arrays.java", 12, "invokevirtual", "[I", "clone", "()Ljava/lang/Object;", "p.Arrays.use:([Lp/Arrays$Item;[[I[[Lp/Arrays$Item;)V", 24],
+  ["p/Arrays.java", 13, "invokestatic", "p.Arrays", "take", "([Lp/Arrays$Item;)V", "p.Arrays.use:([Lp/Arrays$Item;[[I[[Lp/Arrays$Item;)V", 29],
+  ["p/Arrays.java", 14, "invokestatic", "p.Arrays", "take", "(Lp/Arrays$Item;)V", "p.Arrays.use:([Lp/Arrays$Item;[[I[[Lp/Arrays$Item;)V", 35],
+  ["p/Arrays.java", 15, "invokestatic", "p.Arrays", "take", "([Lp/Arrays$Item;)V", "p.Arrays.use:([Lp/Arrays$Item;[[I[[Lp/Arrays$Item;)V", 42],
+  ["p/Arrays.java", 16, "invokestatic", "p.Arrays", "many", "([Lp/Arrays$Item;)V", "p.Arrays.use:([Lp/Arrays$Item;[[I[[Lp/Arrays$Item;)V", 46],
+  ["p/Arrays.java", 17, "invokestatic", "p.Arrays", "many", "([Lp/Arrays$Item;)V", "p.Arrays.use:([Lp/Arrays$Item;[[I[[Lp/Arrays$Item;)V", 65],
+  ["p/Arrays.java", 18, "invokestatic", "p.Arrays", "many", "([Lp/Arrays$Item;)V", "p.Arrays.use:([Lp/Arrays$Item;[[I[[Lp/Arrays$Item;)V", 72],
+  ["p/Arrays.java", 20, "invokevirtual", "p.Arrays$Item", "add", "(I)V", "p.Arrays.use:([Lp/Arrays$Item;[[I[[Lp/Arrays$Item;)V", 103],
+  ["p/Arrays.java", 23, "invokespecial", "p.Arrays$Item", "<init>", "()V", "p.Arrays.use:([Lp/Arrays$Item;[[I[[Lp/Arrays$Item;)V", 126],
+  ["p/Arrays.java", 23, "invokevirtual", "p.Arrays$Item", "add", "(I)V", "p.Arrays.use:([Lp/Arrays$Item;[[I[[Lp/Arrays$Item;)V", 133]
+ ],
+ "classes": {
+  "p.Arrays": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["many", "([Lp/Arrays$Item;)V", 136], ["take", "(Lp/Arrays$Item;)V", 8], ["take", "([Lp/Arrays$Item;)V", 8], ["use", "([Lp/Arrays$Item;[[I[[Lp/Arrays$Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.Arrays$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []}
+ }
+}

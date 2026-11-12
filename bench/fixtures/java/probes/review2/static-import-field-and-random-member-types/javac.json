@@ -1,0 +1,21 @@
+{
+ "invokes": [
+  ["p/K7.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Other7.<init>:()V", 1],
+  ["p/K7.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Cart.<init>:()V", 1],
+  ["p/K7.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Util7.<init>:()V", 1],
+  ["p/K7.java", 7, "invokespecial", "p.Other7", "<init>", "()V", "p.Util7.<clinit>:()V", 4],
+  ["p/K7.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.StreamableGenerator.<init>:()V", 1],
+  ["p/K7.java", 9, "invokespecial", "java.util.Random", "<init>", "()V", "p.MyRand.<init>:()V", 1],
+  ["p/K7.java", 10, "invokeinterface", "java.util.random.RandomGenerator$StreamableGenerator", "ints", "()Ljava/util/stream/IntStream;", "p.MyRand.g:(Ljava/util/random/RandomGenerator$StreamableGenerator;)V", 1],
+  ["p/K7.java", 13, "invokespecial", "java.lang.Object", "<init>", "()V", "p.K7.<init>:()V", 1],
+  ["p/K7.java", 15, "invokevirtual", "p.Other7", "m", "()V", "p.K7.f:()V", 3]
+ ],
+ "classes": {
+  "p.Cart": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 8]], "bridges": [], "compiler": []},
+  "p.K7": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.MyRand": {"supers": ["java.io.Serializable", "java.lang.Object", "java.util.Random", "java.util.random.RandomGenerator"], "methods": [["<init>", "()V", 0], ["g", "(Ljava/util/random/RandomGenerator$StreamableGenerator;)V", 0]], "bridges": [], "compiler": []},
+  "p.Other7": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []},
+  "p.StreamableGenerator": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["ints", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Util7": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

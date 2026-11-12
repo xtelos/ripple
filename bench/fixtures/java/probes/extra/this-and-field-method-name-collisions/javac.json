@@ -1,0 +1,16 @@
+{
+ "invokes": [
+  ["p/Names.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Names.<init>:()V", 1],
+  ["p/Names.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Names$Item.<init>:()V", 1],
+  ["p/Names.java", 5, "invokespecial", "p.Names$Item", "<init>", "()V", "p.Names.<init>:()V", 9],
+  ["p/Names.java", 8, "invokevirtual", "p.Names", "add", "(I)V", "p.Names.use:()V", 2],
+  ["p/Names.java", 9, "invokevirtual", "p.Names$Item", "add", "(I)V", "p.Names.use:()V", 10],
+  ["p/Names.java", 10, "invokevirtual", "p.Names$Item", "add", "(I)V", "p.Names.use:()V", 18],
+  ["p/Names.java", 11, "invokevirtual", "p.Names", "add", "(I)V", "p.Names.use:()V", 23],
+  ["p/Names.java", 13, "invokeinterface", "java.lang.Runnable", "run", "()V", "p.Names.use:()V", 34]
+ ],
+ "classes": {
+  "p.Names": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["add", "(I)V", 0], ["use", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Names$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []}
+ }
+}

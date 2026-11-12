@@ -1,0 +1,24 @@
+{
+ "invokes": [
+  ["p/TypeComments.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Item.<init>:()V", 1],
+  ["p/TypeComments.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Other.<init>:()V", 1],
+  ["p/TypeComments.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Sink.<init>:()V", 1],
+  ["p/TypeComments.java", 15, "invokespecial", "java.lang.Object", "<init>", "()V", "p.TypeComments.<init>:()V", 1],
+  ["p/TypeComments.java", 17, "invokespecial", "p.Item", "<init>", "()V", "p.TypeComments.<init>:()V", 15],
+  ["p/TypeComments.java", 19, "invokespecial", "p.Sink", "<init>", "()V", "p.TypeComments.h:(Ljava/util/List;Lp/Item;Lp/Other;)V", 4],
+  ["p/TypeComments.java", 20, "invokevirtual", "p.Sink", "put", "(Ljava/util/List;)V", "p.TypeComments.h:(Ljava/util/List;Lp/Item;Lp/Other;)V", 12],
+  ["p/TypeComments.java", 21, "invokevirtual", "p.Sink", "put", "(Ljava/lang/String;)V", "p.TypeComments.h:(Ljava/util/List;Lp/Item;Lp/Other;)V", 21],
+  ["p/TypeComments.java", 22, "invokevirtual", "p.Sink", "put", "([Lp/Item;)V", "p.TypeComments.h:(Ljava/util/List;Lp/Item;Lp/Other;)V", 38],
+  ["p/TypeComments.java", 23, "invokevirtual", "p.Item", "m", "()V", "p.TypeComments.h:(Ljava/util/List;Lp/Item;Lp/Other;)V", 45],
+  ["p/TypeComments.java", 24, "invokevirtual", "p.Item", "m", "()V", "p.TypeComments.h:(Ljava/util/List;Lp/Item;Lp/Other;)V", 49],
+  ["p/TypeComments.java", 25, "invokevirtual", "p.Other", "m", "()V", "p.TypeComments.h:(Ljava/util/List;Lp/Item;Lp/Other;)V", 53],
+  ["p/TypeComments.java", 26, "invokevirtual", "p.Item", "m", "()V", "p.TypeComments.h:(Ljava/util/List;Lp/Item;Lp/Other;)V", 57],
+  ["p/TypeComments.java", 27, "invokevirtual", "p.Item", "m", "()V", "p.TypeComments.h:(Ljava/util/List;Lp/Item;Lp/Other;)V", 61]
+ ],
+ "classes": {
+  "p.Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Other": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Sink": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["put", "(Ljava/lang/String;)V", 0], ["put", "(Ljava/util/List;)V", 0], ["put", "(Ljava/util/Map$Entry;)V", 0], ["put", "([Lp/Item;)V", 128]], "bridges": [], "compiler": []},
+  "p.TypeComments": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Ljava/util/List;Lp/Item;Lp/Other;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

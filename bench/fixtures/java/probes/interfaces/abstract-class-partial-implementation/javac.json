@@ -1,0 +1,20 @@
+{
+ "invokes": [
+  ["p/Partial.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Partial.<init>:()V", 1],
+  ["p/Partial.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Partial$Base.<init>:()V", 1],
+  ["p/Partial.java", 6, "invokevirtual", "p.Partial$Base", "get", "(Ljava/lang/String;)Ljava/lang/String;", "p.Partial$Base.put:(Ljava/lang/String;)V", 2],
+  ["p/Partial.java", 8, "invokespecial", "p.Partial$Base", "<init>", "()V", "p.Partial$Impl.<init>:()V", 1],
+  ["p/Partial.java", 11, "invokespecial", "p.Partial$Base", "<init>", "()V", "p.Partial$Other.<init>:()V", 1],
+  ["p/Partial.java", 16, "invokeinterface", "p.Partial$Store", "put", "(Ljava/lang/String;)V", "p.Partial.use:(Lp/Partial$Store;Lp/Partial$Base;Lp/Partial$Impl;)V", 3],
+  ["p/Partial.java", 17, "invokeinterface", "p.Partial$Store", "get", "(Ljava/lang/String;)Ljava/lang/String;", "p.Partial.use:(Lp/Partial$Store;Lp/Partial$Base;Lp/Partial$Impl;)V", 11],
+  ["p/Partial.java", 18, "invokevirtual", "p.Partial$Base", "put", "(Ljava/lang/String;)V", "p.Partial.use:(Lp/Partial$Store;Lp/Partial$Base;Lp/Partial$Impl;)V", 20],
+  ["p/Partial.java", 19, "invokevirtual", "p.Partial$Impl", "put", "(Ljava/lang/String;)V", "p.Partial.use:(Lp/Partial$Store;Lp/Partial$Base;Lp/Partial$Impl;)V", 26]
+ ],
+ "classes": {
+  "p.Partial": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Partial$Store;Lp/Partial$Base;Lp/Partial$Impl;)V", 0]], "bridges": [], "compiler": []},
+  "p.Partial$Base": {"supers": ["java.lang.Object", "p.Partial$Store"], "methods": [["<init>", "()V", 0], ["put", "(Ljava/lang/String;)V", 1]], "bridges": [], "compiler": []},
+  "p.Partial$Impl": {"supers": ["java.lang.Object", "p.Partial$Base", "p.Partial$Store"], "methods": [["<init>", "()V", 0], ["get", "(Ljava/lang/String;)Ljava/lang/String;", 1]], "bridges": [], "compiler": []},
+  "p.Partial$Other": {"supers": ["java.lang.Object", "p.Partial$Base", "p.Partial$Store"], "methods": [["<init>", "()V", 0], ["get", "(Ljava/lang/String;)Ljava/lang/String;", 1], ["put", "(Ljava/lang/String;)V", 1]], "bridges": [], "compiler": []},
+  "p.Partial$Store": {"supers": ["java.lang.Object"], "methods": [["get", "(Ljava/lang/String;)Ljava/lang/String;", 1025], ["put", "(Ljava/lang/String;)V", 1025]], "bridges": [], "compiler": []}
+ }
+}

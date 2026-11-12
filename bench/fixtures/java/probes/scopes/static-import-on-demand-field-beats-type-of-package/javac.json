@@ -1,0 +1,16 @@
+{
+ "invokes": [
+  ["p/OnDemand.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Item.<init>:()V", 1],
+  ["p/OnDemand.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Other.<init>:()V", 1],
+  ["p/OnDemand.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Consts.<init>:()V", 1],
+  ["p/OnDemand.java", 8, "invokespecial", "p.Other", "<init>", "()V", "p.Consts.<clinit>:()V", 4],
+  ["p/OnDemand.java", 10, "invokespecial", "java.lang.Object", "<init>", "()V", "p.OnDemand.<init>:()V", 1],
+  ["p/OnDemand.java", 12, "invokestatic", "p.Other", "m", "()V", "p.OnDemand.h:()V", 4]
+ ],
+ "classes": {
+  "p.Consts": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 8]], "bridges": [], "compiler": []},
+  "p.OnDemand": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Other": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 8]], "bridges": [], "compiler": []}
+ }
+}

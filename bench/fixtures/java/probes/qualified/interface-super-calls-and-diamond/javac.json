@@ -1,0 +1,23 @@
+{
+ "invokes": [
+  ["p/Diamond.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Diamond.<init>:()V", 1],
+  ["p/Diamond.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Diamond$K.<init>:()V", 1],
+  ["p/Diamond.java", 8, "invokespecial", "p.Diamond$B", "name", "()Ljava/lang/String;", "p.Diamond$K.name:()Ljava/lang/String;", 1],
+  ["p/Diamond.java", 10, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Diamond$L.<init>:()V", 1],
+  ["p/Diamond.java", 12, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Diamond$M.<init>:()V", 1],
+  ["p/Diamond.java", 15, "invokevirtual", "p.Diamond$K", "name", "()Ljava/lang/String;", "p.Diamond.use:(Lp/Diamond$K;Lp/Diamond$L;Lp/Diamond$M;Lp/Diamond$A;Lp/Diamond$B;)V", 1],
+  ["p/Diamond.java", 16, "invokevirtual", "p.Diamond$L", "name", "()Ljava/lang/String;", "p.Diamond.use:(Lp/Diamond$K;Lp/Diamond$L;Lp/Diamond$M;Lp/Diamond$A;Lp/Diamond$B;)V", 6],
+  ["p/Diamond.java", 17, "invokevirtual", "p.Diamond$M", "name", "()Ljava/lang/String;", "p.Diamond.use:(Lp/Diamond$K;Lp/Diamond$L;Lp/Diamond$M;Lp/Diamond$A;Lp/Diamond$B;)V", 11],
+  ["p/Diamond.java", 18, "invokeinterface", "p.Diamond$A", "name", "()Ljava/lang/String;", "p.Diamond.use:(Lp/Diamond$K;Lp/Diamond$L;Lp/Diamond$M;Lp/Diamond$A;Lp/Diamond$B;)V", 17],
+  ["p/Diamond.java", 19, "invokeinterface", "p.Diamond$B", "name", "()Ljava/lang/String;", "p.Diamond.use:(Lp/Diamond$K;Lp/Diamond$L;Lp/Diamond$M;Lp/Diamond$A;Lp/Diamond$B;)V", 25]
+ ],
+ "classes": {
+  "p.Diamond": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Diamond$K;Lp/Diamond$L;Lp/Diamond$M;Lp/Diamond$A;Lp/Diamond$B;)V", 0]], "bridges": [], "compiler": []},
+  "p.Diamond$A": {"supers": ["java.lang.Object"], "methods": [["name", "()Ljava/lang/String;", 1]], "bridges": [], "compiler": []},
+  "p.Diamond$B": {"supers": ["java.lang.Object", "p.Diamond$A"], "methods": [["name", "()Ljava/lang/String;", 1]], "bridges": [], "compiler": []},
+  "p.Diamond$C": {"supers": ["java.lang.Object", "p.Diamond$A"], "methods": [], "bridges": [], "compiler": []},
+  "p.Diamond$K": {"supers": ["java.lang.Object", "p.Diamond$A", "p.Diamond$B"], "methods": [["<init>", "()V", 0], ["name", "()Ljava/lang/String;", 1]], "bridges": [], "compiler": []},
+  "p.Diamond$L": {"supers": ["java.lang.Object", "p.Diamond$A", "p.Diamond$C"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Diamond$M": {"supers": ["java.lang.Object", "p.Diamond$A", "p.Diamond$B"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

@@ -1,0 +1,24 @@
+{
+ "invokes": [
+  ["p/Locals.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Locals.<init>:()V", 1],
+  ["p/Locals.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Locals$Inner.<init>:(Lp/Locals;Ljava/lang/String;)V", 1],
+  ["p/Locals.java", 9, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Locals$Nested.<init>:(I)V", 1],
+  ["p/Locals.java", 13, "invokespecial", "p.Locals$Inner", "<init>", "(Lp/Locals;Ljava/lang/String;)V", "p.Locals.f:(Lp/Locals;)V", 7],
+  ["p/Locals.java", 14, "invokespecial", "p.Locals$Inner", "<init>", "(Lp/Locals;Ljava/lang/String;)V", "p.Locals.f:(Lp/Locals;)V", 23],
+  ["p/Locals.java", 14, "invokestatic", "java.util.Objects", "requireNonNull", "(Ljava/lang/Object;)Ljava/lang/Object;", "p.Locals.f:(Lp/Locals;)V", 17],
+  ["p/Locals.java", 15, "invokespecial", "p.Locals$Inner", "<init>", "(Lp/Locals;Ljava/lang/String;)V", "p.Locals.f:(Lp/Locals;)V", 34],
+  ["p/Locals.java", 16, "invokevirtual", "p.Locals$Inner", "go", "()V", "p.Locals.f:(Lp/Locals;)V", 40],
+  ["p/Locals.java", 17, "invokevirtual", "p.Locals$Inner", "go", "()V", "p.Locals.f:(Lp/Locals;)V", 44],
+  ["p/Locals.java", 19, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Locals$1Local.<init>:(Lp/Locals;J)V", 1],
+  ["p/Locals.java", 22, "invokespecial", "p.Locals$1Local", "<init>", "(Lp/Locals;J)V", "p.Locals.f:(Lp/Locals;)V", 53],
+  ["p/Locals.java", 23, "invokevirtual", "p.Locals$1Local", "go", "()V", "p.Locals.f:(Lp/Locals;)V", 60],
+  ["p/Locals.java", 24, "invokespecial", "p.Locals$Nested", "<init>", "(I)V", "p.Locals.f:(Lp/Locals;)V", 68],
+  ["p/Locals.java", 25, "invokevirtual", "p.Locals$Nested", "go", "()V", "p.Locals.f:(Lp/Locals;)V", 75]
+ ],
+ "classes": {
+  "p.Locals": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Lp/Locals;)V", 0]], "bridges": [], "compiler": []},
+  "p.Locals$1Local": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/Locals;J)V", 0], ["go", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Locals$Inner": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/Locals;Ljava/lang/String;)V", 0], ["go", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Locals$Nested": {"supers": ["java.lang.Object"], "methods": [["<init>", "(I)V", 0], ["go", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

@@ -1,0 +1,17 @@
+{
+ "invokes": [
+  ["p/Annotated.java", 12, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Util.<init>:(Ljava/lang/Class;[Ljava/lang/Class;)V", 1],
+  ["p/Annotated.java", 13, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Util.<init>:(Ljava/lang/String;)V", 1],
+  ["p/Annotated.java", 16, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Annotated.<init>:()V", 1],
+  ["p/Annotated.java", 18, "invokespecial", "p.Util", "<init>", "(Ljava/lang/Class;[Ljava/lang/Class;)V", "p.Annotated.h:(Ljava/lang/Class;)Ljava/lang/String;", 14],
+  ["p/Annotated.java", 19, "invokespecial", "p.Util", "<init>", "(Ljava/lang/String;)V", "p.Annotated.h:(Ljava/lang/Class;)Ljava/lang/String;", 24],
+  ["p/Annotated.java", 20, "invokestatic", "p.Util", "name", "(Ljava/lang/Class;Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/String;", "p.Annotated.h:(Ljava/lang/Class;)Ljava/lang/String;", 35],
+  ["p/Annotated.java", 20, "invokestatic", "p.Util", "name", "(Ljava/lang/Class;Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/String;", "p.Annotated.h:(Ljava/lang/Class;)Ljava/lang/String;", 50],
+  ["p/Annotated.java", 20, "invokestatic", "p.Util", "name", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", "p.Annotated.h:(Ljava/lang/Class;)Ljava/lang/String;", 59]
+ ],
+ "classes": {
+  "p.Annotated": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Ljava/lang/Class;)Ljava/lang/String;", 0]], "bridges": [], "compiler": []},
+  "p.Nullable": {"supers": ["java.lang.Object", "java.lang.annotation.Annotation"], "methods": [], "bridges": [], "compiler": []},
+  "p.Util": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Ljava/lang/Class;[Ljava/lang/Class;)V", 128], ["<init>", "(Ljava/lang/String;)V", 0], ["name", "(Ljava/lang/Class;Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/String;", 136], ["name", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", 8]], "bridges": [], "compiler": []}
+ }
+}

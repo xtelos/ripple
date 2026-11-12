@@ -1,0 +1,20 @@
+{
+ "invokes": [
+  ["p/Wild.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Item.<init>:()V", 1],
+  ["p/Wild.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Sink.<init>:()V", 1],
+  ["p/Wild.java", 16, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Wild.<init>:()V", 1],
+  ["p/Wild.java", 18, "invokevirtual", "p.Sink", "m", "(Ljava/util/List;)V", "p.Wild.h:(Lp/Sink;Ljava/util/List;[Lp/Item;[Ljava/lang/String;)V", 2],
+  ["p/Wild.java", 19, "invokevirtual", "p.Sink", "m", "(Ljava/lang/String;)V", "p.Wild.h:(Lp/Sink;Ljava/util/List;[Lp/Item;[Ljava/lang/String;)V", 8],
+  ["p/Wild.java", 20, "invokevirtual", "p.Sink", "m", "([Lp/Item;)V", "p.Wild.h:(Lp/Sink;Ljava/util/List;[Lp/Item;[Ljava/lang/String;)V", 13],
+  ["p/Wild.java", 21, "invokevirtual", "p.Sink", "m", "([Ljava/lang/String;I)V", "p.Wild.h:(Lp/Sink;Ljava/util/List;[Lp/Item;[Ljava/lang/String;)V", 20],
+  ["p/Wild.java", 22, "invokevirtual", "p.Sink", "m", "([Ljava/lang/Object;I)V", "p.Wild.h:(Lp/Sink;Ljava/util/List;[Lp/Item;[Ljava/lang/String;)V", 26],
+  ["p/Wild.java", 23, "invokevirtual", "p.Sink", "n", "(Ljava/util/List;)V", "p.Wild.h:(Lp/Sink;Ljava/util/List;[Lp/Item;[Ljava/lang/String;)V", 31],
+  ["p/Wild.java", 24, "invokespecial", "p.Item", "<init>", "()V", "p.Wild.h:(Lp/Sink;Ljava/util/List;[Lp/Item;[Ljava/lang/String;)V", 39],
+  ["p/Wild.java", 24, "invokevirtual", "p.Sink", "n", "(Lp/Item;)V", "p.Wild.h:(Lp/Sink;Ljava/util/List;[Lp/Item;[Ljava/lang/String;)V", 42]
+ ],
+ "classes": {
+  "p.Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Sink": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "(Ljava/lang/String;)V", 0], ["m", "(Ljava/util/List;)V", 0], ["m", "([Ljava/lang/Object;I)V", 0], ["m", "([Ljava/lang/String;I)V", 0], ["m", "([Lp/Item;)V", 0], ["n", "(Ljava/util/List;)V", 0], ["n", "(Lp/Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.Wild": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Lp/Sink;Ljava/util/List;[Lp/Item;[Ljava/lang/String;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

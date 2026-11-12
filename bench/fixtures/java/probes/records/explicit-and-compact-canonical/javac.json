@@ -1,0 +1,27 @@
+{
+ "invokes": [
+  ["p/Canon.java", 4, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Explicit.<init>:(II)V", 1],
+  ["p/Canon.java", 5, "invokespecial", "p.Explicit", "<init>", "(II)V", "p.Explicit.<init>:(I)V", 3],
+  ["p/Canon.java", 8, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Compact.<init>:(ILjava/lang/String;)V", 1],
+  ["p/Canon.java", 9, "invokespecial", "java.lang.IllegalArgumentException", "<init>", "(Ljava/lang/String;)V", "p.Compact.<init>:(ILjava/lang/String;)V", 13],
+  ["p/Canon.java", 11, "invokespecial", "p.Compact", "<init>", "(ILjava/lang/String;)V", "p.Compact.<init>:(Ljava/lang/String;)V", 3],
+  ["p/Canon.java", 13, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Plain.<init>:(I)V", 1],
+  ["p/Canon.java", 14, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Empty.<init>:()V", 1],
+  ["p/Canon.java", 15, "invokespecial", "p.Empty", "<init>", "()V", "p.Empty.<init>:(I)V", 1],
+  ["p/Canon.java", 18, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Canon.<init>:()V", 1],
+  ["p/Canon.java", 20, "invokespecial", "p.Explicit", "<init>", "(II)V", "p.Canon.h:()V", 6],
+  ["p/Canon.java", 21, "invokespecial", "p.Explicit", "<init>", "(I)V", "p.Canon.h:()V", 15],
+  ["p/Canon.java", 22, "invokespecial", "p.Compact", "<init>", "(ILjava/lang/String;)V", "p.Canon.h:()V", 26],
+  ["p/Canon.java", 23, "invokespecial", "p.Compact", "<init>", "(Ljava/lang/String;)V", "p.Canon.h:()V", 36],
+  ["p/Canon.java", 24, "invokespecial", "p.Plain", "<init>", "(I)V", "p.Canon.h:()V", 45],
+  ["p/Canon.java", 25, "invokespecial", "p.Empty", "<init>", "()V", "p.Canon.h:()V", 53],
+  ["p/Canon.java", 26, "invokespecial", "p.Empty", "<init>", "(I)V", "p.Canon.h:()V", 62]
+ ],
+ "classes": {
+  "p.Canon": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Compact": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "(ILjava/lang/String;)V", 0], ["<init>", "(Ljava/lang/String;)V", 0]], "bridges": [], "compiler": [["a", "()I", 1], ["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["s", "()Ljava/lang/String;", 1], ["toString", "()Ljava/lang/String;", 17]]},
+  "p.Empty": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "()V", 0], ["<init>", "(I)V", 0]], "bridges": [], "compiler": [["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["toString", "()Ljava/lang/String;", 17]]},
+  "p.Explicit": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "(I)V", 0], ["<init>", "(II)V", 0]], "bridges": [], "compiler": [["a", "()I", 1], ["b", "()I", 1], ["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["toString", "()Ljava/lang/String;", 17]]},
+  "p.Plain": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "(I)V", 0]], "bridges": [], "compiler": [["a", "()I", 1], ["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["toString", "()Ljava/lang/String;", 17]]}
+ }
+}

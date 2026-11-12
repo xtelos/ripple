@@ -1,0 +1,14 @@
+{
+ "invokes": [
+  ["p/Varargs.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Varargs.<init>:()V", 1],
+  ["p/Varargs.java", 10, "invokevirtual", "p.Varargs", "v", "([Ljava/lang/String;)V", "p.Varargs.h:()V", 10],
+  ["p/Varargs.java", 11, "invokevirtual", "p.Varargs", "v", "(I[Ljava/lang/String;)V", "p.Varargs.h:()V", 24],
+  ["p/Varargs.java", 12, "invokevirtual", "p.Varargs", "v", "([Ljava/lang/String;)V", "p.Varargs.h:()V", 32],
+  ["p/Varargs.java", 13, "invokevirtual", "p.Varargs", "w", "(I)V", "p.Varargs.h:()V", 37],
+  ["p/Varargs.java", 14, "invokevirtual", "p.Varargs", "w", "(II)V", "p.Varargs.h:()V", 43],
+  ["p/Varargs.java", 15, "invokevirtual", "p.Varargs", "w", "([I)V", "p.Varargs.h:()V", 62]
+ ],
+ "classes": {
+  "p.Varargs": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "()V", 0], ["v", "(I[Ljava/lang/String;)V", 128], ["v", "([Ljava/lang/String;)V", 128], ["w", "(I)V", 0], ["w", "(II)V", 0], ["w", "([I)V", 128]], "bridges": [], "compiler": []}
+ }
+}

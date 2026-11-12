@@ -1,0 +1,20 @@
+{
+ "invokes": [
+  ["p/Bounded.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Bounded.<init>:()V", 1],
+  ["p/Bounded.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Bounded$Item.<init>:()V", 1],
+  ["p/Bounded.java", 7, "invokespecial", "p.Bounded$Item", "<init>", "()V", "p.Bounded$Special.<init>:()V", 1],
+  ["p/Bounded.java", 9, "invokevirtual", "p.Bounded$Item", "add", "(I)V", "p.Bounded.f:(Lp/Bounded$Item;Ljava/util/List;)V", 2],
+  ["p/Bounded.java", 10, "invokeinterface", "java.util.List", "get", "(I)Ljava/lang/Object;", "p.Bounded.f:(Lp/Bounded$Item;Ljava/util/List;)V", 7],
+  ["p/Bounded.java", 10, "invokevirtual", "p.Bounded$Item", "add", "(I)V", "p.Bounded.f:(Lp/Bounded$Item;Ljava/util/List;)V", 16],
+  ["p/Bounded.java", 13, "invokevirtual", "p.Bounded$Special", "extra", "()V", "p.Bounded.g:(Lp/Bounded$Special;)V", 1],
+  ["p/Bounded.java", 14, "invokevirtual", "p.Bounded$Special", "add", "(I)V", "p.Bounded.g:(Lp/Bounded$Special;)V", 6],
+  ["p/Bounded.java", 15, "invokeinterface", "java.lang.Comparable", "compareTo", "(Ljava/lang/Object;)I", "p.Bounded.g:(Lp/Bounded$Special;)V", 14],
+  ["p/Bounded.java", 18, "invokevirtual", "java.lang.Object", "toString", "()Ljava/lang/String;", "p.Bounded.h:(Ljava/lang/Object;)V", 1],
+  ["p/Bounded.java", 19, "invokevirtual", "java.lang.Object", "hashCode", "()I", "p.Bounded.h:(Ljava/lang/Object;)V", 6]
+ ],
+ "classes": {
+  "p.Bounded": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Lp/Bounded$Item;Ljava/util/List;)V", 8], ["g", "(Lp/Bounded$Special;)V", 8], ["h", "(Ljava/lang/Object;)V", 0]], "bridges": [], "compiler": []},
+  "p.Bounded$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.Bounded$Special": {"supers": ["java.lang.Object", "p.Bounded$Item"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0], ["extra", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

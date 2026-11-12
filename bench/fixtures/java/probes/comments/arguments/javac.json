@@ -1,0 +1,20 @@
+{
+ "invokes": [
+  ["p/ArgComments.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Box.<init>:(I)V", 1],
+  ["p/ArgComments.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Box.<init>:(II)V", 1],
+  ["p/ArgComments.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.ArgComments.<init>:()V", 1],
+  ["p/ArgComments.java", 14, "invokevirtual", "p.ArgComments", "f", "(I)V", "p.ArgComments.h:()V", 2],
+  ["p/ArgComments.java", 15, "invokevirtual", "p.ArgComments", "f", "(I)V", "p.ArgComments.h:()V", 7],
+  ["p/ArgComments.java", 16, "invokevirtual", "p.ArgComments", "f", "(II)V", "p.ArgComments.h:()V", 13],
+  ["p/ArgComments.java", 18, "invokevirtual", "p.ArgComments", "f", "(I)V", "p.ArgComments.h:()V", 18],
+  ["p/ArgComments.java", 19, "invokespecial", "p.Box", "<init>", "(I)V", "p.ArgComments.h:()V", 26],
+  ["p/ArgComments.java", 20, "invokespecial", "p.Box", "<init>", "(II)V", "p.ArgComments.h:()V", 36],
+  ["p/ArgComments.java", 21, "invokevirtual", "p.ArgComments", "g", "(Ljava/lang/String;)V", "p.ArgComments.h:()V", 43],
+  ["p/ArgComments.java", 22, "invokevirtual", "p.ArgComments", "g", "(Ljava/lang/String;Ljava/lang/String;)V", "p.ArgComments.h:()V", 51],
+  ["p/ArgComments.java", 23, "invokevirtual", "p.ArgComments", "f", "(I)V", "p.ArgComments.h:()V", 57]
+ ],
+ "classes": {
+  "p.ArgComments": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(I)V", 0], ["f", "(II)V", 0], ["g", "(Ljava/lang/String;)V", 0], ["g", "(Ljava/lang/String;Ljava/lang/String;)V", 0], ["h", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Box": {"supers": ["java.lang.Object"], "methods": [["<init>", "(I)V", 0], ["<init>", "(II)V", 0]], "bridges": [], "compiler": []}
+ }
+}

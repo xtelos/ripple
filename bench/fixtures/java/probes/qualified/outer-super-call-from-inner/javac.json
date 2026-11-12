@@ -1,0 +1,18 @@
+{
+ "invokes": [
+  ["p/SBase.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.SBase.<init>:()V", 1],
+  ["p/SOuter.java", 3, "invokespecial", "p.SBase", "<init>", "()V", "p.SOuter.<init>:()V", 1],
+  ["p/SOuter.java", 3, "invokespecial", "p.SBase", "m", "()V", "p.SOuter.access$001:(Lp/SOuter;)V", 1],
+  ["p/SOuter.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.SOuter$Inner.<init>:(Lp/SOuter;)V", 6],
+  ["p/SOuter.java", 7, "invokespecial", "p.SBase", "m", "()V", "p.SOuter$Inner.f:()V", 4],
+  ["p/SOuter.java", 8, "invokevirtual", "p.SOuter", "m", "()V", "p.SOuter$Inner.f:()V", 11],
+  ["p/SOuter.java", 9, "invokevirtual", "p.SOuter", "m", "()V", "p.SOuter$Inner.f:()V", 18],
+  ["p/SOuter.java", 13, "invokespecial", "p.SBase", "m", "()V", "p.SOuter.g:()V", 1],
+  ["p/SOuter.java", 14, "invokevirtual", "p.SOuter", "m", "()V", "p.SOuter.g:()V", 5]
+ ],
+ "classes": {
+  "p.SBase": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["m", "()V", 0]], "bridges": [], "compiler": []},
+  "p.SOuter": {"supers": ["java.lang.Object", "p.SBase"], "methods": [["<init>", "()V", 1], ["g", "()V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []},
+  "p.SOuter$Inner": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/SOuter;)V", 0], ["f", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

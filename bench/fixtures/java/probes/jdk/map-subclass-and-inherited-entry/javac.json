@@ -1,0 +1,18 @@
+{
+ "invokes": [
+  ["p/Entry.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Entry.<init>:()V", 1],
+  ["p/MyMap.java", 7, "invokespecial", "java.util.AbstractMap", "<init>", "()V", "p.MyMap.<init>:()V", 1],
+  ["p/MyMap.java", 10, "invokeinterface", "java.util.Map$Entry", "getKey", "()Ljava/lang/Object;", "p.MyMap.f:(Ljava/util/Map$Entry;Ljava/util/Map$Entry;)V", 1],
+  ["p/MyMap.java", 11, "invokeinterface", "java.util.Map$Entry", "getKey", "()Ljava/lang/Object;", "p.MyMap.f:(Ljava/util/Map$Entry;Ljava/util/Map$Entry;)V", 8],
+  ["p/MyMap.java", 13, "invokespecial", "java.lang.Object", "<init>", "()V", "p.MyMap$Nested.<init>:()V", 1],
+  ["p/MyMap.java", 15, "invokeinterface", "java.util.Map$Entry", "getKey", "()Ljava/lang/Object;", "p.MyMap$Nested.g:(Ljava/util/Map$Entry;)V", 1],
+  ["p/Plain.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Plain.<init>:()V", 1],
+  ["p/Plain.java", 5, "invokevirtual", "p.Entry", "getKey", "()Ljava/lang/Object;", "p.Plain.f:(Lp/Entry;)V", 1]
+ ],
+ "classes": {
+  "p.Entry": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["getKey", "()Ljava/lang/Object;", 0]], "bridges": [], "compiler": []},
+  "p.MyMap": {"supers": ["java.lang.Object", "java.util.AbstractMap", "java.util.Map"], "methods": [["<init>", "()V", 1], ["entrySet", "()Ljava/util/Set;", 1], ["f", "(Ljava/util/Map$Entry;Ljava/util/Map$Entry;)V", 0]], "bridges": [], "compiler": []},
+  "p.MyMap$Nested": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["g", "(Ljava/util/Map$Entry;)V", 0]], "bridges": [], "compiler": []},
+  "p.Plain": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Lp/Entry;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

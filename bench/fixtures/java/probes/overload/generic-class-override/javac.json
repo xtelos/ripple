@@ -1,0 +1,21 @@
+{
+ "invokes": [
+  ["p/BoxOverride.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.BoxOverride.<init>:()V", 1],
+  ["p/BoxOverride.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.BoxOverride$Box.<init>:()V", 1],
+  ["p/BoxOverride.java", 8, "invokespecial", "p.BoxOverride$Box", "<init>", "()V", "p.BoxOverride$StrBox.<init>:()V", 1],
+  ["p/BoxOverride.java", 8, "invokevirtual", "p.BoxOverride$StrBox", "put", "(Ljava/lang/String;)V", "p.BoxOverride$StrBox.put:(Ljava/lang/Object;)V", 5],
+  ["p/BoxOverride.java", 12, "invokevirtual", "p.BoxOverride$Box", "put", "(Ljava/lang/Object;)V", "p.BoxOverride.use:(Lp/BoxOverride$Box;Lp/BoxOverride$StrBox;Lp/BoxOverride$Box;)V", 3],
+  ["p/BoxOverride.java", 13, "invokevirtual", "p.BoxOverride$StrBox", "put", "(Ljava/lang/String;)V", "p.BoxOverride.use:(Lp/BoxOverride$Box;Lp/BoxOverride$StrBox;Lp/BoxOverride$Box;)V", 9],
+  ["p/BoxOverride.java", 14, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.BoxOverride.use:(Lp/BoxOverride$Box;Lp/BoxOverride$StrBox;Lp/BoxOverride$Box;)V", 14],
+  ["p/BoxOverride.java", 14, "invokevirtual", "p.BoxOverride$Box", "put", "(Ljava/lang/Object;)V", "p.BoxOverride.use:(Lp/BoxOverride$Box;Lp/BoxOverride$StrBox;Lp/BoxOverride$Box;)V", 17],
+  ["p/BoxOverride.java", 15, "invokevirtual", "java.lang.String", "length", "()I", "p.BoxOverride.use:(Lp/BoxOverride$Box;Lp/BoxOverride$StrBox;Lp/BoxOverride$Box;)V", 27],
+  ["p/BoxOverride.java", 15, "invokevirtual", "p.BoxOverride$Box", "get", "()Ljava/lang/Object;", "p.BoxOverride.use:(Lp/BoxOverride$Box;Lp/BoxOverride$StrBox;Lp/BoxOverride$Box;)V", 21],
+  ["p/BoxOverride.java", 16, "invokevirtual", "java.lang.String", "length", "()I", "p.BoxOverride.use:(Lp/BoxOverride$Box;Lp/BoxOverride$StrBox;Lp/BoxOverride$Box;)V", 38],
+  ["p/BoxOverride.java", 16, "invokevirtual", "p.BoxOverride$StrBox", "get", "()Ljava/lang/Object;", "p.BoxOverride.use:(Lp/BoxOverride$Box;Lp/BoxOverride$StrBox;Lp/BoxOverride$Box;)V", 32]
+ ],
+ "classes": {
+  "p.BoxOverride": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/BoxOverride$Box;Lp/BoxOverride$StrBox;Lp/BoxOverride$Box;)V", 0]], "bridges": [], "compiler": []},
+  "p.BoxOverride$Box": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["get", "()Ljava/lang/Object;", 0], ["put", "(Ljava/lang/Object;)V", 0]], "bridges": [], "compiler": []},
+  "p.BoxOverride$StrBox": {"supers": ["java.lang.Object", "p.BoxOverride$Box"], "methods": [["<init>", "()V", 0], ["put", "(Ljava/lang/String;)V", 0]], "bridges": [["put", "(Ljava/lang/Object;)V", "(Ljava/lang/String;)V"]], "compiler": []}
+ }
+}

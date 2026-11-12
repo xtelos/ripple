@@ -1,0 +1,15 @@
+{
+ "invokes": [
+  ["p/Runs.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Runs.<init>:()V", 1],
+  ["p/Runs.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Runs$Impl.<init>:()V", 1],
+  ["p/Runs.java", 12, "invokeinterface", "p.Runs$Task", "run", "()V", "p.Runs.use:(Lp/Runs$Task;Lp/Runs$Impl;Ljava/lang/Runnable;)V", 1],
+  ["p/Runs.java", 13, "invokeinterface", "p.Runs$Task", "extra", "()V", "p.Runs.use:(Lp/Runs$Task;Lp/Runs$Impl;Ljava/lang/Runnable;)V", 7],
+  ["p/Runs.java", 14, "invokevirtual", "p.Runs$Impl", "run", "()V", "p.Runs.use:(Lp/Runs$Task;Lp/Runs$Impl;Ljava/lang/Runnable;)V", 13],
+  ["p/Runs.java", 15, "invokeinterface", "java.lang.Runnable", "run", "()V", "p.Runs.use:(Lp/Runs$Task;Lp/Runs$Impl;Ljava/lang/Runnable;)V", 17]
+ ],
+ "classes": {
+  "p.Runs": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Runs$Task;Lp/Runs$Impl;Ljava/lang/Runnable;)V", 0]], "bridges": [], "compiler": []},
+  "p.Runs$Impl": {"supers": ["java.lang.Object", "java.lang.Runnable", "p.Runs$Task"], "methods": [["<init>", "()V", 0], ["extra", "()V", 1], ["run", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Runs$Task": {"supers": ["java.lang.Object", "java.lang.Runnable"], "methods": [["extra", "()V", 1025]], "bridges": [], "compiler": []}
+ }
+}

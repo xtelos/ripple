@@ -1,0 +1,19 @@
+{
+ "invokes": [
+  ["p/FieldPriv.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.FieldPriv.<init>:()V", 1],
+  ["p/FieldPriv.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.FieldPriv$Money.<init>:()V", 1],
+  ["p/FieldPriv.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.FieldPriv$Item.<init>:()V", 1],
+  ["p/FieldPriv.java", 6, "invokespecial", "p.FieldPriv$Money", "<init>", "()V", "p.FieldPriv.<init>:()V", 9],
+  ["p/FieldPriv.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.FieldPriv$A.<init>:()V", 1],
+  ["p/FieldPriv.java", 7, "invokespecial", "p.FieldPriv$Item", "<init>", "()V", "p.FieldPriv$A.<init>:()V", 9],
+  ["p/FieldPriv.java", 8, "invokespecial", "p.FieldPriv$A", "<init>", "()V", "p.FieldPriv$B.<init>:(Lp/FieldPriv;)V", 6],
+  ["p/FieldPriv.java", 10, "invokevirtual", "p.FieldPriv$Money", "add", "(I)V", "p.FieldPriv$B.f:()V", 8]
+ ],
+ "classes": {
+  "p.FieldPriv": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1]], "bridges": [], "compiler": []},
+  "p.FieldPriv$A": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.FieldPriv$B": {"supers": ["java.lang.Object", "p.FieldPriv$A"], "methods": [["<init>", "(Lp/FieldPriv;)V", 0], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.FieldPriv$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.FieldPriv$Money": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []}
+ }
+}

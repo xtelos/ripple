@@ -1,0 +1,22 @@
+{
+ "invokes": [
+  ["p/Args.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Args.<init>:()V", 1],
+  ["p/Args.java", 12, "invokevirtual", "p.Args", "f", "(Ljava/lang/String;)V", "p.Args.use:(ZLjava/lang/String;)V", 5],
+  ["p/Args.java", 12, "invokevirtual", "p.Args", "name", "()Ljava/lang/String;", "p.Args.use:(ZLjava/lang/String;)V", 2],
+  ["p/Args.java", 13, "invokevirtual", "p.Args", "any", "()Ljava/lang/Object;", "p.Args.use:(ZLjava/lang/String;)V", 10],
+  ["p/Args.java", 13, "invokevirtual", "p.Args", "f", "(Ljava/lang/Object;)V", "p.Args.use:(ZLjava/lang/String;)V", 13],
+  ["p/Args.java", 14, "invokevirtual", "p.Args", "f", "(Ljava/lang/String;)V", "p.Args.use:(ZLjava/lang/String;)V", 28],
+  ["p/Args.java", 15, "invokevirtual", "p.Args", "f", "(Ljava/lang/String;)V", "p.Args.use:(ZLjava/lang/String;)V", 38],
+  ["p/Args.java", 16, "invokevirtual", "p.Args", "f", "(Ljava/lang/String;)V", "p.Args.use:(ZLjava/lang/String;)V", 55],
+  ["p/Args.java", 16, "invokevirtual", "p.Args", "name", "()Ljava/lang/String;", "p.Args.use:(ZLjava/lang/String;)V", 43],
+  ["p/Args.java", 16, "invokevirtual", "p.Args", "name", "()Ljava/lang/String;", "p.Args.use:(ZLjava/lang/String;)V", 47],
+  ["p/Args.java", 17, "invokevirtual", "p.Args", "count", "()I", "p.Args.use:(ZLjava/lang/String;)V", 60],
+  ["p/Args.java", 17, "invokevirtual", "p.Args", "count", "(I)V", "p.Args.use:(ZLjava/lang/String;)V", 63],
+  ["p/Args.java", 18, "invokevirtual", "p.Args", "count", "(Ljava/lang/String;)V", "p.Args.use:(ZLjava/lang/String;)V", 71],
+  ["p/Args.java", 18, "invokevirtual", "p.Args", "name", "()Ljava/lang/String;", "p.Args.use:(ZLjava/lang/String;)V", 68],
+  ["p/Args.java", 19, "invokevirtual", "p.Args", "f", "(Ljava/lang/Object;)V", "p.Args.use:(ZLjava/lang/String;)V", 76]
+ ],
+ "classes": {
+  "p.Args": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["any", "()Ljava/lang/Object;", 0], ["count", "()I", 0], ["count", "(I)V", 0], ["count", "(Ljava/lang/String;)V", 0], ["f", "(Ljava/lang/Object;)V", 0], ["f", "(Ljava/lang/String;)V", 0], ["name", "()Ljava/lang/String;", 0], ["use", "(ZLjava/lang/String;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

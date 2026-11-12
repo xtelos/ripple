@@ -1,0 +1,40 @@
+{
+ "invokes": [
+  ["p/K10.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.SG.<init>:()V", 1],
+  ["p/K10.java", 6, "invokespecial", "p.SG", "<init>", "()V", "p.SB.<init>:()V", 1],
+  ["p/K10.java", 7, "invokespecial", "p.SB", "<init>", "()V", "p.SO.<init>:()V", 1],
+  ["p/K10.java", 7, "invokespecial", "p.SB", "k", "()V", "p.SO.access$101:(Lp/SO;)V", 1],
+  ["p/K10.java", 7, "invokespecial", "p.SB", "k", "(Ljava/lang/String;)V", "p.SO.access$201:(Lp/SO;Ljava/lang/String;)V", 2],
+  ["p/K10.java", 7, "invokespecial", "p.SB", "k", "(Ljava/lang/String;)V", "p.SO.access$401:(Lp/SO;Ljava/lang/String;)V", 2],
+  ["p/K10.java", 7, "invokespecial", "p.SB", "m", "()V", "p.SO.access$001:(Lp/SO;)V", 1],
+  ["p/K10.java", 7, "invokespecial", "p.SB", "m", "()V", "p.SO.access$301:(Lp/SO;)V", 1],
+  ["p/K10.java", 7, "invokespecial", "p.SB", "m", "()V", "p.SO.access$501:(Lp/SO;)V", 1],
+  ["p/K10.java", 10, "invokespecial", "p.SG", "<init>", "()V", "p.SO$In.<init>:(Lp/SO;)V", 6],
+  ["p/K10.java", 13, "invokespecial", "p.SB", "m", "()V", "p.SO$In.f:()V", 4],
+  ["p/K10.java", 14, "invokespecial", "p.SG", "m", "()V", "p.SO$In.f:()V", 8],
+  ["p/K10.java", 15, "invokevirtual", "p.SO", "m", "()V", "p.SO$In.f:()V", 15],
+  ["p/K10.java", 16, "invokevirtual", "p.SO$In", "m", "()V", "p.SO$In.f:()V", 19],
+  ["p/K10.java", 17, "invokespecial", "p.SB", "k", "()V", "p.SO$In.f:()V", 26],
+  ["p/K10.java", 18, "invokespecial", "p.SB", "k", "(Ljava/lang/String;)V", "p.SO$In.f:()V", 35],
+  ["p/K10.java", 19, "invokespecial", "java.lang.Object", "<init>", "()V", "p.SO$In$1.<init>:(Lp/SO$In;)V", 6],
+  ["p/K10.java", 19, "invokespecial", "p.SO$In$1", "<init>", "(Lp/SO$In;)V", "p.SO$In.f:()V", 43],
+  ["p/K10.java", 20, "invokespecial", "p.SB", "k", "(Ljava/lang/String;)V", "p.SO$In$1.run:()V", 19],
+  ["p/K10.java", 20, "invokespecial", "p.SB", "m", "()V", "p.SO$In$1.run:()V", 7],
+  ["p/K10.java", 24, "invokespecial", "p.IA", "m", "()V", "p.SO.g:()V", 1],
+  ["p/K10.java", 24, "invokespecial", "p.IA", "n", "()V", "p.SO.g:()V", 5],
+  ["p/K10.java", 24, "invokespecial", "p.SB", "m", "()V", "p.SO.g:()V", 9],
+  ["p/K10.java", 26, "invokespecial", "java.lang.Object", "<init>", "()V", "p.SC.<init>:()V", 1],
+  ["p/K10.java", 28, "invokespecial", "p.IB", "m", "()V", "p.SC.g:()V", 1],
+  ["p/K10.java", 28, "invokespecial", "p.IB", "n", "()V", "p.SC.g:()V", 5]
+ ],
+ "classes": {
+  "p.IA": {"supers": ["java.lang.Object"], "methods": [["m", "()V", 1], ["n", "()V", 1]], "bridges": [], "compiler": []},
+  "p.IB": {"supers": ["java.lang.Object", "p.IA"], "methods": [["m", "()V", 1]], "bridges": [], "compiler": []},
+  "p.SB": {"supers": ["java.lang.Object", "p.SG"], "methods": [["<init>", "()V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []},
+  "p.SC": {"supers": ["java.lang.Object", "p.IA", "p.IB"], "methods": [["<init>", "()V", 0], ["g", "()V", 0], ["m", "()V", 1]], "bridges": [], "compiler": []},
+  "p.SG": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["k", "()V", 0], ["k", "(Ljava/lang/String;)V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []},
+  "p.SO": {"supers": ["java.lang.Object", "p.IA", "p.SB", "p.SG"], "methods": [["<init>", "()V", 0], ["g", "()V", 0], ["k", "(Ljava/lang/Object;)V", 0], ["m", "()V", 1]], "bridges": [], "compiler": []},
+  "p.SO$In": {"supers": ["java.lang.Object", "p.SG"], "methods": [["<init>", "(Lp/SO;)V", 0], ["f", "()V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []},
+  "p.SO$In$1": {"supers": ["java.lang.Object", "java.lang.Runnable"], "methods": [["<init>", "(Lp/SO$In;)V", 0], ["run", "()V", 1]], "bridges": [], "compiler": []}
+ }
+}

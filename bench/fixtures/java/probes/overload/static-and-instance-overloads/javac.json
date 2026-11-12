@@ -1,0 +1,16 @@
+{
+ "invokes": [
+  ["p/StaticInst.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.StaticInst.<init>:()V", 1],
+  ["p/StaticInst.java", 9, "invokestatic", "p.StaticInst", "f", "(Ljava/lang/String;)V", "p.StaticInst.use:(Lp/StaticInst;)V", 2],
+  ["p/StaticInst.java", 10, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.StaticInst.use:(Lp/StaticInst;)V", 7],
+  ["p/StaticInst.java", 10, "invokevirtual", "p.StaticInst", "f", "(Ljava/lang/Object;)V", "p.StaticInst.use:(Lp/StaticInst;)V", 10],
+  ["p/StaticInst.java", 11, "invokestatic", "p.StaticInst", "g", "(I)V", "p.StaticInst.use:(Lp/StaticInst;)V", 14],
+  ["p/StaticInst.java", 12, "invokevirtual", "p.StaticInst", "g", "(J)V", "p.StaticInst.use:(Lp/StaticInst;)V", 19],
+  ["p/StaticInst.java", 13, "invokestatic", "p.StaticInst", "f", "(Ljava/lang/String;)V", "p.StaticInst.use:(Lp/StaticInst;)V", 26],
+  ["p/StaticInst.java", 14, "invokestatic", "p.StaticInst", "f", "(Ljava/lang/String;)V", "p.StaticInst.use:(Lp/StaticInst;)V", 31],
+  ["p/StaticInst.java", 15, "invokestatic", "p.StaticInst", "g", "(I)V", "p.StaticInst.use:(Lp/StaticInst;)V", 37]
+ ],
+ "classes": {
+  "p.StaticInst": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Ljava/lang/Object;)V", 0], ["f", "(Ljava/lang/String;)V", 8], ["g", "(I)V", 8], ["g", "(J)V", 0], ["use", "(Lp/StaticInst;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

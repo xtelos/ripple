@@ -1,0 +1,31 @@
+{
+ "invokes": [
+  ["p/Conv.java", 5, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Id.<init>:(Ljava/lang/String;)V", 1],
+  ["p/Conv.java", 6, "invokespecial", "p.Id", "<init>", "(Ljava/lang/String;)V", "p.Id.<init>:(Ljava/util/UUID;)V", 5],
+  ["p/Conv.java", 6, "invokevirtual", "java.util.UUID", "toString", "()Ljava/lang/String;", "p.Id.<init>:(Ljava/util/UUID;)V", 2],
+  ["p/Conv.java", 8, "invokespecial", "java.lang.Record", "<init>", "()V", "p.R.<init>:(I)V", 1],
+  ["p/Conv.java", 9, "invokespecial", "p.R", "<init>", "(I)V", "p.R.<init>:(J)V", 3],
+  ["p/Conv.java", 11, "invokespecial", "java.lang.Record", "<init>", "()V", "p.P.<init>:(II)V", 1],
+  ["p/Conv.java", 12, "invokespecial", "p.P", "<init>", "(II)V", "p.P.<init>:(Ljava/lang/String;Ljava/lang/String;)V", 3],
+  ["p/Conv.java", 14, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Wide.<init>:(III)V", 1],
+  ["p/Conv.java", 15, "invokespecial", "p.Wide", "<init>", "(III)V", "p.Wide.<init>:(II)V", 4],
+  ["p/Conv.java", 16, "invokespecial", "p.Wide", "<init>", "(III)V", "p.Wide.<init>:(Ljava/lang/String;)V", 4],
+  ["p/Conv.java", 19, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Conv.<init>:()V", 1],
+  ["p/Conv.java", 21, "invokespecial", "p.Id", "<init>", "(Ljava/lang/String;)V", "p.Conv.h:(Ljava/util/UUID;)V", 6],
+  ["p/Conv.java", 22, "invokespecial", "p.Id", "<init>", "(Ljava/util/UUID;)V", "p.Conv.h:(Ljava/util/UUID;)V", 15],
+  ["p/Conv.java", 23, "invokespecial", "p.R", "<init>", "(I)V", "p.Conv.h:(Ljava/util/UUID;)V", 24],
+  ["p/Conv.java", 24, "invokespecial", "p.R", "<init>", "(J)V", "p.Conv.h:(Ljava/util/UUID;)V", 35],
+  ["p/Conv.java", 25, "invokespecial", "p.P", "<init>", "(II)V", "p.Conv.h:(Ljava/util/UUID;)V", 45],
+  ["p/Conv.java", 26, "invokespecial", "p.P", "<init>", "(Ljava/lang/String;Ljava/lang/String;)V", "p.Conv.h:(Ljava/util/UUID;)V", 57],
+  ["p/Conv.java", 27, "invokespecial", "p.Wide", "<init>", "(III)V", "p.Conv.h:(Ljava/util/UUID;)V", 68],
+  ["p/Conv.java", 28, "invokespecial", "p.Wide", "<init>", "(II)V", "p.Conv.h:(Ljava/util/UUID;)V", 78],
+  ["p/Conv.java", 29, "invokespecial", "p.Wide", "<init>", "(Ljava/lang/String;)V", "p.Conv.h:(Ljava/util/UUID;)V", 88]
+ ],
+ "classes": {
+  "p.Conv": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Ljava/util/UUID;)V", 0]], "bridges": [], "compiler": []},
+  "p.Id": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "(Ljava/lang/String;)V", 0], ["<init>", "(Ljava/util/UUID;)V", 0]], "bridges": [], "compiler": [["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["toString", "()Ljava/lang/String;", 17], ["value", "()Ljava/lang/String;", 1]]},
+  "p.P": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "(II)V", 0], ["<init>", "(Ljava/lang/String;Ljava/lang/String;)V", 0]], "bridges": [], "compiler": [["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["toString", "()Ljava/lang/String;", 17], ["x", "()I", 1], ["y", "()I", 1]]},
+  "p.R": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "(I)V", 0], ["<init>", "(J)V", 0]], "bridges": [], "compiler": [["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["toString", "()Ljava/lang/String;", 17], ["v", "()I", 1]]},
+  "p.Wide": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "(II)V", 0], ["<init>", "(III)V", 0], ["<init>", "(Ljava/lang/String;)V", 0]], "bridges": [], "compiler": [["a", "()I", 1], ["b", "()I", 1], ["c", "()I", 1], ["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["toString", "()Ljava/lang/String;", 17]]}
+ }
+}

@@ -1,0 +1,13 @@
+{
+ "invokes": [
+  ["p/Erasure.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Erasure.<init>:()V", 1],
+  ["p/Erasure.java", 16, "invokevirtual", "p.Erasure", "f", "(Ljava/util/Collection;)V", "p.Erasure.use:(Ljava/util/List;Ljava/util/List;Ljava/util/ArrayList;)V", 2],
+  ["p/Erasure.java", 17, "invokevirtual", "p.Erasure", "f", "(Ljava/util/List;)V", "p.Erasure.use:(Ljava/util/List;Ljava/util/List;Ljava/util/ArrayList;)V", 7],
+  ["p/Erasure.java", 18, "invokevirtual", "p.Erasure", "g", "(Ljava/util/Collection;)V", "p.Erasure.use:(Ljava/util/List;Ljava/util/List;Ljava/util/ArrayList;)V", 12],
+  ["p/Erasure.java", 19, "invokevirtual", "p.Erasure", "h", "(Ljava/util/List;I)V", "p.Erasure.use:(Ljava/util/List;Ljava/util/List;Ljava/util/ArrayList;)V", 18],
+  ["p/Erasure.java", 20, "invokevirtual", "p.Erasure", "h", "(Ljava/util/List;J)V", "p.Erasure.use:(Ljava/util/List;Ljava/util/List;Ljava/util/ArrayList;)V", 24]
+ ],
+ "classes": {
+  "p.Erasure": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Ljava/util/Collection;)V", 0], ["f", "(Ljava/util/List;)V", 0], ["g", "(Ljava/util/Collection;)V", 0], ["g", "(Ljava/util/Map;)V", 0], ["h", "(Ljava/util/List;I)V", 0], ["h", "(Ljava/util/List;J)V", 0], ["use", "(Ljava/util/List;Ljava/util/List;Ljava/util/ArrayList;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

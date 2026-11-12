@@ -1,0 +1,23 @@
+{
+ "invokes": [
+  ["p/K8.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Base8.<init>:()V", 1],
+  ["p/K8.java", 4, "invokespecial", "p.Base8", "<init>", "()V", "p.Sub8.<init>:()V", 1],
+  ["p/K8.java", 4, "invokevirtual", "p.Sub8", "put", "(Ljava/lang/String;)V", "p.Sub8.put:(Ljava/lang/Object;)V", 5],
+  ["p/K8.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Plain8.<init>:()V", 1],
+  ["p/K8.java", 9, "invokespecial", "p.Plain8", "<init>", "()V", "p.Gen8.<init>:()V", 1],
+  ["p/K8.java", 10, "invokespecial", "p.Gen8", "<init>", "()V", "p.Deep8.<init>:()V", 1],
+  ["p/K8.java", 12, "invokespecial", "java.lang.Object", "<init>", "()V", "p.K8.<init>:()V", 1],
+  ["p/K8.java", 14, "invokevirtual", "p.Base8", "put", "(Ljava/lang/Object;)V", "p.K8.f:(Lp/Base8;Lp/Plain8;Lp/Gen8;)V", 3],
+  ["p/K8.java", 15, "invokevirtual", "p.Plain8", "m", "(Ljava/lang/String;)V", "p.K8.f:(Lp/Base8;Lp/Plain8;Lp/Gen8;)V", 9],
+  ["p/K8.java", 16, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.K8.f:(Lp/Base8;Lp/Plain8;Lp/Gen8;)V", 14],
+  ["p/K8.java", 16, "invokevirtual", "p.Gen8", "m", "(Ljava/lang/Object;)V", "p.K8.f:(Lp/Base8;Lp/Plain8;Lp/Gen8;)V", 17]
+ ],
+ "classes": {
+  "p.Base8": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["put", "(Ljava/lang/Object;)V", 0]], "bridges": [], "compiler": []},
+  "p.Deep8": {"supers": ["java.lang.Object", "p.Gen8", "p.Plain8"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Gen8": {"supers": ["java.lang.Object", "p.Plain8"], "methods": [["<init>", "()V", 0], ["m", "(Ljava/lang/Object;)V", 0]], "bridges": [], "compiler": []},
+  "p.K8": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Lp/Base8;Lp/Plain8;Lp/Gen8;)V", 0]], "bridges": [], "compiler": []},
+  "p.Plain8": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "(Ljava/lang/String;)V", 0]], "bridges": [], "compiler": []},
+  "p.Sub8": {"supers": ["java.lang.Object", "p.Base8"], "methods": [["<init>", "()V", 0], ["put", "(Ljava/lang/Integer;)V", 0], ["put", "(Ljava/lang/String;)V", 0]], "bridges": [["put", "(Ljava/lang/Object;)V", "(Ljava/lang/String;)V"]], "compiler": []}
+ }
+}

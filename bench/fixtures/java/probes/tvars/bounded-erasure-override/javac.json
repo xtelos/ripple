@@ -1,0 +1,26 @@
+{
+ "invokes": [
+  ["p/Erasure.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.C.<init>:()V", 1],
+  ["p/Erasure.java", 4, "invokevirtual", "p.C", "take", "(Ljava/lang/Integer;)V", "p.C.take:(Ljava/lang/Number;)V", 5],
+  ["p/Erasure.java", 9, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Len.<init>:()V", 1],
+  ["p/Erasure.java", 9, "invokevirtual", "p.Len", "apply", "(Ljava/lang/String;)Ljava/lang/Integer;", "p.Len.apply:(Ljava/lang/Object;)Ljava/lang/Object;", 5],
+  ["p/Erasure.java", 10, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.Len.apply:(Ljava/lang/String;)Ljava/lang/Integer;", 4],
+  ["p/Erasure.java", 10, "invokevirtual", "java.lang.String", "length", "()I", "p.Len.apply:(Ljava/lang/String;)Ljava/lang/Integer;", 1],
+  ["p/Erasure.java", 14, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Erasure.<init>:()V", 1],
+  ["p/Erasure.java", 16, "invokeinterface", "p.Cmp", "take", "(Ljava/lang/Number;)V", "p.Erasure.h:(Lp/Cmp;Lp/Conv;)V", 5],
+  ["p/Erasure.java", 16, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.Erasure.h:(Lp/Cmp;Lp/Conv;)V", 2],
+  ["p/Erasure.java", 17, "invokeinterface", "p.Conv", "apply", "(Ljava/lang/Object;)Ljava/lang/Object;", "p.Erasure.h:(Lp/Cmp;Lp/Conv;)V", 13],
+  ["p/Erasure.java", 18, "invokespecial", "p.C", "<init>", "()V", "p.Erasure.h:(Lp/Cmp;Lp/Conv;)V", 23],
+  ["p/Erasure.java", 18, "invokevirtual", "p.C", "take", "(Ljava/lang/String;)V", "p.Erasure.h:(Lp/Cmp;Lp/Conv;)V", 28],
+  ["p/Erasure.java", 19, "invokespecial", "p.Len", "<init>", "()V", "p.Erasure.h:(Lp/Cmp;Lp/Conv;)V", 35],
+  ["p/Erasure.java", 19, "invokestatic", "java.lang.Integer", "valueOf", "(I)Ljava/lang/Integer;", "p.Erasure.h:(Lp/Cmp;Lp/Conv;)V", 39],
+  ["p/Erasure.java", 19, "invokevirtual", "p.Len", "apply", "(Ljava/lang/Integer;)Ljava/lang/Integer;", "p.Erasure.h:(Lp/Cmp;Lp/Conv;)V", 42]
+ ],
+ "classes": {
+  "p.C": {"supers": ["java.lang.Object", "p.Cmp"], "methods": [["<init>", "()V", 0], ["take", "(Ljava/lang/Integer;)V", 1], ["take", "(Ljava/lang/String;)V", 1]], "bridges": [["take", "(Ljava/lang/Number;)V", "(Ljava/lang/Integer;)V"]], "compiler": []},
+  "p.Cmp": {"supers": ["java.lang.Object"], "methods": [["take", "(Ljava/lang/Number;)V", 1025]], "bridges": [], "compiler": []},
+  "p.Conv": {"supers": ["java.lang.Object"], "methods": [["apply", "(Ljava/lang/Object;)Ljava/lang/Object;", 1025]], "bridges": [], "compiler": []},
+  "p.Erasure": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Lp/Cmp;Lp/Conv;)V", 0]], "bridges": [], "compiler": []},
+  "p.Len": {"supers": ["java.lang.Object", "p.Conv"], "methods": [["<init>", "()V", 0], ["apply", "(Ljava/lang/Integer;)Ljava/lang/Integer;", 1], ["apply", "(Ljava/lang/String;)Ljava/lang/Integer;", 1]], "bridges": [["apply", "(Ljava/lang/Object;)Ljava/lang/Object;", "(Ljava/lang/String;)Ljava/lang/Integer;"]], "compiler": []}
+ }
+}

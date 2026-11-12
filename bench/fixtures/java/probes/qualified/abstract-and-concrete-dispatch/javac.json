@@ -1,0 +1,24 @@
+{
+ "invokes": [
+  ["p/Dispatch.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Dispatch.<init>:()V", 1],
+  ["p/Dispatch.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Dispatch$Shape.<init>:()V", 1],
+  ["p/Dispatch.java", 6, "invokevirtual", "p.Dispatch$Shape", "area", "()D", "p.Dispatch$Shape.twice:()D", 1],
+  ["p/Dispatch.java", 8, "invokespecial", "p.Dispatch$Shape", "<init>", "()V", "p.Dispatch$Sq.<init>:()V", 1],
+  ["p/Dispatch.java", 11, "invokespecial", "p.Dispatch$Shape", "<init>", "()V", "p.Dispatch$Circ.<init>:()V", 1],
+  ["p/Dispatch.java", 15, "invokespecial", "p.Dispatch$Shape", "<init>", "()V", "p.Dispatch$Fin.<init>:()V", 1],
+  ["p/Dispatch.java", 19, "invokevirtual", "p.Dispatch$Shape", "area", "()D", "p.Dispatch.use:(Lp/Dispatch$Shape;Lp/Dispatch$Sq;Lp/Dispatch$Fin;)V", 1],
+  ["p/Dispatch.java", 20, "invokevirtual", "p.Dispatch$Shape", "twice", "()D", "p.Dispatch.use:(Lp/Dispatch$Shape;Lp/Dispatch$Sq;Lp/Dispatch$Fin;)V", 6],
+  ["p/Dispatch.java", 21, "invokevirtual", "p.Dispatch$Sq", "area", "()D", "p.Dispatch.use:(Lp/Dispatch$Shape;Lp/Dispatch$Sq;Lp/Dispatch$Fin;)V", 11],
+  ["p/Dispatch.java", 22, "invokevirtual", "p.Dispatch$Sq", "twice", "()D", "p.Dispatch.use:(Lp/Dispatch$Shape;Lp/Dispatch$Sq;Lp/Dispatch$Fin;)V", 16],
+  ["p/Dispatch.java", 23, "invokevirtual", "p.Dispatch$Fin", "area", "()D", "p.Dispatch.use:(Lp/Dispatch$Shape;Lp/Dispatch$Sq;Lp/Dispatch$Fin;)V", 21],
+  ["p/Dispatch.java", 24, "invokespecial", "p.Dispatch$Circ", "<init>", "()V", "p.Dispatch.use:(Lp/Dispatch$Shape;Lp/Dispatch$Sq;Lp/Dispatch$Fin;)V", 29],
+  ["p/Dispatch.java", 24, "invokevirtual", "p.Dispatch$Circ", "twice", "()D", "p.Dispatch.use:(Lp/Dispatch$Shape;Lp/Dispatch$Sq;Lp/Dispatch$Fin;)V", 32]
+ ],
+ "classes": {
+  "p.Dispatch": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Dispatch$Shape;Lp/Dispatch$Sq;Lp/Dispatch$Fin;)V", 0]], "bridges": [], "compiler": []},
+  "p.Dispatch$Circ": {"supers": ["java.lang.Object", "p.Dispatch$Shape"], "methods": [["<init>", "()V", 0], ["area", "()D", 0], ["twice", "()D", 0]], "bridges": [], "compiler": []},
+  "p.Dispatch$Fin": {"supers": ["java.lang.Object", "p.Dispatch$Shape"], "methods": [["<init>", "()V", 0], ["area", "()D", 0]], "bridges": [], "compiler": []},
+  "p.Dispatch$Shape": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["area", "()D", 1024], ["twice", "()D", 0]], "bridges": [], "compiler": []},
+  "p.Dispatch$Sq": {"supers": ["java.lang.Object", "p.Dispatch$Shape"], "methods": [["<init>", "()V", 0], ["area", "()D", 0]], "bridges": [], "compiler": []}
+ }
+}

@@ -1,0 +1,31 @@
+{
+ "invokes": [
+  ["p/Chains.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Chains.<init>:()V", 1],
+  ["p/Chains.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Chains$Item.<init>:()V", 1],
+  ["p/Chains.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Chains$Box.<init>:()V", 1],
+  ["p/Chains.java", 11, "invokespecial", "p.Chains$Item", "<init>", "()V", "p.Chains$Box.item:()Lp/Chains$Item;", 4],
+  ["p/Chains.java", 13, "invokestatic", "java.util.Optional", "empty", "()Ljava/util/Optional;", "p.Chains.find:()Ljava/util/Optional;", 0],
+  ["p/Chains.java", 15, "invokevirtual", "p.Chains$Box", "get", "()Ljava/lang/Object;", "p.Chains.use:(Lp/Chains$Box;)V", 1],
+  ["p/Chains.java", 15, "invokevirtual", "p.Chains$Item", "add", "(I)V", "p.Chains.use:(Lp/Chains$Box;)V", 8],
+  ["p/Chains.java", 16, "invokevirtual", "p.Chains$Box", "get", "()Ljava/lang/Object;", "p.Chains.use:(Lp/Chains$Box;)V", 15],
+  ["p/Chains.java", 16, "invokevirtual", "p.Chains$Box", "self", "()Lp/Chains$Box;", "p.Chains.use:(Lp/Chains$Box;)V", 12],
+  ["p/Chains.java", 16, "invokevirtual", "p.Chains$Item", "add", "(I)V", "p.Chains.use:(Lp/Chains$Box;)V", 22],
+  ["p/Chains.java", 17, "invokevirtual", "p.Chains$Box", "item", "()Lp/Chains$Item;", "p.Chains.use:(Lp/Chains$Box;)V", 26],
+  ["p/Chains.java", 17, "invokevirtual", "p.Chains$Item", "add", "(I)V", "p.Chains.use:(Lp/Chains$Box;)V", 30],
+  ["p/Chains.java", 18, "invokevirtual", "p.Chains$Box", "item", "()Lp/Chains$Item;", "p.Chains.use:(Lp/Chains$Box;)V", 37],
+  ["p/Chains.java", 18, "invokevirtual", "p.Chains$Box", "self", "()Lp/Chains$Box;", "p.Chains.use:(Lp/Chains$Box;)V", 34],
+  ["p/Chains.java", 18, "invokevirtual", "p.Chains$Item", "add", "(I)V", "p.Chains.use:(Lp/Chains$Box;)V", 41],
+  ["p/Chains.java", 19, "invokestatic", "p.Chains", "find", "()Ljava/util/Optional;", "p.Chains.use:(Lp/Chains$Box;)V", 44],
+  ["p/Chains.java", 19, "invokevirtual", "java.util.Optional", "get", "()Ljava/lang/Object;", "p.Chains.use:(Lp/Chains$Box;)V", 47],
+  ["p/Chains.java", 19, "invokevirtual", "p.Chains$Item", "add", "(I)V", "p.Chains.use:(Lp/Chains$Box;)V", 54],
+  ["p/Chains.java", 20, "invokevirtual", "p.Chains$Item", "add", "(I)V", "p.Chains.use:(Lp/Chains$Box;)V", 66],
+  ["p/Chains.java", 21, "invokespecial", "p.Chains$Box", "<init>", "()V", "p.Chains.use:(Lp/Chains$Box;)V", 73],
+  ["p/Chains.java", 21, "invokevirtual", "p.Chains$Box", "get", "()Ljava/lang/Object;", "p.Chains.use:(Lp/Chains$Box;)V", 76],
+  ["p/Chains.java", 21, "invokevirtual", "p.Chains$Item", "add", "(I)V", "p.Chains.use:(Lp/Chains$Box;)V", 84]
+ ],
+ "classes": {
+  "p.Chains": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["find", "()Ljava/util/Optional;", 8], ["use", "(Lp/Chains$Box;)V", 0]], "bridges": [], "compiler": []},
+  "p.Chains$Box": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["get", "()Ljava/lang/Object;", 0], ["item", "()Lp/Chains$Item;", 0], ["self", "()Lp/Chains$Box;", 0]], "bridges": [], "compiler": []},
+  "p.Chains$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []}
+ }
+}

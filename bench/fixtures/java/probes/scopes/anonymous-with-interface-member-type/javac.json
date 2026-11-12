@@ -1,0 +1,24 @@
+{
+ "invokes": [
+  ["p/AnonMembers.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Api$Request.<init>:()V", 1],
+  ["p/AnonMembers.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Req.<init>:()V", 1],
+  ["p/AnonMembers.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.AnonMembers.<init>:()V", 1],
+  ["p/AnonMembers.java", 10, "invokespecial", "java.lang.Object", "<init>", "()V", "p.AnonMembers$1Request.<init>:(Lp/AnonMembers;)V", 1],
+  ["p/AnonMembers.java", 11, "invokespecial", "java.lang.Object", "<init>", "()V", "p.AnonMembers$1.<init>:(Lp/AnonMembers;)V", 1],
+  ["p/AnonMembers.java", 11, "invokespecial", "p.AnonMembers$1", "<init>", "(Lp/AnonMembers;)V", "p.AnonMembers.f:()V", 5],
+  ["p/AnonMembers.java", 12, "invokevirtual", "p.Api$Request", "send", "()V", "p.AnonMembers$1.call:(Lp/Api$Request;)V", 1],
+  ["p/AnonMembers.java", 14, "invokespecial", "p.AnonMembers$1Request", "<init>", "(Lp/AnonMembers;)V", "p.AnonMembers.f:()V", 14],
+  ["p/AnonMembers.java", 15, "invokevirtual", "p.AnonMembers$1Request", "send", "()V", "p.AnonMembers.f:()V", 19],
+  ["p/AnonMembers.java", 16, "invokespecial", "java.lang.Object", "<init>", "()V", "p.AnonMembers$1Impl.<init>:(Lp/AnonMembers;)V", 1],
+  ["p/AnonMembers.java", 17, "invokevirtual", "p.Api$Request", "send", "()V", "p.AnonMembers$1Impl.call:(Lp/Api$Request;)V", 1]
+ ],
+ "classes": {
+  "p.AnonMembers": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.AnonMembers$1": {"supers": ["java.lang.Object", "p.Api"], "methods": [["<init>", "(Lp/AnonMembers;)V", 0], ["call", "(Lp/Api$Request;)V", 1]], "bridges": [], "compiler": []},
+  "p.AnonMembers$1Impl": {"supers": ["java.lang.Object", "p.Api"], "methods": [["<init>", "(Lp/AnonMembers;)V", 0], ["call", "(Lp/Api$Request;)V", 1]], "bridges": [], "compiler": []},
+  "p.AnonMembers$1Request": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/AnonMembers;)V", 0], ["send", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Api": {"supers": ["java.lang.Object"], "methods": [["call", "(Lp/Api$Request;)V", 1025]], "bridges": [], "compiler": []},
+  "p.Api$Request": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["send", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Req": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["send", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

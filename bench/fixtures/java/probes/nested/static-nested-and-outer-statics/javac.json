@@ -1,0 +1,17 @@
+{
+ "invokes": [
+  ["p/Statics.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Statics.<init>:()V", 1],
+  ["p/Statics.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Statics$Nested.<init>:()V", 1],
+  ["p/Statics.java", 9, "invokestatic", "p.Statics$Nested", "helper", "(Ljava/lang/String;)V", "p.Statics$Nested.f:()V", 2],
+  ["p/Statics.java", 10, "invokestatic", "p.Statics", "helper", "()V", "p.Statics$Nested.f:()V", 5],
+  ["p/Statics.java", 11, "invokestatic", "p.Statics", "helper", "(I)V", "p.Statics$Nested.f:()V", 9],
+  ["p/Statics.java", 14, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Statics$Other.<init>:()V", 1],
+  ["p/Statics.java", 16, "invokestatic", "p.Statics", "helper", "()V", "p.Statics$Other.f:()V", 0],
+  ["p/Statics.java", 17, "invokestatic", "p.Statics", "helper", "(I)V", "p.Statics$Other.f:()V", 4]
+ ],
+ "classes": {
+  "p.Statics": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["helper", "()V", 8], ["helper", "(I)V", 8]], "bridges": [], "compiler": []},
+  "p.Statics$Nested": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["f", "()V", 0], ["helper", "(Ljava/lang/String;)V", 8]], "bridges": [], "compiler": []},
+  "p.Statics$Other": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["f", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

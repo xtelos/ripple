@@ -1,0 +1,19 @@
+{
+ "invokes": [
+  ["p/Shadow.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.T.<init>:()V", 1],
+  ["p/Shadow.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Holder.<init>:()V", 1],
+  ["p/Shadow.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Holder$Inner.<init>:(Lp/Holder;)V", 1],
+  ["p/Shadow.java", 9, "invokevirtual", "p.T", "m", "()V", "p.Holder$Inner.use:(Lp/T;)V", 1],
+  ["p/Shadow.java", 13, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Shadow.<init>:()V", 1],
+  ["p/Shadow.java", 15, "invokevirtual", "p.Holder", "put", "(Ljava/lang/Object;)V", "p.Shadow.h:(Lp/Holder;Lp/Holder$Inner;)V", 3],
+  ["p/Shadow.java", 16, "invokevirtual", "p.Holder", "put", "(Ljava/lang/String;I)V", "p.Shadow.h:(Lp/Holder;Lp/Holder$Inner;)V", 10],
+  ["p/Shadow.java", 17, "invokespecial", "p.T", "<init>", "()V", "p.Shadow.h:(Lp/Holder;Lp/Holder$Inner;)V", 18],
+  ["p/Shadow.java", 17, "invokevirtual", "p.Holder$Inner", "use", "(Lp/T;)V", "p.Shadow.h:(Lp/Holder;Lp/Holder$Inner;)V", 21]
+ ],
+ "classes": {
+  "p.Holder": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["put", "(Ljava/lang/Object;)V", 0], ["put", "(Ljava/lang/String;I)V", 0]], "bridges": [], "compiler": []},
+  "p.Holder$Inner": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/Holder;)V", 0], ["use", "(Ljava/lang/Object;)V", 0], ["use", "(Lp/T;)V", 0]], "bridges": [], "compiler": []},
+  "p.Shadow": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Lp/Holder;Lp/Holder$Inner;)V", 0]], "bridges": [], "compiler": []},
+  "p.T": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

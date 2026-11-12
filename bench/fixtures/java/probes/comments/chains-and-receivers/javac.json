@@ -1,0 +1,21 @@
+{
+ "invokes": [
+  ["p/Chains.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Node.<init>:()V", 1],
+  ["p/Chains.java", 9, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Chains.<init>:()V", 1],
+  ["p/Chains.java", 10, "invokespecial", "p.Node", "<init>", "()V", "p.Chains.<init>:()V", 9],
+  ["p/Chains.java", 12, "invokevirtual", "p.Node", "next", "()Lp/Node;", "p.Chains.h:(Lp/Node;)V", 1],
+  ["p/Chains.java", 13, "invokevirtual", "p.Node", "self", "()Lp/Node;", "p.Chains.h:(Lp/Node;)V", 4],
+  ["p/Chains.java", 14, "invokevirtual", "p.Node", "done", "()V", "p.Chains.h:(Lp/Node;)V", 7],
+  ["p/Chains.java", 17, "invokevirtual", "p.Node", "next", "()Lp/Node;", "p.Chains.h:(Lp/Node;)V", 14],
+  ["p/Chains.java", 18, "invokevirtual", "p.Node", "done", "()V", "p.Chains.h:(Lp/Node;)V", 17],
+  ["p/Chains.java", 19, "invokevirtual", "p.Node", "self", "()Lp/Node;", "p.Chains.h:(Lp/Node;)V", 24],
+  ["p/Chains.java", 20, "invokespecial", "p.Node", "<init>", "()V", "p.Chains.h:(Lp/Node;)V", 32],
+  ["p/Chains.java", 20, "invokevirtual", "p.Node", "next", "()Lp/Node;", "p.Chains.h:(Lp/Node;)V", 35],
+  ["p/Chains.java", 20, "invokevirtual", "p.Node", "self", "()Lp/Node;", "p.Chains.h:(Lp/Node;)V", 38],
+  ["p/Chains.java", 21, "invokevirtual", "p.Node", "done", "()V", "p.Chains.h:(Lp/Node;)V", 43]
+ ],
+ "classes": {
+  "p.Chains": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Lp/Node;)V", 0]], "bridges": [], "compiler": []},
+  "p.Node": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["done", "()V", 0], ["next", "()Lp/Node;", 0], ["self", "()Lp/Node;", 0]], "bridges": [], "compiler": []}
+ }
+}

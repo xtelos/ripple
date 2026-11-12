@@ -1,0 +1,16 @@
+{
+ "invokes": [
+  ["p/K3.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Other.<init>:()V", 1],
+  ["p/K3.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Outer3.<init>:()V", 1],
+  ["p/K3.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Outer3$Inner.<init>:()V", 1],
+  ["p/K3.java", 6, "invokespecial", "p.Other", "<init>", "()V", "p.Outer3.<clinit>:()V", 4],
+  ["p/K3.java", 9, "invokespecial", "java.lang.Object", "<init>", "()V", "p.K3.<init>:()V", 1],
+  ["p/K3.java", 11, "invokevirtual", "p.Other", "m", "()V", "p.K3.f:()V", 3]
+ ],
+ "classes": {
+  "p.K3": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Other": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Outer3": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Outer3$Inner": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 8]], "bridges": [], "compiler": []}
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "invokes": [
+  ["p/Other.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Other.<init>:()V", 1],
+  ["p/Use.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Use.<init>:()V", 1],
+  ["p/Use.java", 9, "invokestatic", "p.Util", "helper", "()V", "p.Use.f:()V", 0],
+  ["p/Use.java", 10, "invokestatic", "p.Util", "max", "(Ljava/lang/String;Ljava/lang/String;)I", "p.Use.f:()V", 7],
+  ["p/Use.java", 11, "invokestatic", "java.lang.Math", "min", "(II)I", "p.Use.f:()V", 13],
+  ["p/UseStar.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.UseStar.<init>:()V", 1],
+  ["p/UseStar.java", 9, "invokestatic", "p.Other", "only", "()V", "p.UseStar.f:()V", 0],
+  ["p/UseStar.java", 10, "invokestatic", "p.Util", "max", "(Ljava/lang/String;Ljava/lang/String;)I", "p.UseStar.f:()V", 7],
+  ["p/UseStar.java", 11, "invokestatic", "p.Other", "helper", "()V", "p.UseStar.f:()V", 11],
+  ["p/UseStar.java", 12, "invokestatic", "java.lang.Math", "abs", "(I)I", "p.UseStar.f:()V", 15],
+  ["p/Util.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Util.<init>:()V", 1]
+ ],
+ "classes": {
+  "p.Other": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["helper", "()V", 9], ["only", "()V", 9]], "bridges": [], "compiler": []},
+  "p.Use": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.UseStar": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Util": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["helper", "()V", 9], ["max", "(Ljava/lang/String;Ljava/lang/String;)I", 9]], "bridges": [], "compiler": []}
+ }
+}

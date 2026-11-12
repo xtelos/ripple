@@ -1,0 +1,21 @@
+{
+ "invokes": [
+  ["p/Consts.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Other.<init>:()V", 1],
+  ["p/Consts.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Api$Conf.<init>:()V", 1],
+  ["p/Consts.java", 8, "invokespecial", "p.Other", "<init>", "()V", "p.Holder.<clinit>:()V", 4],
+  ["p/Consts.java", 10, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Both.<init>:()V", 1],
+  ["p/Consts.java", 11, "invokestatic", "p.Other", "s", "()V", "p.Both.f:()V", 4],
+  ["p/Consts.java", 13, "invokespecial", "java.lang.Object", "<init>", "()V", "p.OnlyApi.<init>:()V", 1],
+  ["p/Consts.java", 14, "invokestatic", "p.Api$Conf", "s", "()V", "p.OnlyApi.f:()V", 0],
+  ["p/Consts.java", 16, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Consts.<init>:()V", 1]
+ ],
+ "classes": {
+  "p.Api": {"supers": ["java.lang.Object"], "methods": [], "bridges": [], "compiler": []},
+  "p.Api$Conf": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["s", "()V", 8]], "bridges": [], "compiler": []},
+  "p.Both": {"supers": ["java.lang.Object", "p.Holder"], "methods": [["<init>", "()V", 0], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Consts": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Holder": {"supers": ["java.lang.Object"], "methods": [], "bridges": [], "compiler": []},
+  "p.OnlyApi": {"supers": ["java.lang.Object", "p.Api"], "methods": [["<init>", "()V", 0], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Other": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 0], ["s", "()V", 8]], "bridges": [], "compiler": []}
+ }
+}

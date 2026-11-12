@@ -1,0 +1,21 @@
+{
+ "invokes": [
+  ["p/Order.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Item.<init>:()V", 1],
+  ["p/Order.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Order.<init>:()V", 1],
+  ["p/Order.java", 6, "invokevirtual", "p.Item", "m", "()V", "p.Order.f:(Lp/Item;)V", 1],
+  ["p/Order.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Order$1Item.<init>:(Lp/Order;)V", 1],
+  ["p/Order.java", 8, "invokespecial", "p.Order$1Item", "<init>", "(Lp/Order;)V", "p.Order.f:(Lp/Item;)V", 9],
+  ["p/Order.java", 9, "invokevirtual", "p.Order$1Item", "m", "()V", "p.Order.f:(Lp/Item;)V", 14],
+  ["p/Order.java", 13, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Order$2Item.<init>:(Lp/Order;)V", 1],
+  ["p/Order.java", 14, "invokespecial", "p.Order$2Item", "<init>", "(Lp/Order;)V", "p.Order.g:()V", 5],
+  ["p/Order.java", 14, "invokevirtual", "p.Order$2Item", "m", "()V", "p.Order.g:()V", 8],
+  ["p/Order.java", 16, "invokespecial", "p.Item", "<init>", "()V", "p.Order.g:()V", 15],
+  ["p/Order.java", 16, "invokevirtual", "p.Item", "m", "()V", "p.Order.g:()V", 18]
+ ],
+ "classes": {
+  "p.Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Order": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Lp/Item;)V", 0], ["g", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Order$1Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/Order;)V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Order$2Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/Order;)V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

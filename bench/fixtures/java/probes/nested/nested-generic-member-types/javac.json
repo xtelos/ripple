@@ -1,0 +1,16 @@
+{
+ "invokes": [
+  ["p/Nodes.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Nodes.<init>:()V", 1],
+  ["p/Nodes.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Nodes$List.<init>:()V", 1],
+  ["p/Nodes.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Nodes$List$Node.<init>:()V", 1],
+  ["p/Nodes.java", 11, "invokevirtual", "p.Nodes$List$Node", "link", "(Lp/Nodes$List$Node;)V", "p.Nodes$List.use:(Lp/Nodes$List$Node;Ljava/util/List;)V", 2],
+  ["p/Nodes.java", 12, "invokeinterface", "java.util.List", "add", "(Ljava/lang/Object;)Z", "p.Nodes$List.use:(Lp/Nodes$List$Node;Ljava/util/List;)V", 8],
+  ["p/Nodes.java", 13, "invokevirtual", "p.Nodes$List", "add", "(Ljava/lang/Object;)V", "p.Nodes$List.use:(Lp/Nodes$List$Node;Ljava/util/List;)V", 16],
+  ["p/Nodes.java", 17, "invokevirtual", "p.Nodes$List", "add", "(Ljava/lang/Object;)V", "p.Nodes.f:(Lp/Nodes$List;)V", 3]
+ ],
+ "classes": {
+  "p.Nodes": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Lp/Nodes$List;)V", 0]], "bridges": [], "compiler": []},
+  "p.Nodes$List": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(Ljava/lang/Object;)V", 0], ["use", "(Lp/Nodes$List$Node;Ljava/util/List;)V", 0]], "bridges": [], "compiler": []},
+  "p.Nodes$List$Node": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["link", "(Lp/Nodes$List$Node;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

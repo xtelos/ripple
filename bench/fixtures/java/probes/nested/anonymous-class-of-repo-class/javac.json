@@ -1,0 +1,17 @@
+{
+ "invokes": [
+  ["p/Anon.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Anon.<init>:()V", 1],
+  ["p/Anon.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Anon$Task.<init>:(Ljava/lang/String;)V", 1],
+  ["p/Anon.java", 12, "invokespecial", "p.Anon$1", "<init>", "(Lp/Anon;Ljava/lang/String;)V", "p.Anon.f:()V", 7],
+  ["p/Anon.java", 12, "invokespecial", "p.Anon$Task", "<init>", "(Ljava/lang/String;)V", "p.Anon$1.<init>:(Lp/Anon;Ljava/lang/String;)V", 7],
+  ["p/Anon.java", 14, "invokevirtual", "p.Anon$1", "helper", "()V", "p.Anon$1.run:()V", 1],
+  ["p/Anon.java", 15, "invokevirtual", "p.Anon", "outerOnly", "()V", "p.Anon$1.run:()V", 8],
+  ["p/Anon.java", 18, "invokevirtual", "p.Anon$Task", "run", "()V", "p.Anon.f:()V", 12],
+  ["p/Anon.java", 19, "invokevirtual", "p.Anon$Task", "helper", "()V", "p.Anon.f:()V", 16]
+ ],
+ "classes": {
+  "p.Anon": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "()V", 0], ["helper", "()V", 0], ["outerOnly", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Anon$1": {"supers": ["java.lang.Object", "p.Anon$Task"], "methods": [["<init>", "(Lp/Anon;Ljava/lang/String;)V", 0], ["run", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Anon$Task": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Ljava/lang/String;)V", 0], ["helper", "()V", 0], ["run", "()V", 1024]], "bridges": [], "compiler": []}
+ }
+}

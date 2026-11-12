@@ -1,0 +1,15 @@
+{
+ "invokes": [
+  ["p/Store.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Store.<init>:()V", 1],
+  ["p/Store.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Store$Entry.<init>:()V", 1],
+  ["p/Store.java", 11, "invokevirtual", "p.Store$Entry", "getValue", "()Ljava/lang/String;", "p.Store.f:(Lp/Store$Entry;)V", 1],
+  ["p/Store.java", 14, "invokeinterface", "java.util.Iterator", "hasNext", "()Z", "p.Store.g:(Ljava/util/Set;)V", 8],
+  ["p/Store.java", 14, "invokeinterface", "java.util.Iterator", "next", "()Ljava/lang/Object;", "p.Store.g:(Ljava/util/Set;)V", 17],
+  ["p/Store.java", 14, "invokeinterface", "java.util.Set", "iterator", "()Ljava/util/Iterator;", "p.Store.g:(Ljava/util/Set;)V", 1],
+  ["p/Store.java", 15, "invokevirtual", "p.Store$Entry", "getValue", "()Ljava/lang/String;", "p.Store.g:(Ljava/util/Set;)V", 27]
+ ],
+ "classes": {
+  "p.Store": {"supers": ["java.lang.Object", "java.util.Map"], "methods": [["<init>", "()V", 1], ["f", "(Lp/Store$Entry;)V", 0], ["g", "(Ljava/util/Set;)V", 0]], "bridges": [], "compiler": []},
+  "p.Store$Entry": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["getValue", "()Ljava/lang/String;", 0]], "bridges": [], "compiler": []}
+ }
+}

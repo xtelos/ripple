@@ -1,0 +1,21 @@
+{
+ "invokes": [
+  ["p/Redecl.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Redecl.<init>:()V", 1],
+  ["p/Redecl.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Redecl$A.<init>:()V", 1],
+  ["p/Redecl.java", 8, "invokespecial", "p.Redecl$A", "<init>", "()V", "p.Redecl$B.<init>:()V", 1],
+  ["p/Redecl.java", 12, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Redecl$C.<init>:()V", 1],
+  ["p/Redecl.java", 16, "invokevirtual", "p.Redecl$A", "v", "()I", "p.Redecl.use:(Lp/Redecl$A;Lp/Redecl$B;Lp/Redecl$C;Lp/Redecl$I;)V", 1],
+  ["p/Redecl.java", 17, "invokevirtual", "p.Redecl$B", "v", "()I", "p.Redecl.use:(Lp/Redecl$A;Lp/Redecl$B;Lp/Redecl$C;Lp/Redecl$I;)V", 6],
+  ["p/Redecl.java", 18, "invokevirtual", "p.Redecl$C", "v", "()I", "p.Redecl.use:(Lp/Redecl$A;Lp/Redecl$B;Lp/Redecl$C;Lp/Redecl$I;)V", 11],
+  ["p/Redecl.java", 19, "invokevirtual", "p.Redecl$C", "w", "()I", "p.Redecl.use:(Lp/Redecl$A;Lp/Redecl$B;Lp/Redecl$C;Lp/Redecl$I;)V", 16],
+  ["p/Redecl.java", 20, "invokeinterface", "p.Redecl$I", "v", "()I", "p.Redecl.use:(Lp/Redecl$A;Lp/Redecl$B;Lp/Redecl$C;Lp/Redecl$I;)V", 22],
+  ["p/Redecl.java", 21, "invokeinterface", "p.Redecl$I", "w", "()I", "p.Redecl.use:(Lp/Redecl$A;Lp/Redecl$B;Lp/Redecl$C;Lp/Redecl$I;)V", 30]
+ ],
+ "classes": {
+  "p.Redecl": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Redecl$A;Lp/Redecl$B;Lp/Redecl$C;Lp/Redecl$I;)V", 0]], "bridges": [], "compiler": []},
+  "p.Redecl$A": {"supers": ["java.lang.Object", "p.Redecl$I"], "methods": [["<init>", "()V", 0], ["v", "()I", 1025]], "bridges": [], "compiler": []},
+  "p.Redecl$B": {"supers": ["java.lang.Object", "p.Redecl$A", "p.Redecl$I"], "methods": [["<init>", "()V", 0], ["v", "()I", 1], ["w", "()I", 1]], "bridges": [], "compiler": []},
+  "p.Redecl$C": {"supers": ["java.lang.Object", "p.Redecl$I"], "methods": [["<init>", "()V", 0], ["w", "()I", 1]], "bridges": [], "compiler": []},
+  "p.Redecl$I": {"supers": ["java.lang.Object"], "methods": [["v", "()I", 1], ["w", "()I", 1025]], "bridges": [], "compiler": []}
+ }
+}

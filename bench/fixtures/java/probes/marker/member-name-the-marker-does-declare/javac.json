@@ -1,0 +1,25 @@
+{
+ "invokes": [
+  ["p/Declares.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Res.<init>:()V", 1],
+  ["p/Declares.java", 10, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Quiet.<init>:()V", 1],
+  ["p/Declares.java", 14, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Cmp.<init>:()V", 1],
+  ["p/Declares.java", 14, "invokevirtual", "p.Cmp", "compareTo", "(Lp/Cmp;)I", "p.Cmp.compareTo:(Ljava/lang/Object;)I", 5],
+  ["p/Declares.java", 18, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Seq.<init>:()V", 1],
+  ["p/Declares.java", 23, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Declares.<init>:()V", 1],
+  ["p/Declares.java", 25, "invokevirtual", "p.Res", "close", "()V", "p.Declares.h:(Lp/Res;Lp/Quiet;Lp/Cmp;Lp/Seq;)V", 1],
+  ["p/Declares.java", 26, "invokevirtual", "p.Res", "close", "(I)V", "p.Declares.h:(Lp/Res;Lp/Quiet;Lp/Cmp;Lp/Seq;)V", 6],
+  ["p/Declares.java", 27, "invokevirtual", "p.Quiet", "close", "()V", "p.Declares.h:(Lp/Res;Lp/Quiet;Lp/Cmp;Lp/Seq;)V", 10],
+  ["p/Declares.java", 28, "invokevirtual", "p.Quiet", "close", "(Ljava/lang/String;)V", "p.Declares.h:(Lp/Res;Lp/Quiet;Lp/Cmp;Lp/Seq;)V", 16],
+  ["p/Declares.java", 29, "invokevirtual", "p.Cmp", "compareTo", "(Lp/Cmp;)I", "p.Declares.h:(Lp/Res;Lp/Quiet;Lp/Cmp;Lp/Seq;)V", 21],
+  ["p/Declares.java", 30, "invokevirtual", "p.Cmp", "compareTo", "(Ljava/lang/String;)I", "p.Declares.h:(Lp/Res;Lp/Quiet;Lp/Cmp;Lp/Seq;)V", 28],
+  ["p/Declares.java", 31, "invokevirtual", "p.Seq", "iterator", "()Ljava/util/Iterator;", "p.Declares.h:(Lp/Res;Lp/Quiet;Lp/Cmp;Lp/Seq;)V", 34],
+  ["p/Declares.java", 32, "invokevirtual", "p.Seq", "forEach", "(I)V", "p.Declares.h:(Lp/Res;Lp/Quiet;Lp/Cmp;Lp/Seq;)V", 41]
+ ],
+ "classes": {
+  "p.Cmp": {"supers": ["java.lang.Comparable", "java.lang.Object"], "methods": [["<init>", "()V", 0], ["compareTo", "(Ljava/lang/String;)I", 1], ["compareTo", "(Lp/Cmp;)I", 1]], "bridges": [["compareTo", "(Ljava/lang/Object;)I", "(Lp/Cmp;)I"]], "compiler": []},
+  "p.Declares": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Lp/Res;Lp/Quiet;Lp/Cmp;Lp/Seq;)V", 0]], "bridges": [], "compiler": []},
+  "p.Quiet": {"supers": ["java.io.Closeable", "java.lang.AutoCloseable", "java.lang.Object"], "methods": [["<init>", "()V", 0], ["close", "()V", 1], ["close", "(Ljava/lang/String;)V", 1]], "bridges": [], "compiler": []},
+  "p.Res": {"supers": ["java.lang.AutoCloseable", "java.lang.Object"], "methods": [["<init>", "()V", 0], ["close", "()V", 1], ["close", "(I)V", 1]], "bridges": [], "compiler": []},
+  "p.Seq": {"supers": ["java.lang.Iterable", "java.lang.Object"], "methods": [["<init>", "()V", 0], ["forEach", "(I)V", 1], ["iterator", "()Ljava/util/Iterator;", 1]], "bridges": [], "compiler": []}
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "invokes": [
+  ["p/Iter.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Iter.<init>:()V", 1],
+  ["p/Iter.java", 8, "invokeinterface", "java.lang.Iterable", "iterator", "()Ljava/util/Iterator;", "p.Iter.use:(Ljava/lang/Iterable;Lp/Iter;)V", 1],
+  ["p/Iter.java", 9, "invokevirtual", "p.Iter", "iterator", "()Ljava/util/Iterator;", "p.Iter.use:(Ljava/lang/Iterable;Lp/Iter;)V", 8],
+  ["p/Iter.java", 10, "invokeinterface", "java.lang.Iterable", "forEach", "(Ljava/util/function/Consumer;)V", "p.Iter.use:(Ljava/lang/Iterable;Lp/Iter;)V", 18],
+  ["p/Iter.java", 11, "invokevirtual", "p.Iter", "forEach", "(Ljava/util/function/Consumer;)V", "p.Iter.use:(Ljava/lang/Iterable;Lp/Iter;)V", 29]
+ ],
+ "classes": {
+  "p.Iter": {"supers": ["java.lang.Iterable", "java.lang.Object"], "methods": [["<init>", "()V", 1], ["iterator", "()Ljava/util/Iterator;", 1], ["use", "(Ljava/lang/Iterable;Lp/Iter;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

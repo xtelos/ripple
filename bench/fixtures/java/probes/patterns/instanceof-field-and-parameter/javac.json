@@ -1,0 +1,20 @@
+{
+ "invokes": [
+  ["p/Params.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.A.<init>:()V", 1],
+  ["p/Params.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.B.<init>:()V", 1],
+  ["p/Params.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Params.<init>:()V", 1],
+  ["p/Params.java", 7, "invokespecial", "p.B", "<init>", "()V", "p.Params.<init>:()V", 9],
+  ["p/Params.java", 10, "invokevirtual", "p.A", "use", "()V", "p.Params.h:(Ljava/lang/Object;Lp/B;)V", 13],
+  ["p/Params.java", 12, "invokevirtual", "p.B", "use", "()V", "p.Params.h:(Ljava/lang/Object;Lp/B;)V", 20],
+  ["p/Params.java", 14, "invokevirtual", "p.A", "use", "()V", "p.Params.h:(Ljava/lang/Object;Lp/B;)V", 40],
+  ["p/Params.java", 15, "invokevirtual", "p.B", "use", "()V", "p.Params.h:(Ljava/lang/Object;Lp/B;)V", 44],
+  ["p/Params.java", 18, "invokevirtual", "java.lang.Object", "hashCode", "()I", "p.Params.g:(Ljava/lang/Object;)V", 13],
+  ["p/Params.java", 19, "invokevirtual", "p.A", "use", "()V", "p.Params.g:(Ljava/lang/Object;)V", 20],
+  ["p/Params.java", 21, "invokevirtual", "p.B", "use", "()V", "p.Params.g:(Ljava/lang/Object;)V", 30]
+ ],
+ "classes": {
+  "p.A": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["use", "()V", 0]], "bridges": [], "compiler": []},
+  "p.B": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["use", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Params": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["g", "(Ljava/lang/Object;)V", 0], ["h", "(Ljava/lang/Object;Lp/B;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

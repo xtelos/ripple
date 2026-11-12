@@ -1,0 +1,23 @@
+{
+ "invokes": [
+  ["p/FieldAnon.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.FieldAnon.<init>:()V", 1],
+  ["p/FieldAnon.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.FieldAnon$Base.<init>:()V", 1],
+  ["p/FieldAnon.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.FieldAnon$1.<init>:(Lp/FieldAnon;)V", 1],
+  ["p/FieldAnon.java", 7, "invokespecial", "p.FieldAnon$1", "<init>", "(Lp/FieldAnon;)V", "p.FieldAnon.<init>:()V", 10],
+  ["p/FieldAnon.java", 9, "invokestatic", "p.FieldAnon", "make", "()I", "p.FieldAnon$1.build:()I", 0],
+  ["p/FieldAnon.java", 12, "invokespecial", "p.FieldAnon$2", "<init>", "()V", "p.FieldAnon.<clinit>:()V", 4],
+  ["p/FieldAnon.java", 12, "invokespecial", "p.FieldAnon$Base", "<init>", "()V", "p.FieldAnon$2.<init>:()V", 1],
+  ["p/FieldAnon.java", 13, "invokestatic", "p.FieldAnon", "make", "()I", "p.FieldAnon$2.<init>:()V", 5],
+  ["p/FieldAnon.java", 15, "invokevirtual", "p.FieldAnon$2", "shared", "()V", "p.FieldAnon$2.go:()V", 1],
+  ["p/FieldAnon.java", 16, "invokestatic", "p.FieldAnon", "make", "()I", "p.FieldAnon$2.go:()V", 4],
+  ["p/FieldAnon.java", 20, "invokeinterface", "p.FieldAnon$Maker", "build", "()I", "p.FieldAnon.use:()V", 4],
+  ["p/FieldAnon.java", 21, "invokevirtual", "p.FieldAnon$Base", "go", "()V", "p.FieldAnon.use:()V", 13]
+ ],
+ "classes": {
+  "p.FieldAnon": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["make", "()I", 8], ["use", "()V", 0]], "bridges": [], "compiler": []},
+  "p.FieldAnon$1": {"supers": ["java.lang.Object", "p.FieldAnon$Maker"], "methods": [["<init>", "(Lp/FieldAnon;)V", 0], ["build", "()I", 1]], "bridges": [], "compiler": []},
+  "p.FieldAnon$2": {"supers": ["java.lang.Object", "p.FieldAnon$Base"], "methods": [["<init>", "()V", 0], ["go", "()V", 0]], "bridges": [], "compiler": []},
+  "p.FieldAnon$Base": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["go", "()V", 1024], ["shared", "()V", 0]], "bridges": [], "compiler": []},
+  "p.FieldAnon$Maker": {"supers": ["java.lang.Object"], "methods": [["build", "()I", 1025]], "bridges": [], "compiler": []}
+ }
+}

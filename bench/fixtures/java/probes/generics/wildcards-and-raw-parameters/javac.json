@@ -1,0 +1,14 @@
+{
+ "invokes": [
+  ["p/Wild.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Wild.<init>:()V", 1],
+  ["p/Wild.java", 12, "invokevirtual", "p.Wild", "f", "(Ljava/util/List;)V", "p.Wild.use:(Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/lang/Object;)V", 2],
+  ["p/Wild.java", 13, "invokevirtual", "p.Wild", "f", "(Ljava/util/List;)V", "p.Wild.use:(Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/lang/Object;)V", 7],
+  ["p/Wild.java", 14, "invokevirtual", "p.Wild", "f", "(Ljava/util/List;)V", "p.Wild.use:(Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/lang/Object;)V", 12],
+  ["p/Wild.java", 15, "invokevirtual", "p.Wild", "g", "(Ljava/util/List;)V", "p.Wild.use:(Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/lang/Object;)V", 17],
+  ["p/Wild.java", 16, "invokevirtual", "p.Wild", "g", "(Ljava/lang/Object;)V", "p.Wild.use:(Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/lang/Object;)V", 22],
+  ["p/Wild.java", 17, "invokevirtual", "p.Wild", "g", "(Ljava/lang/Object;)V", "p.Wild.use:(Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/lang/Object;)V", 28]
+ ],
+ "classes": {
+  "p.Wild": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Ljava/util/List;)V", 0], ["f", "(Ljava/util/Set;)V", 0], ["g", "(Ljava/lang/Object;)V", 0], ["g", "(Ljava/util/List;)V", 0], ["use", "(Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/lang/Object;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

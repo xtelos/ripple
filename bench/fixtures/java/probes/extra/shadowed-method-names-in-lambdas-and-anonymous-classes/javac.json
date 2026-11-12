@@ -1,0 +1,16 @@
+{
+ "invokes": [
+  ["p/Shadows.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Shadows.<init>:()V", 1],
+  ["p/Shadows.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Shadows$1.<init>:(Lp/Shadows;)V", 6],
+  ["p/Shadows.java", 7, "invokespecial", "p.Shadows$1", "<init>", "(Lp/Shadows;)V", "p.Shadows.use:()V", 5],
+  ["p/Shadows.java", 9, "invokevirtual", "p.Shadows", "run", "()V", "p.Shadows$1.run:()V", 4],
+  ["p/Shadows.java", 13, "invokevirtual", "p.Shadows$1", "helper", "(I)V", "p.Shadows$1.inner:()V", 2],
+  ["p/Shadows.java", 16, "invokevirtual", "p.Shadows", "run", "()V", "p.Shadows.lambda$use$0:()V", 1],
+  ["p/Shadows.java", 17, "invokeinterface", "java.lang.Runnable", "run", "()V", "p.Shadows.use:()V", 17],
+  ["p/Shadows.java", 18, "invokeinterface", "java.lang.Runnable", "run", "()V", "p.Shadows.use:()V", 23]
+ ],
+ "classes": {
+  "p.Shadows": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["helper", "(Ljava/lang/String;)V", 0], ["run", "()V", 0], ["use", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Shadows$1": {"supers": ["java.lang.Object", "java.lang.Runnable"], "methods": [["<init>", "(Lp/Shadows;)V", 0], ["helper", "(I)V", 0], ["inner", "()V", 0], ["run", "()V", 1]], "bridges": [], "compiler": []}
+ }
+}

@@ -1,0 +1,35 @@
+{
+ "invokes": [
+  ["p/Nested.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Item.<init>:()V", 1],
+  ["p/Nested.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Money.<init>:()V", 1],
+  ["p/Nested.java", 5, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Box.<init>:(Lp/Item;)V", 1],
+  ["p/Nested.java", 6, "invokespecial", "java.lang.Record", "<init>", "()V", "p.Pair.<init>:(Lp/Box;Ljava/lang/Object;)V", 1],
+  ["p/Nested.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Nested.<init>:()V", 1],
+  ["p/Nested.java", 9, "invokespecial", "p.Money", "<init>", "()V", "p.Nested.<init>:()V", 9],
+  ["p/Nested.java", 10, "invokespecial", "p.Money", "<init>", "()V", "p.Nested.<init>:()V", 20],
+  ["p/Nested.java", 11, "invokespecial", "p.Money", "<init>", "()V", "p.Nested.<init>:()V", 31],
+  ["p/Nested.java", 13, "invokevirtual", "p.Box", "item", "()Lp/Item;", "p.Nested.h:(Ljava/lang/Object;)V", 51],
+  ["p/Nested.java", 13, "invokevirtual", "p.Pair", "left", "()Lp/Box;", "p.Nested.h:(Ljava/lang/Object;)V", 13],
+  ["p/Nested.java", 13, "invokevirtual", "p.Pair", "right", "()Ljava/lang/Object;", "p.Nested.h:(Ljava/lang/Object;)V", 30],
+  ["p/Nested.java", 14, "invokevirtual", "p.Item", "add", "(I)V", "p.Nested.h:(Ljava/lang/Object;)V", 63],
+  ["p/Nested.java", 15, "invokevirtual", "p.Item", "add", "(I)V", "p.Nested.h:(Ljava/lang/Object;)V", 69],
+  ["p/Nested.java", 17, "invokevirtual", "p.Box", "item", "()Lp/Item;", "p.Nested.h:(Ljava/lang/Object;)V", 112],
+  ["p/Nested.java", 17, "invokevirtual", "p.Pair", "left", "()Lp/Box;", "p.Nested.h:(Ljava/lang/Object;)V", 85],
+  ["p/Nested.java", 17, "invokevirtual", "p.Pair", "right", "()Ljava/lang/Object;", "p.Nested.h:(Ljava/lang/Object;)V", 102],
+  ["p/Nested.java", 18, "invokevirtual", "java.lang.Object", "toString", "()Ljava/lang/String;", "p.Nested.h:(Ljava/lang/Object;)V", 123],
+  ["p/Nested.java", 20, "invokespecial", "java.lang.MatchException", "<init>", "(Ljava/lang/String;Ljava/lang/Throwable;)V", "p.Nested.h:(Ljava/lang/Object;)V", 186],
+  ["p/Nested.java", 20, "invokevirtual", "java.lang.Throwable", "toString", "()Ljava/lang/String;", "p.Nested.h:(Ljava/lang/Object;)V", 182],
+  ["p/Nested.java", 20, "invokevirtual", "p.Box", "item", "()Lp/Item;", "p.Nested.h:(Ljava/lang/Object;)V", 159],
+  ["p/Nested.java", 20, "invokevirtual", "p.Pair", "left", "()Lp/Box;", "p.Nested.h:(Ljava/lang/Object;)V", 140],
+  ["p/Nested.java", 20, "invokevirtual", "p.Pair", "right", "()Ljava/lang/Object;", "p.Nested.h:(Ljava/lang/Object;)V", 149],
+  ["p/Nested.java", 21, "invokevirtual", "p.Box", "item", "()Lp/Item;", "p.Nested.h:(Ljava/lang/Object;)V", 166],
+  ["p/Nested.java", 21, "invokevirtual", "p.Item", "add", "(I)V", "p.Nested.h:(Ljava/lang/Object;)V", 170]
+ ],
+ "classes": {
+  "p.Box": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "(Lp/Item;)V", 0]], "bridges": [], "compiler": [["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["item", "()Lp/Item;", 1], ["toString", "()Ljava/lang/String;", 17]]},
+  "p.Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.Money": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.Nested": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["h", "(Ljava/lang/Object;)V", 0]], "bridges": [], "compiler": []},
+  "p.Pair": {"supers": ["java.lang.Object", "java.lang.Record"], "methods": [["<init>", "(Lp/Box;Ljava/lang/Object;)V", 0]], "bridges": [], "compiler": [["equals", "(Ljava/lang/Object;)Z", 17], ["hashCode", "()I", 17], ["left", "()Lp/Box;", 1], ["right", "()Ljava/lang/Object;", 1], ["toString", "()Ljava/lang/String;", 17]]}
+ }
+}

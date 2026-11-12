@@ -1,0 +1,18 @@
+{
+ "invokes": [
+  ["p/Hiding.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Hiding.<init>:()V", 1],
+  ["p/Hiding.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Hiding$Base.<init>:()V", 1],
+  ["p/Hiding.java", 8, "invokespecial", "p.Hiding$Base", "<init>", "()V", "p.Hiding$Sub.<init>:()V", 1],
+  ["p/Hiding.java", 13, "invokestatic", "p.Hiding$Base", "sm", "()V", "p.Hiding.use:(Lp/Hiding$Base;Lp/Hiding$Sub;)V", 2],
+  ["p/Hiding.java", 14, "invokestatic", "p.Hiding$Sub", "sm", "()V", "p.Hiding.use:(Lp/Hiding$Base;Lp/Hiding$Sub;)V", 7],
+  ["p/Hiding.java", 15, "invokestatic", "p.Hiding$Base", "sm", "()V", "p.Hiding.use:(Lp/Hiding$Base;Lp/Hiding$Sub;)V", 10],
+  ["p/Hiding.java", 16, "invokestatic", "p.Hiding$Sub", "sm", "()V", "p.Hiding.use:(Lp/Hiding$Base;Lp/Hiding$Sub;)V", 13],
+  ["p/Hiding.java", 17, "invokevirtual", "p.Hiding$Base", "im", "()V", "p.Hiding.use:(Lp/Hiding$Base;Lp/Hiding$Sub;)V", 17],
+  ["p/Hiding.java", 18, "invokevirtual", "p.Hiding$Sub", "im", "()V", "p.Hiding.use:(Lp/Hiding$Base;Lp/Hiding$Sub;)V", 21]
+ ],
+ "classes": {
+  "p.Hiding": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["use", "(Lp/Hiding$Base;Lp/Hiding$Sub;)V", 0]], "bridges": [], "compiler": []},
+  "p.Hiding$Base": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["im", "()V", 0], ["sm", "()V", 8]], "bridges": [], "compiler": []},
+  "p.Hiding$Sub": {"supers": ["java.lang.Object", "p.Hiding$Base"], "methods": [["<init>", "()V", 0], ["im", "()V", 0], ["sm", "()V", 8]], "bridges": [], "compiler": []}
+ }
+}

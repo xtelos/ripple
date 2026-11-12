@@ -1,0 +1,15 @@
+{
+ "invokes": [
+  ["p/Use.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Use.<init>:()V", 1],
+  ["p/Use.java", 7, "invokestatic", "p.Util", "both", "()V", "p.Use.f:()V", 0],
+  ["p/Use.java", 8, "invokestatic", "p.Util", "onlyStatic", "()V", "p.Use.f:()V", 3],
+  ["p/UseSingle.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.UseSingle.<init>:()V", 1],
+  ["p/UseSingle.java", 7, "invokestatic", "p.Util", "both", "()V", "p.UseSingle.f:()V", 0],
+  ["p/Util.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Util.<init>:()V", 1]
+ ],
+ "classes": {
+  "p.Use": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.UseSingle": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Util": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["both", "()V", 9], ["both", "(I)V", 1], ["onlyInstance", "()V", 1], ["onlyStatic", "()V", 9]], "bridges": [], "compiler": []}
+ }
+}

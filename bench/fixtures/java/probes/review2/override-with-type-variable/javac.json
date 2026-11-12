@@ -1,0 +1,23 @@
+{
+ "invokes": [
+  ["p/K5.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Item5.<init>:()V", 1],
+  ["p/K5.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.V.<init>:()V", 1],
+  ["p/K5.java", 5, "invokevirtual", "p.V", "visit", "(Lp/Item5;)V", "p.V.visit:(Ljava/lang/Object;)V", 5],
+  ["p/K5.java", 10, "invokespecial", "java.lang.Object", "<init>", "()V", "p.A5.<init>:()V", 1],
+  ["p/K5.java", 11, "invokespecial", "p.A5", "<init>", "()V", "p.B5.<init>:()V", 1],
+  ["p/K5.java", 13, "invokespecial", "java.lang.Object", "<init>", "()V", "p.K5.<init>:()V", 1],
+  ["p/K5.java", 15, "invokespecial", "p.V", "<init>", "()V", "p.K5.f:(Lp/I5;)V", 4],
+  ["p/K5.java", 16, "invokeinterface", "p.Visitor", "visit", "(Ljava/lang/Object;)V", "p.K5.f:(Lp/I5;)V", 16],
+  ["p/K5.java", 16, "invokespecial", "p.Item5", "<init>", "()V", "p.K5.f:(Lp/I5;)V", 13],
+  ["p/K5.java", 17, "invokeinterface", "p.I5", "m", "()V", "p.K5.f:(Lp/I5;)V", 22]
+ ],
+ "classes": {
+  "p.A5": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 1]], "bridges": [], "compiler": []},
+  "p.B5": {"supers": ["java.lang.Object", "p.A5", "p.I5"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.I5": {"supers": ["java.lang.Object"], "methods": [["m", "()V", 1025]], "bridges": [], "compiler": []},
+  "p.Item5": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.K5": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Lp/I5;)V", 0]], "bridges": [], "compiler": []},
+  "p.V": {"supers": ["java.lang.Object", "p.Visitor"], "methods": [["<init>", "()V", 0], ["visit", "(Ljava/lang/String;)V", 1], ["visit", "(Lp/Item5;)V", 1]], "bridges": [["visit", "(Ljava/lang/Object;)V", "(Lp/Item5;)V"]], "compiler": []},
+  "p.Visitor": {"supers": ["java.lang.Object"], "methods": [["visit", "(Ljava/lang/Object;)V", 1025]], "bridges": [], "compiler": []}
+ }
+}

@@ -1,0 +1,19 @@
+{
+ "invokes": [
+  ["p/LocalField.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.LocalField.<init>:()V", 1],
+  ["p/LocalField.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.LocalField$Money.<init>:()V", 1],
+  ["p/LocalField.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.LocalField$Item.<init>:()V", 1],
+  ["p/LocalField.java", 6, "invokespecial", "p.LocalField$Money", "<init>", "()V", "p.LocalField.<init>:()V", 9],
+  ["p/LocalField.java", 8, "invokevirtual", "p.LocalField$Money", "add", "(I)V", "p.LocalField.f:()V", 5],
+  ["p/LocalField.java", 9, "invokespecial", "p.LocalField$Item", "<init>", "()V", "p.LocalField.f:()V", 12],
+  ["p/LocalField.java", 10, "invokevirtual", "p.LocalField$Item", "add", "(I)V", "p.LocalField.f:()V", 18],
+  ["p/LocalField.java", 11, "invokevirtual", "p.LocalField$Money", "add", "(I)V", "p.LocalField.f:()V", 26],
+  ["p/LocalField.java", 14, "invokevirtual", "p.LocalField$Item", "add", "(I)V", "p.LocalField.g:(Lp/LocalField$Item;)V", 2],
+  ["p/LocalField.java", 15, "invokevirtual", "p.LocalField$Money", "add", "(I)V", "p.LocalField.g:(Lp/LocalField$Item;)V", 10]
+ ],
+ "classes": {
+  "p.LocalField": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "()V", 0], ["g", "(Lp/LocalField$Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.LocalField$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.LocalField$Money": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []}
+ }
+}

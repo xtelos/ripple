@@ -1,0 +1,24 @@
+{
+ "invokes": [
+  ["p/Consts.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Consts.<init>:()V", 1],
+  ["p/Consts.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Consts$Item.<init>:()V", 1],
+  ["p/Consts.java", 6, "invokespecial", "p.Consts$Item", "<init>", "()V", "p.Consts$Holder.<clinit>:()V", 4],
+  ["p/Consts.java", 8, "invokestatic", "java.lang.Enum", "valueOf", "(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Enum;", "p.Consts$Slot.valueOf:(Ljava/lang/String;)Lp/Consts$Slot;", 3],
+  ["p/Consts.java", 8, "invokestatic", "p.Consts$Slot", "$values", "()[Lp/Consts$Slot;", "p.Consts$Slot.<clinit>:()V", 20],
+  ["p/Consts.java", 8, "invokevirtual", "[Lp.Consts$Slot;", "clone", "()Ljava/lang/Object;", "p.Consts$Slot.values:()[Lp/Consts$Slot;", 3],
+  ["p/Consts.java", 9, "invokespecial", "p.Consts$Item", "<init>", "()V", "p.Consts$Slot.<clinit>:()V", 11],
+  ["p/Consts.java", 9, "invokespecial", "p.Consts$Slot", "<init>", "(Ljava/lang/String;ILp/Consts$Item;)V", "p.Consts$Slot.<clinit>:()V", 14],
+  ["p/Consts.java", 11, "invokespecial", "java.lang.Enum", "<init>", "(Ljava/lang/String;I)V", "p.Consts$Slot.<init>:(Ljava/lang/String;ILp/Consts$Item;)V", 3],
+  ["p/Consts.java", 13, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Consts$Impl.<init>:()V", 1],
+  ["p/Consts.java", 15, "invokevirtual", "p.Consts$Item", "add", "(I)V", "p.Consts$Impl.f:()V", 4],
+  ["p/Consts.java", 16, "invokevirtual", "p.Consts$Item", "add", "(I)V", "p.Consts$Impl.f:()V", 11],
+  ["p/Consts.java", 17, "invokevirtual", "p.Consts$Item", "add", "(I)V", "p.Consts$Impl.f:()V", 21]
+ ],
+ "classes": {
+  "p.Consts": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Consts$Holder": {"supers": ["java.lang.Object"], "methods": [], "bridges": [], "compiler": []},
+  "p.Consts$Impl": {"supers": ["java.lang.Object", "p.Consts$Holder"], "methods": [["<init>", "()V", 0], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Consts$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.Consts$Slot": {"supers": ["java.io.Serializable", "java.lang.Comparable", "java.lang.Enum", "java.lang.Object", "java.lang.constant.Constable"], "methods": [["<init>", "(Ljava/lang/String;ILp/Consts$Item;)V", 2]], "bridges": [], "compiler": [["valueOf", "(Ljava/lang/String;)Lp/Consts$Slot;", 9], ["values", "()[Lp/Consts$Slot;", 9]]}
+ }
+}

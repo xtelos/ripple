@@ -1,0 +1,19 @@
+{
+ "invokes": [
+  ["p/Errors.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Errors.<init>:()V", 1],
+  ["p/Errors.java", 4, "invokespecial", "java.lang.Exception", "<init>", "()V", "p.Errors$MyEx.<init>:()V", 1],
+  ["p/Errors.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Errors$Thing.<init>:()V", 1],
+  ["p/Errors.java", 14, "invokespecial", "p.Errors$MyEx", "<init>", "()V", "p.Errors.f:(Ljava/lang/Throwable;Ljava/lang/Object;)V", 4],
+  ["p/Errors.java", 16, "invokevirtual", "java.lang.Exception", "getMessage", "()Ljava/lang/String;", "p.Errors.f:(Ljava/lang/Throwable;Ljava/lang/Object;)V", 10],
+  ["p/Errors.java", 18, "invokevirtual", "java.lang.Throwable", "getMessage", "()Ljava/lang/String;", "p.Errors.f:(Ljava/lang/Throwable;Ljava/lang/Object;)V", 15],
+  ["p/Errors.java", 19, "invokevirtual", "java.lang.Object", "toString", "()Ljava/lang/String;", "p.Errors.f:(Ljava/lang/Throwable;Ljava/lang/Object;)V", 20],
+  ["p/Errors.java", 20, "invokevirtual", "java.lang.Object", "equals", "(Ljava/lang/Object;)Z", "p.Errors.f:(Ljava/lang/Throwable;Ljava/lang/Object;)V", 26],
+  ["p/Errors.java", 21, "invokevirtual", "java.lang.Object", "hashCode", "()I", "p.Errors.f:(Ljava/lang/Throwable;Ljava/lang/Object;)V", 31],
+  ["p/Errors.java", 22, "invokevirtual", "java.lang.Object", "getClass", "()Ljava/lang/Class;", "p.Errors.f:(Ljava/lang/Throwable;Ljava/lang/Object;)V", 36]
+ ],
+ "classes": {
+  "p.Errors": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Ljava/lang/Throwable;Ljava/lang/Object;)V", 0]], "bridges": [], "compiler": []},
+  "p.Errors$MyEx": {"supers": ["java.io.Serializable", "java.lang.Exception", "java.lang.Object", "java.lang.Throwable"], "methods": [["<init>", "()V", 0], ["getMessage", "()Ljava/lang/String;", 1]], "bridges": [], "compiler": []},
+  "p.Errors$Thing": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["equals", "(Ljava/lang/Object;)Z", 1], ["hashCode", "()I", 1], ["toString", "()Ljava/lang/String;", 1]], "bridges": [], "compiler": []}
+ }
+}

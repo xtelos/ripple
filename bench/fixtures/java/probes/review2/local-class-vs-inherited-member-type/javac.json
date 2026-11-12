@@ -1,0 +1,23 @@
+{
+ "invokes": [
+  ["p/K2.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Base2$Item.<init>:()V", 1],
+  ["p/K2.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Base2.<init>:()V", 1],
+  ["p/K2.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.K2.<init>:()V", 1],
+  ["p/K2.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.K2$1Item.<init>:(Lp/K2;)V", 1],
+  ["p/K2.java", 8, "invokespecial", "p.K2$1Item", "<init>", "(Lp/K2;)V", "p.K2.f:()V", 5],
+  ["p/K2.java", 8, "invokevirtual", "p.K2$1Item", "m", "()V", "p.K2.f:()V", 8],
+  ["p/K2.java", 9, "invokespecial", "p.Base2", "<init>", "()V", "p.K2$1L.<init>:(Lp/K2;)V", 1],
+  ["p/K2.java", 10, "invokevirtual", "p.Base2$Item", "m", "()V", "p.K2$1L.g:(Lp/Base2$Item;)V", 1],
+  ["p/K2.java", 12, "invokespecial", "p.Base2", "<init>", "()V", "p.K2$1.<init>:(Lp/K2;)V", 1],
+  ["p/K2.java", 12, "invokespecial", "p.K2$1", "<init>", "(Lp/K2;)V", "p.K2.f:()V", 16],
+  ["p/K2.java", 13, "invokevirtual", "p.Base2$Item", "m", "()V", "p.K2$1.h:(Lp/Base2$Item;)V", 1]
+ ],
+ "classes": {
+  "p.Base2": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Base2$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []},
+  "p.K2": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.K2$1": {"supers": ["java.lang.Object", "p.Base2"], "methods": [["<init>", "(Lp/K2;)V", 0], ["h", "(Lp/Base2$Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.K2$1Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/K2;)V", 0], ["m", "()V", 0]], "bridges": [], "compiler": []},
+  "p.K2$1L": {"supers": ["java.lang.Object", "p.Base2"], "methods": [["<init>", "(Lp/K2;)V", 0], ["g", "(Lp/Base2$Item;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

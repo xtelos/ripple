@@ -1,0 +1,19 @@
+{
+ "invokes": [
+  ["p/LambdaField.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.LambdaField.<init>:()V", 1],
+  ["p/LambdaField.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.LambdaField$Money.<init>:()V", 1],
+  ["p/LambdaField.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.LambdaField$Item.<init>:()V", 1],
+  ["p/LambdaField.java", 8, "invokespecial", "p.LambdaField$Money", "<init>", "()V", "p.LambdaField.<init>:()V", 9],
+  ["p/LambdaField.java", 11, "invokevirtual", "p.LambdaField$Money", "add", "(I)V", "p.LambdaField.f:()V", 5],
+  ["p/LambdaField.java", 12, "invokevirtual", "p.LambdaField", "each", "(Ljava/util/function/Consumer;)V", "p.LambdaField.f:()V", 14],
+  ["p/LambdaField.java", 12, "invokevirtual", "p.LambdaField$Item", "add", "(I)V", "p.LambdaField.lambda$f$0:(Lp/LambdaField$Item;)V", 2],
+  ["p/LambdaField.java", 13, "invokevirtual", "p.LambdaField", "each", "(Ljava/util/function/Consumer;)V", "p.LambdaField.f:()V", 23],
+  ["p/LambdaField.java", 13, "invokevirtual", "p.LambdaField$Item", "add", "(I)V", "p.LambdaField.lambda$f$1:(Lp/LambdaField$Item;)V", 2],
+  ["p/LambdaField.java", 14, "invokevirtual", "p.LambdaField$Money", "add", "(I)V", "p.LambdaField.f:()V", 31]
+ ],
+ "classes": {
+  "p.LambdaField": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["each", "(Ljava/util/function/Consumer;)V", 0], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.LambdaField$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.LambdaField$Money": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(I)V", 0]], "bridges": [], "compiler": []}
+ }
+}

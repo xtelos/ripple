@@ -1,0 +1,22 @@
+{
+ "invokes": [
+  ["p/AnonExt.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.AnonExt.<init>:()V", 1],
+  ["p/AnonExt.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.AnonExt$Helper.<init>:()V", 1],
+  ["p/AnonExt.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.AnonExt$1.<init>:(Lp/AnonExt;)V", 1],
+  ["p/AnonExt.java", 8, "invokespecial", "p.AnonExt$1", "<init>", "(Lp/AnonExt;)V", "p.AnonExt.f:()V", 5],
+  ["p/AnonExt.java", 9, "invokestatic", "p.AnonExt$Helper", "make", "()I", "p.AnonExt$1.<init>:(Lp/AnonExt;)V", 5],
+  ["p/AnonExt.java", 11, "invokestatic", "p.AnonExt$Helper", "make", "()I", "p.AnonExt$1.run:()V", 0],
+  ["p/AnonExt.java", 14, "invokeinterface", "java.lang.Runnable", "run", "()V", "p.AnonExt.f:()V", 10],
+  ["p/AnonExt.java", 15, "invokespecial", "java.lang.Thread", "<init>", "()V", "p.AnonExt$2.<init>:(Lp/AnonExt;)V", 1],
+  ["p/AnonExt.java", 15, "invokespecial", "p.AnonExt$2", "<init>", "(Lp/AnonExt;)V", "p.AnonExt.f:()V", 20],
+  ["p/AnonExt.java", 16, "invokestatic", "p.AnonExt$Helper", "make", "()I", "p.AnonExt$2.<init>:(Lp/AnonExt;)V", 4],
+  ["p/AnonExt.java", 18, "invokestatic", "p.AnonExt$Helper", "make", "()I", "p.AnonExt$2.run:()V", 0],
+  ["p/AnonExt.java", 21, "invokevirtual", "java.lang.Thread", "start", "()V", "p.AnonExt.f:()V", 25]
+ ],
+ "classes": {
+  "p.AnonExt": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "()V", 0]], "bridges": [], "compiler": []},
+  "p.AnonExt$1": {"supers": ["java.lang.Object", "java.lang.Runnable"], "methods": [["<init>", "(Lp/AnonExt;)V", 0], ["run", "()V", 1]], "bridges": [], "compiler": []},
+  "p.AnonExt$2": {"supers": ["java.lang.Object", "java.lang.Runnable", "java.lang.Thread"], "methods": [["<init>", "(Lp/AnonExt;)V", 0], ["run", "()V", 1]], "bridges": [], "compiler": []},
+  "p.AnonExt$Helper": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["make", "()I", 8]], "bridges": [], "compiler": []}
+ }
+}

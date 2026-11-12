@@ -1,0 +1,17 @@
+{
+ "invokes": [
+  ["p/Qualified.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Qualified.<init>:()V", 1],
+  ["p/Qualified.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Qualified$A.<init>:(Lp/Qualified;)V", 6],
+  ["p/Qualified.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Qualified$A$B.<init>:(Lp/Qualified$A;)V", 6],
+  ["p/Qualified.java", 11, "invokevirtual", "p.Qualified", "m", "()V", "p.Qualified$A$B.f:()V", 7],
+  ["p/Qualified.java", 12, "invokevirtual", "p.Qualified$A", "m", "(I)V", "p.Qualified$A$B.f:()V", 15],
+  ["p/Qualified.java", 13, "invokevirtual", "p.Qualified$A$B", "m", "(Ljava/lang/String;)V", "p.Qualified$A$B.f:()V", 21],
+  ["p/Qualified.java", 14, "invokevirtual", "p.Qualified", "n", "()V", "p.Qualified$A$B.f:()V", 31],
+  ["p/Qualified.java", 15, "invokevirtual", "java.lang.Object", "toString", "()Ljava/lang/String;", "p.Qualified$A$B.f:()V", 38]
+ ],
+ "classes": {
+  "p.Qualified": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["m", "()V", 0], ["n", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Qualified$A": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/Qualified;)V", 0], ["m", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.Qualified$A$B": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/Qualified$A;)V", 0], ["f", "()V", 0], ["m", "(Ljava/lang/String;)V", 0]], "bridges": [], "compiler": []}
+ }
+}
