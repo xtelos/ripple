@@ -1,0 +1,18 @@
+{
+ "digest": "c2efcbeb7f68595db688bc2d9fe282d600bea5b3772e7cbf541a04898b565358",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 23, "col": 2, "end": "23:15", "kind": "E", "callee": "example.com/struct_fields_typed:Leaf.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 24, "col": 2, "end": "24:14", "kind": "E", "callee": "example.com/struct_fields_typed:Leaf.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:20", "kind": "E", "callee": "example.com/struct_fields_typed:Leaf.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 26, "col": 2, "end": "26:22", "kind": "E", "callee": "example.com/struct_fields_typed:Leaf.P", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 27, "col": 2, "end": "27:17", "kind": "E", "callee": "example.com/struct_fields_typed:Leaf.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 28, "col": 2, "end": "28:14", "kind": "E", "callee": "example.com/struct_fields_typed:Leaf.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 29, "col": 2, "end": "29:13", "kind": "E", "callee": "example.com/struct_fields_typed:Leaf.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 30, "col": 2, "end": "30:25", "kind": "E", "callee": "example.com/struct_fields_typed:Leaf.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 32, "col": 2, "end": "32:8", "kind": "E", "callee": "example.com/struct_fields_typed:Leaf.P", "at": "a.go", "variants": "all"}
+ ]
+}

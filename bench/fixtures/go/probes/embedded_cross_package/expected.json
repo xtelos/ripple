@@ -1,0 +1,15 @@
+{
+ "digest": "a3a4dfdd07c4b6e264f0591aeca8c7bf28b823910947a0bf2412c23637d64172",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "lib/lib.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 20, "col": 2, "end": "20:10", "kind": "E", "callee": "example.com/embedded_cross_package/lib:Base.Hello", "at": "lib/lib.go", "variants": "all"},
+  {"file": "a.go", "line": 21, "col": 2, "end": "21:9", "kind": "E", "callee": "sync:Mutex.Lock", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 22, "col": 2, "end": "22:11", "kind": "E", "callee": "sync:Mutex.Unlock", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 24, "col": 2, "end": "24:9", "kind": "E", "callee": "example.com/embedded_cross_package:Locker.Lock", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 26, "col": 2, "end": "26:10", "kind": "E", "callee": "example.com/embedded_cross_package/lib:Base.Hello", "at": "lib/lib.go", "variants": "all"}
+ ]
+}

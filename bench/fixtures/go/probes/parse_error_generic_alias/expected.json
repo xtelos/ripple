@@ -1,0 +1,12 @@
+{
+ "digest": "6342dd469dafd5cdc0764f3b02444b4067b11c3b795ab2c89292418623d3e3c2",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "use.go": "all"
+ },
+ "calls": [
+  {"file": "use.go", "line": 5, "col": 2, "end": "5:6", "kind": "E", "callee": "example.com/parse_error_generic_alias:Box.M", "at": "a.go", "variants": "all"},
+  {"file": "use.go", "line": 7, "col": 2, "end": "7:6", "kind": "E", "callee": "example.com/parse_error_generic_alias:Box.M", "at": "a.go", "variants": "all"}
+ ]
+}

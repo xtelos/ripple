@@ -1,0 +1,17 @@
+{
+ "digest": "f6d0c272295724639ea0356f7b7630523acf90bf7b0b81724a61f5b49c20e168",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "common.go": "all",
+  "x_linux.go": ["linux-amd64/prod", "linux-arm64/prod"],
+  "x_other.go": ["darwin-arm64/prod", "windows-amd64/prod"]
+ },
+ "calls": [
+  {"file": "common.go", "line": 4, "col": 6, "end": "4:48", "kind": "E", "callee": "example.com/twice_generic_func:Map", "at": "x_linux.go", "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "common.go", "line": 4, "col": 6, "end": "4:48", "kind": "E", "callee": "example.com/twice_generic_func:Map", "at": "x_other.go", "variants": ["darwin-arm64/prod", "windows-amd64/prod"]},
+  {"file": "common.go", "line": 5, "col": 6, "end": "5:28", "kind": "E", "callee": "example.com/twice_generic_func:Map", "at": "x_linux.go", "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "common.go", "line": 5, "col": 6, "end": "5:28", "kind": "E", "callee": "example.com/twice_generic_func:Map", "at": "x_other.go", "variants": ["darwin-arm64/prod", "windows-amd64/prod"]},
+  {"file": "x_linux.go", "line": 4, "col": 2, "end": "4:10", "kind": "E", "callee": "example.com/twice_generic_func:helperL", "at": "x_linux.go", "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "x_other.go", "line": 6, "col": 2, "end": "6:10", "kind": "E", "callee": "example.com/twice_generic_func:helperO", "at": "x_other.go", "variants": ["darwin-arm64/prod", "windows-amd64/prod"]}
+ ]
+}

@@ -1,0 +1,19 @@
+{
+ "digest": "69672461b084dd796a6e26935b01a909ee1c476774dd63e5803986973d09aa84",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "c/common.go": "all",
+  "c/x_darwin.go": ["darwin-arm64/prod"],
+  "c/x_linux.go": ["linux-amd64/prod", "linux-arm64/prod"],
+  "c/x_windows.go": ["windows-amd64/prod"],
+  "pa/pa.go": "all",
+  "pb/pb.go": "all"
+ },
+ "calls": [
+  {"file": "c/common.go", "line": 4, "col": 2, "end": "4:7", "kind": "E", "callee": "example.com/variant_var_imports/pa:C.Do", "at": "pa/pa.go", "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "c/common.go", "line": 4, "col": 2, "end": "4:7", "kind": "E", "callee": "example.com/variant_var_imports/pb:C.Do", "at": "pb/pb.go", "variants": ["windows-amd64/prod"]},
+  {"file": "c/x_darwin.go", "line": 5, "col": 9, "end": "5:17", "kind": "E", "callee": "example.com/variant_var_imports/pa:New", "at": "pa/pa.go", "variants": ["darwin-arm64/prod"]},
+  {"file": "c/x_linux.go", "line": 5, "col": 9, "end": "5:17", "kind": "E", "callee": "example.com/variant_var_imports/pa:New", "at": "pa/pa.go", "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "c/x_windows.go", "line": 5, "col": 9, "end": "5:17", "kind": "E", "callee": "example.com/variant_var_imports/pb:New", "at": "pb/pb.go", "variants": ["windows-amd64/prod"]}
+ ]
+}

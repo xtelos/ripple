@@ -1,0 +1,18 @@
+{
+ "digest": "edefc0298927a13a5e424a0a2b58ec0a527e1df7aa76760e02f4f8be43234198",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 22, "col": 7, "end": "22:13", "kind": "E", "callee": "example.com/generics_methods:Make", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 23, "col": 6, "end": "23:12", "kind": "E", "callee": "example.com/generics_methods:Box.Get", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 24, "col": 2, "end": "24:9", "kind": "E", "callee": "example.com/generics_methods:Box.Put", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:18", "kind": "E", "callee": "example.com/generics_methods:Make", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:24", "kind": "E", "callee": "example.com/generics_methods:Box.Get", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 27, "col": 6, "end": "27:12", "kind": "E", "callee": "example.com/generics_methods:Pair.Key", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 29, "col": 2, "end": "29:18", "kind": "E", "callee": "example.com/generics_methods:Num.Double", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 29, "col": 2, "end": "29:9", "kind": "E", "callee": "example.com/generics_methods:Box.Get", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 30, "col": 2, "end": "30:15", "kind": "E", "callee": "example.com/generics_methods:Box.Put", "at": "a.go", "variants": "all"}
+ ]
+}

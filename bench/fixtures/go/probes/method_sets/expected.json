@@ -1,0 +1,22 @@
+{
+ "digest": "69f00f453f5031efe775f2a706f2f096a0e10227cd665928013f624ce7e01207",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 10, "col": 2, "end": "10:8", "kind": "E", "callee": "example.com/method_sets:T.Val", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 11, "col": 2, "end": "11:8", "kind": "E", "callee": "example.com/method_sets:T.Ptr", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 13, "col": 2, "end": "13:8", "kind": "E", "callee": "example.com/method_sets:T.Val", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 14, "col": 2, "end": "14:8", "kind": "E", "callee": "example.com/method_sets:T.Ptr", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 15, "col": 2, "end": "15:13", "kind": "E", "callee": "example.com/method_sets:T.Ptr", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 16, "col": 2, "end": "16:10", "kind": "E", "callee": "example.com/method_sets:T.Val", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 18, "col": 2, "end": "18:13", "kind": "E", "callee": "example.com/method_sets:T.Ptr", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 20, "col": 2, "end": "20:11", "kind": "E", "callee": "example.com/method_sets:T.Ptr", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 22, "col": 2, "end": "22:12", "kind": "E", "callee": "example.com/method_sets:T.Val", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 24, "col": 2, "end": "24:13", "kind": "E", "callee": "example.com/method_sets:T.Ptr", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:9", "kind": "E", "callee": "example.com/method_sets:T.Val", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 26, "col": 2, "end": "26:12", "kind": "E", "callee": "example.com/method_sets:T.Ptr", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 27, "col": 2, "end": "27:12", "kind": "E", "callee": "example.com/method_sets:T.Val", "at": "a.go", "variants": "all"}
+ ]
+}

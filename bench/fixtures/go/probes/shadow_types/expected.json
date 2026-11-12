@@ -1,0 +1,14 @@
+{
+ "digest": "346bffefdeb4d2088fd775a1f4bf2ab87d4c71c1137489cfe023f24a42414a78",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 18, "col": 2, "end": "18:6", "kind": "E", "callee": "example.com/shadow_types:B.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 23, "col": 2, "end": "23:6", "kind": "E", "callee": "example.com/shadow_types:A.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 24, "col": 2, "end": "24:6", "kind": "E", "callee": "example.com/shadow_types:T.N", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 34, "col": 2, "end": "34:6", "kind": "E", "callee": "example.com/shadow_types:A.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 37, "col": 2, "end": "37:6", "kind": "E", "callee": "example.com/shadow_types:B.M", "at": "a.go", "variants": "all"}
+ ]
+}

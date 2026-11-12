@@ -1,0 +1,33 @@
+{
+ "digest": "ae7f9fb379b12009b36cd0de36788db96b856df5d58a1a97ea52c4f41148847d",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 15, "col": 2, "end": "15:8", "kind": "E", "callee": "example.com/shadow_short_decl:T.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 16, "col": 2, "end": "16:8", "kind": "E", "callee": "example.com/shadow_short_decl:U.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 17, "col": 9, "end": "17:14", "kind": "E", "callee": "example.com/shadow_short_decl:pair", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 18, "col": 2, "end": "18:8", "kind": "E", "callee": "example.com/shadow_short_decl:T.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 23, "col": 10, "end": "23:15", "kind": "E", "callee": "example.com/shadow_short_decl:pair", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 24, "col": 2, "end": "24:8", "kind": "E", "callee": "example.com/shadow_short_decl:T.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:8", "kind": "E", "callee": "example.com/shadow_short_decl:U.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 26, "col": 10, "end": "26:16", "kind": "E", "callee": "example.com/shadow_short_decl:twice", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 27, "col": 2, "end": "27:8", "kind": "E", "callee": "example.com/shadow_short_decl:T.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 34, "col": 3, "end": "34:9", "kind": "E", "callee": "example.com/shadow_short_decl:T.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 37, "col": 3, "end": "37:22", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 37, "col": 12, "end": "37:18", "kind": "E", "callee": "example.com/shadow_short_decl:U.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 42, "col": 3, "end": "42:9", "kind": "E", "callee": "example.com/shadow_short_decl:U.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 49, "col": 3, "end": "49:9", "kind": "E", "callee": "example.com/shadow_short_decl:T.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 51, "col": 3, "end": "51:9", "kind": "E", "callee": "example.com/shadow_short_decl:U.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 53, "col": 3, "end": "53:9", "kind": "E", "callee": "example.com/shadow_short_decl:T.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 62, "col": 2, "end": "62:8", "kind": "E", "callee": "example.com/shadow_short_decl:U.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 65, "col": 3, "end": "65:9", "kind": "E", "callee": "example.com/shadow_short_decl:T.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 67, "col": 2, "end": "67:8", "kind": "E", "callee": "example.com/shadow_short_decl:U.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 72, "col": 19, "end": "72:25", "kind": "E", "callee": "example.com/shadow_short_decl:U.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 73, "col": 2, "end": "73:7", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 74, "col": 2, "end": "74:31", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 74, "col": 21, "end": "74:27", "kind": "E", "callee": "example.com/shadow_short_decl:U.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 75, "col": 2, "end": "75:8", "kind": "E", "callee": "example.com/shadow_short_decl:T.Run", "at": "a.go", "variants": "all"}
+ ]
+}

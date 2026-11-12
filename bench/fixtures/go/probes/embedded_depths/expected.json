@@ -1,0 +1,19 @@
+{
+ "digest": "5b846034eda18a4e014d5f2b0f5982f7f84eaffef694597eb38409c6b00b7147",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 33, "col": 2, "end": "33:10", "kind": "E", "callee": "example.com/embedded_depths:L3.Deep", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 34, "col": 2, "end": "34:9", "kind": "E", "callee": "example.com/embedded_depths:L2.Mid", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 35, "col": 2, "end": "35:10", "kind": "E", "callee": "example.com/embedded_depths:L1.Same", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 37, "col": 2, "end": "37:10", "kind": "E", "callee": "example.com/embedded_depths:L3.Same", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 39, "col": 2, "end": "39:9", "kind": "E", "callee": "example.com/embedded_depths:X1.Same", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 40, "col": 2, "end": "40:9", "kind": "E", "callee": "example.com/embedded_depths:L3.Deep", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 42, "col": 2, "end": "42:9", "kind": "E", "callee": "example.com/embedded_depths:L3.Deep", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 43, "col": 2, "end": "43:8", "kind": "E", "callee": "example.com/embedded_depths:L2.Mid", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 44, "col": 2, "end": "44:12", "kind": "E", "callee": "example.com/embedded_depths:L1.Same", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 45, "col": 2, "end": "45:12", "kind": "E", "callee": "example.com/embedded_depths:X1.Same", "at": "a.go", "variants": "all"}
+ ]
+}

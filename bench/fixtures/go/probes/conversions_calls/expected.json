@@ -1,0 +1,18 @@
+{
+ "digest": "099b5f919815b9d6be892fde0c83598998e6f50ae97168821147876d7df5523e",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 9, "col": 28, "end": "9:30", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 24, "col": 6, "end": "24:20", "kind": "E", "callee": "example.com/conversions_calls:Num.Double", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 26, "col": 2, "end": "26:19", "kind": "E", "callee": "example.com/conversions_calls:Handler.Serve", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 27, "col": 2, "end": "27:13", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 28, "col": 6, "end": "28:19", "kind": "E", "callee": "example.com/conversions_calls:Str.Len", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 31, "col": 2, "end": "31:12", "kind": "E", "callee": "example.com/conversions_calls:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 32, "col": 2, "end": "32:9", "kind": "I", "callee": "example.com/conversions_calls:I.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 34, "col": 2, "end": "34:14", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 37, "col": 2, "end": "37:10", "kind": "E", "callee": "example.com/conversions_calls:Handler.Serve", "at": "a.go", "variants": "all"}
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "digest": "0a1e42a795c7d2a199f69a9c629671d67ad27a54b2e9ea55f51e2e895c5835f8",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 3, "col": 49, "end": "3:52", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 7, "col": 48, "end": "7:51", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 11, "col": 6, "end": "11:14", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 12, "col": 6, "end": "12:45", "kind": "E", "callee": "example.com/generics_function_values:Map", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 13, "col": 6, "end": "13:22", "kind": "E", "callee": "example.com/generics_function_values:Apply", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 15, "col": 6, "end": "15:11", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 17, "col": 6, "end": "17:14", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 18, "col": 6, "end": "18:10", "kind": "E", "callee": "example.com/generics_function_values:Id", "at": "a.go", "variants": "all"}
+ ]
+}

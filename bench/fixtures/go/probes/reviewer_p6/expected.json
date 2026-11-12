@@ -1,0 +1,18 @@
+{
+ "digest": "8183555aeb16f63ab136a267316dd0bf9374f6b4211edd248b9c772c8e504e8e",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "e/a_darwin.go": ["darwin-arm64/prod"],
+  "e/a_linux.go": ["linux-amd64/prod", "linux-arm64/prod"],
+  "e/b_windows.go": ["windows-amd64/prod"],
+  "e/e.go": "all"
+ },
+ "calls": [
+  {"file": "e/e.go", "line": 12, "col": 2, "end": "12:6", "kind": "E", "callee": "example.com/p6/e:A.M", "at": "e/a_darwin.go", "variants": ["darwin-arm64/prod"]},
+  {"file": "e/e.go", "line": 12, "col": 2, "end": "12:6", "kind": "E", "callee": "example.com/p6/e:A.M", "at": "e/a_linux.go", "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "e/e.go", "line": 12, "col": 2, "end": "12:6", "kind": "E", "callee": "example.com/p6/e:B.M", "at": "e/b_windows.go", "variants": ["windows-amd64/prod"]},
+  {"file": "e/e.go", "line": 18, "col": 2, "end": "18:6", "kind": "E", "callee": "example.com/p6/e:A.M", "at": "e/a_darwin.go", "variants": ["darwin-arm64/prod"]},
+  {"file": "e/e.go", "line": 18, "col": 2, "end": "18:6", "kind": "E", "callee": "example.com/p6/e:A.M", "at": "e/a_linux.go", "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "e/e.go", "line": 18, "col": 2, "end": "18:6", "kind": "E", "callee": "example.com/p6/e:B.M", "at": "e/b_windows.go", "variants": ["windows-amd64/prod"]}
+ ]
+}

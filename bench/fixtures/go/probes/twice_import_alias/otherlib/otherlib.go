@@ -1,0 +1,3 @@
+package otherlib
+
+func Do() {}

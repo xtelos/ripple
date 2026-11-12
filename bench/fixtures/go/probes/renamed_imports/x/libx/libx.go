@@ -1,0 +1,3 @@
+package xlib
+
+func F() {}

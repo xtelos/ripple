@@ -1,0 +1,22 @@
+{
+ "digest": "33f9d37dd1ecdba02f19b9ca0962722b328e8678249fb0da0b618841d65d7df2",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 22, "col": 2, "end": "22:6", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 23, "col": 2, "end": "23:10", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 24, "col": 2, "end": "24:11", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:10", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:8", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 26, "col": 2, "end": "26:5", "kind": "E", "callee": "example.com/func_fields:mk", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 26, "col": 2, "end": "26:7", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 27, "col": 2, "end": "27:8", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 28, "col": 2, "end": "28:13", "kind": "E", "callee": "example.com/func_fields:Base.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 30, "col": 2, "end": "30:8", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 31, "col": 32, "end": "31:35", "kind": "E", "callee": "example.com/func_fields:mk", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 32, "col": 2, "end": "32:11", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 34, "col": 3, "end": "34:5", "kind": "D", "callee": "-", "at": "", "variants": "all"}
+ ]
+}

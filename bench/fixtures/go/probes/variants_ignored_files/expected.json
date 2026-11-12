@@ -1,0 +1,10 @@
+{
+ "digest": "f38c1da13002ec28b98db02a10e1f2727c59b021e1c318f238d4f066305cafaa",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 6, "col": 2, "end": "6:9", "kind": "E", "callee": "example.com/variants_ignored_files:Helper", "at": "a.go", "variants": "all"}
+ ]
+}

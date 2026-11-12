@@ -1,0 +1,13 @@
+{
+ "digest": "e87825bd7b8f8f69df438b2232bdbb29f0c1c3aec90e17d3e837c08eb5c05a68",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "common.go": "all",
+  "x_linux.go": ["linux-amd64/prod", "linux-arm64/prod"],
+  "x_other.go": ["darwin-arm64/prod", "windows-amd64/prod"]
+ },
+ "calls": [
+  {"file": "common.go", "line": 12, "col": 2, "end": "12:9", "kind": "D", "callee": "-", "at": "", "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "common.go", "line": 12, "col": 2, "end": "12:9", "kind": "E", "callee": "example.com/twice_alias_field_func:Base.Hook", "at": "common.go", "variants": ["darwin-arm64/prod", "windows-amd64/prod"]}
+ ]
+}

@@ -1,0 +1,22 @@
+{
+ "digest": "0fe012f564e3cc79a37777c6c9de458848988f8c25cb879c2f54da520950d084",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 18, "col": 2, "end": "18:9", "kind": "I", "callee": "example.com/interface_values:Shape.Area", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 19, "col": 2, "end": "19:9", "kind": "I", "callee": "example.com/interface_values:Shape.Area", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 20, "col": 2, "end": "20:9", "kind": "I", "callee": "example.com/interface_values:Named.Name", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 22, "col": 3, "end": "22:11", "kind": "E", "callee": "example.com/interface_values:Sq.Side", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 24, "col": 2, "end": "24:14", "kind": "E", "callee": "example.com/interface_values:Sq.Side", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:17", "kind": "I", "callee": "example.com/interface_values:Named.Name", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 26, "col": 2, "end": "26:17", "kind": "I", "callee": "example.com/interface_values:Shape.Area", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 29, "col": 3, "end": "29:10", "kind": "E", "callee": "example.com/interface_values:Sq.Side", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 31, "col": 3, "end": "31:10", "kind": "I", "callee": "example.com/interface_values:Named.Name", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 33, "col": 3, "end": "33:10", "kind": "I", "callee": "example.com/interface_values:Shape.Area", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 36, "col": 2, "end": "36:9", "kind": "I", "callee": "example.com/interface_values:Shape.Area", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 38, "col": 2, "end": "38:10", "kind": "I", "callee": "example.com/interface_values:Shape.Area", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 39, "col": 2, "end": "39:22", "kind": "E", "callee": "example.com/interface_values:Sq.Area", "at": "a.go", "variants": "all"}
+ ]
+}

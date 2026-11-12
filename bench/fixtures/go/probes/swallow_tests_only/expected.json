@@ -1,0 +1,12 @@
+{
+ "digest": "c04e4efa7b30157b144d1ecd12970a26f67db74d81603ff584d74412ee4220c4",
+ "variants": ["darwin-arm64/prod", "darwin-arm64/test", "linux-amd64/prod", "linux-amd64/test", "linux-arm64/prod", "linux-arm64/test", "windows-amd64/prod", "windows-amd64/test"],
+ "built": {
+  "a_test.go": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"],
+  "b_test.go": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"],
+  "base.go": "all"
+ },
+ "calls": [
+  {"file": "b_test.go", "line": 7, "col": 2, "end": "7:6", "kind": "E", "callee": "example.com/swallow_tests_only:T.M", "at": "a_test.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]}
+ ]
+}

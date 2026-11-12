@@ -1,0 +1,13 @@
+{
+ "digest": "9369bfd8b81508f592330b78601e3031193ed61ae053d8fdb5fd3d4ce22789c4",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 26, "col": 2, "end": "26:8", "kind": "E", "callee": "example.com/embedded_ambiguous_unused:A.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 27, "col": 2, "end": "27:8", "kind": "E", "callee": "example.com/embedded_ambiguous_unused:B.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 28, "col": 2, "end": "28:10", "kind": "E", "callee": "example.com/embedded_ambiguous_unused:A.OnlyA", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 30, "col": 2, "end": "30:6", "kind": "E", "callee": "example.com/embedded_ambiguous_unused:T.M", "at": "a.go", "variants": "all"}
+ ]
+}

@@ -1,0 +1,24 @@
+{
+ "digest": "68a14c626ed5359c505e5a84c9780aefe456ef334e63841a94c2dd968ff6b228",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 16, "col": 47, "end": "16:52", "kind": "E", "callee": "example.com/off:hook", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 18, "col": 66, "end": "18:71", "kind": "E", "callee": "example.com/off:hook", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 20, "col": 64, "end": "20:69", "kind": "E", "callee": "example.com/off:hook", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 24, "col": 2, "end": "24:11", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 29, "col": 2, "end": "29:27", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 33, "col": 8, "end": "33:39", "kind": "E", "callee": "net/http/httptest:NewUnstartedServer", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 34, "col": 57, "end": "34:62", "kind": "E", "callee": "example.com/off:hook", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 35, "col": 2, "end": "35:40", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 39, "col": 8, "end": "39:39", "kind": "E", "callee": "net/http/httptest:NewUnstartedServer", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 41, "col": 2, "end": "41:27", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 46, "col": 2, "end": "46:13", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 50, "col": 82, "end": "50:87", "kind": "E", "callee": "example.com/off:hook", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 51, "col": 2, "end": "51:41", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 55, "col": 62, "end": "55:67", "kind": "E", "callee": "example.com/off:hook", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 56, "col": 2, "end": "56:10", "kind": "D", "callee": "-", "at": "", "variants": "all"}
+ ]
+}

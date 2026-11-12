@@ -1,0 +1,18 @@
+{
+ "digest": "e0e78b7a28de5a070a7c726175d7917f9d60d0874db9d5f447ec504ef0a6d9cd",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 18, "col": 15, "end": "18:23", "kind": "E", "callee": "example.com/package_var_funcs:newImpl", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:10", "kind": "I", "callee": "example.com/package_var_funcs:Writer.Write", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 26, "col": 2, "end": "26:7", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 27, "col": 2, "end": "27:13", "kind": "E", "callee": "example.com/package_var_funcs:Impl.Close", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 28, "col": 2, "end": "28:14", "kind": "E", "callee": "example.com/package_var_funcs:Impl.Close", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 29, "col": 2, "end": "29:14", "kind": "E", "callee": "example.com/package_var_funcs:Impl.Close", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 30, "col": 2, "end": "30:16", "kind": "E", "callee": "example.com/package_var_funcs:Impl.Close", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 31, "col": 2, "end": "31:9", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 32, "col": 2, "end": "32:11", "kind": "D", "callee": "-", "at": "", "variants": "all"}
+ ]
+}

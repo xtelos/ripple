@@ -1,0 +1,12 @@
+{
+ "digest": "3cc0bc3625c5f2e35cbe98c01063f6f6044528346eb223efbec98bdf1e61155d",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "inner/inner.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 6, "col": 2, "end": "6:9", "kind": "E", "callee": "example.com/nested_modules:Helper", "at": "a.go", "variants": "all"},
+  {"file": "inner/inner.go", "line": 6, "col": 2, "end": "6:9", "kind": "E", "callee": "example.com/nested_modules/inner:Helper", "at": "inner/inner.go", "variants": "all"}
+ ]
+}

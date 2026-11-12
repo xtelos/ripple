@@ -1,0 +1,18 @@
+{
+ "digest": "9bbae71ff027f365ab7bddfb150e3a86508fa324909704139c1f7f0770cebfc4",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "common.go": "all",
+  "v_unix.go": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod"],
+  "v_windows.go": ["windows-amd64/prod"]
+ },
+ "calls": [
+  {"file": "common.go", "line": 14, "col": 2, "end": "14:7", "kind": "E", "callee": "example.com/variants_vars:A.Do", "at": "common.go", "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "common.go", "line": 14, "col": 2, "end": "14:7", "kind": "E", "callee": "example.com/variants_vars:B.Do", "at": "common.go", "variants": ["windows-amd64/prod"]},
+  {"file": "common.go", "line": 15, "col": 2, "end": "15:7", "kind": "E", "callee": "example.com/variants_vars:A.Do", "at": "common.go", "variants": "all"},
+  {"file": "common.go", "line": 16, "col": 2, "end": "16:7", "kind": "E", "callee": "example.com/variants_vars:A.Do", "at": "common.go", "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "common.go", "line": 16, "col": 2, "end": "16:7", "kind": "E", "callee": "example.com/variants_vars:B.Do", "at": "common.go", "variants": ["windows-amd64/prod"]},
+  {"file": "v_unix.go", "line": 7, "col": 9, "end": "7:16", "kind": "E", "callee": "example.com/variants_vars:shared", "at": "common.go", "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "v_windows.go", "line": 5, "col": 9, "end": "5:16", "kind": "E", "callee": "example.com/variants_vars:shared", "at": "common.go", "variants": ["windows-amd64/prod"]}
+ ]
+}

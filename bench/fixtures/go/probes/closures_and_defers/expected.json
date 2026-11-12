@@ -1,0 +1,21 @@
+{
+ "digest": "d800fe79b76c82388eeaa00b2716080d900448c41642ac8a84b148bdf26b1aa6",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 11, "col": 2, "end": "11:29", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 11, "col": 11, "end": "11:15", "kind": "E", "callee": "example.com/closures_and_defers:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 11, "col": 18, "end": "11:25", "kind": "E", "callee": "example.com/closures_and_defers:helper", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 12, "col": 8, "end": "12:25", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 12, "col": 17, "end": "12:21", "kind": "E", "callee": "example.com/closures_and_defers:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 13, "col": 5, "end": "13:25", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 13, "col": 14, "end": "13:21", "kind": "E", "callee": "example.com/closures_and_defers:helper", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 15, "col": 2, "end": "15:4", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 15, "col": 2, "end": "15:8", "kind": "E", "callee": "example.com/closures_and_defers:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 17, "col": 9, "end": "17:13", "kind": "E", "callee": "example.com/closures_and_defers:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 19, "col": 19, "end": "19:23", "kind": "E", "callee": "example.com/closures_and_defers:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 20, "col": 2, "end": "20:5", "kind": "D", "callee": "-", "at": "", "variants": "all"}
+ ]
+}

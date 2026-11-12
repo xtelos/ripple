@@ -1,0 +1,15 @@
+{
+ "digest": "32b7008bc126f66dafd87eadac28bf67e9021d9a37b8e012e90e36147eed9090",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 9, "col": 2, "end": "9:14", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 10, "col": 2, "end": "10:14", "kind": "E", "callee": "github.com/spf13/pflag:Parse", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 11, "col": 8, "end": "11:51", "kind": "E", "callee": "github.com/spf13/pflag:NewFlagSet", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 13, "col": 2, "end": "13:11", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 14, "col": 2, "end": "14:24", "kind": "E", "callee": "github.com/spf13/pflag:FlagSet.Bool", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 15, "col": 2, "end": "15:14", "kind": "E", "callee": "github.com/spf13/pflag:FlagSet.Parse", "at": "", "variants": "all"}
+ ]
+}

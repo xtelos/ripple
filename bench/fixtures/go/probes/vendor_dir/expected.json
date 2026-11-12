@@ -1,0 +1,13 @@
+{
+ "digest": "9840723e28195ce0b8d555de7ea8f557a887092534670a053e79b8fe487e77e9",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "main.go": "all"
+ },
+ "calls": [
+  {"file": "main.go", "line": 12, "col": 2, "end": "12:9", "kind": "E", "callee": "example.com/vendor_dir:Helper", "at": "main.go", "variants": "all"},
+  {"file": "main.go", "line": 13, "col": 2, "end": "13:13", "kind": "E", "callee": "example.org/dep:Helper", "at": "vendor/example.org/dep/dep.go", "variants": "all"},
+  {"file": "main.go", "line": 15, "col": 2, "end": "15:9", "kind": "E", "callee": "example.org/dep:T.Only", "at": "vendor/example.org/dep/dep.go", "variants": "all"},
+  {"file": "main.go", "line": 16, "col": 2, "end": "16:6", "kind": "E", "callee": "example.org/dep:T.M", "at": "vendor/example.org/dep/dep.go", "variants": "all"}
+ ]
+}

@@ -1,0 +1,20 @@
+{
+ "digest": "0666315f9ffb6ba7f630cda5a34cefa7eda7687a5b63aad24ab3eb6ca331fa11",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 19, "col": 2, "end": "19:4", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 21, "col": 2, "end": "21:6", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 23, "col": 2, "end": "23:5", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 24, "col": 2, "end": "24:7", "kind": "E", "callee": "example.com/method_values:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:11", "kind": "E", "callee": "example.com/method_values:T.P", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 28, "col": 2, "end": "28:4", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 29, "col": 2, "end": "29:7", "kind": "E", "callee": "example.com/method_values:Base.B", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 30, "col": 2, "end": "30:7", "kind": "I", "callee": "example.com/method_values:I.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 32, "col": 2, "end": "32:4", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 33, "col": 8, "end": "33:12", "kind": "E", "callee": "example.com/method_values:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 34, "col": 5, "end": "34:9", "kind": "E", "callee": "example.com/method_values:T.P", "at": "a.go", "variants": "all"}
+ ]
+}

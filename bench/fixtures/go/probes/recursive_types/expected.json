@@ -1,0 +1,17 @@
+{
+ "digest": "d750652d997642d581fb63f85f83a9f72984bc19eb259afca104b65bcec797b3",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 18, "col": 2, "end": "18:14", "kind": "E", "callee": "example.com/recursive_types:Node.Walk", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 19, "col": 2, "end": "19:17", "kind": "E", "callee": "example.com/recursive_types:Node.Walk", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 20, "col": 2, "end": "20:26", "kind": "E", "callee": "example.com/recursive_types:Node.Walk", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 22, "col": 2, "end": "22:10", "kind": "E", "callee": "example.com/recursive_types:A.FromA", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 23, "col": 2, "end": "23:10", "kind": "E", "callee": "example.com/recursive_types:B.FromB", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 24, "col": 2, "end": "24:12", "kind": "E", "callee": "example.com/recursive_types:B.FromB", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:14", "kind": "E", "callee": "example.com/recursive_types:A.FromA", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 27, "col": 2, "end": "27:10", "kind": "E", "callee": "example.com/recursive_types:A.FromA", "at": "a.go", "variants": "all"}
+ ]
+}

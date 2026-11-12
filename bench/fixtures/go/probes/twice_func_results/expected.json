@@ -1,0 +1,15 @@
+{
+ "digest": "35cb598f5885e5fabf2696b8f61bb1a86a4c4df641676cfd1969441cbf851a98",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "common.go": "all",
+  "x_linux.go": ["linux-amd64/prod", "linux-arm64/prod"],
+  "x_other.go": ["darwin-arm64/prod", "windows-amd64/prod"]
+ },
+ "calls": [
+  {"file": "common.go", "line": 4, "col": 2, "end": "4:12", "kind": "E", "callee": "example.com/twice_func_results:A.Run", "at": "x_linux.go", "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "common.go", "line": 4, "col": 2, "end": "4:12", "kind": "E", "callee": "example.com/twice_func_results:B.Run", "at": "x_other.go", "variants": ["darwin-arm64/prod", "windows-amd64/prod"]},
+  {"file": "common.go", "line": 4, "col": 2, "end": "4:6", "kind": "E", "callee": "example.com/twice_func_results:New", "at": "x_linux.go", "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "common.go", "line": 4, "col": 2, "end": "4:6", "kind": "E", "callee": "example.com/twice_func_results:New", "at": "x_other.go", "variants": ["darwin-arm64/prod", "windows-amd64/prod"]}
+ ]
+}

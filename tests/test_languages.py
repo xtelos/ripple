@@ -14,7 +14,7 @@ import pytest
 from conftest import FIXTURES
 from stdio_client import StdioClient
 
-from ripple import ts_indexer
+from ripple import registry, ts_indexer
 from ripple.cache import RepoIndex, cache_file, load_repo
 from ripple.cli import main
 from ripple.indexer import build_graph
@@ -160,9 +160,11 @@ def test_an_empty_directory_is_an_error_that_says_what_it_looked_for(tmp_path, c
     (tmp_path / "notes.md").write_text("nothing to index\n")
     with pytest.raises(RepoError) as raised:
         load_repo(tmp_path)
-    assert "no Python, TypeScript or JavaScript source files" in str(raised.value)
+    looked_for = f"no {registry.join([language.label for language in registry.LANGUAGES.values()], 'or')} source files"
+    assert looked_for == "no Python, TypeScript, JavaScript or Go source files"
+    assert looked_for in str(raised.value)
     assert main(["index", str(tmp_path)]) == 2
-    assert "no Python, TypeScript or JavaScript source files" in capsys.readouterr().err
+    assert looked_for in capsys.readouterr().err
 
 
 def test_an_explicit_language_the_repo_has_none_of_is_an_error(make_repo):

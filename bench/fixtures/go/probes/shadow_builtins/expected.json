@@ -1,0 +1,16 @@
+{
+ "digest": "aa7550be4296cfc761a9289fc640a5c80e82de5f515847f0003ce2fc7d54046b",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 17, "col": 6, "end": "17:18", "kind": "E", "callee": "example.com/shadow_builtins:len", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 18, "col": 2, "end": "18:11", "kind": "E", "callee": "example.com/shadow_builtins:print", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 19, "col": 2, "end": "19:9", "kind": "I", "callee": "example.com/shadow_builtins:error.Code", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 20, "col": 6, "end": "20:14", "kind": "I", "callee": "example.com/shadow_builtins:error.Error", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:6", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 29, "col": 6, "end": "29:11", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 31, "col": 2, "end": "31:7", "kind": "D", "callee": "-", "at": "", "variants": "all"}
+ ]
+}

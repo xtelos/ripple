@@ -1,0 +1,13 @@
+{
+ "digest": "358553bd8804e639c9b7c7867477b12a5f6b55961a48816e298d68f058c318ad",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "common.go": "all",
+  "x_linux.go": ["linux-amd64/prod", "linux-arm64/prod"],
+  "x_other.go": ["darwin-arm64/prod", "windows-amd64/prod"]
+ },
+ "calls": [
+  {"file": "common.go", "line": 4, "col": 2, "end": "4:7", "kind": "D", "callee": "-", "at": "", "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "common.go", "line": 4, "col": 2, "end": "4:7", "kind": "E", "callee": "example.com/twice_var_vs_func:Hook", "at": "x_other.go", "variants": ["darwin-arm64/prod", "windows-amd64/prod"]}
+ ]
+}

@@ -1,0 +1,13 @@
+{
+ "digest": "b03138bc3180c3df180bbb06e96afbfe832aed85f5f2e8d6b06071e5fd497d46",
+ "variants": ["darwin-arm64/prod", "darwin-arm64/test", "linux-amd64/prod", "linux-amd64/test", "linux-arm64/prod", "linux-arm64/test", "windows-amd64/prod", "windows-amd64/test"],
+ "built": {
+  "f/f.go": "all",
+  "f/f_test.go": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]
+ },
+ "calls": [
+  {"file": "f/f.go", "line": 10, "col": 2, "end": "10:10", "kind": "E", "callee": "example.com/p7/f:Base.Close", "at": "f/f.go", "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"]},
+  {"file": "f/f.go", "line": 10, "col": 2, "end": "10:10", "kind": "E", "callee": "example.com/p7/f:Conn.Close", "at": "f/f_test.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "f/f_test.go", "line": 7, "col": 28, "end": "7:43", "kind": "E", "callee": "example.com/p7/f:Shutdown", "at": "f/f.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]}
+ ]
+}

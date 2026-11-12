@@ -1,0 +1,3 @@
+package swf
+
+func F() {}

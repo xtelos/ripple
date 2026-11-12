@@ -1,0 +1,13 @@
+{
+ "digest": "16fb28844f7f11aa866b1ae1180b87739596e69b897cc8fbd145199c29d46f69",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 10, "col": 2, "end": "10:12", "kind": "I", "callee": "io:Reader.Read", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 11, "col": 2, "end": "11:13", "kind": "I", "callee": "io:Writer.Write", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 12, "col": 2, "end": "12:11", "kind": "I", "callee": "io:Closer.Close", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 15, "col": 2, "end": "15:13", "kind": "E", "callee": "example.com/outside_interface_method:reader.Read", "at": "a.go", "variants": "all"}
+ ]
+}

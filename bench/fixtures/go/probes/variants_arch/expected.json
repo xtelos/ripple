@@ -1,0 +1,16 @@
+{
+ "digest": "46fa796f2149c7c903e4bbf4b33d65be003fe6302c21b995bb7b5033679a7a3b",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "w_amd64.go": ["linux-amd64/prod", "windows-amd64/prod"],
+  "w_arm64.go": ["darwin-arm64/prod", "linux-arm64/prod"]
+ },
+ "calls": [
+  {"file": "a.go", "line": 11, "col": 6, "end": "11:12", "kind": "E", "callee": "example.com/variants_arch:width", "at": "w_amd64.go", "variants": ["linux-amd64/prod", "windows-amd64/prod"]},
+  {"file": "a.go", "line": 11, "col": 6, "end": "11:12", "kind": "E", "callee": "example.com/variants_arch:width", "at": "w_arm64.go", "variants": ["darwin-arm64/prod", "linux-arm64/prod"]},
+  {"file": "a.go", "line": 13, "col": 6, "end": "13:13", "kind": "E", "callee": "example.com/variants_arch:Base.Size", "at": "a.go", "variants": ["darwin-arm64/prod", "linux-arm64/prod"]},
+  {"file": "a.go", "line": 13, "col": 6, "end": "13:13", "kind": "E", "callee": "example.com/variants_arch:T.Size", "at": "w_amd64.go", "variants": ["linux-amd64/prod", "windows-amd64/prod"]},
+  {"file": "a.go", "line": 14, "col": 6, "end": "14:14", "kind": "E", "callee": "example.com/variants_arch:Base.Align", "at": "a.go", "variants": "all"}
+ ]
+}

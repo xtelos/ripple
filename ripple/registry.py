@@ -43,7 +43,7 @@ import importlib
 from dataclasses import dataclass
 from types import ModuleType
 
-from .profile import JAVASCRIPT, PYTHON, TYPESCRIPT, LanguageProfile
+from .profile import GO, JAVASCRIPT, PYTHON, TYPESCRIPT, LanguageProfile
 
 
 @dataclass(frozen=True)
@@ -65,6 +65,7 @@ LANGUAGES: dict[str, Language] = {
         Language(PYTHON, "Python", "ripple.indexer"),
         Language(TYPESCRIPT, "TypeScript", "ripple.ts_indexer", path_ids=True),
         Language(JAVASCRIPT, "JavaScript", "ripple.ts_indexer", path_ids=True),
+        Language(GO, "Go", "ripple.go_indexer", path_ids=True, folds_files=True),
     )
 }
 

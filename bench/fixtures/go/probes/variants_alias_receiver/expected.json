@@ -1,0 +1,14 @@
+{
+ "digest": "cb67e43bd68af3bf11390352c9f7a9e356aecb949b7f96a1dc3c52b23ab497b7",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "alias_linux.go": ["linux-amd64/prod", "linux-arm64/prod"],
+  "common.go": "all"
+ },
+ "calls": [
+  {"file": "common.go", "line": 13, "col": 2, "end": "13:6", "kind": "E", "callee": "example.com/variants_alias_receiver:A.M", "at": "alias_linux.go", "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "common.go", "line": 13, "col": 2, "end": "13:6", "kind": "E", "callee": "example.com/variants_alias_receiver:Base.M", "at": "common.go", "variants": ["darwin-arm64/prod", "windows-amd64/prod"]},
+  {"file": "common.go", "line": 15, "col": 2, "end": "15:6", "kind": "E", "callee": "example.com/variants_alias_receiver:A.M", "at": "alias_linux.go", "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "common.go", "line": 15, "col": 2, "end": "15:6", "kind": "E", "callee": "example.com/variants_alias_receiver:Base.M", "at": "common.go", "variants": ["darwin-arm64/prod", "windows-amd64/prod"]}
+ ]
+}

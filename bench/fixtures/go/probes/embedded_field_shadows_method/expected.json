@@ -1,0 +1,13 @@
+{
+ "digest": "2b6d7134cd131439e095c6790318d5c4b328858f26ae12bc2b819ec11dce01ef",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 20, "col": 2, "end": "20:6", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 21, "col": 2, "end": "21:6", "kind": "E", "callee": "example.com/embedded_field_shadows_method:Base.N", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 22, "col": 2, "end": "22:11", "kind": "E", "callee": "example.com/embedded_field_shadows_method:Base.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 24, "col": 2, "end": "24:6", "kind": "E", "callee": "example.com/embedded_field_shadows_method:Base.M", "at": "a.go", "variants": "all"}
+ ]
+}

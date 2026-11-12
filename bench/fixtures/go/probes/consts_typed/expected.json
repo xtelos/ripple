@@ -1,0 +1,12 @@
+{
+ "digest": "f64908c696ee4cbfba4c967115dd0a3e45a510391ae7937f731fc757bfe4e5ea",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 10, "col": 6, "end": "10:17", "kind": "E", "callee": "example.com/consts_typed:Color.String", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 12, "col": 6, "end": "12:15", "kind": "E", "callee": "example.com/consts_typed:Color.String", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 14, "col": 6, "end": "14:15", "kind": "E", "callee": "example.com/consts_typed:Color.String", "at": "a.go", "variants": "all"}
+ ]
+}

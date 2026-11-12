@@ -1,0 +1,11 @@
+{
+ "digest": "f1254b0335586eefe6cbe2af2d92f8431d4000bee3a7fc32891dc9c98d7aeaea",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "broken.go": "all",
+  "use.go": "all"
+ },
+ "calls": [
+  {"file": "use.go", "line": 11, "col": 2, "end": "11:6", "kind": "E", "callee": "example.com/swallow_one_line:T.M", "at": "broken.go", "variants": "all"}
+ ]
+}

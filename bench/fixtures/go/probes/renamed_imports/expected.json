@@ -1,0 +1,17 @@
+{
+ "digest": "7282ecd0bd0764ad14c3cc2440f12ad0a1018802399f8097faf4cbc3ce171651",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a/util/util.go": "all",
+  "b/util/util.go": "all",
+  "c/c.go": "all",
+  "main.go": "all",
+  "x/libx/libx.go": "all"
+ },
+ "calls": [
+  {"file": "main.go", "line": 11, "col": 2, "end": "11:11", "kind": "E", "callee": "example.com/renamed_imports/a/util:Do", "at": "a/util/util.go", "variants": "all"},
+  {"file": "main.go", "line": 12, "col": 2, "end": "12:11", "kind": "E", "callee": "example.com/renamed_imports/b/util:Do", "at": "b/util/util.go", "variants": "all"},
+  {"file": "main.go", "line": 13, "col": 2, "end": "13:9", "kind": "E", "callee": "example.com/renamed_imports/x/libx:F", "at": "x/libx/libx.go", "variants": "all"},
+  {"file": "main.go", "line": 18, "col": 2, "end": "18:8", "kind": "D", "callee": "-", "at": "", "variants": "all"}
+ ]
+}

@@ -1,0 +1,11 @@
+{
+ "digest": "519936bcc2fc61c7c2f2c9fde2103560475567aff91f66cd49c896aef4b0b1bb",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 17, "col": 2, "end": "17:12", "kind": "E", "callee": "example.com/unsafe_pointers:T.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 19, "col": 2, "end": "19:6", "kind": "E", "callee": "example.com/unsafe_pointers:T.M", "at": "a.go", "variants": "all"}
+ ]
+}

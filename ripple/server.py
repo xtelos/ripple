@@ -23,14 +23,17 @@ from .languages import RepoError, check_profile, check_repo, selected_profiles, 
 
 INSTRUCTIONS = """\
 ripple answers questions about the call graph of this repository, written in
-Python, TypeScript, JavaScript or a mix. Before changing a function, call impact on it to
+Python, TypeScript, JavaScript, Go or a mix. Before changing a function, call impact on it to
 see what calls it (grouped by file) and which tests reach it; after the
-change, call check with the node_id of each of those tests (TypeScript and JavaScript tests
+change, call check with the node_id of each of those tests (TypeScript, JavaScript and Go tests
 are not collected yet: every caller of one of their symbols is listed as code).
 A Python symbol is a full dotted path (pkg.module.Class.method), a suffix
 (Class.method) or a bare name. A TypeScript or JavaScript symbol is its file path without
 the extension, a colon and the member (src/util/math:clamp, src/cart/cart:Cart.add),
-and Class.method, the path tail (math:clamp) or a bare member name work too. An
+and Class.method, the path tail (math:clamp) or a bare member name work too. A Go symbol
+is its package's import path, a colon and the member (github.com/acme/shop/cart:Total,
+github.com/acme/shop/cart:Cart.Add), and Type.Method, a bare name, a file path and a
+member (cart/cart.go:Total) or a directory (cart/) work too. An
 ambiguous name returns candidates; pick one, ripple never does.
 The graph is static: calls through untyped values, getattr, dict dispatch,
 computed keys, interface-typed values and decorators ripple cannot read are
@@ -43,8 +46,10 @@ with a note that what a decorator does to what it decorates is not modelled. In 
 <Child />, so changing Child can break it) and renderer (the component React runs Child inside, only when the
 source proves it). Every answer follows all kinds by default; pass kinds (calls, renders, renderer, comma
 separated) to follow some, and an entry that has a JSX edge says which kinds in edge_kinds. If a result has a warnings list, part of the repository
-was left out (TypeScript and JavaScript without a parser that loads, or ids two languages
-define): the answer covers only the rest, and the warning says what and why.
+was left out (TypeScript, JavaScript or Go without a parser that loads, or ids two languages
+define): the answer covers only the rest, and the warning says what and why. In Go, a call
+through an interface, and a call into a package outside the repo other than the standard
+library, are unresolved rather than followed or called external: read their reasons.
 """
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True, idempotentHint=True, openWorldHint=False)

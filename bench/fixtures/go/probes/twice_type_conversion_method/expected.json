@@ -1,0 +1,12 @@
+{
+ "digest": "b5aa1c0b5ab4b0fe92be5ea508b9a87c75b08e7bad86e0da7f37c8c3889299e2",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "common.go": "all",
+  "x_linux.go": ["linux-amd64/prod", "linux-arm64/prod"],
+  "x_other.go": ["darwin-arm64/prod", "windows-amd64/prod"]
+ },
+ "calls": [
+  {"file": "common.go", "line": 6, "col": 2, "end": "6:16", "kind": "E", "callee": "example.com/twice_type_conversion_method:Num.Double", "at": "common.go", "variants": "all"}
+ ]
+}

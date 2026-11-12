@@ -11,9 +11,10 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.12"]
-        # "dev" is the base install: the TypeScript tests must skip there, and everything else must pass.
-        # "dev,typescript" adds the optional parser, so the TypeScript tests and benchmark run.
-        extras: ["dev", "dev,typescript"]
+        # "dev" is the base install: the tests of every optional language must skip there, and everything else must pass.
+        # "dev,typescript" adds the optional parser, so the TypeScript and JavaScript tests and the benchmark run.
+        # "dev,typescript,go" adds Go's, so the Go tests run beside the others (they skip without it).
+        extras: ["dev", "dev,typescript", "dev,typescript,go"]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
