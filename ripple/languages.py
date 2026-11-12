@@ -1,14 +1,15 @@
 """Which languages a repository is written in, and one graph from them.
 
 `--lang` (or RIPPLE_LANG, or the server's lang argument) is the name of a language in registry.py
-("python", "typescript", "javascript", "go", "rust") or "auto", the default. Auto reads the repo's file names: each profile's source suffixes (profile.py) are looked for
+("python", "typescript", "javascript", "go", "rust", "java") or "auto", the default. Auto reads the repo's file names: each profile's source suffixes (profile.py) are looked for
 in one walk that skips node_modules, virtualenvs and declaration files like every other walk. A repo
 with files of one language is indexed with that language's profile, exactly as before. A repo with
 both is MIXED: each language is indexed with its own profile, and cached under its own key (cache.py),
 and the graphs are merged here.
 
 The merge is a union, and nearly always the languages cannot mix up their symbols, because of how ids
-are written: a Python id is dotted (`app.core.total`) and a TypeScript or JavaScript id is a path (`web/src/cart:total`).
+are written: a Python id is dotted (`app.core.total`, and a Java one too: `app.Cart.add(Item)`) and a TypeScript or JavaScript id is a
+path (`web/src/cart:total`).
 But ANY id can be defined by both, not only a module: a root file with a dotted name is a dotted module id
 (`app.config.ts` is `app.config`, the id of `def config` in app.py, and `util.ts` is `util` like util.py), and
 so on for a class or a member. The merge cannot keep both: one id would carry both languages' callers and

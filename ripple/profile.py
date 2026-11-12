@@ -429,3 +429,75 @@ RUST = LanguageProfile(
     default_test_command=_no_rust_test_command,
     failure_prefixes=("---- ",),
 )
+
+
+def _no_java_test_command(repo: Path) -> list[str]:
+    raise ValueError(
+        "ripple does not know how to run Java tests yet: pass the command that runs them "
+        "(`--test-command` or RIPPLE_TEST_COMMAND, for example `mvn -B test` or `./gradlew test`)"
+    )
+
+
+# The public types of java.lang (JDK 21), the only types a Java file can name without declaring or importing them.
+# A simple name that no scope, file, package or import supplies and that is in builtin_names is one of these, so it
+# is a type from outside the repo (the JDK) and never an unresolved name. Read off the JDK's own module image.
+_JAVA_LANG_NAMES = (
+    "AbstractMethodError Appendable ArithmeticException ArrayIndexOutOfBoundsException ArrayStoreException AssertionError "
+    "AutoCloseable Boolean BootstrapMethodError Byte CharSequence Character Class ClassCastException ClassCircularityError "
+    "ClassFormatError ClassLoader ClassNotFoundException ClassValue CloneNotSupportedException Cloneable Comparable "
+    "Deprecated Double Enum EnumConstantNotPresentException Error Exception ExceptionInInitializerError Float "
+    "FunctionalInterface IllegalAccessError IllegalAccessException IllegalArgumentException IllegalCallerException "
+    "IllegalMonitorStateException IllegalStateException IllegalThreadStateException IncompatibleClassChangeError "
+    "IndexOutOfBoundsException InheritableThreadLocal InstantiationError InstantiationException Integer InternalError "
+    "InterruptedException Iterable LayerInstantiationException LinkageError Long MatchException Math Module ModuleLayer "
+    "NegativeArraySizeException NoClassDefFoundError NoSuchFieldError NoSuchFieldException NoSuchMethodError "
+    "NoSuchMethodException NullPointerException Number NumberFormatException Object OutOfMemoryError Override Package "
+    "Process ProcessBuilder ProcessHandle Readable Record ReflectiveOperationException Runnable Runtime RuntimeException "
+    "RuntimePermission SafeVarargs ScopedValue SecurityException SecurityManager Short StackOverflowError "
+    "StackTraceElement StackWalker StrictMath String StringBuffer StringBuilder StringIndexOutOfBoundsException "
+    "StringTemplate SuppressWarnings System Thread ThreadDeath ThreadGroup ThreadLocal Throwable TypeNotPresentException "
+    "UnknownError UnsatisfiedLinkError UnsupportedClassVersionError UnsupportedOperationException VerifyError "
+    "VirtualMachineError Void WrongThreadException"
+).split()
+# What java.lang.Object gives every class, whatever it extends.
+_JAVA_OBJECT_MEMBERS = frozenset({"getClass", "hashCode", "equals", "clone", "toString", "notify", "notifyAll", "wait", "finalize"})
+
+# Java is read by its own front end and resolver (java_indexer.py, java_resolver.py), not through the shared Resolver,
+# so most fields below are neutral: they say what the shared code reads (the walk, the cache key, the queries) and
+# nothing a Resolver would use. The constructor is `<init>`, the JVM's name for it, which is not a Java identifier and
+# so never a method's.
+JAVA = LanguageProfile(
+    name="java",
+    # package-info.java and module-info.java hold annotations and directives, no code. Build output is skipped by the
+    # front end (java_indexer.reads_as_source): only it can tell a target/ that Maven writes from a package.
+    source_suffixes=(".java",),
+    excluded_suffixes=("package-info.java", "module-info.java"),
+    config_files=(),  # no pom.xml or build.gradle is read: the package declaration proves a file's source root
+    front_end="java",
+    builtin_names=frozenset(_JAVA_LANG_NAMES),
+    builtin_types=frozenset(),
+    not_built_as_instance=frozenset(),
+    safe_import_modules=frozenset(),
+    # Tells a JDK type from a library's in the reasons of calls outside the repo: its package's first part.
+    stdlib_module_names=frozenset({"java", "javax", "jdk"}),
+    nominal_only_excluded=(),
+    same_class_decorators=frozenset(),
+    same_class_plain_decorators=frozenset(),
+    result_keeping=frozenset(),
+    partial_names=frozenset(),
+    wraps_names=frozenset(),
+    package_imports=True,
+    synchronous_callbacks=frozenset(),  # a lambda or method reference is never followed: it is not a call
+    component_wrappers=frozenset(),
+    lazy_wrappers=frozenset(),
+    component_bases=frozenset(),
+    fragment_components=frozenset(),
+    child_replacers=frozenset(),
+    constructor_name="<init>",
+    allocator_name="",
+    implicit_base="java.lang.Object",
+    has_universal_member=lambda name: name in _JAVA_OBJECT_MEMBERS,
+    test_collection=NoTestCollection,  # JUnit is not collected yet: impact lists every caller as code
+    default_test_command=_no_java_test_command,
+    failure_prefixes=(),
+)
