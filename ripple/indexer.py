@@ -118,14 +118,13 @@ def walk_languages(repo: Path, profiles: list[LanguageProfile]) -> tuple[dict[st
         for profile in profiles:
             if in_output and profile.name in output_profiles:
                 continue  # an output directory a language that does not prune it still walks: its files are not that language's source
-            files[profile.name].extend(
-                here / f
-                for f in sorted(filenames)
-                if f.endswith(profile.source_suffixes)
-                and not f.endswith(profile.excluded_suffixes)
-                and _may_be_file(here / f)
-                and _reads_as_source(here / f, profile)
-            )
+            for f in sorted(filenames):
+                if not (f.endswith(profile.source_suffixes) and not f.endswith(profile.excluded_suffixes) and _may_be_file(here / f)):
+                    continue
+                if _reads_as_source(here / f, profile, repo):
+                    files[profile.name].append(here / f)
+                elif (directory := _ignored_directory(here / f, profile, repo)) is not None and directory not in skipped:
+                    skipped.append(directory)  # a directory this language's tool skips is reported like the others
     if outputs:
         # a config may name a directory the walk already went through (base.json's `out` beside the config that extends it)
         under = tuple(out + "/" for out in outputs)
@@ -136,11 +135,17 @@ def walk_languages(repo: Path, profiles: list[LanguageProfile]) -> tuple[dict[st
     return files, sorted(skipped)
 
 
-def _reads_as_source(path: Path, profile: LanguageProfile) -> bool:
+def _ignored_directory(path: Path, profile: LanguageProfile, repo: Path) -> str | None:
+    """The directory a source file is not read for, when its front end says one (registry.py: ignored_directory)."""
+    ignored = getattr(front_end(profile), "ignored_directory", None)
+    return ignored(path, profile, repo) if ignored is not None else None
+
+
+def _reads_as_source(path: Path, profile: LanguageProfile, repo: Path) -> bool:
     """Whether a file with a source suffix is source, as its front end says (registry.py: reads_as_source,
     which a front end whose suffix another kind of file shares defines). Without one, it is."""
     reads_as_source = getattr(front_end(profile), "reads_as_source", None)
-    return reads_as_source is None or reads_as_source(path, profile)
+    return reads_as_source is None or reads_as_source(path, profile, repo)
 
 
 def _holds_venv_or_is_locked(directory: Path) -> bool:

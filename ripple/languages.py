@@ -1,7 +1,7 @@
 """Which languages a repository is written in, and one graph from them.
 
 `--lang` (or RIPPLE_LANG, or the server's lang argument) is the name of a language in registry.py
-("python", "typescript", "javascript") or "auto", the default. Auto reads the repo's file names: each profile's source suffixes (profile.py) are looked for
+("python", "typescript", "javascript", "go") or "auto", the default. Auto reads the repo's file names: each profile's source suffixes (profile.py) are looked for
 in one walk that skips node_modules, virtualenvs and declaration files like every other walk. A repo
 with files of one language is indexed with that language's profile, exactly as before. A repo with
 both is MIXED: each language is indexed with its own profile, and cached under its own key (cache.py),
@@ -32,7 +32,7 @@ from pathlib import Path
 from .indexer import walk_languages
 from .model import Graph
 from .profile import LanguageProfile
-from .registry import LANGUAGES, default_language, join, label, language_of, module_id, profiles, rank
+from .registry import LANGUAGES, default_language, folds_files, join, label, language_of, module_id, profiles, rank
 
 SHOWN_UNPARSABLE = 10  # files listed per language before "... and N more"
 SHOWN_AMBIGUOUS = 5
@@ -223,7 +223,7 @@ def module_collisions(graph: Graph) -> dict[str, list[str]]:
         groups.setdefault((module, rank(file)), []).append(file)
     found: dict[str, list[str]] = {}
     for (module, _), files in sorted(groups.items()):
-        if len(files) > 1:
+        if len(files) > 1 and not folds_files(files[0]):  # a Go package is many files by design
             found.setdefault(module, []).extend(sorted(files))
     return found
 
@@ -237,7 +237,7 @@ def dual_format_files(graph: Graph) -> dict[str, str]:
     unparsed = set(graph.parse_errors)
     found = {}
     for file, module in graph.modules.items():
-        if not language_of(file).path_ids or file in unparsed:
+        if not language_of(file).path_ids or folds_files(file) or file in unparsed:  # a Go package is many files, not one in two formats
             continue
         keeper = owners.get(module_id(file))
         if keeper is not None and keeper != file and module != module_id(file):

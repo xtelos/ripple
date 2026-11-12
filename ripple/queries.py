@@ -17,7 +17,7 @@ from .jsx_facts import JSX_NO_RENDERER, JSX_TAG_UNRESOLVED
 from .model import DECORATOR_SCOPE, UNREAD_CLASS, Decoration, Edge, Graph, Symbol, Unresolved
 from .profile import LanguageProfile
 from .pytest_collection import PytestCollection  # noqa: F401 (it was defined here)
-from .registry import language_of, module_id, path_suffixes, stem
+from .registry import folds_files, language_of, module_id, path_suffixes, stem
 
 MAX_LISTED = 100  # default cap on symbols listed per section, so a hub function cannot flood the agent
 
@@ -178,6 +178,13 @@ def _is_path_id(symbol_id: str) -> bool:
     return ":" in symbol_id or "/" in symbol_id
 
 
+def _packages_in(files: dict[str, str], directory: str) -> set[str]:
+    """The modules of a language that gives all the files of a directory one id (the Go packages: a directory has one, and
+    one more for its external tests) whose files sit directly in it: a Go module id is an import path, so the directory
+    is how a query names it."""
+    return {m for f, m in files.items() if folds_files(f) and f.rpartition("/")[0] == directory}
+
+
 def _module_ids(graph: Graph, path: str) -> list[str]:
     """The module ids a path in a query names, read through the ids the indexer gave the files.
 
@@ -192,8 +199,8 @@ def _module_ids(graph: Graph, path: str) -> list[str]:
     files = {f: m for f, m in known.items() if f.endswith(path_suffixes())}
     if path.endswith("/"):
         directory = path.rstrip("/")
-        return sorted({m for f, m in files.items() if stem(f) == (directory + "/index").lstrip("/")})
-    exact = {m for f, m in files.items() if path in (f, stem(f))} | ({path} & set(files.values()))
+        return sorted({m for f, m in files.items() if stem(f) == (directory + "/index").lstrip("/")} | _packages_in(files, directory))
+    exact = {m for f, m in files.items() if path in (f, stem(f))} | ({path} & set(files.values())) | _packages_in(files, path)
     if exact:
         return sorted(exact)
     tail = "/" + path
