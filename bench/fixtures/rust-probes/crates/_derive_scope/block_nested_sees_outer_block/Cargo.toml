@@ -1,0 +1,7 @@
+[package]
+name = "block_nested_sees_outer_block"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+genmacros = { path = "../../_ext/genmacros" }

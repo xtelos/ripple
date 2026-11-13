@@ -202,6 +202,7 @@ STD_EXPR_MACROS = frozenset(
     "println print eprintln eprint format format_args write writeln panic assert assert_eq assert_ne debug_assert "
     "debug_assert_eq debug_assert_ne dbg todo unimplemented unreachable matches".split()
 )
+PRELUDE_IMPORT = re.compile(rb"\bprelude_import\b")  # the feature gate of the crate's own prelude, and the attribute itself (a raw `r#prelude_import` too)
 STD_ARRAY_MACROS = frozenset({"vec"})
 QUOTE_MACROS = frozenset({"quote", "quote_spanned", "parse_quote", "parse_quote_spanned", "format_ident"})
 # Attributes the language or its tools define, none of which generates items (any other attribute is a macro).
@@ -396,6 +397,7 @@ class CrateCtx:
         self.blocks: dict[tuple[str, int], Scope] = {}  # (file, start byte of a block) -> the scope of a block that declares items
         self.externs: dict[str, tuple] | None = None
         self.macro_use_extern = False  # `#[macro_use] extern crate x;`: macros of a crate ripple has not read are in scope
+        self.prelude_import = False  # `#[prelude_import] use m::*;` (nightly) somewhere: the crate's standard prelude is a module of its own, whose `use`s no scope shows
         self.macro_sites: list[tuple[Scope, str, bool, str, int]] = []  # (scope, macro, path starts at std, file, line) of each macro invoked where it may generate items
         self.attr_sites: list[tuple[str, int, str] | TrustSite] = []  # (file, line, what) of each attribute macro or derive that may generate items, in source order (see attr_reasons)
         self.trust_sites: list[TrustSite] = []  # each function under trusted attributes only, until the repo proves them (Index.decide_trust)
@@ -971,6 +973,13 @@ class Index:
             ctx.scopes[id(m)] = scope
             if not m.path:
                 ctx.root = scope
+                # `#[prelude_import]` is E0658 without `#![feature(prelude_import)]` in the crate root (also behind `cfg_attr` and in a list), and
+                # ripple sees the attribute only on an item it parses, not in a macro body, an include!d file or a `mod` written in a block: so the
+                # gate is what is looked for, in the text of the root (comments blanked), where a syntax error cannot hide it
+                if PRELUDE_IMPORT.search(m.src):
+                    ctx.prelude_import = True
+        if ctx.root is None:
+            ctx.prelude_import = True  # no root to read the gate in
         if ctx.root is not None:
             ctx.root_def = Def("mod", "crate", (ctx.crate.root, -1), None, ctx.root, {"scope": ctx.root, "vis": PUBLIC})
         for m in ctx.modules:
@@ -1015,6 +1024,8 @@ class Index:
             queued = bool(attrs.trust or attrs.shadow) and not rw  # attributes that are what they look like only once the repo proves it (Index.decide_trust)
             if (attrs.trust or attrs.shadow) and rw:
                 attrs = attrs_of(item, src, ctx.tools, trust=False, shadow=BUILTIN)  # inside an item an attribute macro may have rewritten, they are read as one (a built-in is no matter)
+            if "prelude_import" in attrs.heads:
+                ctx.prelude_import = True
             if attrs.heads and not attrs.macro:
                 # a name beside a derive that is not a standard one is that derive's helper, unless an attribute macro of
                 # that name is in scope (decided once every `use` of the crate is known: see Index.mark_macros)
@@ -1338,32 +1349,45 @@ class Index:
                 break
 
     def derive_step(self) -> bool:
-        """Mark the scope of each standard derive, written by its bare name, that something may replace: a `#[macro_use] extern crate`,
-        a macro of the repo of that name, or a `use` that gives the name and is not proved to be the standard library's own derive.
+        """Mark the scope of each standard derive, written by its bare name, that something may replace here: a `#[macro_use] extern
+        crate`, a `#[prelude_import]` or the `#![feature(prelude_import)]` of the crate root that allows one (the crate's own prelude: the
+        standard prelude is no longer std's, and the `use` that gives the name is in the prelude's module, which is on no derive's chain,
+        and the attribute may be where ripple does not read: a macro body, an include!d file, a `mod` in a block) or a macro of the repo of that name (none is scoped by module:
+        they replace the name at every derive of the crate), or
+        a `use` that gives the name, is not proved to be the standard library's own derive, and is in a scope the derive sees.
         Returns whether it marked one it had not (scope flags must be current: mark_item_macros)."""
         changed = False
         for ctx in self.ctxs:
             pending = [i for i in range(len(ctx.pending_derives)) if i not in ctx.derive_replaced]
             if not pending:
                 continue
-            replaced = self.replaced_derive_names(ctx)
+            seen: dict[tuple[int, str], bool] = {}  # (scope, name) -> whether the scope holds a use of the name that is not proved std's
             for i in pending:
                 scope, names, file, line = ctx.pending_derives[i]
-                hit = next((n for n in names if ctx.macro_use_extern or n in self.repo_macros or n in replaced), None)
+                hit = next((n for n in names if ctx.macro_use_extern or ctx.prelude_import or n in self.repo_macros or self.use_replaces_derive(scope, n, seen)), None)
                 if hit is not None:
                     ctx.derive_replaced[i] = hit
                     scope.attribute_macro = True
                     changed = True
         return changed
 
-    def replaced_derive_names(self, ctx: CrateCtx) -> set[str]:
-        """The standard derive names that some `use` of the crate gives and does not prove to be the standard library's."""
-        out: set[str] = set()
-        for sc in self.all_scopes(ctx):
-            for name, entries in sc.uses.items():
-                if name in STD_DERIVES and name not in out and not all(self.std_derive_use(sc, name, segs) for segs in entries):
-                    out.add(name)
-        return out
+    def use_replaces_derive(self, scope: Scope, name: str, seen: dict[tuple[int, str], bool]) -> bool:
+        """Whether the bare `name` in `#[derive(name)]`, written on an item of `scope`, may be a derive a `use` gave. rustc resolves it as
+        a macro path in the item's scope: that scope's own names, then each block around it up to the module's (a module's `use`s
+        are its own: a parent's and a child's are not seen, and neither is another function body's or a sibling block's), then the
+        macro_use, extern and standard preludes. So the `use`s that can give it are those of `scope` and the scopes around it (`outer`).
+        A glob that gives another `Debug` beside the prelude's is rustc's error E0659, as is a `use` a macro expanded, so neither can be
+        what a derive that builds names (the probes of bench/fixtures/rust-probes/crates/_derive_scope); a name an item declares is no
+        macro's. Any one use of the name on that chain that is not proved std's marks it, whichever of them would win in rustc."""
+        s: Scope | None = scope
+        while s is not None:
+            key = (id(s), name)
+            if key not in seen:
+                seen[key] = name in STD_DERIVES and not all(self.std_derive_use(s, name, segs) for segs in s.uses.get(name, ()))
+            if seen[key]:
+                return True
+            s = s.outer
+        return False
 
     def std_derive_use(self, scope: Scope, name: str, segs: list[str]) -> bool:
         """Whether a `use` written in `scope`, by the path `segs`, that gives the name of a standard derive gives the standard library's

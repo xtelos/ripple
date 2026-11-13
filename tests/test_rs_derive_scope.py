@@ -3,8 +3,9 @@ the derive emits beats a name a glob brings in), so a scope that holds a derive 
 where a macro may have generated names, as one that holds an attribute macro is:
 
   * a derive that is not one of the standard library's (`#[derive(Serialize)]`, `#[derive(fake::Debug)]`);
-  * a standard derive's name (`Debug`, `Clone`, ...) that something could replace: a `use` that gives the name anywhere in the crate
-    (`use derive_more::Debug;`), a `#[macro_use] extern crate`, or a macro of the repo called so.
+  * a standard derive's name (`Debug`, `Clone`, ...) that something could replace: a `use` that gives the name in the derive's own
+    scope (`use derive_more::Debug;` in its module, or in its block or a block around it: tests/test_rs_derive_per_scope.py), a
+    `#[macro_use] extern crate`, or a macro of the repo called so (those two anywhere in the crate).
 
 A name that nothing declares in that scope, and that a glob or the enclosing scope would bring, is then unresolved (MACRO_MAY_MAKE),
 and so are the impls ripple read (IMPLS_INCOMPLETE). A `use` that gives std's own derive the name (`use std::fmt::Debug;`) does not
@@ -58,18 +59,36 @@ def test_a_derive_that_is_not_the_standard_librarys_may_have_generated_the_name(
         "use fake::Dbg as Debug;\n",
         "#[macro_use]\nextern crate fake;\n",
         "macro_rules! Debug {\n    () => {};\n}\n",
-        "mod inner {\n    use fake::Debug;\n}\n",
-        "fn elsewhere() {\n    use fake::Debug;\n}\n",
     ],
 )
 def test_a_standard_derive_name_that_a_use_a_macro_use_extern_crate_or_a_repo_macro_could_replace_may_have_generated_the_name(make_repo, pre):
-    """The review's derive_shadow (built: `use fake::Debug;` then `#[derive(Debug)]` emits `fn one() { 2 }`)."""
+    """The review's derive_shadow (built: `use fake::Debug;` then `#[derive(Debug)]` emits `fn one() { 2 }`). A `use` in another module
+    or function body no longer marks the derive of the root (tests/test_rs_derive_per_scope.py: it cannot be what the name is there)."""
     got = calls(make_repo, pre + GLOB + "#[derive(Debug)]\nstruct S;\n" + CALL)
     assert got == MAKE, got
 
 
 def derive_call(make_repo, pre, derive="Debug", deps=OTHER, post=""):
     return calls(make_repo, pre + GLOB + f"#[derive({derive})]\nstruct S;\n" + CALL + post, deps)
+
+
+def marked(make_repo, src, deps=OTHER):
+    """The standard derives of the crate (by their order in the source) that ripple reads as replaced: {index: name}."""
+    from ripple.indexer import walk_languages
+
+    repo = make_repo({"Cargo.toml": PKG + deps, "src/lib.rs": src})
+    files, skipped = walk_languages(repo, [RUST])
+    [ctx] = rs.read_repo(repo, files[RUST.name], skipped)[0].ctxs
+    return dict(ctx.derive_replaced)
+
+
+def in_module_derive(body, outside=""):
+    """A module that holds `body` (uses) and a `#[derive(Debug)]`: the derive sees what the module's own uses give."""
+    return outside + "mod inner {\n" + body + "    #[derive(Debug)]\n    pub struct S;\n}\n"
+
+
+def in_fn_derive(body, outside=""):
+    return outside + "fn elsewhere() {\n" + body + "    #[derive(Debug)]\n    struct S;\n}\n"
 
 
 # What rustc takes as the standard library's own derive under each name (built: a proc-macro crate that exports a derive of every name
@@ -130,11 +149,6 @@ def test_standard_forms_of_the_use_leave_the_derive_the_standard_librarys(make_r
         "extern crate fake as core;\nuse core::fmt::Debug;\n",
         "use fake as core;\nuse core::fmt::Debug;\n",
         "use fake as std;\nuse std::fmt::Debug;\n",
-        "fn elsewhere() {\n    use fake as std;\n    use std::fmt::Debug;\n}\n",
-        "fn elsewhere() {\n    mod std {\n        pub mod fmt {\n            pub use fake::Debug;\n        }\n    }\n    use std::fmt::Debug;\n}\n",
-        "mod inner {\n    use fake as std;\n    use std::fmt::Debug;\n}\n",
-        "mod inner {\n    use fake::*;\n    use std::fmt::Debug;\n}\n",
-        "mod std {\n    pub mod fmt {\n        pub use fake::Debug;\n    }\n}\nmod inner {\n    use super::std::fmt::Debug;\n}\n",
         "#![no_std]\nextern crate std;\nuse std::fmt::Debug;\n",
         "extern crate std as core;\nuse core::fmt::Debug;\n",
         "extern crate core as std;\nuse ::std::fmt::Debug;\n",
@@ -144,6 +158,25 @@ def test_a_use_that_is_not_proved_to_name_the_standard_library_replaces_the_deri
     """Each `std` below is not the standard library's crate (or ripple cannot tell): a module, an alias, a block's import or module."""
     got = derive_call(make_repo, pre)
     assert got == MAKE, got
+
+
+STD_MOD = "mod std {\n    pub mod fmt {\n        pub use fake::Debug;\n    }\n}\n"
+
+
+@pytest.mark.parametrize(
+    "src",
+    [
+        in_fn_derive("    use fake as std;\n    use std::fmt::Debug;\n"),
+        in_fn_derive("    mod std {\n        pub mod fmt {\n            pub use fake::Debug;\n        }\n    }\n    use std::fmt::Debug;\n"),
+        in_module_derive("    use fake as std;\n    use std::fmt::Debug;\n"),
+        in_module_derive("    use fake::*;\n    use std::fmt::Debug;\n"),
+        in_module_derive("    use super::std::fmt::Debug;\n", STD_MOD),
+        in_fn_derive("    use std::fmt::Debug;\n", STD_MOD),
+    ],
+)
+def test_a_use_that_is_not_proved_to_name_the_standard_library_replaces_the_derive_in_its_own_scope(make_repo, src):
+    """The same forms as above, written in the module or function body that holds the derive (another scope's use is not seen)."""
+    assert marked(make_repo, src) == {0: "Debug"}, src
 
 
 @pytest.mark.parametrize("key", ["std", "core"])
@@ -218,9 +251,11 @@ def test_a_rename_gives_another_name_and_leaves_the_derive_alone(make_repo):
 
 
 def test_one_use_that_is_not_the_standard_librarys_replaces_the_name_beside_a_proved_one(make_repo):
-    pre = "use std::fmt::Debug;\nmod inner {\n    use fake::Debug;\n}\n"
-    assert derive_call(make_repo, pre) == MAKE
-    assert derive_call(make_repo, "use std::fmt::Debug;\nmod inner {\n    use fake::Clone;\n}\n") == EDGE
+    """A proved use at the root, and one that is not in the module that derives: the module sees only its own."""
+    proved = "use std::fmt::Debug;\n"
+    assert marked(make_repo, in_module_derive("    use fake::Debug;\n", proved)) == {0: "Debug"}
+    assert marked(make_repo, in_module_derive("    use fake::Clone;\n", proved)) == {}
+    assert marked(make_repo, in_fn_derive("    use fake::Debug;\n", proved)) == {0: "Debug"}
 
 
 @pytest.mark.parametrize(
@@ -228,13 +263,23 @@ def test_one_use_that_is_not_the_standard_librarys_replaces_the_name_beside_a_pr
     [
         "use std::fmt::Debug;\n#[macro_use]\nextern crate fake;\n",
         "use std::fmt::Debug;\nmacro_rules! Debug {\n    () => {};\n}\n",
-        "use std::fmt::Debug;\nuse fake::Debug as Dbg;\nmod m {\n    use derive_more::Debug;\n}\n",
-        "use std::fmt::Debug;\nmod m {\n    use fake::{self, Debug};\n}\n",
     ],
 )
 def test_a_proved_use_does_not_stop_another_macro_from_replacing_the_name(make_repo, pre):
     got = derive_call(make_repo, pre)
     assert got == MAKE, got
+
+
+@pytest.mark.parametrize(
+    "src",
+    [
+        in_fn_derive("    use derive_more::Debug;\n", "use std::fmt::Debug;\nuse fake::Debug as Dbg;\n"),
+        in_module_derive("    use fake::{self, Debug};\n", "use std::fmt::Debug;\n"),
+        in_fn_derive("    use fake::Debug;\n", "use std::fmt::Debug;\n"),
+    ],
+)
+def test_a_proved_use_of_the_scope_around_does_not_stop_a_use_here_from_replacing_the_name(make_repo, src):
+    assert marked(make_repo, src) == {0: "Debug"}, src
 
 
 def test_an_unknown_derive_still_marks_its_scope_beside_a_standard_use(make_repo):
@@ -243,10 +288,12 @@ def test_an_unknown_derive_still_marks_its_scope_beside_a_standard_use(make_repo
 
 
 def test_a_scope_where_a_macro_may_make_names_does_not_prove_std_there(make_repo):
-    """`std` in a module with a derive that may emit a module of that name is not known to be the crate: that use replaces the name."""
-    pre = "mod inner {\n    use std::fmt::Debug;\n    #[derive(Serialize)]\n    pub struct T;\n}\n"
-    got = derive_call(make_repo, pre)
-    assert got == MAKE, got
+    """`std` in a module with a derive that may emit a module of that name is not known to be the crate: that use replaces the name
+    for the derive beside it (and, as the use is the module's, for no derive outside the module)."""
+    body = "    use std::fmt::Debug;\n    #[derive(Serialize)]\n    pub struct T;\n"
+    assert marked(make_repo, in_module_derive(body)) == {0: "Debug"}
+    assert marked(make_repo, in_module_derive(body.replace("Serialize", "Clone"))) == {}  # the control: nothing may have made `std`
+    assert derive_call(make_repo, "mod inner {\n" + body + "}\n") == EDGE
 
 
 def test_a_derive_written_by_a_standard_path_with_a_proved_use_is_still_standard(make_repo):
