@@ -34,5 +34,10 @@ ripple = "ripple.cli:main"
 [tool.setuptools]
 packages = ["ripple"]
 
+# The JDK member table the Java resolver reads (ripple/java_jdk.py). `pip install -e` runs from the source tree and would hide a
+# missing entry here, so tests/test_java_jdk.py builds a wheel and lists it.
+[tool.setuptools.package-data]
+ripple = ["data/*.txt"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
