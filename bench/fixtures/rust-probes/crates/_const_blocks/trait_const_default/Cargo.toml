@@ -1,0 +1,4 @@
+[package]
+name = "trait_const_default"
+version = "0.1.0"
+edition = "2021"
