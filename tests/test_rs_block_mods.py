@@ -146,10 +146,19 @@ def test_a_block_module_of_the_name_of_an_outside_glob_does_not_make_that_glob_l
 
 
 def test_a_module_level_module_of_that_name_still_makes_the_glob_local(make_repo):
-    """The set of local names is the one the rule had: a real module `extcrate` is what `use extcrate::*` names."""
-    src = "mod extcrate {\n    pub fn x() {}\n}\n" + OUTSIDE_GLOB
-    edges, _ = verdicts(make_repo, src, OTHER_DEP)
-    assert ("src/lib:f", "src/lib:other::helper") in edges
+    """The set of local names is the one the rule had: a real module `extcrate` is what `use extcrate::*` names, so the glob is not one
+    from outside the repo (Index.settle_helpers: CrateCtx.outside_glob). The unknown derive beside it makes the scope one where a
+    macro may have made names all the same (test_rs_derive_scope), so what is read here is the flag, not the call."""
+    from ripple.indexer import walk_languages
+
+    def outside_glob(src):
+        repo = make_repo({"Cargo.toml": PKG + OTHER_DEP, "src/lib.rs": src})
+        files, skipped = walk_languages(repo, [RUST])
+        return [ctx.outside_glob for ctx in rs.read_repo(repo, files[RUST.name], skipped)[0].ctxs]
+
+    assert outside_glob(OUTSIDE_GLOB) == [True]
+    assert outside_glob(OUTSIDE_GLOB + "fn unrelated() {\n    mod extcrate {}\n}\n") == [True]
+    assert outside_glob("mod extcrate {\n    pub fn x() {}\n}\n" + OUTSIDE_GLOB) == [False]
 
 
 MACRO_MOD = (

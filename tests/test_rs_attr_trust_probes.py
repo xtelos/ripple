@@ -86,6 +86,10 @@ SITES = [
     pytest.param("trust_block_mod_effects", "src/lib.rs", 13, "one", "MACRO_BODY", "", id="dbg! under a #[macro_use] mod of the block is not std's"),
     pytest.param("trust_block_mod_effects", "src/lib.rs", 30, "S::new", "IMPLS_INCOMPLETE", "", id="an impl in a block mod is the inherent function S::new reaches"),
     pytest.param("trust_outside_glob_block_mod", "src/lib.rs", 13, "helper", MAKE, "", id="a block mod called like an outside glob does not make the glob local"),
+    pytest.param("trust_derive_unknown", "src/lib.rs", 11, "one", MAKE, "", id="a derive that is not the standard library's emits the name a glob would bring"),
+    pytest.param("trust_derive_shadow", "src/lib.rs", 12, "one", MAKE, "", id="`use m::Debug;` makes #[derive(Debug)] another derive, which emits the name"),
+    pytest.param("trust_derive_std_use", "src/lib.rs", 12, "one", EDGE, "src/lib:other::one", id="`use std::fmt::Debug;` is the standard derive, which emits nothing: the glob's name is an edge"),
+    pytest.param("trust_derive_std_shadow", "src/lib.rs", 17, "one", MAKE, "", id="a `mod std` re-exporting another derive: `use std::fmt::Debug;` is not the standard library's"),
     pytest.param("trust_member_named_macro_crate", "app/src/lib.rs", 7, "helper", ATTR, "", id="a repo package called tokio-macros: refused, though the macro is the real one"),
     pytest.param("trust_serial_after_tokio_test", "src/lib.rs", 17, "_u_internal", MAKE, "", id="serial on an async fn: refused whatever the order of the attributes (stricter than needed here)"),
 ]

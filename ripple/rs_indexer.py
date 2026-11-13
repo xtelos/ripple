@@ -175,6 +175,15 @@ STD_NO_IMPL_MACROS = frozenset({"thread_local"})
 # The derives of the standard library: each gives its type one impl of a known trait (DERIVE_FNS). Any other derive may
 # generate any item, and a derive's helper attribute is told from an attribute macro only by the derive's source.
 STD_DERIVES = frozenset("Clone Copy Debug Default Eq Hash Ord PartialEq PartialOrd".split())
+# The paths after `std::` or `core::` that give a standard derive's name its own macro (built with rustc: a proc-macro crate with a
+# derive of every name collides with `use pm::NAME;` exactly when the use under test gives NAME's macro): the module the trait is in
+# (`std::fmt::Debug` brings the trait and the derive), and the preludes. Others are refused, not followed: `std::marker::Debug` is a
+# private import of the trait, and `alloc` exports one only as `alloc::fmt::Debug`.
+STD_DERIVE_PATHS = frozenset(
+    {(home, name) for name, home in {"Clone": "clone", "Copy": "marker", "Debug": "fmt", "Default": "default", "Eq": "cmp", "Hash": "hash",
+                                     "Ord": "cmp", "PartialEq": "cmp", "PartialOrd": "cmp"}.items()}
+    | {("prelude", edition, name) for edition in ("v1", "rust_2015", "rust_2018", "rust_2021", "rust_2024") for name in STD_DERIVES}
+)
 PRELUDE_VALUES = frozenset({"drop", "Some", "None", "Ok", "Err"})
 CONSTRUCTOR_VALUES = frozenset({"Some", "None", "Ok", "Err"})
 PRIMITIVES = frozenset("u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize f32 f64 bool char str".split())
@@ -392,6 +401,8 @@ class CrateCtx:
         self.trust_sites: list[TrustSite] = []  # each function under trusted attributes only, until the repo proves them (Index.decide_trust)
         self.block_mods: list[tuple[str, int]] = []  # (file, line) of each `mod` written in a block, whose items ripple does not read: any impl in one applies to the whole crate
         self.taint: list[str] = []  # why the impls ripple read may not be all of this crate's (see Index.mark_macros)
+        self.pending_derives: list[tuple[Scope, tuple[str, ...], str, int]] = []  # (scope, names, file, line) of each standard derive written by its bare name: another macro if something replaces the name (Index.settle_derives)
+        self.derive_replaced: dict[int, str] = {}  # index into pending_derives -> the name of the derive that something replaces (Index.derive_step)
         self.pending_heads: list[tuple[Scope, tuple[str, ...], str, int]] = []  # (scope, attributes, file, line) of each on the target of a derive that is not a standard one
         self.use_names: set[str] = set()  # every name a `use` of the crate gives
         self.tools: frozenset[str] = frozenset()  # the names of TOOL_ATTRS that something of the crate declares, imports or depends on (Index.shadowed_tools)
@@ -599,7 +610,7 @@ def parse_visibility(written: str) -> tuple:
 class Attrs:
     """What the attributes written before an item say that matters here."""
 
-    __slots__ = ("cfg", "macro", "macro_use", "proc_macro", "derives", "unknown_derive", "what", "heads", "trust", "shadow")
+    __slots__ = ("cfg", "macro", "macro_use", "proc_macro", "derives", "unknown_derive", "std_derives", "what", "heads", "trust", "shadow")
 
     def __init__(self) -> None:
         self.cfg = False  # a #[cfg] or #[cfg_attr]: the item may not exist (ripple evaluates no condition)
@@ -608,6 +619,7 @@ class Attrs:
         self.proc_macro = False  # the function defines a macro (`#[proc_macro]`): its name is a macro's
         self.derives: list[str] = []
         self.unknown_derive = False  # a derive that is not one of the standard library's: it may generate any item
+        self.std_derives: list[str] = []  # the derives written as a standard one's bare name (`Debug`), which a use, a macro_use extern crate or a repo macro of that name replaces
         self.what = ""  # the first attribute macro or derive of that kind, as written
         self.heads: list[str] = []  # attributes that are one plain name and not built in: an attribute macro, or the helper of a derive
         self.trust: list[str] = []  # attributes of TRUSTED_ATTRS, as written, that no attribute macro beside them or the item they are on rules out: trusted once the repo proves them
@@ -656,6 +668,8 @@ def _classify_attribute(head: str, args, src: bytes, out: Attrs, tools: frozense
             if name not in STD_DERIVES or ("::" in written and written.split("::")[0] not in ("std", "core", "alloc")):
                 out.unknown_derive = True
                 out.what = out.what or f"the derive `{written}`"
+            elif "::" not in written:
+                out.std_derives.append(name)  # the standard derive of that name, unless something replaces it (Index.settle_derives)
         _shadowable(head, out, shadow)
     elif head == "macro_use":
         out.macro_use = True
@@ -980,10 +994,12 @@ class Index:
 
     def note_attrs(self, ctx: CrateCtx, scope: Scope, attrs: Attrs, file: str, line: int, what: str) -> None:
         """An attribute macro or a derive that is not the standard library's may generate items beside what it is written on."""
-        if attrs.macro:
-            scope.attribute_macro = True  # an attribute macro may rewrite the item and generate any other beside it
+        if attrs.macro or attrs.unknown_derive:
+            scope.attribute_macro = True  # an attribute macro may rewrite the item and generate any other beside it, and a derive generate any item beside it
         if attrs.macro or attrs.unknown_derive:  # a derive generates impls (and any item), but rewrites nothing
             ctx.attr_sites.append(attr_site(attrs, file, line, what))
+        if attrs.std_derives:
+            ctx.pending_derives.append((scope, tuple(attrs.std_derives), file, line))
 
     def collect_items(self, scope: Scope, container, m: Module, ctx: CrateCtx, owner_id: str | None = None, block: bool = False, rw: bool = False) -> None:
         """The items a container (a module's body or a block) declares, into the scope. `rw` is a container inside an
@@ -1133,6 +1149,10 @@ class Index:
         for ctx in self.ctxs:
             ctx.taint = []
             self.settle_helpers(ctx)
+        self.settle_derives()  # after every crate's scopes are flagged: whether `std` is the crate in a scope depends on them
+        for ctx in self.ctxs:
+            for i, name in sorted(ctx.derive_replaced.items()):
+                ctx.taint.append(f"the derive `{name}` in {ctx.pending_derives[i][2]} may be another macro than the standard library's, which may generate impls")
             self.mark_item_macros(ctx)
             for scope, name, qualified, file, line in ctx.macro_sites:
                 if not self.is_std_macro(scope, name, qualified, STD_PURE_MACROS | STD_NO_IMPL_MACROS):
@@ -1169,7 +1189,7 @@ class Index:
             for ctx in self.ctxs:
                 self.mark_item_macros(ctx)
             self.cache.clear()
-            changed = False
+            changed = self.derive_step()
             for ctx in self.ctxs:
                 for site in ctx.trust_sites:
                     if site.refused is None:
@@ -1306,6 +1326,65 @@ class Index:
             if not self.heads_inert(ctx, heads):
                 scope.attribute_macro = True
                 ctx.taint.append(f"the attribute `#[{heads[0]}]` in {file} may be an attribute macro, which may generate impls")
+
+    def settle_derives(self) -> None:
+        """Run derive_step until it marks nothing new, flagging every scope (mark_item_macros) between runs: a scope that a derive
+        marks is one where `std` may be a name a macro made, which is not the crate there, so a use there may now replace a name."""
+        while True:
+            for ctx in self.ctxs:
+                self.mark_item_macros(ctx)
+            self.cache.clear()
+            if not self.derive_step():
+                break
+
+    def derive_step(self) -> bool:
+        """Mark the scope of each standard derive, written by its bare name, that something may replace: a `#[macro_use] extern crate`,
+        a macro of the repo of that name, or a `use` that gives the name and is not proved to be the standard library's own derive.
+        Returns whether it marked one it had not (scope flags must be current: mark_item_macros)."""
+        changed = False
+        for ctx in self.ctxs:
+            pending = [i for i in range(len(ctx.pending_derives)) if i not in ctx.derive_replaced]
+            if not pending:
+                continue
+            replaced = self.replaced_derive_names(ctx)
+            for i in pending:
+                scope, names, file, line = ctx.pending_derives[i]
+                hit = next((n for n in names if ctx.macro_use_extern or n in self.repo_macros or n in replaced), None)
+                if hit is not None:
+                    ctx.derive_replaced[i] = hit
+                    scope.attribute_macro = True
+                    changed = True
+        return changed
+
+    def replaced_derive_names(self, ctx: CrateCtx) -> set[str]:
+        """The standard derive names that some `use` of the crate gives and does not prove to be the standard library's."""
+        out: set[str] = set()
+        for sc in self.all_scopes(ctx):
+            for name, entries in sc.uses.items():
+                if name in STD_DERIVES and name not in out and not all(self.std_derive_use(sc, name, segs) for segs in entries):
+                    out.add(name)
+        return out
+
+    def std_derive_use(self, scope: Scope, name: str, segs: list[str]) -> bool:
+        """Whether a `use` written in `scope`, by the path `segs`, that gives the name of a standard derive gives the standard library's
+        own: the first segment is the real standard crate (the lookup and the extern prelude name it as the crate, so no module, alias,
+        dependency, import or block item of that name is in the way, and no macro may have made one), the path is one the library
+        exports a derive under (STD_DERIVE_PATHS), and the name is not another's renamed (`use std::cmp::PartialOrd as Ord;`). A path
+        ripple cannot prove is not followed: it counts as replacing the name."""
+        if scope.crate.edition < 2018:  # `::std` and `std` are read from the crate root in a 2015 crate
+            return False
+        written = segs[1:] if segs[:1] == ["::"] else segs
+        if len(written) < 3 or written[0] not in ("std", "core", "alloc"):
+            return False
+        crate, rest = written[0], tuple(written[1:])
+        if rest[-1] != name:  # a rename: the name is another item's
+            return False
+        if rest not in STD_DERIVE_PATHS or (crate == "alloc" and rest != ("fmt", "Debug")):
+            return False
+        named = self.externs(scope.crate).get(crate)  # what the extern prelude makes of the crate's name: an `extern crate` or a dependency may name it
+        if segs[0] == "::":
+            return named == ("ext", "std|" + crate) or (named is None and crate != "alloc")  # alloc is in the extern prelude only by `extern crate alloc;`
+        return crate != "alloc" and self.lookup(scope, crate, "type") == [("ext", "std|" + crate)]
 
     def heads_inert(self, ctx: CrateCtx, heads: tuple) -> bool:
         return not ctx.macro_use_extern and not ctx.outside_glob and all(h not in self.repo_macros and h not in ctx.use_names for h in heads)
@@ -1901,6 +1980,8 @@ class Index:
         if len(found) > 1:
             if all(r[0] == "ext" for r in found):
                 found = found[:1]
+            elif all(r[0] == "unknown" for r in found) and MACRO_MAY_MAKE in (r[1] for r in found):
+                return unresolved(MACRO_MAY_MAKE)  # nothing is named twice: two reasons it is not known, and a macro that may have made it is one
             else:
                 return unresolved(SEVERAL)
         kind, x = found[0]
