@@ -1,0 +1,9 @@
+[package]
+name = "app4"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+facade = { path = "../facade" }
+thing2 = { path = "../real_pm" }
+shim_derive = { path = "../shim_derive" }

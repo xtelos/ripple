@@ -1,0 +1,8 @@
+[package]
+name = "app7"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+thing = { path = "../real" }
+other = { path = "../shim_pm", package = "shim_pm" }

@@ -1,0 +1,8 @@
+[package]
+name = "app1"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+thing = { path = "../real" }
+shim_rlib = { path = "../shim_rlib" }
