@@ -324,3 +324,75 @@ def test_the_order_repo_of_the_review_reads_the_serde_attribute_first(make_repo)
     [reason] = {u.reason for u in graph.unresolved}
     assert "`#[serde]`" in reason, reason
 
+
+# ---- M2: a target's own `edition` is the crate's edition
+
+
+def targeted(table, src, deps=SERDE, package_edition="2021", path="src/lib.rs", extra_files=None):
+    """A package of `package_edition` whose target table `table` (`[lib]`, `[[bin]]` ..) names an edition of its own."""
+    files = {"Cargo.toml": manifest(deps, edition=package_edition, extra="\n" + table), path: src}
+    return {**files, **(extra_files or {})}
+
+
+TARGETS = {
+    "lib": ('[lib]\nedition = "{ed}"\n', "src/lib.rs"),
+    "bin": ('[[bin]]\nname = "x"\npath = "src/main.rs"\nedition = "{ed}"\n', "src/main.rs"),
+    "test": ('[[test]]\nname = "t"\npath = "tests/t.rs"\nedition = "{ed}"\n', "tests/t.rs"),
+    "example": ('[[example]]\nname = "e"\npath = "examples/e.rs"\nedition = "{ed}"\n', "examples/e.rs"),
+    "bench": ('[[bench]]\nname = "b"\npath = "benches/b.rs"\nedition = "{ed}"\n', "benches/b.rs"),
+}
+
+
+@pytest.mark.parametrize("kind", sorted(TARGETS))
+def test_a_target_of_edition_2015_in_a_package_of_2021_refuses_the_derive_like_a_package_of_2015(make_repo, kind):
+    """cargo run printed `inherent from the other derive` for the reviewer's repo: in 2015 `use serde::Serialize` is `crate::serde`."""
+    table, path = TARGETS[kind]
+    files = targeted(table.format(ed="2015"), "use serde::Serialize;\n#[derive(Serialize)]\n" + S, path=path)
+    assert verdict(make_repo, files) == REFUSED
+    [why] = reasons_of(make_repo, files)
+    assert why.startswith("edition"), why
+
+
+@pytest.mark.parametrize("kind", sorted(TARGETS))
+def test_a_target_of_edition_2021_in_a_package_of_2015_is_a_crate_of_2021(make_repo, kind):
+    table, path = TARGETS[kind]
+    files = targeted(table.format(ed="2021"), "use serde::Serialize;\n#[derive(Serialize)]\n" + S, package_edition="2015", path=path)
+    assert verdict(make_repo, files) == TRUSTED
+
+
+def test_a_target_without_an_edition_has_the_packages_and_only_the_targets_with_one_differ(make_repo):
+    src = "use serde::Serialize;\n#[derive(Serialize)]\n" + S
+    files = targeted('[lib]\nedition = "2015"\n', src, extra_files={"src/main.rs": src + "fn main() {}\n"})
+    index, _ = read(make_repo, files)
+    assert {ctx.crate.kind: ctx.edition for ctx in index.ctxs} == {"lib": 2015, "bin": 2021}
+
+
+@pytest.mark.parametrize("edition", ["2015x", "", "nonsense", "20", "2030", "2021 "])
+def test_a_target_edition_ripple_does_not_know_is_a_crate_of_2015(make_repo, edition):
+    """A value cargo rejects, or an edition newer than the ones ripple has read (KNOWN_EDITIONS): what its rules are is not known, and every
+    edition rule refuses on 2015."""
+    files = targeted(f'[lib]\nedition = "{edition}"\n', "use serde::Serialize;\n#[derive(Serialize)]\n" + S)
+    assert verdict(make_repo, files) == REFUSED
+
+
+STD_2015 = (
+    "pub mod core {\n    pub mod fmt {\n        pub use other::Debug;\n    }\n}\n"
+    "pub mod m {\n    use core::fmt::Debug;\n    pub trait Tr {\n        fn make() -> u8;\n    }\n    #[derive(Debug)]\n    pub struct E;\n"
+    "    impl Tr for E {\n        fn make() -> u8 {\n            1\n        }\n    }\n    pub fn f() -> u8 {\n        E::make()\n    }\n}\n"
+)
+
+
+def test_a_standard_derive_is_not_proved_by_a_use_in_a_target_of_edition_2015_either(make_repo):
+    """Base-branch hole of the same kind (rust-derive-per-scope, `std_derive_use`): with `[lib] edition = "2015"`, `use core::fmt::Debug`
+    is `crate::core::fmt::Debug`, the repo's own derive (cargo run on this shape printed `inherent from the other derive`). The edge to the
+    impl's `make` would be wrong; the base drew it."""
+    files = targeted('[lib]\nedition = "2015"\n', STD_2015, deps='other = "1"\n')
+    edges, _ = calls(make_repo, files)
+    assert edges == []
+
+
+def test_the_same_standard_derive_in_a_target_of_edition_2021_is_the_standard_ones_and_draws_the_edge(make_repo):
+    """The control: the std derive is proved where the target is of 2018 or later, so the test above is not a refusal of everything."""
+    files = targeted('[lib]\nedition = "2021"\n', STD_2015, deps='other = "1"\n', package_edition="2015")
+    edges, _ = calls(make_repo, files)
+    assert edges == [("src/lib:m::f", "src/lib:m::<E as Tr>::make")]

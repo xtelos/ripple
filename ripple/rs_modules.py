@@ -131,12 +131,23 @@ class Package:
     locked: dict[str, tuple[str, ...]] | None = None  # the Cargo.lock of the package's workspace: each package name (hyphens as underscores) -> the versions it lists; None without a lock or with one that cannot be read
 
 
+KNOWN_EDITIONS = frozenset({"2015", "2018", "2021", "2024"})
+
+
 @dataclass
 class Crate:
     name: str
     kind: str  # lib | bin | test | example | bench | build
     root: str  # repo-relative file
     package: Package
+    edition: str | None = None  # the `edition` the target's own table sets (`[lib] edition = "2015"`), None when it sets none and the package's is the crate's
+
+    @property
+    def edition_year(self) -> int:
+        """The edition rustc builds this crate in: the target's own, else the package's. An edition ripple does not know (a value cargo
+        rejects, one newer than it has read) reads as 2015, the one every edition rule refuses on."""
+        written = self.package.edition if self.edition is None else self.edition
+        return int(written) if written in KNOWN_EDITIONS else 2015
 
 
 @dataclass
@@ -1171,13 +1182,19 @@ def _targets(repo: Path, package: Package) -> list[Crate]:
     def exists(rel: str) -> bool:
         return (repo / rel).is_file()
 
+    def edition(entry: dict) -> str | None:
+        """The edition a target table sets, None when it sets none; one that is no string is one nothing reads ("")."""
+        if "edition" not in entry:
+            return None
+        return entry["edition"] if isinstance(entry["edition"], str) else ""
+
     out: list[Crate] = []
     src_lib = _join(base, "src/lib.rs")
     if package.lib_name is None and exists(src_lib):
         package.lib_name = package.name.replace("-", "_")
     if package.lib_name:
         lib = manifest.get("lib", {}) if isinstance(manifest.get("lib"), dict) else {}
-        out.append(Crate(package.lib_name, "lib", _join(base, written(lib, "path", "src/lib.rs")), package))
+        out.append(Crate(package.lib_name, "lib", _join(base, written(lib, "path", "src/lib.rs")), package, edition(lib)))
     seen: set[str] = set()
     for entry in listed("bin"):
         name = written(entry, "name", package.name)
@@ -1186,7 +1203,7 @@ def _targets(repo: Path, package: Package) -> list[Crate]:
         )
         if path:
             root = _join(base, path)
-            out.append(Crate(name.replace("-", "_"), "bin", root, package))
+            out.append(Crate(name.replace("-", "_"), "bin", root, package, edition(entry)))
             seen.add(root)
     if meta.get("autobins", True):
         main = _join(base, "src/main.rs")
@@ -1210,7 +1227,7 @@ def _targets(repo: Path, package: Package) -> list[Crate]:
             )
             root = _join(base, path)
             seen_roots.add(root)
-            out.append(Crate(entry_name.replace("-", "_"), kind, root, package))
+            out.append(Crate(entry_name.replace("-", "_"), kind, root, package, edition(entry)))
         if meta.get(auto, True):
             out += _discovered(repo, package, directory, kind, seen_roots)
     build = meta.get("build", None)
