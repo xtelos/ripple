@@ -1,0 +1,23 @@
+{
+ "invokes": [
+  ["p/Counts.java", 10, "invokespecial", "java.util.HashMap", "<init>", "()V", "p.Counts.<init>:()V", 1],
+  ["p/Counts.java", 12, "invokeinterface", "java.util.Map$Entry", "getKey", "()Ljava/lang/Object;", "p.Counts.f:(Ljava/util/Map$Entry;)Ljava/lang/Object;", 1],
+  ["p/Counts.java", 16, "invokevirtual", "p.Node", "getKey", "()Ljava/lang/String;", "p.Counts.g:(Lp/Node;)Ljava/lang/String;", 1],
+  ["p/Counts.java", 20, "invokeinterface", "java.util.Map$Entry", "getKey", "()Ljava/lang/Object;", "p.Counts.h:(Ljava/util/Map$Entry;)Ljava/lang/String;", 1],
+  ["p/Counts.java", 24, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Pair.<init>:()V", 1],
+  ["p/Counts.java", 24, "invokevirtual", "p.Pair", "getKey", "()Ljava/lang/String;", "p.Pair.getKey:()Ljava/lang/Object;", 1],
+  ["p/Counts.java", 24, "invokevirtual", "p.Pair", "getValue", "()Ljava/lang/String;", "p.Pair.getValue:()Ljava/lang/Object;", 1],
+  ["p/Counts.java", 24, "invokevirtual", "p.Pair", "setValue", "(Ljava/lang/String;)Ljava/lang/String;", "p.Pair.setValue:(Ljava/lang/Object;)Ljava/lang/Object;", 5],
+  ["p/Counts.java", 38, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Use.<init>:()V", 1],
+  ["p/Counts.java", 40, "invokeinterface", "java.util.Map$Entry", "getKey", "()Ljava/lang/Object;", "p.Use.a:(Ljava/util/Map$Entry;)Ljava/lang/String;", 1],
+  ["p/Entry.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Entry.<init>:()V", 1],
+  ["p/Node.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Node.<init>:()V", 1]
+ ],
+ "classes": {
+  "p.Counts": {"supers": ["java.io.Serializable", "java.lang.Cloneable", "java.lang.Object", "java.util.AbstractMap", "java.util.HashMap", "java.util.Map"], "methods": [["<init>", "()V", 1], ["f", "(Ljava/util/Map$Entry;)Ljava/lang/Object;", 0], ["g", "(Lp/Node;)Ljava/lang/String;", 0], ["h", "(Ljava/util/Map$Entry;)Ljava/lang/String;", 0]], "bridges": [], "compiler": []},
+  "p.Entry": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["getKey", "()Ljava/lang/String;", 1]], "bridges": [], "compiler": []},
+  "p.Node": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["getKey", "()Ljava/lang/String;", 1]], "bridges": [], "compiler": []},
+  "p.Pair": {"supers": ["java.lang.Object", "java.util.Map$Entry"], "methods": [["<init>", "()V", 0], ["getKey", "()Ljava/lang/String;", 1], ["getValue", "()Ljava/lang/String;", 1], ["setValue", "(Ljava/lang/String;)Ljava/lang/String;", 1]], "bridges": [["getKey", "()Ljava/lang/Object;", "()Ljava/lang/String;"], ["getValue", "()Ljava/lang/Object;", "()Ljava/lang/String;"], ["setValue", "(Ljava/lang/Object;)Ljava/lang/Object;", "(Ljava/lang/String;)Ljava/lang/String;"]], "compiler": []},
+  "p.Use": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["a", "(Ljava/util/Map$Entry;)Ljava/lang/String;", 0]], "bridges": [], "compiler": []}
+ }
+}

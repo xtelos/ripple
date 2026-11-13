@@ -1,0 +1,9 @@
+{
+ "invokes": [
+  ["p/Entry.java", 8, "invokespecial", "java.util.AbstractMap", "<init>", "()V", "p.Entry.<init>:()V", 1],
+  ["p/Entry.java", 12, "invokeinterface", "java.util.Map$Entry", "getKey", "()Ljava/lang/Object;", "p.Entry.first:(Ljava/util/Map$Entry;)Ljava/lang/Object;", 1]
+ ],
+ "classes": {
+  "p.Entry": {"supers": ["java.lang.Object", "java.util.AbstractMap", "java.util.Map"], "methods": [["<init>", "()V", 1], ["entrySet", "()Ljava/util/Set;", 1], ["first", "(Ljava/util/Map$Entry;)Ljava/lang/Object;", 0], ["getKey", "()Ljava/lang/String;", 1]], "bridges": [], "compiler": []}
+ }
+}

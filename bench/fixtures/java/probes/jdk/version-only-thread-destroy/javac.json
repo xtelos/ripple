@@ -1,0 +1,12 @@
+{
+ "invokes": [
+  ["p/Outer.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Outer.<init>:()V", 1],
+  ["p/Outer.java", 9, "invokespecial", "java.lang.Thread", "<init>", "()V", "p.Outer$Q.<init>:(Lp/Outer;)V", 6],
+  ["p/Outer.java", 11, "invokevirtual", "p.Outer", "destroy", "()V", "p.Outer$Q.f:()V", 4],
+  ["p/Outer.java", 12, "invokevirtual", "p.Outer", "helper", "()V", "p.Outer$Q.f:()V", 11]
+ ],
+ "classes": {
+  "p.Outer": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["destroy", "()V", 0], ["helper", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Outer$Q": {"supers": ["java.lang.Object", "java.lang.Runnable", "java.lang.Thread"], "methods": [["<init>", "(Lp/Outer;)V", 1], ["f", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

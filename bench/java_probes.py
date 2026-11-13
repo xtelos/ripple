@@ -19,7 +19,14 @@ records, with the source line each came from:
 It needs a JDK (javac and javap on PATH, or the directory of them as the first argument) and is run by hand when a probe
 is added or changed; tests/test_java_probes.py reads the result and needs no JDK.
 
-    python bench/java_probes.py [JDK_BIN_DIR] [probe_dir ...]
+A source file whose first line is `// javac-min: 26` is compiled only by a javac of that release or later (sources_for): it is
+legal Java only there. Its calls are in the answer of those javacs alone; ripple reads the file whichever answer it judges by.
+
+    python bench/java_probes.py [--release N|none] [--out NAME] [JDK_BIN_DIR] [probe_dir ...]
+
+--release and --out record another javac's answer beside javac.json, for a probe whose meaning depends on the JDK it is built
+with (a member only some JDKs have): `--release none --out javac-8.json /tmp/jdk-table/8/jdk8u512-b09/bin probe_dir`, since
+JDK 8's javac has no --release. tests/test_java_probes.py holds ripple to every javac-*.json it finds.
 """
 
 from __future__ import annotations
@@ -219,12 +226,39 @@ def answer(listing: str, jdk: Javap) -> dict:
     return {"invokes": sorted(rows, key=lambda r: (r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7])), "classes": info}
 
 
-def probe(directory: Path, javac: str, javap: str, jdk: Javap) -> dict:
-    sources = sorted((directory / "src").rglob("*.java"))
+MINIMUM = re.compile(r"\A//\s*javac-min:\s*(\d+)\s*$", re.M)
+
+
+def sources_for(directory: Path, major: int) -> list[Path]:
+    """The source files of a probe that a javac of that feature release compiles: all of them, except a file whose first line
+    is `// javac-min: N` with N above it. Such a file is legal Java only from JDK N (it uses a member a JDK gave a type in
+    N: `Process` is an AutoCloseable from 26), so it is in the answer of a javac that can compile it and only that one;
+    ripple still reads it, with every file, whatever javac the answer is of."""
+    found = []
+    for path in sorted((directory / "src").rglob("*.java")):
+        needed = MINIMUM.match(path.read_text(encoding="utf-8"))
+        if needed is None or int(needed.group(1)) <= major:
+            found.append(path)
+    return found
+
+
+def javac_major(javac: str) -> int:
+    """The feature release of a javac: `javac 21.0.13` is 21 and `javac 1.8.0_512` is 8."""
+    done = subprocess.run([javac, "-version"], capture_output=True, text=True)  # javac 8 prints it on stderr, later ones on stdout
+    version = re.search(r"javac (\d+)(?:\.(\d+))?", done.stdout + done.stderr)
+    if version is None:
+        raise RuntimeError(f"{javac} -version printed no version")
+    return int(version.group(2)) if version.group(1) == "1" else int(version.group(1))
+
+
+def probe(directory: Path, javac: str, javap: str, jdk: Javap, release: str = "21") -> dict:
+    """javac's answer for the probe. `release` "none" passes no --release (JDK 8's javac has none: it compiles for itself)."""
+    sources = sources_for(directory, int(release) if release.isdigit() else javac_major(javac))
     with tempfile.TemporaryDirectory(prefix="java-probe-") as tmp:
         classes = Path(tmp) / "classes"
         classes.mkdir()
-        run(javac, "-g", "-proc:none", "-nowarn", "--release", "21", "-d", str(classes), *map(str, sources))
+        flags = [] if release == "none" else ["--release", release]
+        run(javac, "-g", "-proc:none", "-nowarn", *flags, "-d", str(classes), *map(str, sources))
         names = sorted(str(p) for p in classes.rglob("*.class"))
         listing = run(javap, "-v", "-p", *names)
     return answer(listing, jdk)
@@ -239,7 +273,21 @@ def dump(data: dict) -> str:
     return "\n".join(out)
 
 
+def option(argv: list[str], flag: str, default: str) -> tuple[list[str], str]:
+    """(argv without `flag VALUE`, VALUE)."""
+    if flag not in argv:
+        return argv, default
+    i = argv.index(flag)
+    return argv[:i] + argv[i + 2 :], argv[i + 1]
+
+
 def main(argv: list[str]) -> None:
+    """    python bench/java_probes.py [--release N|none] [--out NAME] [JDK_BIN_DIR] [probe_dir ...]
+
+    --release and --out record the answer of another javac beside javac.json (`--release none --out javac-8.json` with the
+    JDK 8 bin directory): for a probe whose meaning depends on the JDK it is built with."""
+    argv, release = option(argv, "--release", "21")
+    argv, out = option(argv, "--out", "javac.json")
     bin_dir = Path(argv[0]) if argv and (Path(argv[0]) / "javac").exists() else None
     rest = argv[1:] if bin_dir else argv
     javac = str(bin_dir / "javac") if bin_dir else shutil.which("javac")
@@ -251,12 +299,12 @@ def main(argv: list[str]) -> None:
     failed = 0
     for directory in directories:
         try:
-            data = probe(directory, javac, javap, jdk)
+            data = probe(directory, javac, javap, jdk, release)
         except RuntimeError as error:  # a probe must be legal Java: say which one is not
             print(f"{directory}: javac refused it:\n{error}")
             failed += 1
             continue
-        (directory / "javac.json").write_text(dump(data))
+        (directory / out).write_text(dump(data))
         print(f"{directory.relative_to(PROBES)}: {len(data['invokes'])} invokes, {len(data['classes'])} classes")
     if failed:
         raise SystemExit(f"{failed} probes did not compile")

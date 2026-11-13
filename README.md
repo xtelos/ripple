@@ -595,7 +595,7 @@ operators) are not edges, so a trait impl's method can show no callers.
 
 **Experimental.** Java is the newest front end and the least proven. Its answers agree with javac on every call site of
 the five source trees it was checked on (see "Checked against the compiler" below), but its resolver went through two
-rounds of fixes for wrong edges in legal Java those trees did not contain, and its JDK member tables are JDK 21's only.
+rounds of fixes for wrong edges in legal Java those trees did not contain, and the JDK table it reads is new.
 Read its unresolved reasons, and report an edge that javac would not make.
 
 Java is read by tree-sitter too, as its own optional extra (`tree-sitter` and `tree-sitter-java`):
@@ -634,15 +634,30 @@ element, the result of a call into the JDK or an untyped lambda parameter is unr
 
 **ripple does not know the JDK's or a library's members, so it does not guess them.** A method of a class that extends or
 implements a type from outside the repo (`class Ledger extends Writer`) cannot be proven to be the one a call means,
-because that type may declare another method of the name: the call is unresolved, with that reason. The one exception is
+because that type may declare another method of the name: the call is unresolved, with that reason. The exceptions are
 the three types the language itself puts under every class, enum and record (`Object`, `Enum`, `Record`), whose members
-are built in, and a short list of JDK types whose supertypes, member types and members were read off the JDK (a name such
-a type lacks is not its own, and a marker interface like `Serializable` declares nothing). A comment can stand between
-any two tokens and changes no answer. A call is counted
+are built in, and the types of the JDK table (`ripple/data/java_jdk.txt`): 1,812 types of `java.base` and `java.compiler`
+with their supertypes, methods and the numbers of arguments each takes, fields and member types. A name such a type lacks
+is not its own, and a marker interface like `Serializable` declares nothing. The table is generated from the class files of
+every released JDK from 8 through 27 (twenty of them, each named with its exact version in the file's header), because the
+repo may be built with any of them, and each fact is merged in the direction in which it is safe: a supertype, method, field
+or member type is in the table when any of those JDKs has it, so only a name the table lacks proves anything. A member that
+only some JDKs have (`Thread.destroy()`, `ArrayList.getFirst()`, `Process.close()`) blocks an edge and
+never proves one: in `class Q extends Thread` nested in a class that declares `destroy()`, an unqualified `destroy()` is
+unresolved. The table stops at JDK 27. A repo built with a later JDK may meet a member, supertype, field or member type
+that the table lacks, and ripple cannot tell that from the repo. Its Java answers rest on the assumption that no JDK
+after 27 adds one (JDK 26, for example, gave `Process` a `close()` and made it an `AutoCloseable`). The table is regenerated with
+`bench/java_jdk/generate.py` when a JDK is released. A table file that is cut short is refused whole: the header holds the
+number of rows, and when the file holds fewer, every type from outside the repo is unknown and `ripple index` notes that
+the table was not read. Any other type from outside the repo is unknown, and an unknown type may declare, inherit and be anything. A repo
+that declares a type in a package of the table (`package java.util;`) reaches members the table leaves out, so for that repo
+every type from outside it is unknown. A comment can stand between any two tokens and changes no answer. A call is counted
 as outside the repo only when it cannot run repo code: a call into the JDK or a library from a type it can name, or a call
 of a name no repo source declares with that many arguments (unless a Lombok annotation is in the repo). A value typed
 with an external class or interface, or `Object`, may be an instance of a repo class (`List l = new MyList(); l.add(x)`
-runs `MyList.add`), so a call of a name such a class declares is unresolved, unless the JDK class is final (`String`).
+runs `MyList.add`), so a call of a name such a class declares is unresolved, unless no repo class can be an instance of the
+JDK class: it is final in every JDK (`String`), or it is a class with no public or protected constructor in any JDK and so is
+every non-final table type below it (`java.util.Arrays`, which is final from JDK 21 only).
 
 Not followed, and never an edge: method references (`this::show` names a method, it does not call it), reflection,
 Lombok and annotation-processor output, qualified inner-class creation (`outer.new Inner()`), `check` for Maven and
@@ -652,18 +667,22 @@ A file whose directory does not end in its `package` path is not indexed and is 
 compiles as data), and two files that define one fully qualified name (Android product flavours) are indexed as neither:
 their types have no symbol, calls of them are unresolved, and `ripple index` warns that the files share a module name.
 
-**Limits.** The member tables of the JDK types in `KNOWN_SUPERTYPES` are JDK 21's, read off it once and kept as constants in
-`ripple/java_resolver.py`: no JDK member table is shipped as data yet, so any other type from outside the repo stays
-unresolved. `check` has no default test command for Java, and no test is collected.
+**Limits.** The JDK table covers JDK 8 through 27 (a later JDK is past its horizon, see above) and `java.base` and
+`java.compiler` only: a type from any other JDK module (`java.desktop`,
+`java.sql`) or from a library is unknown, so a call that a supertype of that kind could answer stays unresolved. A name that
+an on-demand import supplies (`import java.util.*;`) has no package in ripple's reading, so it is unknown too. `check` has no
+default test command for Java, and no test is collected.
 
-**Checked against the compiler.** `bench/fixtures/java/probes` holds 171 small legal Java programs, each with `javac.json`:
-every invoke instruction javac wrote for it (`bench/java_probes.py`, run by hand with a JDK). `tests/test_java_probes.py`
+**Checked against the compiler.** `bench/fixtures/java/probes` holds 185 small legal Java programs, each with `javac.json`:
+every invoke instruction javac wrote for it (`bench/java_probes.py`, run by hand with a JDK). Five of them depend on the JDK
+they are built with and also carry the answer of another javac (`javac-8.json`, `javac-25.json`, `javac-26.json`); ripple is
+held to every one. (A source file whose first line is `// javac-min: 26` is compiled only by a javac of that release or later.) `tests/test_java_probes.py`
 needs no JDK and requires every edge ripple makes to be the method javac invoked, every `override` edge a method the
 receiver's subtypes really run, and every call it counts outside the repo one that cannot run repo code (ripple may be
 silent, but it may not be wrong). `tests/test_java_comment_injection.py` writes every probe and the golden fixture again with
 comments between the tokens and requires the same graph. `bench/java_corpus.py` is the same judgement on a real source tree
 (javac compiles it, `javap` reads every class, each call site is paired with its invoke instruction) and its bar is zero wrong
-calls, overrides and externals. It met that bar on gson (3,406 call sites), commons-lang (11,138), the JUnit platform modules
+calls, overrides and externals. It met that bar on gson (3,408 call sites), commons-lang (11,139), the JUnit platform modules
 (7,047), auto's `common` (1,319) and the golden fixture, each compiled with JDK 21. That check is weaker in one place: javac
 names `java.lang.Object` as the owner of an `Object` method the receiver's class does not declare (`equals`, `hashCode`), so
 the bytecode does not say which class the receiver is, and those sites (52 in those corpora) are listed apart rather than

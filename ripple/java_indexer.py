@@ -593,6 +593,7 @@ class Declarations:
 
 def index_files(repo: Path, files: list[Path], skipped: list[str], profile: LanguageProfile) -> Graph:
     """The call graph of a Java repo (registry.py: the front end of the java profile)."""
+    from . import java_jdk
     from .java_resolver import JavaResolver
 
     parser = load_parser()
@@ -601,6 +602,7 @@ def index_files(repo: Path, files: list[Path], skipped: list[str], profile: Lang
         declarations.add_file(path, repo, parser)
     declarations.finish()
     resolved = JavaResolver(declarations, profile).run()
+    refused = java_jdk.refusal()  # a JDK table that was needed and could not be trusted: every JDK type was unknown, say so
 
     symbols: dict[str, Symbol] = {}
     modules: dict[str, str] = {}
@@ -634,4 +636,5 @@ def index_files(repo: Path, files: list[Path], skipped: list[str], profile: Lang
         bases=bases,
         external_bases=external_bases,
         external_reasons=dict(resolved.external),
+        unread=[refused] if refused else [],
     )

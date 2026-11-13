@@ -1,0 +1,28 @@
+{
+ "invokes": [
+  ["p/Outer.java", 9, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Outer.<init>:()V", 1],
+  ["p/Outer.java", 10, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Outer$Item.<init>:()V", 1],
+  ["p/Outer.java", 20, "invokespecial", "p.Outer$Item", "<init>", "()V", "p.Outer.<init>:()V", 9],
+  ["p/Outer.java", 21, "invokespecial", "p.Outer$Item", "<init>", "()V", "p.Outer.<init>:()V", 20],
+  ["p/Outer.java", 22, "invokespecial", "p.Outer$Item", "<init>", "()V", "p.Outer.<init>:()V", 31],
+  ["p/Outer.java", 23, "invokespecial", "p.Outer$Item", "<init>", "()V", "p.Outer.<init>:()V", 42],
+  ["p/Outer.java", 29, "invokespecial", "java.io.Writer", "<init>", "()V", "p.Outer$W.<init>:(Lp/Outer;)V", 6],
+  ["p/Outer.java", 37, "invokevirtual", "java.lang.Object", "toString", "()Ljava/lang/String;", "p.Outer$W.f:()Ljava/lang/String;", 4],
+  ["p/Outer.java", 37, "invokevirtual", "p.Outer$Item", "toString", "()Ljava/lang/String;", "p.Outer$W.f:()Ljava/lang/String;", 14],
+  ["p/Outer.java", 43, "invokespecial", "java.io.FilterInputStream", "<init>", "(Ljava/io/InputStream;)V", "p.Outer$F.<init>:(Lp/Outer;)V", 2],
+  ["p/Outer.java", 47, "invokevirtual", "java.io.InputStream", "read", "()I", "p.Outer$F.f:()I", 4],
+  ["p/Outer.java", 51, "invokespecial", "java.util.AbstractList", "<init>", "()V", "p.Outer$L.<init>:(Lp/Outer;)V", 1],
+  ["p/Outer.java", 51, "invokevirtual", "p.Outer$L", "get", "(I)Ljava/lang/String;", "p.Outer$L.get:(I)Ljava/lang/Object;", 2],
+  ["p/Outer.java", 61, "invokestatic", "p.Outer", "pick", "(I)V", "p.Outer$L.f:()V", 4],
+  ["p/Outer.java", 65, "invokespecial", "java.io.Writer", "<init>", "()V", "p.Outer$Plain.<init>:(Lp/Outer;)V", 6],
+  ["p/Outer.java", 73, "invokestatic", "p.Outer", "pick", "(Lp/Outer$Item;)V", "p.Outer$Plain.f:()V", 7]
+ ],
+ "classes": {
+  "p.Outer": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["pick", "(I)V", 8], ["pick", "(Lp/Outer$Item;)V", 8]], "bridges": [], "compiler": []},
+  "p.Outer$F": {"supers": ["java.io.Closeable", "java.io.FilterInputStream", "java.io.InputStream", "java.lang.AutoCloseable", "java.lang.Object"], "methods": [["<init>", "(Lp/Outer;)V", 0], ["f", "()I", 0]], "bridges": [], "compiler": []},
+  "p.Outer$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["read", "()I", 0], ["toString", "()Ljava/lang/String;", 1]], "bridges": [], "compiler": []},
+  "p.Outer$L": {"supers": ["java.lang.Iterable", "java.lang.Object", "java.util.AbstractCollection", "java.util.AbstractList", "java.util.Collection", "java.util.List", "java.util.SequencedCollection"], "methods": [["<init>", "(Lp/Outer;)V", 0], ["f", "()V", 0], ["get", "(I)Ljava/lang/String;", 1], ["size", "()I", 1]], "bridges": [["get", "(I)Ljava/lang/Object;", "(I)Ljava/lang/String;"]], "compiler": []},
+  "p.Outer$Plain": {"supers": ["java.io.Closeable", "java.io.Flushable", "java.io.Writer", "java.lang.Appendable", "java.lang.AutoCloseable", "java.lang.Object"], "methods": [["<init>", "(Lp/Outer;)V", 0], ["close", "()V", 1], ["f", "()V", 0], ["flush", "()V", 1], ["write", "([CII)V", 1]], "bridges": [], "compiler": []},
+  "p.Outer$W": {"supers": ["java.io.Closeable", "java.io.Flushable", "java.io.Writer", "java.lang.Appendable", "java.lang.AutoCloseable", "java.lang.Object"], "methods": [["<init>", "(Lp/Outer;)V", 0], ["close", "()V", 1], ["f", "()Ljava/lang/String;", 0], ["flush", "()V", 1], ["write", "([CII)V", 1]], "bridges": [], "compiler": []}
+ }
+}

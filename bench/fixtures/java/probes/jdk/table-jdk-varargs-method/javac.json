@@ -1,0 +1,18 @@
+{
+ "invokes": [
+  ["p/Log.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Log$Item.<init>:()V", 1],
+  ["p/Log.java", 11, "invokespecial", "java.io.PrintStream", "<init>", "(Ljava/io/OutputStream;)V", "p.Log.<init>:()V", 4],
+  ["p/Log.java", 17, "invokevirtual", "p.Log", "printf", "(Ljava/lang/String;[Ljava/lang/Object;)Ljava/io/PrintStream;", "p.Log.f:(Lp/Log$Item;)V", 7],
+  ["p/Log.java", 18, "invokevirtual", "p.Log", "printf", "(Lp/Log$Item;)V", "p.Log.f:(Lp/Log$Item;)V", 13],
+  ["p/Log.java", 19, "invokevirtual", "p.Log", "printf", "(Ljava/lang/String;[Ljava/lang/Object;)Ljava/io/PrintStream;", "p.Log.f:(Lp/Log$Item;)V", 31],
+  ["p/Log.java", 23, "invokespecial", "java.util.concurrent.CompletableFuture", "<init>", "()V", "p.Fut.<init>:()V", 1],
+  ["p/Log.java", 27, "invokestatic", "p.Fut", "allOf", "()V", "p.Fut.g:(Ljava/util/concurrent/CompletableFuture;)V", 0],
+  ["p/Log.java", 28, "invokestatic", "p.Fut", "allOf", "([Ljava/util/concurrent/CompletableFuture;)Ljava/util/concurrent/CompletableFuture;", "p.Fut.g:(Ljava/util/concurrent/CompletableFuture;)V", 11],
+  ["p/Log.java", 29, "invokestatic", "p.Fut", "allOf", "([Ljava/util/concurrent/CompletableFuture;)Ljava/util/concurrent/CompletableFuture;", "p.Fut.g:(Ljava/util/concurrent/CompletableFuture;)V", 27]
+ ],
+ "classes": {
+  "p.Fut": {"supers": ["java.lang.Object", "java.util.concurrent.CompletableFuture", "java.util.concurrent.CompletionStage", "java.util.concurrent.Future"], "methods": [["<init>", "()V", 0], ["allOf", "()V", 8], ["g", "(Ljava/util/concurrent/CompletableFuture;)V", 0]], "bridges": [], "compiler": []},
+  "p.Log": {"supers": ["java.io.Closeable", "java.io.FilterOutputStream", "java.io.Flushable", "java.io.OutputStream", "java.io.PrintStream", "java.lang.Appendable", "java.lang.AutoCloseable", "java.lang.Object"], "methods": [["<init>", "()V", 0], ["f", "(Lp/Log$Item;)V", 0], ["printf", "(Lp/Log$Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.Log$Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

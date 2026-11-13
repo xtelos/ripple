@@ -1,0 +1,25 @@
+{
+ "invokes": [
+  ["p/Outer.java", 10, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Outer.<init>:()V", 1],
+  ["p/Outer.java", 14, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Outer$ByLength.<init>:()V", 1],
+  ["p/Outer.java", 14, "invokevirtual", "p.Outer$ByLength", "compare", "(Ljava/lang/String;Ljava/lang/String;)I", "p.Outer$ByLength.compare:(Ljava/lang/Object;Ljava/lang/Object;)I", 9],
+  ["p/Outer.java", 15, "invokevirtual", "java.lang.String", "length", "()I", "p.Outer$ByLength.compare:(Ljava/lang/String;Ljava/lang/String;)I", 1],
+  ["p/Outer.java", 15, "invokevirtual", "java.lang.String", "length", "()I", "p.Outer$ByLength.compare:(Ljava/lang/String;Ljava/lang/String;)I", 5],
+  ["p/Outer.java", 16, "invokevirtual", "p.Outer$ByLength", "max", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", "p.Outer$ByLength.longer:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", 3],
+  ["p/Outer.java", 19, "invokespecial", "java.lang.Process", "<init>", "()V", "p.Outer$Proc.<init>:()V", 1],
+  ["p/Outer.java", 20, "invokevirtual", "p.Outer$Proc", "close", "()V", "p.Outer$Proc.done:()V", 1],
+  ["p/Outer.java", 23, "invokespecial", "java.lang.Process", "<init>", "()V", "p.Outer$Mine.<init>:()V", 1],
+  ["p/Outer.java", 30, "invokevirtual", "java.io.PrintStream", "println", "(Ljava/lang/String;)V", "p.Outer$Mine.close:()V", 5],
+  ["p/Use.java", 10, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Use.<init>:()V", 1],
+  ["p/Use.java", 11, "invokeinterface", "java.lang.AutoCloseable", "close", "()V", "p.Use.shut:(Ljava/lang/AutoCloseable;)V", 1],
+  ["p/Use.java", 12, "invokespecial", "p.Outer$Mine", "<init>", "()V", "p.Use.main:([Ljava/lang/String;)V", 4],
+  ["p/Use.java", 12, "invokestatic", "p.Use", "shut", "(Ljava/lang/AutoCloseable;)V", "p.Use.main:([Ljava/lang/String;)V", 7]
+ ],
+ "classes": {
+  "p.Outer": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["close", "()V", 8], ["max", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", 8]], "bridges": [], "compiler": []},
+  "p.Outer$ByLength": {"supers": ["java.lang.Object", "java.util.Comparator"], "methods": [["<init>", "()V", 0], ["compare", "(Ljava/lang/String;Ljava/lang/String;)I", 1], ["longer", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", 0]], "bridges": [["compare", "(Ljava/lang/Object;Ljava/lang/Object;)I", "(Ljava/lang/String;Ljava/lang/String;)I"]], "compiler": []},
+  "p.Outer$Mine": {"supers": ["java.io.Closeable", "java.lang.AutoCloseable", "java.lang.Object", "java.lang.Process"], "methods": [["<init>", "()V", 0], ["close", "()V", 1], ["destroy", "()V", 1], ["exitValue", "()I", 1], ["getErrorStream", "()Ljava/io/InputStream;", 1], ["getInputStream", "()Ljava/io/InputStream;", 1], ["getOutputStream", "()Ljava/io/OutputStream;", 1], ["waitFor", "()I", 1]], "bridges": [], "compiler": []},
+  "p.Outer$Proc": {"supers": ["java.io.Closeable", "java.lang.AutoCloseable", "java.lang.Object", "java.lang.Process"], "methods": [["<init>", "()V", 0], ["done", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Use": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["main", "([Ljava/lang/String;)V", 9], ["shut", "(Ljava/lang/AutoCloseable;)V", 8]], "bridges": [], "compiler": []}
+ }
+}

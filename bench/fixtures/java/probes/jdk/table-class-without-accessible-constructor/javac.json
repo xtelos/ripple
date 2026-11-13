@@ -1,0 +1,14 @@
+{
+ "invokes": [
+  ["p/Use.java", 12, "invokespecial", "java.awt.Point", "<init>", "()V", "p.Holder.<init>:()V", 1],
+  ["p/Use.java", 18, "invokespecial", "java.lang.ref.WeakReference", "<init>", "(Ljava/lang/Object;)V", "p.Weak.<init>:(Ljava/lang/Object;)V", 2],
+  ["p/Use.java", 26, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Use.<init>:()V", 1],
+  ["p/Use.java", 28, "invokestatic", "java.util.Arrays", "sort", "([I)V", "p.Use.a:(Ljava/util/Arrays;[I)V", 3],
+  ["p/Use.java", 32, "invokevirtual", "java.lang.ref.Reference", "get", "()Ljava/lang/Object;", "p.Use.b:(Ljava/lang/ref/Reference;)Ljava/lang/Object;", 1]
+ ],
+ "classes": {
+  "p.Holder": {"supers": ["java.awt.Point", "java.awt.geom.Point2D", "java.io.Serializable", "java.lang.Cloneable", "java.lang.Object"], "methods": [["<init>", "()V", 0], ["sort", "([I)V", 0]], "bridges": [], "compiler": []},
+  "p.Use": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["a", "(Ljava/util/Arrays;[I)V", 0], ["b", "(Ljava/lang/ref/Reference;)Ljava/lang/Object;", 0]], "bridges": [], "compiler": []},
+  "p.Weak": {"supers": ["java.lang.Object", "java.lang.ref.Reference", "java.lang.ref.WeakReference"], "methods": [["<init>", "(Ljava/lang/Object;)V", 0], ["get", "()Ljava/lang/Object;", 1]], "bridges": [], "compiler": []}
+ }
+}
