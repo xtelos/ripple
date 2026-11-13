@@ -1,0 +1,7 @@
+[package]
+name = "std_dep_names"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+std = { package = "fakeprelude", path = "../../_ext/fakeprelude" }

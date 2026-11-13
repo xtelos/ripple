@@ -1,0 +1,7 @@
+[package]
+name = "macro_use_core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+core = { package = "fakecore", path = "../../_ext/fakecore" }

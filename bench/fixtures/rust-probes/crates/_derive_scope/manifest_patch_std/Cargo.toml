@@ -1,0 +1,10 @@
+[package]
+name = "manifest_patch_std"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+stdlibname = "0.1"
+
+[patch.crates-io]
+stdlibname = { path = "stdlibname" }

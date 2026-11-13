@@ -1,0 +1,7 @@
+[workspace]
+members = ["ex"]
+exclude = ["ex"]
+resolver = "2"
+
+[patch."@GIT@/foo"]
+foo = { path = "foo" }

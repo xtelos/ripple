@@ -6,6 +6,7 @@ holds the same line for JavaScript and Go).
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -44,12 +45,35 @@ def test_every_cargo_manifest_above_a_source_file_is_fingerprinted(make_repo):
             "Cargo.toml": '[workspace]\nmembers = ["a"]\n',
             "a/Cargo.toml": CARGO,
             "a/src/lib.rs": "pub fn f() {}\n",
-            "unrelated/Cargo.toml": CARGO,  # holds no source and is above none
+            "unrelated/Cargo.toml": CARGO,  # holds no source and is above none: no package, but a `[patch]` in it may name a dependency (Rule P)
         }
     )
     found = fingerprint(repo, RUST, [repo / "a/src/lib.rs"])
-    assert sorted(found) == ["Cargo.toml", "a/Cargo.toml", "a/src/lib.rs"]
-    assert front_end(RUST).config_files(repo, [repo / "a/src/lib.rs"]) == ["Cargo.toml", "a/Cargo.toml"]
+    assert sorted(found) == ["Cargo.toml", "a/Cargo.toml", "a/src/lib.rs", "unrelated/Cargo.toml"]
+    assert front_end(RUST).config_files(repo, [repo / "a/src/lib.rs"]) == ["Cargo.toml", "a/Cargo.toml", "unrelated/Cargo.toml"]
+
+
+def test_a_path_with_no_relative_form_is_keyed_by_its_absolute_path_not_a_crash(make_repo, tmp_path_factory, monkeypatch):
+    """On Windows os.path.relpath raises ValueError for a path on another drive, and a path dependency may be an absolute path on one: the
+    Cargo.toml of it is fingerprinted under its absolute path, and every other key is as it was."""
+    outside = tmp_path_factory.mktemp("elsewhere")
+    (outside / "Cargo.toml").write_text('[package]\nname = "far"\nversion = "0.1.0"\nedition = "2021"\n')
+    repo = make_repo({"Cargo.toml": CARGO + f'[dependencies]\nfar = {{ path = "{outside.as_posix()}" }}\n', "src/lib.rs": "pub fn f() {}\n"})
+    expected = fingerprint(repo, RUST)
+    real = os.path.relpath
+    relative = Path(real(outside / "Cargo.toml", repo)).as_posix()
+    assert relative in expected  # as relpath writes it where it can
+
+    def no_other_drive(path, start=os.curdir):
+        if not str(path).startswith(str(repo)):
+            raise ValueError("path is on mount 'D:', start on mount 'C:'")
+        return real(path, start)
+
+    monkeypatch.setattr(os.path, "relpath", no_other_drive)
+    found = fingerprint(repo, RUST)  # does not raise
+    absolute = (outside / "Cargo.toml").as_posix()
+    assert found[absolute] == expected[relative]
+    assert {k: v for k, v in found.items() if k != absolute} == {k: v for k, v in expected.items() if k != relative}
 
 
 def test_editing_a_manifest_rebuilds_the_graph_and_the_new_crate_graph_is_used(make_repo, tmp_path):

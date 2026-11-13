@@ -1,0 +1,11 @@
+[package]
+name = "macro_use_std_cfg_attr"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["std"]
+std = []
+
+[dependencies]
+std = { package = "fakeprelude", path = "../../_ext/fakeprelude" }

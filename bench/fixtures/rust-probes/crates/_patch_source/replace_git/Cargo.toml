@@ -1,0 +1,10 @@
+[package]
+name = "p"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+foo = { git = "@GIT@/foo" }
+
+[replace]
+"@GIT@/foo#foo:1.0.0" = { path = "foo" }

@@ -1,0 +1,4 @@
+[workspace]
+members = ["ex"]
+exclude = ["ex"]
+resolver = "2"

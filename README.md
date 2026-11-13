@@ -569,7 +569,30 @@ function of a repo type, and for a function of a repo trait that has one impl fo
 from outside the repo is never one (the standard library may implement it for the type in ways ripple does not read).
 **Calls outside the repo** are counted with the reason (the standard library, a crate from outside, the prelude, a
 primitive, a derive), and only when nothing of the repo can be what runs: a path through a trait (`fmt::Display::fmt(&x, f)`,
-`FromStr::from_str(s)`) that a repo impl of that trait could answer is unresolved.
+`FromStr::from_str(s)`) that a repo impl of that trait could answer is unresolved. None of the standard library's own names is taken as
+the library's in a crate whose standard prelude, or `std`, `core` or `alloc`, may be another crate (a dependency of that key or library
+name, a patch, a config of the repo, a path outside the repo, or the crate's own `#[prelude_import]`; each built with rustc): a name only
+the prelude gives (`Vec`, `Default`, `drop`, `Some`, a primitive type's name, the blanket `S::to_string(&s)`), and a path that starts at
+`std`, `core` or `alloc` (also a macro written from them), are unresolved, and `#[test]`, `#[bench]`, `#[derive]` and `#[global_allocator]`
+are read as macros that may have made names. The macros written bare (`println!`, `vec!`, `assert_eq!`) stay the library's: they come
+from the sysroot whatever the prelude is, unless the crate says `#[macro_use] extern crate std;` (or `core` or `alloc`, with an alias,
+under a `#[cfg]` or `cfg_attr`, the `#![no_std]` idiom) where that name may be another crate: the extern crate is then that crate, its
+`#[macro_export]` macros come before the sysroot's, and a bare macro is read as one ripple has not read, so its arguments are not calls (each
+built with rustc). Where `std` is the real crate that line changes nothing.
+**A `[patch]` or `[replace]` is never an edge; it makes a dependency unresolved (Rule P).** Whether cargo applies a patch depends on more than a
+manifest reader can follow: the source it patches, the version it has against the requirement, a `Cargo.lock` that pins the dependency, which
+root governs the package, `members` against `exclude`, a `package.workspace`, a git dependency with no version taking a pre-release, a config
+that is read only from below its `.cargo` (each built with cargo, the probes in `bench/fixtures/rust-probes/crates/_patch_source` pass only when
+cargo does what they say), so ripple does not decide it. A dependency that is not a `path` dependency is unresolved, never an edge through the
+patch and never external, when it may be redirected: (1) its package name (the dependency's key, or its `package =`) is named by any
+`[patch.<anything>]` or `[replace]` entry ripple can read in the analysed directory, in any manifest (a root, a member, a lone package, an
+excluded one, a member's own that cargo ignores, one in a directory with no source file) or any cargo config of it (also a config's `paths`
+override), whether or not cargo would apply that entry (a name is a word of a `[replace]` key, so `foo`, `foo:1.0.0`, `url#foo:1.0.0`); a patch,
+replace or `paths` table ripple cannot parse names every dependency; or (2) a manifest that may govern the package was not read (a
+`package.workspace` naming one outside the analysed directory, a Cargo.toml above the analysed directory, one that cannot be read, a config that
+cannot be read) and the name is that of a package of the repo, which an unseen patch could point at. Otherwise it is the fetched crate, outside
+the repo. A `path` dependency is unchanged. What cargo is given from outside the repo (a patch in `~/.cargo/config.toml` or a `--config`) is not
+seen, which is the assumption below.
 **Unresolved, with the reason:** every method call `recv.m()` (what it calls depends on the receiver's type, which is not
 followed yet: `impact` lists same-named ones under `possible_missed_callers`), a name two definitions share (cfg twins),
 a name a pattern or closure binds, a call inside a macro other than the standard ones, a glob from outside the repo in a
@@ -584,7 +607,7 @@ inside it and the name it declares are unresolved, though a name beside a derive
 helper (`#[serde(..)]`) and rewrites nothing. A derive can still emit items beside the type, so a derive ripple does not know (`#[derive(Serialize)]`), or a standard derive's
 name (`Debug`, `Clone`, ...) that something other than the standard library could supply (a `use` of another path such as `use derive_more::Debug;` in the derive's own
 module or in a block around it, since rustc reads the bare name in the scope of the item and a `use` of another module, another function body or a sibling block is not seen there;
-a `#[macro_use] extern crate`, a macro of the repo, a `#[prelude_import]` or the `#![feature(prelude_import)]` of the crate root, or a dependency or library called `std` or `core` (which makes the crate's prelude another crate's), anywhere in the crate), makes its scope one where a macro may have generated names, so a name found only through a glob import or the prelude is
+a `#[macro_use] extern crate`, a macro of the repo, a `#[prelude_import]` or the `#![feature(prelude_import)]` of the crate root, or anything that may make the crate's `std` or `core` another crate (which makes its prelude another crate's: a dependency of that key in any table, `dev_dependencies` and `build_dependencies` spelled with an underscore and `[target]` tables included, or a dependency or library whose library is called so, also one a `[patch]` or `[replace]` anywhere in the repo may supply (Rule P); a path dependency outside the repo whose `Cargo.toml` (the one file of it that ripple reads, and fingerprints) names its library `std` or `core`, or cannot be read; a `[replace]`; a `.cargo/config` of the repo that sets a `[patch]`, `paths`, `include`, `[unstable]`, a compiler or wrapper, an `[env]` entry that names one, or rustflags other than codegen, lints and `--cfg`; not an `[alias]`, `[source]` (`cargo vendor`'s), `[registries]`, `registry` or a `[profile]` without rustflags, which cannot make `std` another crate), anywhere in the crate), makes its scope one where a macro may have generated names, so a name found only through a glob import or the prelude is
 unresolved there. A `use` of the standard library's own derive (`use std::fmt::Debug;`) is not such a supply when ripple proves it: `std` or `core` is the real crate there (not a module,
 alias, dependency or block item of that name) and the path is one the library exports the derive under, unrenamed. `#[test]`, `#[bench]`, `#[derive]` and `#[global_allocator]` are the standard library's attribute macros, not the compiler's, so a `use`
 that gives one of those names in the item's module or in a block around it, or a `#[macro_use] extern crate`, makes the attribute another macro, and ripple reads it as one
@@ -660,6 +683,13 @@ What ripple cannot prove, and so assumes:
 - What lives outside the repo: `RUSTFLAGS`, `RUSTC_WRAPPER`, `--extern`, a cargo config file above the repo (including the
   one in `CARGO_HOME`), a workspace manifest above the repo, and a registry mirror that serves other code under the same
   names.
+- A fetched dependency (from a registry or a git repository) does not name its library `std`, `core` or `alloc`. Ripple does
+  not fetch or read one, so it cannot know; marking every package that has one would leave almost no prelude name resolved. A
+  package that has one whose library is named so builds, and ripple gives the standard library's verdicts for the names that
+  library replaces (a constructor for `Some(1)` where the library's `Some` is a function: `_assumed/fetched_lib_std`, built with
+  cargo, in `bench/fixtures/rust-probes/crates`; `tests/test_rs_fetched_dependency_assumption.py` pins the wrong verdicts as
+  the price of the assumption). The assumption stops at a dependency keyed `std` or `core`, a `package =
+  "rustc-std-workspace-*"`, and a path dependency, whose `Cargo.toml` is read.
 - Build artifacts committed in the repo that a config points cargo at: `build.target-dir` and `build.build-dir` (and
   `-C incremental=`) name a directory, and one that holds a pre-built, forged copy of a macro crate may be taken by cargo as
   up to date. Ripple does not look in it.

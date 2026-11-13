@@ -1,0 +1,8 @@
+[package]
+name = "macro_use_std_real_cfg"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["std"]
+std = []

@@ -82,11 +82,23 @@ OUTCOME = {
     "prelude_import_blockmod": OTHER,  # in a mod written in a block
     "block_impl_in_block": OTHER,  # a method of an impl written in a block sees that block's use
     "static_block_own_use": OTHER,  # the block of a static's initializer
+    # the other ways cargo gives a crate another `std` (tests/test_rs_prelude_replaced.py)
+    "dev_underscore_std": OTHER,  # `[dev_dependencies]` written with an underscore
+    "target_dev_underscore_std": OTHER,  # the same under `[target.'cfg(unix)'.dev_dependencies]`
+    "dev_hyphen_std": OTHER,  # the control: the hyphen spelling
+    "build_underscore_std": OTHER,  # `[build_dependencies]` with an underscore: the derive is in the build script
+    "outside_path_lib_std": OTHER,  # a path dependency outside the repo whose library is called std
+    "manifest_patch_std": OTHER,  # a `[patch]` in a package with no `[workspace]` table
+    "manifest_patch_ws_std": OTHER,  # the same with one
+    "cfg_patch_std": OTHER,  # a `[patch]` in a `.cargo/config.toml` of the repo (the probe keeps its Cargo.lock: offline there is no index to resolve the name)
+    "crate_attr_prelude_include": OTHER,  # nightly: `-Zcrate-attr=feature(prelude_import)` in the rustflags of a `.cargo/config.toml`, the attribute in an include!d file
 }
 
 
 BLOCK_MOD = "block_mod_in_block_not_seen"  # the one probe whose derive ripple does not read (see the ripple half)
-NIGHTLY = {"prelude_import_child", "prelude_import_macro", "prelude_import_include", "prelude_import_blockmod"}  # the probes that build only with RUSTC_BOOTSTRAP=1 (an unstable feature)
+NIGHTLY = {"prelude_import_child", "prelude_import_macro", "prelude_import_include", "prelude_import_blockmod", "crate_attr_prelude_include"}  # the probes that build only with RUSTC_BOOTSTRAP=1 (an unstable feature)
+LOCKED = {"cfg_patch_std"}  # the probes whose Cargo.lock is part of them
+OUTSIDE = {"outside_path_lib_std"}  # the probes ripple reads without `_ext` beside them (the crate they name by a path is outside the repo)
 
 
 def toolchain():
@@ -109,12 +121,14 @@ def test_rustc_says_so(name, target, tmp_path):
     if root is None:
         pytest.skip("no Rust toolchain (set RIPPLE_RUST_TOOLCHAIN to a directory with cargo/bin)")
     shutil.copytree(CRATES / "_ext", tmp_path / "crates" / "_ext", ignore=shutil.ignore_patterns("target", "Cargo.lock"))
-    shutil.copytree(SCOPE / name, tmp_path / "crates" / "_derive_scope" / name, ignore=shutil.ignore_patterns("target", "Cargo.lock"))
+    keep_lock = ("target",) if name in LOCKED else ("target", "Cargo.lock")
+    shutil.copytree(SCOPE / name, tmp_path / "crates" / "_derive_scope" / name, ignore=shutil.ignore_patterns(*keep_lock))
     env = {**os.environ, "CARGO_HOME": str(root / "cargo"), "RUSTUP_HOME": str(root / "rustup"), "CARGO_TARGET_DIR": str(target), "PATH": f"{root}/cargo/bin:" + os.environ["PATH"]}
     if name in NIGHTLY:
         env["RUSTC_BOOTSTRAP"] = "1"  # the probe uses an unstable feature
     run = subprocess.run(
-        ["cargo", "test", "--offline", "--quiet", "--manifest-path", str(tmp_path / "crates" / "_derive_scope" / name / "Cargo.toml")],
+        ["cargo", "test", "--offline", "--quiet"],
+        cwd=tmp_path / "crates" / "_derive_scope" / name,  # cargo reads `.cargo/config.toml` from the directory it is run in, not the manifest's
         env=env, capture_output=True, text=True, timeout=600,
     )
     out = run.stdout + run.stderr
@@ -125,9 +139,15 @@ def test_rustc_says_so(name, target, tmp_path):
 
 
 @pytest.mark.parametrize("name", sorted(n for n, o in OUTCOME.items() if o != AMBIGUOUS))
-def test_ripple_marks_the_derive_exactly_where_rustc_says_it_is_another_macro(name):
-    files, skipped = walk_languages(SCOPE / name, [RUST])
-    holding = [c for c in rs.read_repo(SCOPE / name, files[RUST.name], skipped)[0].ctxs if c.pending_derives]
+def test_ripple_marks_the_derive_exactly_where_rustc_says_it_is_another_macro(name, tmp_path):
+    # the probe and the crates it names by a path outside it (`_ext`) are one repo: a path dependency outside the repo is a library ripple
+    # cannot read, which may be called `std` (tests/test_rs_prelude_replaced.py), and every probe depends on genmacros that way
+    shutil.copytree(CRATES / "_ext", tmp_path / "crates" / "_ext", ignore=shutil.ignore_patterns("target", "Cargo.lock"))
+    shutil.copytree(SCOPE / name, tmp_path / "crates" / "_derive_scope" / name, ignore=shutil.ignore_patterns("target", "Cargo.lock"))
+    # the one probe about a path dependency outside the repo is read alone, so that its library is outside it
+    repo = tmp_path / "crates" / "_derive_scope" / name if name in OUTSIDE else tmp_path / "crates"
+    files, skipped = walk_languages(repo, [RUST])
+    holding = [c for c in rs.read_repo(repo, files[RUST.name], skipped)[0].ctxs if c.pending_derives and c.crate.package.dir in ("", f"_derive_scope/{name}")]
     if name == BLOCK_MOD:
         # a `mod` written in a block is opaque to ripple (Index.collect_items): its derive is never collected, so there is nothing for
         # the scope rule to judge, and this probe says nothing about ripple's scope model: it is asserted, not passed by default
