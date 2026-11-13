@@ -135,7 +135,7 @@ def test_every_hand_written_oracle_answer_is_in_its_file_and_has_a_runtime_asser
     hand = {name: len(generator.OVERRIDES.get(name, {})) + len(generator.PROVEN.get(name, {})) for name in {*generator.OVERRIDES, *generator.PROVEN}}
     assert sum(hand.values()) >= 35, hand
     for name, count in sorted(hand.items()):
-        sources = [p for p in (CRATES / name).rglob("*.rs") if "target" not in p.relative_to(CRATES / name).parts]
+        sources = [p for p in (CRATES / name).rglob("*.rs") if not any(q.name == "target" and (q.parent / "Cargo.toml").is_file() for q in p.parents)]
         assert any("#[test]" in p.read_text() for p in sources), f"{name} has hand-written answers and no #[test]"
         proven = [c for c in json.loads((ORACLE / f"{name}.json").read_text())["calls"] if c.get("proof") == "runtime"]
         assert len(proven) == count, f"{name}: {count} hand-written answers, {len(proven)} in the oracle"

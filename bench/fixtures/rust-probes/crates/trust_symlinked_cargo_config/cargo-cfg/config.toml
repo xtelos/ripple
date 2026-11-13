@@ -1,0 +1,3 @@
+# `.cargo` is a symlink to this directory (committed as one): cargo reads the config through it, and it patches tokio-macros
+[patch.crates-io]
+tokio-macros = { path = "../_ext/tokio-macros" }

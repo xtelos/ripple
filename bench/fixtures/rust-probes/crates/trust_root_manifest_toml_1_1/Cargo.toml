@@ -1,0 +1,6 @@
+[workspace]
+members = ["app"]
+resolver = "2"
+
+[patch.crates-io]
+tokio-macros = { path = "../_ext/tokio-macros", }

@@ -15,7 +15,7 @@ import pytest
 pytest.importorskip("tree_sitter_rust")
 
 from ripple import rs_indexer as rs  # noqa: E402
-from test_rs_probes import Probe  # noqa: E402
+from test_rs_probes import CRATES, Probe  # noqa: E402
 
 EDGE, ATTR, MAKE = "edge", "ATTR_MACRO", "MACRO_MAY_MAKE"
 
@@ -66,6 +66,26 @@ SITES = [
     pytest.param("trust_shadowed_names", "src/lib.rs", 28, "super::one", ATTR, "", id="beside another attribute macro"),
     pytest.param("trust_shadowed_names", "src/lib.rs", 38, "super::one", ATTR, "", id="tokio::main on an impl method: the published macro, left alone"),
     pytest.param("trust_shadowed_names", "src/lib.rs", 40, "super::one", ATTR, "", id="serial on an impl method: the published macro, left alone"),
+    pytest.param("trust_test_shadowed", "src/lib.rs", 7, "one", ATTR, "", id="`use fakemacros::test;` beside #[tokio::main]: #[test] is the prelude's macro, which a use replaces"),
+    pytest.param("trust_replace_at", "src/lib.rs", 5, "one", ATTR, "", id='[replace] "tokio-macros@2.1.0"'),
+    pytest.param("trust_replace_url", "src/lib.rs", 5, "one", ATTR, "", id="[replace] with a url and name@version for a key"),
+    pytest.param("trust_root_manifest_toml_1_1", "app/src/lib.rs", 5, "one", ATTR, "", id="a workspace root cargo reads and TOML 1.0 does not"),
+    pytest.param("trust_workspace_named_outside", "src/lib.rs", 5, "one", ATTR, "", id="package.workspace names a root no source sits under"),
+    pytest.param("trust_block_mod_tokio", "src/lib.rs", 9, "one", ATTR, "", id="a mod tokio written in a block"),
+    pytest.param("trust_tool_shadow", "src/lib.rs", 14, "super::one", ATTR, "", id="`mod rustfmt` re-exporting another macro, beside tokio::main"),
+    pytest.param("trust_tool_shadow", "src/lib.rs", 20, "super::one", ATTR, "", id="`use m as rustfmt`, beside tokio::main"),
+    pytest.param("trust_tool_shadow", "src/lib.rs", 25, "super::one", ATTR, "", id="`extern crate m as clippy` on an item with no trusted attribute"),
+    pytest.param("trust_tool_shadow", "src/lib.rs", 31, "super::one", ATTR, "", id="the bare `#[diagnostic]` after `use m as diagnostic`, beside tokio::main"),
+    pytest.param("trust_tool_shadow", "src/lib.rs", 39, "super::one", ATTR, "", id="`mod rustfmt` written in a block"),
+    pytest.param("trust_tool_shadow", "src/lib.rs", 49, "super::one", ATTR, "", id="a path that starts at another name of the list, `#[doc::foo]`"),
+    pytest.param("trust_tool_dep_key", "src/lib.rs", 6, "one", ATTR, "", id="a dependency key called clippy, beside tokio::main"),
+    pytest.param("trust_tool_dep_key", "src/lib.rs", 8, "one", ATTR, "", id="the same on an item with no trusted attribute"),
+    pytest.param("trust_symlinked_cargo_config", "src/lib.rs", 5, "one", ATTR, "", id=".cargo is a symlink to a directory whose config.toml has a [patch]"),
+    pytest.param("trust_target_dir_config", "crates/target/src/lib.rs", 5, "one", ATTR, "", id="a package in crates/target, whose .cargo/config.toml has a [patch]"),
+    pytest.param("trust_cfgattr_method", "src/lib.rs", 8, "one", ATTR, "", id="`#[cfg_attr(all(), test)]` on a method, after `use m::test`"),
+    pytest.param("trust_block_mod_effects", "src/lib.rs", 13, "one", "MACRO_BODY", "", id="dbg! under a #[macro_use] mod of the block is not std's"),
+    pytest.param("trust_block_mod_effects", "src/lib.rs", 30, "S::new", "IMPLS_INCOMPLETE", "", id="an impl in a block mod is the inherent function S::new reaches"),
+    pytest.param("trust_outside_glob_block_mod", "src/lib.rs", 13, "helper", MAKE, "", id="a block mod called like an outside glob does not make the glob local"),
     pytest.param("trust_member_named_macro_crate", "app/src/lib.rs", 7, "helper", ATTR, "", id="a repo package called tokio-macros: refused, though the macro is the real one"),
     pytest.param("trust_serial_after_tokio_test", "src/lib.rs", 17, "_u_internal", MAKE, "", id="serial on an async fn: refused whatever the order of the attributes (stricter than needed here)"),
 ]
@@ -78,12 +98,16 @@ def probes():
 
 @pytest.mark.parametrize("probe, file, line, written, kind, callee", SITES)
 def test_what_ripple_says_at_the_site(probes, probe, file, line, written, kind, callee):
+    if probe == "trust_symlinked_cargo_config" and not (CRATES / probe / ".cargo").is_symlink():
+        pytest.skip("this checkout turned the committed symlink .cargo into a file (git on Windows without symlinks)")
     p = probes.setdefault(probe, Probe(probe))
     found = [(result, f) for f, _, _, result, _, ln, w, _ in p.index.resolved_sites() if f == file and ln == line and w == written]
     assert len(found) == 1, f"{probe} {file}:{line} `{written}`: {len(found)} sites"
     result = found[0][0]
     if kind == EDGE:
         assert result[0] == "edge" and p.index.final[result[1]] == callee, result
+    elif kind == "IMPLS_INCOMPLETE":
+        assert result[0] == "unresolved" and result[1].startswith(rs.IMPLS_INCOMPLETE.split("{")[0]), result
     else:
         assert result == ("unresolved", getattr(rs, kind)), result
 
@@ -108,6 +132,18 @@ def test_the_oracle_of_each_negative_probe_gives_the_function_the_crates_own_tes
         ("trust_shadowed_names", "src/lib.rs", 18),
         ("trust_shadowed_names", "src/lib.rs", 23),
         ("trust_shadowed_names", "src/lib.rs", 28),
+        ("trust_test_shadowed", "src/lib.rs", 7),
+        ("trust_replace_at", "src/lib.rs", 5),
+        ("trust_replace_url", "src/lib.rs", 5),
+        ("trust_root_manifest_toml_1_1", "app/src/lib.rs", 5),
+        ("trust_workspace_named_outside", "src/lib.rs", 5),
+        ("trust_block_mod_tokio", "src/lib.rs", 9),
+        *(("trust_tool_shadow", "src/lib.rs", line) for line in (14, 20, 25, 31, 39, 49)),
+        ("trust_tool_dep_key", "src/lib.rs", 6),
+        ("trust_tool_dep_key", "src/lib.rs", 8),
+        ("trust_symlinked_cargo_config", "src/lib.rs", 5),
+        ("trust_target_dir_config", "crates/target/src/lib.rs", 5),
+        ("trust_cfgattr_method", "src/lib.rs", 8),
     )
     for name, file, line in negatives:
         source = (CRATES / name / file).read_text().splitlines()

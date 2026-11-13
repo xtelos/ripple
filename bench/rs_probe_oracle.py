@@ -90,7 +90,41 @@ PROVEN: dict[str, dict[tuple[str, int, str, int], str]] = {
         ("src/lib.rs", 23, "one", 0): "repo:src/lib.rs:3",
         ("src/lib.rs", 28, "one", 0): "repo:src/lib.rs:3",
     },
+    # the review's probes, each a way to be another macro that the first rules missed: a `use` of a macro called `test` beside a
+    # trusted attribute (#[test] is the prelude's macro, which a use replaces), a [replace] key written `name@version` or as a url,
+    # a workspace root manifest that cargo reads and a TOML 1.0 parser does not, a workspace root that package.workspace names
+    # and no source sits under, and a `mod tokio` written in a block
+    "trust_test_shadowed": {("src/lib.rs", 7, "one", 0): "repo:src/lib.rs:4"},
+    "trust_replace_at": {("src/lib.rs", 5, "one", 0): "repo:src/lib.rs:3"},
+    "trust_replace_url": {("src/lib.rs", 5, "one", 0): "repo:src/lib.rs:3"},
+    "trust_root_manifest_toml_1_1": {("app/src/lib.rs", 5, "one", 0): "repo:app/src/lib.rs:3"},
+    "trust_workspace_named_outside": {("src/lib.rs", 5, "one", 0): "repo:src/lib.rs:3"},
+    "trust_block_mod_tokio": {("src/lib.rs", 9, "one", 0): "repo:src/lib.rs:3"},
+    # the second review's probes: a tool namespace (`rustfmt`, `clippy`, `diagnostic`) or another name of the compiler's attribute
+    # list that a `mod`, a `use`, an `extern crate` or a dependency key makes another macro; a cargo config that is read through a
+    # symlinked `.cargo`, or from a package in a directory called `target`; what a block `mod` holds acting outside it; an outside
+    # glob that a block `mod` of the same name must not make local; a `test` in a `cfg_attr` on a method
+    "trust_tool_shadow": {
+        ("src/lib.rs", 14, "one", 0): "repo:src/lib.rs:3",
+        ("src/lib.rs", 20, "one", 0): "repo:src/lib.rs:3",
+        ("src/lib.rs", 25, "one", 0): "repo:src/lib.rs:3",
+        ("src/lib.rs", 31, "one", 0): "repo:src/lib.rs:3",
+        ("src/lib.rs", 39, "one", 0): "repo:src/lib.rs:3",
+        ("src/lib.rs", 49, "one", 0): "repo:src/lib.rs:3",
+    },
+    "trust_tool_dep_key": {("src/lib.rs", 6, "one", 0): "repo:src/lib.rs:3", ("src/lib.rs", 8, "one", 0): "repo:src/lib.rs:3"},
+    "trust_symlinked_cargo_config": {("src/lib.rs", 5, "one", 0): "repo:src/lib.rs:3"},
+    "trust_target_dir_config": {("crates/target/src/lib.rs", 5, "one", 0): "repo:crates/target/src/lib.rs:3"},
+    "trust_cfgattr_method": {("src/lib.rs", 8, "one", 0): "repo:src/lib.rs:4"},
+    # rust-analyzer reads the impl of a block mod as it reads the trait's: `S::new()` runs the inherent `new` (the assertion shows 2)
+    "trust_block_mod_effects": {("src/lib.rs", 30, "new", 0): "repo:src/lib.rs:27"},
+    "trust_outside_glob_block_mod": {("src/lib.rs", 13, "helper", 0): "lost"},
 }
+
+# probe -> the directory of the probe where its package is, and where cargo runs: a probe whose point is a file cargo reads from the
+# directory it is run in (a `.cargo/config.toml` of a package that sits in a directory called `target`). The oracle's files and the
+# answers above are still named from the probe's own root.
+CARGO_DIR: dict[str, str] = {"trust_target_dir_config": "crates/target"}
 
 # rust-analyzer names a function by its path and not by its block, so a function declared in a body has the same symbol
 # as a module-level one of its name (and a library and a binary of one package share symbols, and so do the test
@@ -353,7 +387,13 @@ TEST_ATTRIBUTE = re.compile(r"#\s*\[\s*(::\s*)?(tokio\s*::\s*)?test\b")  # `#[te
 
 
 def has_tests(copy: Path) -> bool:
-    return any(TEST_ATTRIBUTE.search(p.read_text(errors="replace")) for p in copy.rglob("*.rs") if "target" not in p.parts)
+    return any(TEST_ATTRIBUTE.search(p.read_text(errors="replace")) for p in copy.rglob("*.rs") if not any(q.name == "target" and (q.parent / "Cargo.toml").is_file() for q in p.parents))
+
+
+def build_output(directory: str, names: list[str]) -> list[str]:
+    """What the copy leaves out: a Cargo.lock, and a `target` directory with a Cargo.toml beside it (a build's output; one with none
+    beside it is a package's directory, as in the probe trust_target_dir_config)."""
+    return [n for n in names if n == "Cargo.lock" or (n == "target" and "Cargo.toml" in names)]
 
 
 def probe_names(only: list[str]) -> list[str]:
@@ -373,19 +413,24 @@ def main() -> None:
     out.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="rs-probes-") as tmp:
         work = Path(tmp) / "crates"
-        shutil.copytree(CRATES, work, ignore=shutil.ignore_patterns("target", "Cargo.lock"))
+        shutil.copytree(CRATES, work, ignore=build_output)
         env["CARGO_TARGET_DIR"] = str(Path(tmp) / "target")
         for name in probe_names(args.only):
             copy = work / name
+            here = copy / CARGO_DIR.get(name, "")
             if name in RUNTIME or name in OVERRIDES or name in PROVEN or has_tests(copy):
-                run(["cargo", "test", "--offline", "--workspace"], copy, env)  # the assertions that prove the answers
+                run(["cargo", "test", "--offline", "--workspace"], here, env)  # the assertions that prove the answers
             if name in RUNTIME:
                 found, source = runtime_answers(name, copy), "the crate's own #[test] assertions"
             else:
-                run(["cargo", "check", "--offline", "--all-targets", "--workspace"], copy, env)
+                run(["cargo", "check", "--offline", "--all-targets", "--workspace"], here, env)
                 scip = Path(tmp) / f"{name}.scip"
-                run(["rust-analyzer", "scip", ".", "--output", str(scip)], copy, env)
-                found, source = occurrences(name, copy, scip), version
+                run(["rust-analyzer", "scip", ".", "--output", str(scip)], here, env)
+                found, source = occurrences(name, here, scip), version
+                if name in CARGO_DIR:  # the index names files from where cargo ran: name them from the probe's root
+                    for call in found:
+                        call["file"] = f"{CARGO_DIR[name]}/{call['file']}"
+                        call["defs"] = [(f"{CARGO_DIR[name]}/{f}", ln) for f, ln in call["defs"]]
                 apply_overrides(name, found)
                 apply_proven(name, found)
             # a probe answered by assertions lists only the sites they prove: a call it does not list has no answer
