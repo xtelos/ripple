@@ -22,9 +22,11 @@ the nodes a caller's `parse` hands back, and Cargo.toml needs only tomllib (toml
 
 from __future__ import annotations
 
+import fnmatch
 import os
 import posixpath
 import re
+from collections import ChainMap
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -76,14 +78,18 @@ def config_files(repo: Path, sources: list[Path]) -> list[str]:
     """The files besides the sources that the index depends on, which the cache fingerprints (registry.py): the manifests, the
     Cargo.lock beside each, every cargo config file `cargo_configs` finds (what `_trust` reads to prove an attribute macro is the
     published crate's), every Cargo.toml the walk of the repo finds (read_redirects looks in each for a `[patch]` or a `[replace]`, in a
-    directory with no source file too), the Cargo.toml of each directory above the repo (whether there is one), and the Cargo.toml of
-    each path dependency outside the repo."""
-    out = manifests(repo, sources)
+    directory with no source file too), the Cargo.toml of each directory above the repo (whether there is one), the Cargo.toml of
+    each path dependency outside the repo, and the manifest of each path dependency inside the repo that the walk gave no source file to
+    (`_extra_manifests`, read for the requirements that decide the lock)."""
+    read = manifests(repo, sources)
+    out = list(read)
     for d in _source_dirs(repo, sources):
         lock = _join(d, "Cargo.lock")
         if (repo / d / "Cargo.toml").is_file() and (repo / lock).is_file():
             out.append(lock)
     configs, found = _walk(repo)
+    data, unreadable, _ = _read_manifests(repo, read)
+    out += _extra_manifests(repo, data, unreadable)[1]
     return sorted({*out, *configs, *found, *above_manifests(repo), *outside_manifests(repo, sources)})
 
 
@@ -120,6 +126,9 @@ class Package:
     # the library names of the path dependencies outside the analysed directory, read from their Cargo.toml alone (_outside_lib): what the package can
     # name beside its other dependencies. An outside dependency whose Cargo.toml cannot be read is a None in `maybe` instead.
     outside_libs: tuple[str, ...] = ()
+    requirements: dict[str, tuple[str | None, ...]] = field(default_factory=dict)  # the version requirement of each crate in REQUIRED_CRATES, as every package the lock covers writes it (the lock's workspace and the closure of their path dependencies; _requirements; a dependency key written however, None for one ripple cannot read as a version string)
+    usable_lock: dict[str, tuple[str, ...]] | None = None  # memo of rs_indexer.usable_locked: the lock's versions of each macro crate it still holds for
+    locked: dict[str, tuple[str, ...]] | None = None  # the Cargo.lock of the package's workspace: each package name (hyphens as underscores) -> the versions it lists; None without a lock or with one that cannot be read
 
 
 @dataclass
@@ -137,18 +146,27 @@ class Workspace:
     problems: list[str] = field(default_factory=list)  # manifests that could not be read
 
 
-def load_workspace(repo: Path, sources: list[Path]) -> Workspace:
-    """Every package and crate of the repo, read from the Cargo.toml files above its sources."""
+def _read_manifests(repo: Path, rels: list[str]) -> tuple[dict[str, dict], set[str], list[str]]:
+    """(directory -> its parsed Cargo.toml, the directories whose Cargo.toml could not be read, a problem line for each of those)."""
     toml = _toml()
-    ws = Workspace()
     data: dict[str, dict] = {}
-    unreadable: set[str] = set()  # the directories whose Cargo.toml could not be read: nothing at or below them is proven
-    for rel in manifests(repo, sources):
+    unreadable: set[str] = set()
+    problems: list[str] = []
+    for rel in rels:
         try:
             data[posixpath.dirname(rel)] = toml.loads((repo / rel).read_text(encoding="utf-8"))
         except (OSError, ValueError, UnicodeDecodeError):
-            ws.problems.append(f"{rel} (Cargo.toml could not be read)")
+            problems.append(f"{rel} (Cargo.toml could not be read)")
             unreadable.add(posixpath.dirname(rel))
+    return data, unreadable, problems
+
+
+def load_workspace(repo: Path, sources: list[Path]) -> Workspace:
+    """Every package and crate of the repo, read from the Cargo.toml files above its sources."""
+    ws = Workspace()
+    # `unreadable`: the directories whose Cargo.toml could not be read: nothing at or below them is proven
+    data, unreadable, ws.problems = _read_manifests(repo, manifests(repo, sources))
+    extras, _, members = _extra_manifests(repo, data, unreadable)  # the manifests of packages the walk gave no source file to (requirements only)
     known = {d for d in data if isinstance(data[d].get("package"), dict)}
     configs, found = _walk(repo)
     redirects = read_redirects(repo, data, known, unreadable, configs, found)
@@ -158,15 +176,23 @@ def load_workspace(repo: Path, sources: list[Path]) -> Workspace:
                 ws.packages[pdir] = _package(repo, pdir, data, redirects)
             except (AttributeError, TypeError, ValueError, KeyError) as error:
                 ws.problems.append(_wrong_type(pdir, error))
-    names = {_norm(p.name) for p in ws.packages.values()}
+    names = {_norm(p.name) for p in ws.packages.values()} | {_norm(m["package"]["name"]) for m in extras.values() if _named(m)}
+    libs, libs_why = _library_names(ws, data, unreadable, extras)
     # the config files are read once, for both questions. The trust half needs no gate on "a package names a trusted crate": a package that
     # names none gets "does not depend on" as its trust reason first (_trust), so the config's reason is never the one shown
     config_why, config_std = _config_problems(repo, configs)
     for pdir, package in ws.packages.items():
         package.std_why = package.std_why or (f"a cargo config of the repo may change std or rustc: {config_std}" if config_std else None) or _unread_above(pdir, unreadable)
+    locks: dict[str, object] = {}  # workspace root -> its Cargo.lock as _lock_packages reads it, once for all the packages it holds
+    wanted: dict[str, dict] = {}  # the same key -> the requirements its packages write (_requirements)
     for pdir, package in ws.packages.items():
         try:
-            package.trust = _trust(repo, pdir, data, names, unreadable, config_why)
+            package.trust = _trust(repo, pdir, data, names, unreadable, config_why, locks, libs, libs_why)
+            package.locked = _lock_versions(locks[_lock_base(pdir, data)])
+            base = _lock_base(pdir, data)
+            if base not in wanted:
+                wanted[base] = _requirements(data, base, extras, set(ws.packages), members.get(base, ()))
+            package.requirements = wanted[base]
         except (AttributeError, TypeError, ValueError, KeyError) as error:
             package.trust = {c: f"the manifest could not be read for this ({type(error).__name__})" for c in TRUSTED_CRATES}
     for pdir, package in list(ws.packages.items()):
@@ -485,14 +511,26 @@ def _outside_lib(repo: Path, path: str) -> str | None:
 
 # ---- whether a dependency is the published crate
 #
-# ripple trusts three attribute macros (rs_indexer.TRUSTED_ATTRS) only where the repo shows that the crate that defines
-# each is the one on crates.io. Each is the macro of a crate (`tokio::main` is tokio's, written by tokio-macros) and the
-# proof covers both: the dependency as the package's manifests write it, what a workspace, a lock or a cargo config
-# file may replace it with, and that no package of the repo is called by the name of either. What lives outside the
-# repo (a config file above it, RUSTFLAGS, a wrapper, a registry mirror that serves other code) cannot be seen and is
-# the one assumption the README states.
+# ripple trusts three attribute macros (rs_indexer.TRUSTED_ATTRS) and seven derives (rs_indexer.TRUSTED_DERIVES) only where
+# the repo shows that the crate that defines each is the one on crates.io. Each is the macro of a crate (`tokio::main` is
+# tokio's, written by tokio-macros; `Serialize` is serde's, written by serde_derive) and the proof covers both: the
+# dependency as the package's manifests write it, what a workspace, a lock or a cargo config file may replace it with, and
+# that no package of the repo is called by the name of either. What lives outside the repo (a config file above it,
+# RUSTFLAGS, a wrapper, a registry mirror that serves other code) cannot be seen and is the one assumption the README states.
 
-TRUSTED_CRATES = {"tokio": "tokio-macros", "serial_test": "serial_test_derive"}  # crate -> the crate that defines its macros
+# crate -> the crate that defines its macros. A derive is named through the crate itself (`serde`, never `serde_derive`: see
+# rs_indexer.TRUSTED_DERIVES), whose own build resolves the macro crate.
+TRUSTED_CRATES = {
+    "tokio": "tokio-macros", "serial_test": "serial_test_derive",
+    "serde": "serde_derive", "clap": "clap_derive", "thiserror": "thiserror-impl",
+}  # fmt: skip
+# The crates of TRUSTED_CRATES a library of the repo called like the crate or its macro crate refuses. rustc links a library of the repo
+# where the real crate was meant when that is a proc-macro dylib and the repo's is an rlib, which it prefers, so a derive named through a macro
+# crate (`serde_derive::Serialize`) could be captured: that is not trusted at all now. Named through the crate itself the derive cannot be
+# (probed with local crates and with the real ones: a second rlib of the crate's name is E0464, a proc-macro library of it loses to the real
+# rlib, a library of the macro crate's name is not what the crate's own build links), so this refusal is a second guard, kept because it only
+# costs a repo with such a library its recall. The attribute macros are not checked: the same probes.
+LIBRARY_CHECKED = frozenset({"serde", "clap", "thiserror"})
 PLAIN_KEYS = frozenset({"version", "features", "default-features", "default_features", "optional"})
 WORKSPACE_KEYS = frozenset({"workspace", "features", "optional", "default-features", "default_features"})
 DEPENDENCY_TABLES = ("dependencies", "dev-dependencies", "build-dependencies", "dev_dependencies", "build_dependencies")
@@ -828,9 +866,267 @@ def _scope_problem(pdir: str, data: dict[str, dict], unreadable: set[str]) -> st
     return None
 
 
-def _trust(repo: Path, pdir: str, data: dict[str, dict], names: set[str], unreadable: set[str], config_why: str | None) -> dict[str, str | None]:
+def _library_names(ws: Workspace, data: dict[str, dict], unreadable: set[str], extras: dict[str, dict] | None = None) -> tuple[set[str], str | None]:
+    """The names the libraries of the repo's packages are linked under (a package called `shim` whose `[lib] name` is `serde_derive` is
+    `serde_derive` to rustc, which links it where the real proc-macro crate was meant), hyphens as underscores; and why that set may not
+    be all of them: a manifest that could not be read, or a package whose fields have the wrong type, may hold a library of any name,
+    and so may a `[lib]` table whose name is no string. The packages of `extras` (path dependencies the walk gave no source file to,
+    `_extra_manifests`) are in the set under their `[lib] name` and under their package's name, since either may be the library's."""
+    libs: set[str] = set()
+    why = None
+    for pdir, manifest in (extras or {}).items():
+        if not _named(manifest):
+            continue
+        lib = manifest.get("lib")
+        if isinstance(lib, dict) and "name" in lib and not isinstance(lib["name"], str):
+            why = why or f"{_join(pdir, 'Cargo.toml')} has a [lib] whose name ripple cannot read"
+        elif isinstance(lib, dict) and "name" in lib:
+            libs.add(_norm(lib["name"]))
+        libs.add(_norm(manifest["package"]["name"]))
+    packaged = {d for d, p in ws.packages.items()}
+    for pdir, manifest in data.items():
+        if pdir in packaged:
+            package = ws.packages[pdir]
+            lib = manifest.get("lib")
+            if isinstance(lib, dict) and "name" in lib and not isinstance(lib["name"], str):
+                why = why or f"{_join(pdir, 'Cargo.toml')} has a [lib] whose name ripple cannot read"
+            if package.lib_name:
+                libs.add(_norm(package.lib_name))
+        elif isinstance(manifest.get("package"), dict):
+            why = why or f"{_join(pdir, 'Cargo.toml')} is a package ripple cannot read"
+    for pdir in sorted(unreadable):
+        why = why or f"{_join(pdir, 'Cargo.toml')} cannot be read, and may hold a library of any name"
+    return libs, why
+
+
+def _lock_base(pdir: str, data: dict[str, dict]) -> str:
+    """The directory whose Cargo.lock governs a package: its workspace's root, else its own."""
+    root = _workspace_root(pdir, data)
+    return root if root is not None else pdir
+
+
+# The registry packages a derive of rs_indexer.TRUSTED_DERIVES is built through (rs_indexer.LOCK_PROVIDERS): the requirements the manifests
+# write for them are what a Cargo.lock must still satisfy.
+REQUIRED_CRATES = frozenset({"serde", "serde_derive", "clap", "clap_derive", "thiserror", "thiserror_impl"})
+
+
+def _named(manifest: dict) -> bool:
+    """Whether a parsed manifest is a package that has a name."""
+    return isinstance(manifest.get("package"), dict) and isinstance(manifest["package"].get("name"), str)
+
+
+def _path_dependencies(pdir: str, manifest: dict, data) -> list[str | None]:
+    """The directory of each path dependency of the package at `pdir`, in every dependency table (also `[target.<cfg>.dependencies]`),
+    repo-relative and normalised (so `..` and an absolute path are written as such, which `_extra_manifests` and `_requirements` find
+    outside the repo). A dependency that inherits (`lib.workspace = true`) takes the path the workspace root writes, from the root's
+    directory. None stands for a path that is no string, or an inherited one the root gives no usable path for: the dependency is
+    a package ripple cannot find."""
+    root = _workspace_root(pdir, data)
+    shared = (data[root] if root is not None else manifest).get("workspace", {})
+    shared_deps = shared.get("dependencies", {}) if isinstance(shared, dict) and isinstance(shared.get("dependencies"), dict) else {}
+    found: list[str | None] = []
+    for section in _dependency_sections(manifest):
+        if not isinstance(section, dict):
+            continue
+        for key, spec in section.items():
+            if not isinstance(spec, dict):
+                continue
+            if spec.get("workspace") is True:
+                wide = shared_deps.get(key)
+                if isinstance(wide, dict) and "path" in wide:
+                    found.append(_join(root, wide["path"]) if isinstance(wide["path"], str) and root is not None else None)
+            elif "path" in spec:
+                found.append(_join(pdir, spec["path"]) if isinstance(spec["path"], str) else None)
+    return found
+
+
+def _outside(repo: Path, target: str) -> bool:
+    """Whether a path dependency's directory (as `_path_dependencies` writes it) is not inside the analysed directory: written above it
+    or absolute, or a link that leaves it."""
+    if posixpath.isabs(target) or target == ".." or target.startswith("../"):
+        return True
+    return not _within(os.path.realpath(repo / target), os.path.realpath(repo))
+
+
+def _member_dirs(repo: Path, root: str, workspace: dict) -> list[str | None]:
+    """The directories the `members` of a `[workspace]` table at `root` name, repo-relative and normalised (a path that leaves the repo
+    stays written so: `_outside`). A glob entry is expanded the way cargo does for one level at a time (`*`, `?` and `[..]` in a segment,
+    hidden directories included), keeping the directories that hold a Cargo.toml. None stands for what ripple cannot tell: a `members` that is
+    no list of strings, an entry that is no string, or one with a `**` segment."""
+    members = workspace.get("members", [])
+    if not isinstance(members, list):
+        return [None]
+    out: list[str | None] = []
+    for entry in members:
+        if not isinstance(entry, str) or "\\" in entry:
+            out.append(None)
+        elif not any(c in entry for c in "*?["):
+            out.append(_join(root, entry))
+        elif "**" in entry:
+            out.append(None)
+        else:
+            dirs = [root]
+            for segment in (s for s in entry.split("/") if s not in ("", ".")):
+                nxt: list[str] = []
+                for d in dirs:
+                    if not any(c in segment for c in "*?["):
+                        nxt.append(_join(d, segment))
+                        continue
+                    try:
+                        names = sorted(e.name for e in os.scandir(repo / d) if e.is_dir())
+                    except OSError:
+                        continue
+                    nxt += [_join(d, n) for n in names if fnmatch.fnmatchcase(n, segment)]
+                dirs = nxt
+            out += [d for d in dirs if _outside(repo, d) or (repo / d / "Cargo.toml").is_file()]
+    return out
+
+
+def _extra_manifests(repo: Path, data: dict[str, dict], unreadable: set[str]) -> tuple[dict[str, dict], list[str], dict[str, list[str | None]]]:
+    """The manifests of the packages the lock covers that the walk gave no source file to (a package whose `lib.rs` is in another directory,
+    one in a hidden directory or in `build/` at the root), found from the manifests the walk gave by following each package's path
+    dependencies, transitively, and the `members` of each `[workspace]`: (directory -> parsed manifest, the repo-relative manifest paths
+    the cache must fingerprint, each workspace root -> its member directories as `_member_dirs` reads them). The requirements of the
+    lock are read from them (`_requirements`). Only inside the analysed directory: a package above it is never read, so it counts as
+    unreadable there. A manifest that exists and does not parse is in the second list and not the first."""
+    extras: dict[str, dict] = {}
+    files: list[str] = []
+    seen = set(data) | set(unreadable)
+    merged = ChainMap(extras, data)
+    toml = _toml()
+    queue: list[str] = []
+
+    def visit(target: str | None) -> None:
+        if target is None or target in seen or _outside(repo, target):
+            return
+        seen.add(target)
+        path = repo / target / "Cargo.toml"
+        if not path.is_file():
+            return
+        files.append(_join(target, "Cargo.toml"))
+        try:
+            extras[target] = toml.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError, UnicodeDecodeError):
+            return
+        queue.append(target)
+
+    members = {root: _member_dirs(repo, root, data[root]["workspace"]) for root in sorted(data) if isinstance(data[root].get("workspace"), dict)}
+    for dirs in members.values():
+        for member in dirs:
+            visit(member)
+    queue += [pdir for pdir in sorted(data) if isinstance(data[pdir].get("package"), dict)]
+    while queue:
+        pdir = queue.pop(0)
+        try:
+            targets = _path_dependencies(pdir, merged[pdir], merged)
+        except (AttributeError, TypeError, ValueError, KeyError):
+            continue  # a manifest cargo would reject: _requirements counts it as unreadable
+        for target in targets:
+            visit(target)
+    return extras, files, members
+
+
+def _requirements(
+    data: dict[str, dict], base: str, extras: dict[str, dict] | None = None, packages: set[str] | None = None, member_dirs=()
+) -> dict[str, tuple[str | None, ...]]:
+    """The version requirement written for each crate of REQUIRED_CRATES by every package the Cargo.lock at `base` covers: the packages of
+    the workspace whose lock it is (those the walk read, and the `members` of its `[workspace]` the walk gave no source file to:
+    `member_dirs`, `_member_dirs`), and the transitive closure of their path dependencies (cargo resolves one lock over every package the
+    root reaches, members or not, so a path dependency that pins `serde = "=1.0.180"` decides what builds). Each is read in every
+    dependency table (also `[target.<cfg>.dependencies]`), by the package it names (a renamed dependency counts under its real name).
+    One that is inherited (`serde.workspace = true`) is the root's. None stands for a requirement ripple cannot read as a version
+    string: a path or git dependency without one, an inherited one the root does not write, a `package` that is no string.
+
+    A package ripple cannot read is a requirement it cannot see, so it is None for every crate of REQUIRED_CRATES (once): a path dependency
+    or a member that is not in `data` (the walk read it) or `extras` (`_extra_manifests`: a manifest inside the analysed directory the walk
+    gave no source file to), a manifest that is no package or whose fields have the wrong type, a path that is no string. `packages` are
+    the directories of the packages `_package` could read."""
+    out: dict[str, list[str | None]] = {}
+    merged = ChainMap(extras or {}, data)
+    seeds = [pdir for pdir, manifest in data.items() if isinstance(manifest.get("package"), dict) and _lock_base(pdir, data) == base]
+    queue = list(seeds)
+    done: set[str] = set()
+    blind = False
+
+    def reach(target: str | None) -> None:
+        nonlocal blind
+        if target is None or target not in merged or not isinstance(merged[target].get("package"), dict) or (packages is not None and target in data and target not in packages):
+            blind = True
+        elif target not in done:
+            queue.append(target)
+
+    for member in member_dirs:  # the workspace's own members: read like a path dependency
+        reach(member)
+    for pdir in queue:  # (the list grows as packages are found)
+        if pdir in done:
+            continue
+        done.add(pdir)
+        try:
+            found, targets = _package_requirements(pdir, merged[pdir], merged)
+        except (AttributeError, TypeError, ValueError, KeyError):
+            if pdir in seeds:
+                raise
+            blind = True  # a manifest cargo would reject
+            continue
+        for crate, written in found:
+            out.setdefault(crate, []).append(written)
+        for target in targets:
+            reach(target)
+    if blind:
+        for crate in REQUIRED_CRATES:
+            out.setdefault(crate, []).append(None)
+    return {crate: tuple(found) for crate, found in out.items()}
+
+
+def _package_requirements(pdir: str, manifest: dict, data) -> tuple[list[tuple[str, str | None]], list[str | None]]:
+    """([(crate of REQUIRED_CRATES, the requirement the package writes for it, None where it cannot be read)], its path dependencies)."""
+    found: list[tuple[str, str | None]] = []
+    root = _workspace_root(pdir, data)
+    shared = (data[root] if root is not None else manifest).get("workspace", {})
+    shared_deps = shared.get("dependencies", {}) if isinstance(shared, dict) and isinstance(shared.get("dependencies"), dict) else {}
+    for section in _dependency_sections(manifest):
+        if not isinstance(section, dict):
+            continue
+        for key, spec in section.items():
+            real, written = key, None
+            if isinstance(spec, str):
+                written = spec
+            elif isinstance(spec, dict):
+                real = spec.get("package", key)
+                if spec.get("workspace") is True:
+                    wide = shared_deps.get(key)
+                    if isinstance(wide, dict):
+                        real = wide.get("package", key)
+                    written = wide if isinstance(wide, str) else wide.get("version") if isinstance(wide, dict) else None
+                else:
+                    written = spec.get("version")
+            if not isinstance(real, str):  # a package that is no string may be any crate
+                found += [(crate, None) for crate in REQUIRED_CRATES]
+            elif _norm(real) in REQUIRED_CRATES:
+                found.append((_norm(real), written if isinstance(written, str) else None))
+    return found, _path_dependencies(pdir, manifest, data)
+
+
+def _lock_versions(locked) -> dict[str, tuple[str, ...]] | None:
+    """What a lock (as _lock_packages reads it) says is built: each package name, hyphens as underscores, with every version the
+    lock lists for it (a lock may hold several of one crate). None when there is no lock or it cannot be read."""
+    if not isinstance(locked, list):
+        return None
+    out: dict[str, list[str]] = {}
+    for p in locked:
+        out.setdefault(_norm(str(p.get("name", ""))), []).append(str(p.get("version", "")))
+    return {name: tuple(versions) for name, versions in out.items()}
+
+
+def _trust(
+    repo: Path, pdir: str, data: dict[str, dict], names: set[str], unreadable: set[str], config_why: str | None, locks: dict[str, object] | None = None,
+    libs: set[str] = frozenset(), libs_why: str | None = None,
+) -> dict[str, str | None]:
     """For each crate of TRUSTED_CRATES, None when the repo proves that this package's use of it is the published crate (from
-    crates.io, unrenamed, unpatched, and its macro crate too), else why it does not."""
+    crates.io, unrenamed, unpatched, and its macro crate too), else why it does not. `locks` holds the locks already read
+    (workspace root -> _lock_packages), and gets this package's if it was not. `libs` are the names the repo's libraries are linked
+    under (_library_names): for the crates of LIBRARY_CHECKED one called like the crate or its macro crate refuses, and so does a
+    library whose name could not be read (`libs_why`)."""
     manifest = data[pdir]
     root = _workspace_root(pdir, data)
     top = data[root] if root is not None else manifest
@@ -839,12 +1135,21 @@ def _trust(repo: Path, pdir: str, data: dict[str, dict], names: set[str], unread
     shared_deps = shared.get("dependencies", {}) if isinstance(shared.get("dependencies"), dict) else {}
     sections = _dependency_sections(manifest)
     scope_why = _scope_problem(pdir, data, unreadable)
-    locked = _lock_packages(repo, base)
+    if locks is None:
+        locks = {}
+    if base not in locks:
+        locks[base] = _lock_packages(repo, base)
+    locked = locks[base]
     out: dict[str, str | None] = {}
     for crate, macro_crate in TRUSTED_CRATES.items():
         why = _dependency_problem(sections, shared_deps, crate, macro_crate)
         if not why and names & {crate, _norm(macro_crate)}:
             why = f"a package of the repo is called {crate} or {macro_crate}"
+        if not why and crate in LIBRARY_CHECKED:
+            if libs_why:
+                why = f"ripple cannot read every library of the repo: {libs_why}"
+            elif libs & {crate, _norm(macro_crate)}:
+                why = f"a package of the repo has a library called {crate} or {macro_crate}"
         out[crate] = why or scope_why or config_why or _lock_problem(locked, crate, macro_crate)
     return out
 

@@ -1,0 +1,10 @@
+[package]
+name = "shim_derive"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "thing2"
+
+[dependencies]
+pm2 = { path = "../pm2" }

@@ -47,6 +47,17 @@ the reason, never guessed:
     proves that each is the crates.io macro (Index.decide_trust: the manifests, the lock, the cargo config files and how the
     attribute is written). The name the function declares stays unresolved. An async `serial`, an impl or trait method, a
     module and a second attribute macro on the item are not trusted, and a site that is not proven is read as it always was;
+  * seven derives are the same kind of exception (TRUSTED_DERIVES): serde's `Serialize` and `Deserialize`, clap's `Parser`, `Args`,
+    `Subcommand` and `ValueEnum`, thiserror's `Error`. Every published version of the three macro crates adds impls of its own crate's
+    traits for the type and nothing else (but for a const serde_derive up to 1.0.162 names after the type, which a placeholder def
+    stands for, a `#[serde(remote = ..)]`'s inherent function, which DERIVE_FNS covers, and a `#[serde(crate = ..)]`, which refuses
+    the site), so a scope that holds one is not one a macro may have made names in, and its impls are not a reason the impls ripple
+    read may be incomplete, once the repo proves the name is the crates.io derive and that the paths its expansion writes where it is
+    written (`clap::..`, `std::..`, `extern crate serde`) are the crates (Index.derive_identity). A lock that lists a serde_derive that
+    runs a precompiled binary refuses the serde derives; a site that is not proven is read as it always was. serde's are trusted only
+    where the name comes from `serde` itself, never `serde_derive`: a library of the graph called serde_derive (a path, git or registry
+    dependency, a package ripple does not read) is linked in place of the proc-macro crate, and nothing ripple reads says what one is
+    called, whereas serde's re-export resolves inside serde's own build;
   * a comment is not a token: the source is read with every comment replaced by spaces (same bytes, same lines), so
     none can move a node of the tree.
 A path through a trait is an edge only when the impl that runs is certain: an inherent function of a repo
@@ -236,6 +247,109 @@ TRUSTED_ATTRS = {
     "tokio::main": "tokio", "::tokio::main": "tokio", "tokio::test": "tokio", "::tokio::test": "tokio",
     "serial_test::serial": "serial_test", "::serial_test::serial": "serial_test", "serial": "serial_test",
 }  # fmt: skip
+# The derives of crates.io crates ripple trusts, as written -> the crates a path or a `use` may name each through. Every published
+# version of the three macro crates was read: each adds impls of its own crate's traits for the deriving type, and nothing else, but
+# for the three things Index.derive_identity narrows (serde_derive up to 1.0.162 may write a const named after the type, which a
+# placeholder def stands for; `#[serde(remote = ..)]` adds an inherent `serialize` or `deserialize`, which DERIVE_FNS covers;
+# `#[serde(crate = ..)]` makes the impls those of another path, which refuses the site) and the paths it writes where the derive is
+# written (clap 3 and later `clap::..`, thiserror 1 `std::..`, serde's `extern crate serde`), which must name the crates. Trusted only
+# where the repo proves the name (see rs_modules.TRUSTED_CRATES and Index.decide_trust). structopt and every other derive crate are not.
+# Only the facade crates (serde, clap, thiserror) are allowed paths: the macro crate (serde_derive, clap_derive, thiserror_impl) is a name
+# in the extern prelude that a library of the graph called the same takes over (rustc prefers an rlib of the name to the proc-macro crate,
+# bench/fixtures/rust-probes/crates/_derive_trust_lib app3), which a manifest cannot rule out for a `serde_derive::Serialize` path. The
+# facade's own re-export is resolved inside the facade's build, against its own dependency (app4, app5), and a second library of the
+# facade's name is E0464 beside it (app1) or loses to it (app2, app6, app7).
+TRUSTED_DERIVES = {
+    "Serialize": ("serde",), "Deserialize": ("serde",),  # not `serde_derive`: see the comment above
+    "Parser": ("clap",), "Args": ("clap",), "Subcommand": ("clap",), "ValueEnum": ("clap",),
+    "Error": ("thiserror",),
+}  # fmt: skip
+SERDE_DERIVES = frozenset({"Serialize", "Deserialize"})
+CLAP_DERIVES = frozenset({"Parser", "Args", "Subcommand", "ValueEnum"})
+# The crates whose re-export of the derive depends on a cargo feature (serde and clap, `derive`): `use serde::Serialize;` then gives the
+# trait alone when it is off, and the macro namespace goes on looking in the globs around the use. thiserror's carries the derive always.
+FEATURE_GATED_DERIVES = frozenset({"serde", "clap"})
+# The serde_derive versions that ship a precompiled x86_64 Linux binary and run it in place of the source (1.0.172-alpha.0 to 1.0.183,
+# every one the crates.io index lists between them): what the binary expands to was not read, so a lock that lists one refuses the serde derives.
+PRECOMPILED_SERDE_DERIVE = frozenset(
+    {"1.0.172-alpha.0", "1.0.172", "1.0.173", "1.0.174", "1.0.175", "1.0.176", "1.0.177", "1.0.178", "1.0.179", "1.0.180", "1.0.181", "1.0.182", "1.0.183"}
+)  # fmt: skip
+# Every version of serde_derive the crates.io index lists (bench/fixtures/rust-probes/derive_trust/serde_derive.versions.txt), yanked ones too.
+SERDE_DERIVE_VERSIONS = tuple(
+    """
+    0.8.4 0.8.6 0.8.7 0.8.8 0.8.9 0.8.10-rc1 0.8.10 0.8.11 0.8.12 0.8.13 0.8.14 0.8.15 0.8.16 0.8.17 0.8.18 0.8.19 0.8.20 0.8.21
+    0.8.22 0.9.0-rc1 0.8.23 0.9.0-rc2 0.9.0-rc3 0.9.0-rc4 0.9.0 0.9.1 0.9.2 0.9.3 0.9.4 0.9.5 0.9.6 0.9.7 0.9.8 0.9.9 0.9.10
+    0.9.11 0.9.12 0.9.13 0.9.14 1.0.0 0.9.15 1.0.1 1.0.2 1.0.3 1.0.4 1.0.5 1.0.6 1.0.7 1.0.8 1.0.9 1.0.10 1.0.11 1.0.12 1.0.13
+    1.0.14 1.0.15 1.0.16 1.0.17 1.0.18 1.0.19 1.0.20 1.0.21 1.0.22 1.0.23 1.0.24 1.0.25 1.0.26 1.0.27 1.0.28 1.0.29 1.0.30
+    1.0.31 1.0.32 1.0.33 1.0.34 1.0.35 1.0.36 1.0.37 1.0.38 1.0.39 1.0.40 1.0.41 1.0.42 1.0.43 1.0.44 1.0.45 1.0.46 1.0.47
+    1.0.48 1.0.49 1.0.50 1.0.51 1.0.52 1.0.53 1.0.54 1.0.55 1.0.56 1.0.57 1.0.58 1.0.59 1.0.60 1.0.61 1.0.62 1.0.63 1.0.64
+    1.0.65 1.0.66 1.0.67 1.0.68 1.0.69 1.0.70 1.0.71 1.0.72 1.0.73 1.0.74 1.0.75 1.0.76 1.0.77 1.0.78 1.0.79 1.0.80 1.0.81
+    1.0.82 1.0.83 1.0.84 1.0.85 1.0.86 1.0.87 1.0.88 1.0.89 1.0.90 1.0.91 1.0.92 1.0.93 1.0.94 1.0.95 1.0.96 1.0.97 1.0.98
+    1.0.99 1.0.100 1.0.101 1.0.102 1.0.103 1.0.104 1.0.105 1.0.106 1.0.107 1.0.108 1.0.109 1.0.110 1.0.111 1.0.112 1.0.113
+    1.0.114 1.0.115 1.0.116 1.0.117 1.0.118 1.0.119 1.0.120 1.0.121 1.0.122 1.0.123 1.0.124 1.0.125 1.0.126 1.0.127 1.0.128
+    1.0.129 1.0.130 1.0.131 1.0.132 1.0.133 1.0.134 1.0.135 1.0.136 1.0.137 1.0.138 1.0.139 1.0.140 1.0.141 1.0.142 1.0.143
+    1.0.144 1.0.145 1.0.146 1.0.147 1.0.148 1.0.149 1.0.150 1.0.151 1.0.152 1.0.153 1.0.154 1.0.155 1.0.156 1.0.157 1.0.158
+    1.0.159 1.0.160 1.0.161 1.0.162 1.0.163 1.0.164 1.0.165 1.0.166 1.0.167 1.0.168 1.0.169 1.0.170 1.0.171 1.0.172-alpha.0
+    1.0.172 1.0.173 1.0.174 1.0.175 1.0.176 1.0.177 1.0.178 1.0.179 1.0.180 1.0.181 1.0.182 1.0.183 1.0.184 1.0.185 1.0.186
+    1.0.187 1.0.188 1.0.189 1.0.190 1.0.191 1.0.192 1.0.193 1.0.194 1.0.195 1.0.196 1.0.197 1.0.198 1.0.199 1.0.200 1.0.201
+    1.0.202 1.0.203 1.0.204 1.0.205 1.0.206 1.0.207 1.0.208 1.0.209 1.0.210 1.0.211 1.0.212 1.0.213 1.0.214 1.0.215 1.0.216
+    1.0.217 1.0.218 1.0.219 1.0.220 1.0.221 1.0.222 1.0.223 1.0.224 1.0.225 1.0.226 1.0.227 1.0.228 1.0.229
+    """.split()
+)  # fmt: skip
+# Every version of serde the index lists (serde.versions.tsv), yanked ones too: the versions a requirement on `serde` may resolve to.
+SERDE_VERSIONS = tuple(
+    """
+    0.0.0 0.2.0 0.2.1 0.3.0 0.3.1 0.3.2 0.3.3 0.4.0 0.4.1 0.4.2 0.4.3 0.5.0 0.5.1 0.5.2 0.5.3 0.6.0 0.6.1 0.6.6 0.6.7 0.6.10
+    0.6.11 0.6.12 0.6.13 0.6.14 0.6.15 0.7.0 0.7.4 0.7.5 0.7.6 0.7.7 0.7.8 0.7.9 0.7.10 0.7.11 0.7.12 0.7.13 0.7.14 0.8.0-rc1
+    0.8.0-rc2 0.8.0-rc3 0.7.15 0.8.0 0.8.1 0.8.2 0.8.3 0.8.4 0.8.5 0.8.6 0.8.7 0.8.8 0.8.9 0.8.10 0.8.11 0.8.12 0.8.13 0.8.14
+    0.8.15 0.8.16 0.8.17 0.8.18 0.8.19 0.8.20 0.8.21 0.8.22 0.9.0-rc1 0.8.23 0.9.0-rc2 0.9.0-rc3 0.9.0-rc4 0.9.0 0.9.1 0.9.2
+    0.9.3 0.9.4 0.9.5 0.9.6 0.9.7 0.9.8 0.9.9 0.9.10 0.9.11 0.9.12 0.9.13 0.9.14 1.0.0 0.9.15 1.0.1 1.0.2 1.0.3 1.0.4 1.0.5
+    1.0.6 1.0.7 1.0.8 1.0.9 1.0.10 1.0.11 1.0.12 1.0.13 1.0.14 1.0.15 1.0.16 1.0.17 1.0.18 1.0.19 1.0.20 1.0.21 1.0.22 1.0.23
+    1.0.24 1.0.25 1.0.26 1.0.27 1.0.28 1.0.29 1.0.30 1.0.31 1.0.32 1.0.33 1.0.34 1.0.35 1.0.36 1.0.37 1.0.38 1.0.39 1.0.40
+    1.0.41 1.0.42 1.0.43 1.0.44 1.0.45 1.0.46 1.0.47 1.0.48 1.0.49 1.0.50 1.0.51 1.0.52 1.0.53 1.0.54 1.0.55 1.0.56 1.0.57
+    1.0.58 1.0.59 1.0.60 1.0.61 1.0.62 1.0.63 1.0.64 1.0.65 1.0.66 1.0.67 1.0.68 1.0.69 1.0.70 1.0.71 1.0.72 1.0.73 1.0.74
+    1.0.75 1.0.76 1.0.77 1.0.78 1.0.79 1.0.80 1.0.81 1.0.82 1.0.83 1.0.84 1.0.85 1.0.86 1.0.87 1.0.88 1.0.89 1.0.90 1.0.91
+    1.0.92 1.0.93 1.0.94 1.0.95 1.0.96 1.0.97 1.0.98 1.0.99 1.0.100 1.0.101 1.0.102 1.0.103 1.0.104 1.0.105 1.0.106 1.0.107
+    1.0.108 1.0.109 1.0.110 1.0.111 1.0.112 1.0.113 1.0.114 1.0.115 1.0.116 1.0.117 1.0.118 1.0.119 1.0.120 1.0.121 1.0.122
+    1.0.123 1.0.124 1.0.125 1.0.126 1.0.127 1.0.128 1.0.129 1.0.130 1.0.131 1.0.132 1.0.133 1.0.134 1.0.135 1.0.136 1.0.137
+    1.0.138 1.0.139 1.0.140 1.0.141 1.0.142 1.0.143 1.0.144 1.0.145 1.0.146 1.0.147 1.0.148 1.0.149 1.0.150 1.0.151 1.0.152
+    1.0.153 1.0.154 1.0.155 1.0.156 1.0.157 1.0.158 1.0.159 1.0.160 1.0.161 1.0.162 1.0.163 1.0.164 1.0.165 1.0.166 1.0.167
+    1.0.168 1.0.169 1.0.170 1.0.171 1.0.172-alpha.0 1.0.172 1.0.173 1.0.174 1.0.175 1.0.176 1.0.177 1.0.178 1.0.179 1.0.180
+    1.0.181 1.0.182 1.0.183 1.0.184 1.0.185 1.0.186 1.0.187 1.0.188 1.0.189 1.0.190 1.0.191 1.0.192 1.0.193 1.0.194 1.0.195
+    1.0.196 1.0.197 1.0.198 1.0.199 1.0.200 1.0.201 1.0.202 1.0.203 1.0.204 1.0.205 1.0.206 1.0.207 1.0.208 1.0.209 1.0.210
+    1.0.211 1.0.212 1.0.213 1.0.214 1.0.215 1.0.216 1.0.217 1.0.218 1.0.219 1.0.220 1.0.221 1.0.222 1.0.223 1.0.224 1.0.225
+    1.0.226 1.0.227 1.0.228 1.0.229
+    """.split()
+)  # fmt: skip
+# The helper attributes a derive declares in every published version of its macro crate that has it: the names a bare attribute beside
+# it is certainly its helper under, with no lock to say which version builds (serde from 0.8.18: the 0.8.4 to 0.8.17 derives are
+# nightly-only ones of 2016).
+DERIVE_HELPERS = {
+    "Serialize": frozenset({"serde"}), "Deserialize": frozenset({"serde"}),
+    "Parser": frozenset({"clap"}), "Args": frozenset({"clap"}), "Subcommand": frozenset({"clap"}), "ValueEnum": frozenset({"clap"}),
+    "Error": frozenset({"error", "source"}),
+}  # fmt: skip
+# The crate (the name Cargo.lock lists it by, hyphens as underscores) that defines each derive.
+DERIVE_MACRO_CRATE = {
+    "Serialize": "serde_derive", "Deserialize": "serde_derive",
+    "Parser": "clap_derive", "Args": "clap_derive", "Subcommand": "clap_derive", "ValueEnum": "clap_derive",
+    "Error": "thiserror_impl",
+}  # fmt: skip
+_CLAP = frozenset({"clap"})
+_CLAP4 = frozenset({"clap", "command", "arg", "group"})
+# What each derive declares as helper attributes, by the first version of its macro crate that declares so (the declaration of every
+# published version: bench/fixtures/rust-probes/derive_trust/declared_helpers.tsv). A version older than the first has no such derive.
+DERIVE_HELPERS_BY_VERSION = {
+    "Serialize": (("0.8.4", frozenset()), ("0.8.18", frozenset({"serde"}))),
+    "Deserialize": (("0.8.4", frozenset()), ("0.8.18", frozenset({"serde"}))),
+    "Parser": (("3.0.0-beta.5", _CLAP), ("3.0.0-rc.0", frozenset({"clap", "structopt"})), ("4.0.0-rc.1", frozenset({"clap", "structopt", "command", "arg"})),
+               ("4.0.7", frozenset({"clap", "structopt", "command", "arg", "group"}))),
+    "Args": (("3.0.0-beta.3", _CLAP), ("4.0.0-rc.1", _CLAP4)),
+    "Subcommand": (("3.0.0-beta.2", _CLAP), ("4.0.0-rc.1", _CLAP4)),
+    "ValueEnum": (("3.2.0", _CLAP), ("4.0.0-rc.1", frozenset({"clap", "value"}))),
+    "Error": (("1.0.0", frozenset({"error", "source"})), ("1.0.2", frozenset({"backtrace", "error", "from", "source"}))),
+}  # fmt: skip
+DERIVE_TARGETS = frozenset({"struct_item", "enum_item", "union_item"})  # what a derive is written on
 
 TYPE_KINDS = frozenset({"struct", "enum", "union", "trait", "type", "mod", "extern_crate"})
 VALUE_KINDS = frozenset({"fn", "const", "static", "tuple_struct", "unit_struct", "variant", "foreign"})
@@ -407,11 +521,12 @@ class CrateCtx:
         self.macro_sites: list[tuple[Scope, str, bool, str, int]] = []  # (scope, macro, path starts at std, file, line) of each macro invoked where it may generate items
         self.attr_sites: list[tuple[str, int, str] | TrustSite] = []  # (file, line, what) of each attribute macro or derive that may generate items, in source order (see attr_reasons)
         self.trust_sites: list[TrustSite] = []  # each function under trusted attributes only, until the repo proves them (Index.decide_trust)
+        self.derive_sites: list[DeriveSite] = []  # each type under derives of TRUSTED_DERIVES only, until the repo proves them (Index.decide_trust)
         self.block_mods: list[tuple[str, int]] = []  # (file, line) of each `mod` written in a block, whose items ripple does not read: any impl in one applies to the whole crate
         self.taint: list[str] = []  # why the impls ripple read may not be all of this crate's (see Index.mark_macros)
         self.pending_derives: list[tuple[Scope, tuple[str, ...], str, int]] = []  # (scope, names, file, line) of each standard derive written by its bare name: another macro if something replaces the name (Index.settle_derives)
         self.derive_replaced: dict[int, str] = {}  # index into pending_derives -> the name of the derive that something replaces (Index.derive_step)
-        self.pending_heads: list[tuple[Scope, tuple[str, ...], str, int]] = []  # (scope, attributes, file, line) of each on the target of a derive that is not a standard one
+        self.pending_heads: list[tuple[Scope, tuple[str, ...], str, int] | None] = []  # (scope, attributes, file, line) of each on the target of a derive that is not a standard one, in source order; None for the slot of a trusted derive site's helpers (DeriveSite.head_slot)
         self.use_names: set[str] = set()  # every name a `use` of the crate gives
         self.tools: frozenset[str] = frozenset()  # the names of TOOL_ATTRS that something of the crate declares, imports or depends on (Index.shadowed_tools)
         self.outside_glob = False  # a glob import that may bring a macro of a crate ripple has not read
@@ -424,9 +539,9 @@ class CrateCtx:
         """(file, line, what) of each attribute macro or derive that may generate items, in the order they were met. A function
         under trusted attributes is one only once refused, and then where it was met, as it would have been all along."""
         for site in self.attr_sites:
-            if not isinstance(site, TrustSite):
+            if not isinstance(site, (TrustSite, DeriveSite)):
                 yield site
-            elif site.refused is not None and not site.nested:
+            elif site.refused is not None and not getattr(site, "nested", False):
                 yield site.entry
 
 
@@ -452,6 +567,32 @@ class TrustSite:
     def entry(self) -> tuple[str, int, str]:
         """What CrateCtx.attr_sites says of it once refused: what a macro there would have said."""
         macro = attrs_of(self.item, self.src, self.scope.crate.tools, trust=False, shadow=MACRO if self.shadow else BUILTIN)
+        return attr_site(macro, self.file, self.line, self.item.type.replace("_item", "").replace("_", " "))
+
+
+@dataclass(eq=False)
+class DeriveSite:
+    """A struct, enum or union under derives of TRUSTED_DERIVES and no derive or attribute macro that is not one (Index.decide_trust).
+    It is read as if they were the crates.io derives (the scope is not one a macro may have made names in, the impls ripple read may be
+    all of them); a refusal reads it as under any derive that is not a standard one."""
+
+    scope: Scope
+    item: object
+    file: str
+    line: int
+    name: str  # the type
+    derives: tuple[tuple[str, str], ...]  # (name, as written) of each trusted derive
+    serde_crate: bool  # the item carries a `serde(crate = ..)`
+    src: bytes
+    helpers: tuple[str, ...] = ()  # the attributes beside the derives that are their helpers, once proven (refuse_derive puts them back)
+    placeholders: tuple = ()  # (name, def) of what stands for the const serde_derive up to 1.0.162 may write beside the type
+    refused: str | None = None  # why the repo does not prove them
+    head_slot: int | None = None  # the index in CrateCtx.pending_heads that holds this site's helpers once refused: None there until then
+
+    @property
+    def entry(self) -> tuple[str, int, str]:
+        """What CrateCtx.attr_sites says of it once refused: what the same derives said before they were trusted."""
+        macro = attrs_of(self.item, self.src, self.scope.crate.tools, trust=False, shadow=BUILTIN)
         return attr_site(macro, self.file, self.line, self.item.type.replace("_item", "").replace("_", " "))
 
 
@@ -618,7 +759,7 @@ def parse_visibility(written: str) -> tuple:
 class Attrs:
     """What the attributes written before an item say that matters here."""
 
-    __slots__ = ("cfg", "macro", "macro_use", "proc_macro", "derives", "unknown_derive", "std_derives", "what", "heads", "trust", "shadow")
+    __slots__ = ("cfg", "macro", "macro_use", "proc_macro", "derives", "unknown_derive", "std_derives", "what", "heads", "trust", "shadow", "tderives", "serde_crate")
 
     def __init__(self) -> None:
         self.cfg = False  # a #[cfg] or #[cfg_attr]: the item may not exist (ripple evaluates no condition)
@@ -632,6 +773,8 @@ class Attrs:
         self.heads: list[str] = []  # attributes that are one plain name and not built in: an attribute macro, or the helper of a derive
         self.trust: list[str] = []  # attributes of TRUSTED_ATTRS, as written, that no attribute macro beside them or the item they are on rules out: trusted once the repo proves them
         self.shadow: list[str] = []  # attributes of SHADOWABLE_ATTRS, as written: the standard library's, unless the repo shows another macro of that name in scope
+        self.tderives: list[tuple[str, str]] = []  # (name, as written) of each derive of TRUSTED_DERIVES, trusted once the repo proves it (Index.decide_trust)
+        self.serde_crate = False  # a `#[serde(crate = ..)]` (also under cfg_attr): serde's impls are then those of that path, which may be a module of the repo
 
     @property
     def generates(self) -> bool:
@@ -673,7 +816,11 @@ def _classify_attribute(head: str, args, src: bytes, out: Attrs, tools: frozense
                 name = name[2:]
             if name:
                 out.derives.append(name)
-            if name not in STD_DERIVES or ("::" in written and written.split("::")[0] not in ("std", "core", "alloc")):
+            segs = written.split("::")
+            plain = segs[1:] if segs[:1] == [""] else segs  # `::serde::Serialize` is `serde::Serialize`, the crate named from the extern prelude (Index.derive_identity)
+            if trust and name in TRUSTED_DERIVES and (len(plain) == 1 or (len(plain) == 2 and plain[0] in TRUSTED_DERIVES[name])):
+                out.tderives.append((name, written))  # the crates.io derive of that name, unless the repo shows otherwise
+            elif name not in STD_DERIVES or ("::" in written and written.split("::")[0] not in ("std", "core", "alloc")):
                 out.unknown_derive = True
                 out.what = out.what or f"the derive `{written}`"
             elif "::" not in written:
@@ -693,6 +840,14 @@ def _classify_attribute(head: str, args, src: bytes, out: Attrs, tools: frozense
             out.what = out.what or f"the attribute `#[{head}]`"
         else:
             out.heads.append(head)
+            if head == "serde" and args is not None and _names_crate(args, src):
+                out.serde_crate = True  # `serde(crate = "path")`
+
+
+def _names_crate(tree, src: bytes) -> bool:
+    """Whether the token `crate` is anywhere in a token tree: the one place serde reads a `crate = "path"` is the arguments of its
+    own attribute, at any depth ripple would not look for it."""
+    return any(c.type in ("crate", "identifier") and text(src, c) == "crate" or _names_crate(c, src) for c in tree.children)
 
 
 def _tool_is_macro(head: str, first: str, tools: frozenset) -> bool:
@@ -771,12 +926,294 @@ def attrs_of(item, src: bytes, tools: frozenset, trust: bool = True, shadow: str
     out = read_attributes(attributes, src, tools, trust, shadow)
     off = bool(out.trust) and bool(out.macro or out.heads or out.unknown_derive or not trusted_target(item) or (is_async(item) and any(TRUSTED_ATTRS[h] == "serial_test" for h in out.trust)))
     elsewhere = bool(out.shadow) and not queueable(item)
-    if off or elsewhere:
-        out = read_attributes(attributes, src, tools, trust=trust and not off, shadow=MACRO if elsewhere else shadow)
-    if out.heads and not (out.unknown_derive and item.type in ("struct_item", "enum_item", "union_item")):
+    # a derive of TRUSTED_DERIVES is trusted only on a type with nothing else that may generate items beside it: another derive that is not
+    # a standard one, an attribute macro and a derive written where a derive cannot be are read as they always were
+    derive_off = bool(out.tderives) and bool(out.macro or out.unknown_derive or item.type not in DERIVE_TARGETS)
+    if off or elsewhere or derive_off:
+        out = read_attributes(attributes, src, tools, trust=trust and not off and not derive_off, shadow=MACRO if elsewhere else shadow)
+    if out.heads and not ((out.unknown_derive or out.tderives) and item.type in DERIVE_TARGETS):
         out.macro = True
         out.what = out.what or f"the attribute `#[{out.heads[0]}]`"
     return out
+
+
+SEMVER = re.compile(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?")
+
+
+def version_key(version: str) -> tuple | None:
+    """A version as cargo orders it (semver: a pre-release is before its release, numeric identifiers before the others), None when it is
+    not one."""
+    found = SEMVER.fullmatch(version)
+    if found is None:
+        return None
+    pre = tuple((0, int(p), "") if p.isdigit() else (1, 0, p) for p in found.group(4).split(".")) if found.group(4) else None
+    return (*map(int, found.groups()[:3]), (1, ()) if pre is None else (0, pre))
+
+
+U64 = 2**64 - 1
+WILDCARD = ("*", "x", "X")
+REQ_OPS = (">=", "<=", ">", "<", "=", "~", "^")  # the two-character ones first
+IDENT = re.compile(r"[0-9A-Za-z-]+")
+Comparator = tuple  # (op, major, minor | None, patch | None, pre), pre as version_key's last element: (1, ()) for none, so a release is above its pre-releases
+
+
+def parse_requirement(text: str) -> tuple | None:
+    """A version requirement as cargo reads `version = ".."` (the semver crate: bare and `^` caret, `=`, `~`, `>`, `>=`, `<`, `<=`, a
+    comma list, `*` and `1.*` wildcards, spaces only around the parts), the comparators it is the conjunction of; None when the crate would
+    reject it. Where the crate accepts something unusual (`>=1.*`, `1,2`) so does this, and a text it rejects is never read."""
+    text = text.lstrip(" ")
+    if text[:1] in WILDCARD and text:
+        return () if not text[1:].strip(" ") else None  # `*` alone is every release; `* , >1` and `*x` are errors
+    comparators = []
+    while True:
+        parsed = parse_comparator(text)
+        if parsed is None:
+            return None
+        comparator, text = parsed
+        comparators.append(comparator)
+        text = text.lstrip(" ")
+        if not text:
+            return tuple(comparators)
+        if text[0] != ",":
+            return None
+        text = text[1:].lstrip(" ")
+
+
+def parse_comparator(text: str) -> tuple[Comparator, str] | None:
+    """One comparator at the start of `text`, and the text after it; None when the semver crate would not read one there. Only a version
+    of three numbers takes a pre-release or build metadata (`1.2-alpha` is no requirement), and a wildcard fills the rest of the version."""
+    op = next((o for o in REQ_OPS if text.startswith(o)), "")
+    text = text[len(op):].lstrip(" ")
+    parts: list[int | None] = []
+    wildcard = False
+    while len(parts) < 3:
+        if parts and text[:1] in WILDCARD:  # a wildcard is no major, and what follows one is a wildcard
+            wildcard = True
+            parts.append(None)
+            text = text[1:]
+        else:
+            digits = re.match(r"0|[1-9][0-9]*", text)  # no leading zero, and what fits a u64
+            if digits is None or int(digits.group()) > U64 or wildcard:
+                return None
+            parts.append(int(digits.group()))
+            text = text[digits.end():]
+        if len(parts) < 3 and text[:1] == ".":
+            text = text[1:]
+        else:
+            break
+    major, minor, patch = parts[0], *parts[1:], *([None] * (3 - len(parts)))
+    pre = (1, ())
+    if len(parts) == 3 and not wildcard:
+        if text.startswith("-"):
+            found = identifiers(text, 1, numeric=True)
+            if found is None:
+                return None
+            names, text = found
+            pre = (0, tuple((0, int(n), "") if n.isdigit() else (1, 0, n) for n in names))
+        if text.startswith("+"):  # build metadata: read, and no part of the version
+            found = identifiers(text, 1, numeric=False)
+            if found is None:
+                return None
+            text = found[1]
+    return (op or ("*" if wildcard else "^"), major, minor, patch, pre), text
+
+
+def identifiers(text: str, start: int, numeric: bool) -> tuple[list[str], str] | None:
+    """The dot-separated identifiers of a pre-release (`numeric`: one of digits only has no leading zero) or of build metadata that begin
+    at `start`, and the text after them; None when one is empty or holds a character outside [0-9A-Za-z-]."""
+    names, end = [], start
+    while True:
+        piece = IDENT.match(text, end)
+        if piece is None or (numeric and len(piece.group()) > 1 and piece.group().isdigit() and piece.group()[0] == "0"):
+            return None
+        names.append(piece.group())
+        end = piece.end()
+        if text[end:end + 1] != ".":
+            return names, text[end:]
+        end += 1
+
+
+def comparator_matches(cmp: Comparator, ver: tuple) -> bool:
+    """One comparator against a version (as version_key reads it), by the semver crate's rules."""
+    op, major, minor, patch, pre = cmp
+    vmajor, vminor, vpatch, vpre = ver
+
+    def exact() -> bool:
+        return vmajor == major and (minor is None or vminor == minor) and (patch is None or vpatch == patch) and vpre == pre
+
+    def greater() -> bool:
+        if vmajor != major:
+            return vmajor > major
+        if minor is None:
+            return False
+        if vminor != minor:
+            return vminor > minor
+        if patch is None:
+            return False
+        if vpatch != patch:
+            return vpatch > patch
+        return vpre > pre
+
+    def less() -> bool:
+        if vmajor != major:
+            return vmajor < major
+        if minor is None:
+            return False
+        if vminor != minor:
+            return vminor < minor
+        if patch is None:
+            return False
+        if vpatch != patch:
+            return vpatch < patch
+        return vpre < pre
+
+    if op in ("=", "*"):
+        return exact()
+    if op == ">":
+        return greater()
+    if op == ">=":
+        return exact() or greater()
+    if op == "<":
+        return less()
+    if op == "<=":
+        return exact() or less()
+    if op == "~":
+        if vmajor != major or (minor is not None and vminor != minor):
+            return False
+        if patch is not None and vpatch != patch:
+            return vpatch > patch
+        return vpre >= pre
+    # caret
+    if vmajor != major:
+        return False
+    if minor is None:
+        return True
+    if patch is None:
+        return vminor >= minor if major > 0 else vminor == minor
+    if major > 0:
+        if vminor != minor:
+            return vminor > minor
+        if vpatch != patch:
+            return vpatch > patch
+    elif minor > 0:
+        if vminor != minor:
+            return False
+        if vpatch != patch:
+            return vpatch > patch
+    elif vminor != minor or vpatch != patch:
+        return False
+    return vpre >= pre
+
+
+def requirement_matches(requirement: str, version: str) -> bool:
+    """Whether a version meets a requirement as cargo decides it, False for either one that is not readable. A version with a pre-release
+    meets a requirement only if a comparator of it names the same major.minor.patch with a pre-release of its own."""
+    comparators, ver = parse_requirement(requirement), version_key(version)
+    if comparators is None or ver is None or not all(comparator_matches(c, ver) for c in comparators):
+        return False
+    return ver[3] == (1, ()) or any(c[1] == ver[0] and c[2] == ver[1] and c[3] == ver[2] and c[4] != (1, ()) for c in comparators)
+
+
+# The crates a derive's macro crate (the name Cargo.lock lists it by) is built through, which the manifests write requirements for. A lock
+# says which version of the macro crate builds only while each of them is satisfied by a version it lists: cargo re-resolves an entry that
+# no longer meets the manifests, and takes the crates the entry pulled in along with it.
+LOCK_PROVIDERS = {"serde_derive": ("serde", "serde_derive"), "clap_derive": ("clap", "clap_derive"), "thiserror_impl": ("thiserror", "thiserror_impl")}
+
+
+def lock_agrees(package, macro_crate: str) -> bool:
+    """Whether the Cargo.lock of the package still holds for a macro crate: it lists the crates the macro crate comes through, and every
+    requirement the manifests of the lock's workspace write for each (Package.requirements) is met by a version it lists. One ripple cannot
+    read (None, or text the semver crate would reject) is a requirement that is not met. With no lock, or none that agrees, cargo resolves
+    the crate again, which ripple reads as there being no lock for it."""
+    locked = package.locked
+    if not locked:
+        return False
+    for provider in LOCK_PROVIDERS[macro_crate]:
+        for requirement in package.requirements.get(provider, ()):
+            if requirement is None or not any(requirement_matches(requirement, v) for v in locked.get(provider, ())):
+                return False
+    return True
+
+
+def usable_locked(package) -> dict[str, tuple[str, ...]]:
+    """The versions the lock lists for each macro crate it still holds for (lock_agrees), the only ones a lock says anything of."""
+    if getattr(package, "usable_lock", None) is None:
+        package.usable_lock = {crate: package.locked[crate] for crate in LOCK_PROVIDERS if package.locked and crate in package.locked and lock_agrees(package, crate)}
+    return package.usable_lock
+
+
+def serde_derive_pin(version: str) -> bool:
+    """Whether serde of this version pins its serde_derive to the same version: from 1.0.103 to 1.0.219, 1.0.172-alpha.0 among them (the
+    `=<version>` entry of every one, the optional dependency of the `derive` feature up to 1.0.185 and a `cfg(any())` one after).
+    serde 1.0.220 and later pin serde_core and take serde_derive `^1`, as do 1.0.102 and before (serde.versions.tsv)."""
+    key = version_key(version)
+    return key is not None and version_key("1.0.103") <= key <= version_key("1.0.219")
+
+
+def serde_derive_may_build(requirements: dict) -> set[str] | None:
+    """With no lock that holds, the versions of serde_derive cargo may build for the requirements the manifests write (Package.requirements):
+    the newest published one that satisfies all that are written for it, and where `serde` is a dependency the one its newest satisfying
+    version pins (serde_derive_pin; the next older serde where the two cannot meet, as cargo backtracks). Both that and the newest
+    serde_derive when a requirement of serde_derive is written beside a serde that pins: the pin of serde before 1.0.186 is the
+    `derive` feature's, so with it off only serde_derive's own requirement decides (`serde = "=1.0.150"` with `serde_derive = "<1.0.184"`
+    and `use serde_derive::Serialize` builds 1.0.183). None when it cannot be told: a requirement ripple cannot read, or one that
+    nothing published satisfies."""
+    own, serde = requirements.get("serde_derive", ()), requirements.get("serde", ())
+    if any(r is None or parse_requirement(r) is None for r in (*own, *serde)):
+        return None
+    published = [v for v in SERDE_DERIVE_VERSIONS if all(requirement_matches(r, v) for r in own)]
+    newest = max(published, key=version_key, default=None)
+    if not serde:
+        return {newest} if newest else None
+    for version in sorted((v for v in SERDE_VERSIONS if all(requirement_matches(r, v) for r in serde)), key=version_key, reverse=True):
+        if not serde_derive_pin(version):
+            return {newest} if newest else None
+        if version in published:
+            return {version, newest} if own else {version}
+    return None
+
+
+def precompiled_problem(package) -> str | None:
+    """Why the serde_derive that builds may be one that runs a precompiled binary (PRECOMPILED_SERDE_DERIVE), which was not read; None when
+    it is not. A lock that holds for it says which version builds; without one the requirements do (serde_derive_may_build)."""
+    if lock_agrees(package, "serde_derive"):
+        for version in package.locked.get("serde_derive", ()):
+            if not version or version.split("+")[0] in PRECOMPILED_SERDE_DERIVE:
+                return f"Cargo.lock has serde_derive {version or '(no version)'}, which runs a precompiled binary that was not read"
+        return None
+    built = serde_derive_may_build(package.requirements)
+    if built is None:
+        return "no Cargo.lock that agrees with the manifests, and ripple cannot tell which serde_derive the requirements resolve to (a precompiled one is not read)"
+    hits = sorted(built & PRECOMPILED_SERDE_DERIVE, key=version_key)
+    if hits:
+        return f"no Cargo.lock that agrees with the manifests, and the requirements resolve to serde_derive {', '.join(hits)}, which runs a precompiled binary that was not read"
+    return None
+
+
+def helpers_at(name: str, version: str) -> frozenset | None:
+    """The helper attributes the derive `name` declares in this version of its macro crate (DERIVE_HELPERS_BY_VERSION): None when the
+    version is no version, or is older than the first one that has the derive."""
+    key = version_key(version)
+    found = None
+    for first, helpers in DERIVE_HELPERS_BY_VERSION[name]:
+        if key is not None and key >= version_key(first):
+            found = helpers
+    return found
+
+
+def derive_helpers(tderives, locked: dict | None = None) -> frozenset:
+    """The names a bare attribute beside these trusted derives is certainly the helper of: those some derive of the item declares in every
+    version of its macro crate the build can use. A Cargo.lock (`locked`: Package.locked) says which versions it lists, so a derive
+    contributes what each of them declares; with none (or a lock that does not list the crate) only what every published version does
+    (DERIVE_HELPERS)."""
+    out: set[str] = set()
+    for name, _ in tderives:
+        versions = (locked or {}).get(DERIVE_MACRO_CRATE[name])
+        if versions:
+            out |= frozenset.intersection(*(helpers_at(name, v) or frozenset() for v in versions))
+        else:
+            out |= DERIVE_HELPERS[name]
+    return frozenset(out)
 
 
 def inner_attrs_of(container, src: bytes, tools: frozenset) -> Attrs:
@@ -1018,6 +1455,25 @@ class Index:
         if attrs.std_derives:
             ctx.pending_derives.append((scope, tuple(attrs.std_derives), file, line))
 
+    def collect_derive_site(self, ctx: CrateCtx, scope: Scope, item, m: Module, name: str, attrs: Attrs, helpers: tuple) -> None:
+        """Queue a type under derives of TRUSTED_DERIVES for Index.decide_trust, read as trusted until refused. serde_derive up to 1.0.162
+        may write a const named `_IMPL_SERIALIZE_FOR_<T>` beside the type (and `_IMPL_DESERIALIZE_FOR_<T>`, depending on the version the
+        build picks), a name that is in the scope whether or not it is the version that is built: a def stands for each, written like
+        any name a macro made, so no call that could be the const's is read as another item's. (rustc: a call of it is E0618 where it
+        is the const, so it names no function that builds, but the version is not known without a lock.)"""
+        placeholders = tuple(
+            (cname, Def("const", cname, (m.file, item.start_byte, cname), item, scope, {"vis": PRIVATE, "rw": True}))
+            for cname in (f"_IMPL_{d.upper()}_FOR_{name}" for d, _ in attrs.tderives if d in SERDE_DERIVES)
+        )
+        for cname, d in placeholders:
+            scope.items[cname].append(d)
+        site = DeriveSite(scope, item, m.file, item.start_point[0] + 1, name, tuple(attrs.tderives), attrs.serde_crate, m.src, helpers, placeholders)
+        ctx.attr_sites.append(site)  # in source order: a refused site says what the same derives said before they were trusted
+        ctx.derive_sites.append(site)
+        if helpers:  # the place in source order that these heads would have had, kept for refuse_derive (a head met before is read before)
+            site.head_slot = len(ctx.pending_heads)
+            ctx.pending_heads.append(None)
+
     def collect_items(self, scope: Scope, container, m: Module, ctx: CrateCtx, owner_id: str | None = None, block: bool = False, rw: bool = False) -> None:
         """The items a container (a module's body or a block) declares, into the scope. `rw` is a container inside an
         item under an attribute macro (which may have rewritten all of it)."""
@@ -1030,8 +1486,14 @@ class Index:
             vis = visibility(item, src) if t in ITEM_NODES else PRIVATE
             attrs = attrs_of(item, src, ctx.tools) if t != "attribute_item" else Attrs()
             queued = bool(attrs.trust or attrs.shadow) and not rw  # attributes that are what they look like only once the repo proves it (Index.decide_trust)
-            if (attrs.trust or attrs.shadow) and rw:
+            if (attrs.trust or attrs.shadow or attrs.tderives) and rw:
                 attrs = attrs_of(item, src, ctx.tools, trust=False, shadow=BUILTIN)  # inside an item an attribute macro may have rewritten, they are read as one (a built-in is no matter)
+            helpers = ()
+            if attrs.tderives and attrs.heads:
+                if set(attrs.heads) <= derive_helpers(attrs.tderives, usable_locked(ctx.crate.package)):
+                    helpers, attrs.heads = tuple(attrs.heads), []  # the derives' own helpers, once the derives are proven (refuse_derive puts them back)
+                else:
+                    attrs = attrs_of(item, src, ctx.tools, trust=False)  # a bare name that is not certainly a helper may be an attribute macro: read as it always was
             if "prelude_import" in attrs.heads:
                 ctx.prelude_import = True
             if attrs.heads and not attrs.macro:
@@ -1051,6 +1513,8 @@ class Index:
                 ctx.trust_sites.append(site)
             if t != "macro_invocation" and t != "attribute_item":
                 self.note_attrs(ctx, scope, attrs, m.file, item.start_point[0] + 1, t.replace("_item", "").replace("_", " "))
+            if attrs.tderives and name:
+                self.collect_derive_site(ctx, scope, item, m, name, attrs, helpers)
             if t == "function_item":
                 sid = self.make_id(m, owner_id, name)
                 d = Def("fn", name, key, item, scope, dict(facts))
@@ -1198,12 +1662,14 @@ class Index:
         (`tokio` resolves to that dependency; `serial` is imported by `use serial_test::serial`). One that is not proven is
         read as under any attribute macro: its body is rewritten and its scope may hold names it generated. That can make
         a scope one in which a macro may make names (the `tokio` of another site there is no longer proven), so this runs
-        until nothing changes. The sites of an impl's body are found after the first run, so it runs again then.
+        until nothing changes. The sites of an impl's body are found after the first run, so it runs again then. Each type under
+        derives of TRUSTED_DERIVES (CrateCtx.derive_sites) is decided in the same loop (derive_identity), since the name of a
+        derive is looked up in scopes that a refusal may mark.
 
         The sites are collected as trusted and flipped when refused, rather than held back until decided, because proving one
         needs every scope of the crate read, the blocks inside the trusted functions included (their globs and macros
         decide what a name there can be)."""
-        if not any(ctx.trust_sites for ctx in self.ctxs):
+        if not any(ctx.trust_sites or ctx.derive_sites for ctx in self.ctxs):
             return
         for ctx in self.ctxs:
             self.settle_helpers(ctx)
@@ -1218,6 +1684,12 @@ class Index:
                         why = self.trust_identity(ctx, site)
                         if why is not None:
                             self.refuse_trust(ctx, site, why)
+                            changed = True
+                for derive in ctx.derive_sites:
+                    if derive.refused is None:
+                        why = self.derive_identity(ctx, derive)
+                        if why is not None:
+                            self.refuse_derive(ctx, derive, why)
                             changed = True
             if not changed:
                 break
@@ -1336,6 +1808,121 @@ class Index:
                     self.refuse_trust(ctx, other, "inside a refused one")
                 else:  # only the standard library's attribute macros: inside an item that is rewritten they are read as built in
                     other.refused, other.nested = "inside a refused one", True
+        for derive in ctx.derive_sites:  # a derive inside an item that is rewritten is read as any derive there is
+            if derive.refused is None and inside(derive.file, derive.item.start_byte):
+                own = (derive.file, derive.item.start_byte) == (file, a)  # the item the refused attributes are on (`derive` itself, another macro's)
+                self.refuse_derive(ctx, derive, why if own else "inside a refused one")
+
+    def derive_identity(self, ctx: CrateCtx, site: DeriveSite) -> str | None:
+        """None when every derive of the site is the published crate's, else why one may not be. Each name is proven the way a trusted
+        attribute is (manifest, lock, config files: rs_modules._trust; the path or the `use` that gives the name here, which must resolve
+        to exactly the dependency), and then what its expansion writes where the derive is written:
+
+          * serde: the derive is named through `serde` (TRUSTED_DERIVES), whose expansion says `extern crate serde` as well; no
+            `serde(crate = ..)` (the impls would be those of that path); no lock that lists a serde_derive that runs a
+            precompiled binary (PRECOMPILED_SERDE_DERIVE), which no manifest or lock-less repo can show;
+          * clap (3.0.0-beta.3 on): `clap::..` in the impl headers, so `clap` here is the dependency, not a module, alias or glob;
+          * thiserror (1.0.69 and before): `std::..`, so `std` here is the standard library, by the lookup and by the same test the
+            standard derives' replacement uses (prelude_may_not_be_std), which cannot then disagree."""
+        if ctx.edition < 2018:
+            return "edition: " + EDITION
+        scope, package = site.scope, ctx.crate.package
+        for name, written in site.derives:
+            via, why = self.derive_path(ctx, scope, name, written)
+            if why:
+                return "name: " + why
+            why = package.trust.get(via, "no verdict for this package")
+            if why:
+                return f"manifest ({via}): {why}"
+            if name in SERDE_DERIVES:
+                if site.serde_crate:
+                    return "a #[serde(crate = ..)] makes the expansion name another path"
+                if (why := precompiled_problem(package)) is not None:
+                    return why
+            if name in CLAP_DERIVES:
+                got = self.lookup(scope, "clap", "type")  # clap_derive writes `clap::..` paths, resolved where the derive is written
+                if got != [("ext", "crate:clap")]:
+                    return f"expansion: `clap` here is {[(k, getattr(x, 'name', x)) for k, x in got][:2]}"
+            if name == "Error":
+                got = self.lookup(scope, "std", "type")  # thiserror-impl writes `std::..` paths, resolved where the derive is written
+                if got != [("ext", "std|std")]:
+                    return f"expansion: `std` here is {[(k, getattr(x, 'name', x)) for k, x in got][:2]}"
+                if self.prelude_may_not_be_std(ctx):
+                    return "expansion: `std` may be another crate's (a dependency or library called std or core)"
+        return None
+
+    def derive_path(self, ctx: CrateCtx, scope: Scope, name: str, written: str) -> tuple[str | None, str | None]:
+        """(the crate the derive is named through, None), or (None, why the repo does not prove the name is the published crate's)."""
+        segs = written.split("::")
+        if len(segs) == 1:
+            return self.derive_imported(scope, name)
+        if segs[0] == "":  # `::serde::Serialize`: the crate in the extern prelude
+            via = segs[1]
+            got = [self.externs(ctx).get(via)]
+            return (via, None) if got == [("ext", "crate:" + via)] else (None, f"`::{via}` is {got}")
+        via = segs[0]
+        got = self.lookup(scope, via, "type")
+        return (via, None) if got == [("ext", "crate:" + via)] else (None, f"`{via}` here is {[(k, getattr(x, 'name', x)) for k, x in got][:2]}")
+
+    def derive_imported(self, scope: Scope, name: str) -> tuple[str | None, str | None]:
+        """(the crate, None) when the bare derive `name` here is imported from a trusted crate, else (None, why it may not be). rustc
+        resolves it as a macro path from the scope of the item: the nearest scope (a block, then the module, never the parents) that
+        imports the name must import it only by `use <crate>::<name>` of one crate TRUSTED_DERIVES allows, with no `#[cfg]`, the crate
+        there being the dependency; a glob or a macro that may make names, met first, a macro of the repo of that name and a
+        `#[macro_use] extern crate` may each be another derive. A crate that re-exports the derive only under a cargo feature (serde,
+        clap) also needs no glob in that scope or around it up to the module: with the feature off the explicit import gives only the
+        trait, and the macro namespace goes on looking in those globs (built with a local proc-macro crate: bench/fixtures/rust-probes/crates/_derive_trust)."""
+        if name in self.repo_macros:
+            return None, f"a macro of the repo is called {name}"
+        if scope.crate.macro_use_extern:
+            return None, "a #[macro_use] extern crate may bring the derive"
+        s: Scope | None = scope
+        while s is not None:
+            if name in s.uses:
+                entries = s.uses[name]
+                paths = [e[1:] if e[:1] == ["::"] else e for e in entries]
+                crates = {p[0] for p in paths}
+                # exactly `<crate>::<name>`: the path's own last segment is the name (an `as` renames another item to it: `use clap::Args as
+                # Parser;` is `Args`), two segments, from a crate that publishes a derive of this name
+                if any(len(p) != 2 or p[1] != name for p in paths) or len(crates) != 1 or not crates <= set(TRUSTED_DERIVES[name]):
+                    return None, f"{name} is imported as {entries}"
+                if any(s.use_cfg[name]):
+                    return None, f"a use of {name} is under a #[cfg]"
+                crate = next(iter(crates))
+                for e in entries:
+                    got = [self.externs(s.crate).get(crate)] if e[:1] == ["::"] else self.lookup(s, crate, "type")
+                    if got != [("ext", "crate:" + crate)]:
+                        return None, f"`{crate}` here is {got[:2]}"
+                if crate in FEATURE_GATED_DERIVES:
+                    t: Scope | None = s
+                    while t is not None:
+                        if t.globs:
+                            return None, f"a glob may give {name} in the macro namespace when the derive feature of {crate} is off"
+                        t = t.outer
+                return crate, None
+            if s.globs:
+                return None, f"a glob import may bring another {name}"
+            if s.item_macros:
+                return None, f"a macro may define {name} here"
+            s = s.outer
+        return None, f"no use brings {name} in"
+
+    def refuse_derive(self, ctx: CrateCtx, site: DeriveSite, why: str) -> None:
+        """A type under derives the repo does not prove: read as under any derive that is not a standard one, as it was before the
+        rule. The scope may hold names a derive made, the impls ripple read may not be all of them (CrateCtx.attr_reasons), the
+        placeholders for serde's old const go (a scope that a macro may have added names to has that name unresolved already), and the
+        bare attributes taken as the derives' helpers are read as any beside a derive that is not a standard one."""
+        site.refused = why
+        site.scope.attribute_macro = True
+        for cname, d in site.placeholders:
+            site.scope.items[cname].remove(d)
+            if not site.scope.items[cname]:
+                del site.scope.items[cname]
+        if site.helpers:  # (Index.settle_helpers then reads them, with the taint it gives, when mark_macros has run)
+            ctx.pending_heads[site.head_slot] = (site.scope, site.helpers, site.file, site.line)  # where it was met: the first one read is the reason given
+            for d in site.scope.items.get(site.name, ()):
+                if d.key == (site.file, site.item.start_byte):
+                    d.extra["heads"] = site.helpers
 
     def settle_helpers(self, ctx: CrateCtx) -> None:
         """Which attributes beside a derive are its helpers. A single name is one when no attribute macro of that name can be in
@@ -1346,7 +1933,10 @@ class Index:
         # a `mod` written in a block is no module a module-level glob path names, so it makes no glob local
         local = {d.name for sc in scopes for defs in sc.items.values() for d in defs if d.kind in ("mod", "enum") and not d.extra.get("opaque")}
         ctx.outside_glob = any(g and g[0] not in ("crate", "self", "super", "$crate", *STD_CRATES) and g[0] not in local for sc in scopes for g in sc.globs)
-        for scope, heads, file, line in ctx.pending_heads:
+        for entry in ctx.pending_heads:
+            if entry is None:  # the slot of a derive site that is trusted: its helpers are read as the derives' own
+                continue
+            scope, heads, file, line = entry
             if not self.heads_inert(ctx, heads):
                 scope.attribute_macro = True
                 ctx.taint.append(f"the attribute `#[{heads[0]}]` in {file} may be an attribute macro, which may generate impls")

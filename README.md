@@ -608,7 +608,7 @@ visible, so it can neither be proven absent nor chosen between. The same goes fo
 (ripple evaluates no condition, so a definition that may not exist is not chosen over what would stand in its place), and
 for an item under an attribute that is not a built-in one (`#[tracing::instrument]`, `#[pm::attr]`, any attribute macro, bar the three below): calls
 inside it and the name it declares are unresolved, though a name beside a derive that no `use` brings in is that derive's
-helper (`#[serde(..)]`) and rewrites nothing. A derive can still emit items beside the type, so a derive ripple does not know (`#[derive(Serialize)]`), or a standard derive's
+helper (`#[serde(..)]`) and rewrites nothing. A derive can still emit items beside the type, so a derive ripple does not know (`#[derive(Arbitrary)]`; seven of the crates.io derives are the exception, below), or a standard derive's
 name (`Debug`, `Clone`, ...) that something other than the standard library could supply (a `use` of another path such as `use derive_more::Debug;` in the derive's own
 module or in a block around it, since rustc reads the bare name in the scope of the item and a `use` of another module, another function body or a sibling block is not seen there;
 a `#[macro_use] extern crate`, a macro of the repo, a `#[prelude_import]` or the `#![feature(prelude_import)]` of the crate root, or anything that may make the crate's `std` or `core` another crate (which makes its prelude another crate's: a dependency of that key in any table, `dev_dependencies` and `build_dependencies` spelled with an underscore and `[target]` tables included, or a dependency or library whose library is called so, also one a `[patch]` or `[replace]` anywhere in the repo may supply (Rule P); a path dependency outside the repo whose `Cargo.toml` (the one file of it that ripple reads, and fingerprints) names its library `std` or `core`, or cannot be read; a `[replace]`; a `.cargo/config` of the repo that sets a `[patch]`, `paths`, `include`, `[unstable]`, a compiler or wrapper, an `[env]` entry that names one, or rustflags other than codegen, lints and `--cfg`; not an `[alias]`, `[source]` (`cargo vendor`'s), `[registries]`, `registry` or a `[profile]` without rustflags, which cannot make `std` another crate), anywhere in the crate), makes its scope one where a macro may have generated names, so a name found only through a glob import or the prelude is
@@ -697,6 +697,96 @@ What ripple cannot prove, and so assumes:
 - Build artifacts committed in the repo that a config points cargo at: `build.target-dir` and `build.build-dir` (and
   `-C incremental=`) name a directory, and one that holds a pre-built, forged copy of a macro crate may be taken by cargo as
   up to date. Ripple does not look in it.
+
+**Derives ripple trusts.** Seven derives of three crates.io crates are the exception to the rule that a derive ripple does not
+know may emit items beside the type: serde's `Serialize` and `Deserialize` (reached through `serde` only), clap's
+`Parser`, `Args`, `Subcommand` and `ValueEnum`, and thiserror's `Error`. Every published version of the three macro crates was
+read (serde_derive 0.8 to 1.0.229, clap_derive 3.0.0-beta.1 to 4.6.7, thiserror-impl 1.0.0 to 2.0.21), and each adds impls of
+its own crate's traits for the deriving type and nothing else, with three exceptions that ripple narrows: serde_derive up to
+1.0.162 may write a const named `_IMPL_SERIALIZE_FOR_<Type>` (or `_IMPL_DESERIALIZE_FOR_<Type>`) beside the type, so ripple
+reads that name as one a macro made, whatever version builds; `#[serde(remote = "..")]` adds an inherent `serialize` or
+`deserialize`, which the derive functions of a type already cover (a call of one is both the derive's and a repo trait's,
+unresolved); and `#[serde(crate = "..")]`, also under `cfg_attr`, makes the impls those of another path, which may be a module
+of the repo, so a type that has one is not trusted. Where a derive is trusted its scope is not one where a macro may have made
+names, and its impls are not a reason the impls ripple read may be incomplete. Everything else, structopt included, is read as
+before.
+
+Ripple trusts a derive only when everything the attribute macros need (the list above, with `serde`, `clap` or
+`thiserror` for the crate and `serde_derive`, `clap_derive` or `thiserror-impl` for its macro crate, and no package of the repo
+named like either, nor with a `[lib] name` like either, since rustc links the library of a package of the repo over a proc-macro
+crate of its name; a repo with a manifest or a library name ripple cannot read refuses too) holds, and also:
+
+- The bare name comes from exactly one `use serde::Name;`, `use clap::Name;` or `use thiserror::Name;`
+  (a leading `::` allowed) in the nearest scope that imports it, a block before the module and never a parent module: not under
+  a `#[cfg]`, not renamed, not beside another import of the name, with the crate there being the dependency. A path written
+  in the derive (`serde::Serialize`, `::clap::Parser`) must resolve the same way. A glob or a macro that may make names met
+  before the import, a macro of the repo of that name, a `#[macro_use] extern crate` and edition 2015 refuse it.
+- For `use serde::Name;` and `use clap::Name;`, no glob import in the importing scope or in a block around it up to the module.
+  Their `derive` feature is not asked for: with it off the import gives the trait alone and the name in the macro namespace
+  goes on to a glob (built with a local proc-macro crate), and a manifest that turns it on says nothing of another
+  target. `thiserror::Name` carries the derive always.
+- Nothing is trusted through a macro crate (`serde_derive::Serialize`, `clap_derive::Parser`, `thiserror_impl::Error`), whatever the
+  manifests say. A library of the build graph called `serde_derive` (a path or git dependency, a registry package that sets
+  `[lib] name`, a package ripple never reads: its `lib.rs` in another directory, a hidden directory, a directory above the one
+  analysed) is linked where the proc-macro crate was meant, rustc preferring an rlib of the name, and neither a manifest nor a
+  `Cargo.lock` records library names, so no repo can prove it away. `serde::Serialize` is safe because serde's re-export
+  resolves inside serde's own build, against serde's own dependency. Built and run (offline, with the real crates and with local
+  ones, `bench/fixtures/rust-probes/crates/_derive_trust_lib`): a second rlib called `serde`, `clap` or `thiserror` beside the real
+  one is E0464; a proc-macro library of the name loses to the real rlib; either reached under another dependency key, as a
+  dependency of a dependency or as a dev-dependency is no `--extern` of that name; and a library called `serde_derive`,
+  `clap_derive` or `thiserror_impl` beside the real macro crate or without it leaves the facade's derive the real one. The
+  refusal for a library of the repo called like the crate or its macro crate stays as a second guard.
+- serde: the `serde` dependency is plain, since the expansion says `extern crate serde`.
+- clap: `clap` is the dependency where the derive is written, not a module, an alias or an extern crate of that name, since
+  the impls are written `impl clap::Parser for ..` and a local `mod clap` captures that path (built with a local proc-macro crate).
+- thiserror: `std` is the standard library where the derive is written, by the lookup and by the test the standard derives'
+  replacement uses (no dependency or library called `std` or `core`), since the impls are written `impl std::fmt::Display for ..`
+  up to thiserror 1.0.69.
+- None of the three where the crate's `std` or `core` may be another crate's (the test above): the `derive` attribute is a macro of
+  the standard prelude, which that crate may replace, so a derive written under it is no proof of anything.
+- No other derive that is not a standard one and no attribute macro is on the same type, and each bare attribute beside the
+  derive is one of its helpers in every version the build can use. A `Cargo.lock` that lists the macro crate says which versions
+  those are, so a name counts when each listed version declares it (clap 4's `command`, `arg` and `group`, `group` on `Parser`
+  from clap 4.0.7, thiserror 1.0.2's `from` and `backtrace`); with no lock, only the names every version declares (`serde`,
+  `clap`, `error`, `source`). A lock counts only while it agrees with the manifests: each requirement written for the crate the
+  derive comes through (`serde` and `serde_derive`; `clap`; `thiserror`), in every package the lock covers (the lock's
+  workspace and the transitive closure of its path dependencies, members or not: cargo resolves one lock over all of them, so a
+  path dependency that asks `serde = "=1.0.228"` downgrades what a lock at 1.0.229 says) and every dependency table, with
+  `workspace = true` taken from the root, must be met by a version the lock lists, by cargo's own rules
+  (caret with the 0.x rules, `=`, `~`, comparison lists, wildcards, pre-releases). One that is not met, or that ripple cannot
+  read, makes the lock no lock for that crate, which cargo re-resolves on the next build. A path dependency ripple cannot read as a
+  package (above the analysed directory, a directory with no manifest, a manifest that does not parse or that is no package, a
+  path that is no string) is a requirement it cannot see: it counts as unreadable for every crate of the list, so the lock is no
+  lock for the helpers and serde is refused with a lock and without. So is a workspace member ripple cannot read: one of the
+  `members` of the `[workspace]` above the analysed directory, a `members` that is no list, or a `**` glob (other globs are
+  expanded, hidden directories included). A manifest inside the analysed directory that the source
+  walk skipped (a package whose `lib.rs` is elsewhere, a hidden directory, a member or path dependency with no source file in its
+  directory) is read for this and is part of the cache's fingerprint; nothing above the analysed directory is read. A declared helper beats an attribute macro of that name that is imported (built with a local
+  proc-macro crate), so a `use` of the name elsewhere in the crate does not cancel it, which the old rule did. A bare name that
+  is not certain is read as it always was, and the derive beside it is not trusted.
+
+A site the repo does not prove is read as the same derive was read before: the same marks and the same reasons.
+
+The serde version rule: when the `Cargo.lock` lists a `serde_derive` that runs a precompiled binary, which no source ripple has
+read describes (1.0.172-alpha.0 and 1.0.172 to 1.0.183, 13 versions), the serde derives are not trusted, and a lock that lists
+several versions of `serde_derive` is refused if any is one of them. The clap and thiserror derives are not affected. With no
+`Cargo.lock` that agrees with the manifests (none, or one a requirement no longer meets), cargo builds the newest published
+version that satisfies the requirements, which ripple computes from the index's list of versions (`serde_derive` alone: the newest
+that meets its requirements; with `serde`: the version its newest satisfying release pins, `=<its own version>` from serde 1.0.103
+to 1.0.219, and both when `serde_derive` is also written, since the pin of the older ones belongs to the `derive` feature) and
+refuses when it is one of the 13, or when a requirement cannot be read or nothing published meets it: `serde = "=1.0.180"` and
+`serde = "<1.0.184"` are refused, `serde = "1"` is trusted. A version published after the list was made is newer than every one
+of the 13.
+
+What ripple cannot prove, and so assumes, for the derives: what the published macros expand to. It was read for every version
+published when this was written, except the binaries of those 13 serde_derive versions (their source says `const _` and
+nothing else; the binary was not read), and is assumed for later ones: the version of the crate is not checked, and a lock is
+read only for the 13 above and for which helper attributes the listed versions declare. That cargo picks the newest version
+that satisfies, and that nothing outside the manifests lowers it, is assumed too. What cannot be seen: the requirements of a
+registry or git dependency, which are not in the repo (a crate of crates.io that itself asks `serde = "=1.0.180"` is not read
+when there is no lock; with a lock that agrees with the manifests the lock lists what resolved, and one the dependency made stale
+is not noticed), and the manifests of path dependencies above the analysed directory, which count as an unreadable requirement
+instead. The same outside-the-repo limits as for the attribute macros apply.
 
 ## Java
 

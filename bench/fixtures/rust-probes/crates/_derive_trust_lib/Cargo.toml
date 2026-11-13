@@ -1,0 +1,3 @@
+[workspace]
+members = ["real", "shim_rlib", "shim_pm", "real_pm", "pm2", "shim_derive", "facade", "app1", "app2", "app3", "app4", "app5", "app6", "app7"]
+resolver = "2"
