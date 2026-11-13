@@ -38,7 +38,7 @@ from .registry import default_language, front_end, is_missing_parser
 
 # Bump when the graph format or the resolution rules change, so old caches
 # are ignored rather than served.
-CACHE_FORMAT = f"{__version__}-19"
+CACHE_FORMAT = f"{__version__}-27"
 
 
 def default_cache_dir() -> Path:
@@ -65,7 +65,12 @@ def fingerprint(repo: Path, profile: LanguageProfile = PYTHON, sources: list[Pat
             stat = path.stat()
         except OSError:
             continue  # deleted since the walk, or a link that stopped resolving
-        result[path.relative_to(repo).as_posix()] = [stat.st_mtime_ns, stat.st_size]
+        # relpath, not relative_to: a Rust path dependency outside the repo has its Cargo.toml here (`../lib/Cargo.toml`, or an absolute path's)
+        try:
+            key = Path(os.path.relpath(path, repo)).as_posix()
+        except ValueError:  # Windows: a path on another drive has no relative form, so its absolute path is the key (it cannot equal a relative one)
+            key = Path(os.path.abspath(path)).as_posix()
+        result[key] = [stat.st_mtime_ns, stat.st_size]
     # files the answers depend on only by their being there (another language's sources): no size or time, so an edit
     # to one leaves this language's cache alone and adding or deleting one does not
     presence = getattr(front_end(profile), "presence_files", None)

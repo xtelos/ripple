@@ -76,7 +76,8 @@ def test_dependencies_by_the_name_they_are_written_as(make_repo):
         }
     )
     deps = rm.load_workspace(repo, sources(repo, "app/src/lib.rs", "my-lib/src/lib.rs", "other/src/lib.rs")).packages["app"].deps
-    assert deps == {"my_lib": "my-lib", "renamed": "my-lib", "shared": "other", "registry_dep": "other", "serde": None}
+    # a patch names `registry-dep`: it may be the repo's package (never an edge through the patch), where `serde` is the fetched crate
+    assert deps == {"my_lib": "my-lib", "renamed": "my-lib", "shared": "other", "registry_dep": rm.PATCH_UNPROVEN, "serde": None}
 
 
 def test_a_name_two_sections_give_different_meanings_is_ambiguous(make_repo):
@@ -118,9 +119,11 @@ def test_the_edition_comes_from_the_package_or_its_workspace_and_defaults_to_201
     assert {name: p.edition for name, p in packages.items()} == {"a": "2021", "b": "2018", "c": "2015"}
 
 
-def test_a_manifest_above_no_source_is_not_a_config_the_index_depends_on(make_repo):
+def test_a_manifest_above_no_source_is_read_for_a_patch_and_so_a_file_the_index_depends_on(make_repo):
+    """It makes no package ripple reads (manifests()), but a `[patch]` in it may name a dependency of one (Rule P), so the cache watches it."""
     repo = make_repo({"Cargo.toml": CARGO, "src/lib.rs": "", "docs/Cargo.toml": CARGO, "docs/readme.md": "x"})
-    assert rm.config_files(repo, sources(repo, "src/lib.rs")) == ["Cargo.toml"]
+    assert rm.manifests(repo, sources(repo, "src/lib.rs")) == ["Cargo.toml"]
+    assert rm.config_files(repo, sources(repo, "src/lib.rs")) == ["Cargo.toml", "docs/Cargo.toml"]
 
 
 # ---- the mod tree (needs the parser)

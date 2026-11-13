@@ -299,13 +299,26 @@ def test_the_fingerprint_covers_exactly_the_files_the_walk_reads(make_repo):
     assert set(fingerprint(repo, RUST, sources)) == {*configs, "src/main.rs"}
 
 
-def test_a_repo_with_no_package_that_names_a_trusted_crate_never_reads_a_config(make_repo, monkeypatch):
-    def boom(repo):
-        raise AssertionError("read")
-
-    monkeypatch.setattr(rs_modules, "_config_problem", boom)
+def test_the_configs_are_read_once_per_repo_for_both_what_std_names_and_the_trust_verdict(make_repo, monkeypatch, tmp_path_factory):
+    """The configs are read once per repo, whether or not a package names a trusted crate: a config that may change a crate may make `std`
+    another one (tests/test_rs_prelude_replaced.py). A package that names no trusted crate gets "does not depend on" as its trust reason, so
+    the config's never shows for it (which is why no gate on "the repo asks" is needed); one that names tokio gets the config's."""
+    reads = []
+    real = rs_modules._config_problems
+    monkeypatch.setattr(rs_modules, "_config_problems", lambda repo, configs=None: reads.append(1) or real(repo, configs))
     repo = make_repo({"Cargo.toml": PKG, "src/main.rs": "fn main() {}\n", ".cargo/config.toml": 'paths = ["x"]\n'})
-    assert rs_modules.load_workspace(repo, [repo / "src/main.rs"]).packages[""].trust["tokio"]
+    package = rs_modules.load_workspace(repo, [repo / "src/main.rs"]).packages[""]
+    assert reads == [1]
+    assert package.trust["tokio"] == "the package does not depend on tokio"
+    assert "the key `paths`" in package.std_why
+    asking = tmp_path_factory.mktemp("asking")
+    (asking / "src").mkdir(parents=True)
+    (asking / ".cargo").mkdir()
+    (asking / "Cargo.toml").write_text(PKG + TOKIO)
+    (asking / "src" / "main.rs").write_text("fn main() {}\n")
+    (asking / ".cargo" / "config.toml").write_text('paths = ["x"]\n')
+    package = rs_modules.load_workspace(asking, [asking / "src/main.rs"]).packages[""]
+    assert package.trust["tokio"] == ".cargo/config.toml sets the key `paths`"
 
 
 def test_the_real_config_files_of_the_corpora_are_all_harmless():

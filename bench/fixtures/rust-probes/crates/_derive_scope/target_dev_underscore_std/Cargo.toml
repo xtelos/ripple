@@ -1,0 +1,10 @@
+[package]
+name = "target_dev_underscore_std"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+genmacros = { path = "../../_ext/genmacros" }
+
+[target.'cfg(unix)'.dev_dependencies]
+std = { package = "fakestd", path = "../../_ext/fakestd" }

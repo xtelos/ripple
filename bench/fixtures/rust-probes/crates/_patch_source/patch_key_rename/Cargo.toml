@@ -1,0 +1,10 @@
+[package]
+name = "p"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+foo = "1"
+
+[patch.crates-io]
+foo2 = { path = "foo", package = "foo" }

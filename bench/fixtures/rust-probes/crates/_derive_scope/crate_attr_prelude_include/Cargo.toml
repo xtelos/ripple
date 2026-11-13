@@ -1,0 +1,10 @@
+[package]
+name = "crate_attr_prelude_include"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+genmacros = { path = "../../_ext/genmacros" }
+
+[lib]
+doctest = false

@@ -133,6 +133,8 @@ def variants(root, tmp_path, name: str):
     parsed = {p: (p.read_bytes(),) for p in sources}
     trees = {p: parser.parse(parsed[p][0]).root_node for p in sources}
     cands = {p: candidates(parsed[p][0], trees[p]) for p in sources}
+    if (CRATES / "_ext").is_dir() and not (tmp_path / "_ext").exists():  # a crate that names one by `../_ext/x` still finds it beside the copy (ripple reads its Cargo.toml)
+        shutil.copytree(CRATES / "_ext", tmp_path / "_ext", ignore=shutil.ignore_patterns("target", "Cargo.lock"))
     for seed in range(SEEDS):
         copy = tmp_path / f"{name}-{seed}"
         shutil.copytree(root, copy, ignore=lambda d, names: [n for n in names if n == "Cargo.lock" or (n == "target" and "Cargo.toml" in names)])

@@ -1,0 +1,8 @@
+[package]
+name = "std_dep_test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+std = { package = "faketest", path = "../../_ext/faketest" }
+genmacros = { path = "../../_ext/genmacros" }

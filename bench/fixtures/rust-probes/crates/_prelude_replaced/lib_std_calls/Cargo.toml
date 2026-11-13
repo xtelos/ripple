@@ -1,0 +1,7 @@
+[package]
+name = "lib_std_calls"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+stdlib = { path = "stdlib" }

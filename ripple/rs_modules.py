@@ -9,8 +9,8 @@ Cargo.toml is read for the crate graph: every package, the crates it builds (the
 tests, examples, benches and build script, found as cargo finds them, with `[lib]` and `[[bin]]` path
 overrides), and what each package can name by `use`: its dependencies by the name they are written
 under (a hyphen is an underscore, a renamed one is its key), and which of them are packages of this
-repo (a `path` dependency, a `workspace = true` one that the workspace gives a path, a `[patch]`).
-Everything else a package names is outside the repo.
+repo (a `path` dependency, a `workspace = true` one that the workspace gives a path). Everything else a package names is outside the
+repo, unless a `[patch]` or a `[replace]` may redirect it: then it is unresolved, never an edge and never external (Rule P, Redirects).
 
 The module tree of a crate starts at its root file and follows `mod` declarations: `mod x;` is x.rs
 or x/mod.rs beside the declaring file (or inside the directory a non-mod.rs file owns), `#[path]`
@@ -62,7 +62,8 @@ def _source_dirs(repo: Path, sources: list[Path]) -> set[str]:
 
 def manifests(repo: Path, sources: list[Path]) -> list[str]:
     """Every Cargo.toml in a directory that holds or sits above a source file, repo-relative. A package's own
-    manifest and its workspace's are among these; a manifest above no source file changes nothing."""
+    manifest and its workspace's are among these; a manifest above no source file makes no package ripple reads (but `read_redirects`
+    reads it for a `[patch]`, and `config_files` has it)."""
     return sorted(
         (f"{d}/Cargo.toml" if d else "Cargo.toml") for d in _source_dirs(repo, sources) if (repo / d / "Cargo.toml").is_file()
     )
@@ -73,14 +74,17 @@ CARGO_CONFIGS = (".cargo/config.toml", ".cargo/config")
 
 def config_files(repo: Path, sources: list[Path]) -> list[str]:
     """The files besides the sources that the index depends on, which the cache fingerprints (registry.py): the manifests, the
-    Cargo.lock beside each, and every cargo config file `cargo_configs` finds (what `_trust` reads to prove an attribute
-    macro is the published crate's)."""
+    Cargo.lock beside each, every cargo config file `cargo_configs` finds (what `_trust` reads to prove an attribute macro is the
+    published crate's), every Cargo.toml the walk of the repo finds (read_redirects looks in each for a `[patch]` or a `[replace]`, in a
+    directory with no source file too), the Cargo.toml of each directory above the repo (whether there is one), and the Cargo.toml of
+    each path dependency outside the repo."""
     out = manifests(repo, sources)
     for d in _source_dirs(repo, sources):
         lock = _join(d, "Cargo.lock")
         if (repo / d / "Cargo.toml").is_file() and (repo / lock).is_file():
             out.append(lock)
-    return sorted({*out, *cargo_configs(repo)})
+    configs, found = _walk(repo)
+    return sorted({*out, *configs, *found, *above_manifests(repo), *outside_manifests(repo, sources)})
 
 
 def _toml():
@@ -102,10 +106,20 @@ class Package:
     dir: str  # repo-relative, "" for the root
     name: str
     lib_name: str | None  # the library crate's name, None when the package has no library
-    deps: dict[str, str | None]  # extern name -> the dir of the repo package it is, None when it is outside the repo
+    deps: dict[str, str | None]  # extern name -> the dir of the repo package it is, None when it is outside the repo, AMBIGUOUS or PATCH_UNPROVEN when ripple cannot say which
     manifest: dict
     edition: str
     trust: dict[str, str | None] = field(default_factory=dict)  # crate of TRUSTED_CRATES -> None when the repo proves it the published one, else why not
+    # What `deps` does not say a dependency of the package may be, for the question of what `std` and `core` name in its crates (Index.foreign_crates):
+    # the dir of the repo package a patch may make a dependency (None: a package ripple cannot read, which a patch to another path or source, a path
+    # outside the repo, or a patch it does not follow makes). `std_why` is why anything of the package may be another crate, from what governs it as a
+    # whole: a cargo config of the repo that may make `std` another crate or `rustc` another compiler (STD_CONFIG_KEYS, not the trust proof's
+    # stricter set), or a `[replace]` entry.
+    maybe: tuple[str | None, ...] = ()
+    std_why: str | None = None
+    # the library names of the path dependencies outside the analysed directory, read from their Cargo.toml alone (_outside_lib): what the package can
+    # name beside its other dependencies. An outside dependency whose Cargo.toml cannot be read is a None in `maybe` instead.
+    outside_libs: tuple[str, ...] = ()
 
 
 @dataclass
@@ -135,16 +149,21 @@ def load_workspace(repo: Path, sources: list[Path]) -> Workspace:
         except (OSError, ValueError, UnicodeDecodeError):
             ws.problems.append(f"{rel} (Cargo.toml could not be read)")
             unreadable.add(posixpath.dirname(rel))
+    known = {d for d in data if isinstance(data[d].get("package"), dict)}
+    configs, found = _walk(repo)
+    redirects = read_redirects(repo, data, known, unreadable, configs, found)
     for pdir in sorted(data):
         if isinstance(data[pdir].get("package"), dict) and isinstance(data[pdir]["package"].get("name"), str):
             try:
-                ws.packages[pdir] = _package(pdir, data)
+                ws.packages[pdir] = _package(repo, pdir, data, redirects)
             except (AttributeError, TypeError, ValueError, KeyError) as error:
                 ws.problems.append(_wrong_type(pdir, error))
     names = {_norm(p.name) for p in ws.packages.values()}
-    # the config files are read once, and only for a repo whose packages name a crate of TRUSTED_CRATES at all
-    asks = any(_norm(key) in TRUSTED_CRATES for p in ws.packages.values() for section in _dependency_sections(p.manifest) if isinstance(section, dict) for key in section)
-    config_why = _config_problem(repo) if asks else None
+    # the config files are read once, for both questions. The trust half needs no gate on "a package names a trusted crate": a package that
+    # names none gets "does not depend on" as its trust reason first (_trust), so the config's reason is never the one shown
+    config_why, config_std = _config_problems(repo, configs)
+    for pdir, package in ws.packages.items():
+        package.std_why = package.std_why or (f"a cargo config of the repo may change std or rustc: {config_std}" if config_std else None) or _unread_above(pdir, unreadable)
     for pdir, package in ws.packages.items():
         try:
             package.trust = _trust(repo, pdir, data, names, unreadable, config_why)
@@ -157,6 +176,17 @@ def load_workspace(repo: Path, sources: list[Path]) -> Workspace:
             ws.problems.append(_wrong_type(pdir, error))
             del ws.packages[pdir]
     return ws
+
+
+def _unread_above(pdir: str, unreadable: set[str]) -> str | None:
+    """Why a manifest that governs the package (its own, or one above it that may hold a `[patch]` or a `[workspace]`) could not be read."""
+    here = pdir
+    while True:
+        if here in unreadable:
+            return f"{_join(here, 'Cargo.toml')} could not be read"
+        if not here:
+            return None
+        here = posixpath.dirname(here)
 
 
 def _wrong_type(pdir: str, error: Exception) -> str:
@@ -181,26 +211,22 @@ def _workspace_root(pdir: str, data: dict[str, dict]) -> str | None:
         here = posixpath.dirname(here)
 
 
-def _package(pdir: str, data: dict[str, dict]) -> Package:
+def _package(repo: Path, pdir: str, data: dict[str, dict], redirects: Redirects) -> Package:
     manifest = data[pdir]
     meta = manifest["package"]
     root = _workspace_root(pdir, data)
     shared = data[root].get("workspace", {}) if root is not None else {}
     shared = shared if isinstance(shared, dict) else {}
     shared_deps = shared.get("dependencies", {}) if isinstance(shared.get("dependencies"), dict) else {}
-    patches = {}
-    patch_table = data[root].get("patch", {}) if root is not None else {}
-    for registry in (patch_table.values() if isinstance(patch_table, dict) else ()):
-        if isinstance(registry, dict):
-            for name, spec in registry.items():
-                if isinstance(spec, dict) and isinstance(spec.get("path"), str):
-                    patches[name] = _join(root, spec["path"])
+    top = data[root] if root is not None else manifest  # a package no `[workspace]` table governs is a workspace root of its own (probe manifest_patch_std)
+    known = {d for d in data if isinstance(data[d].get("package"), dict)}  # the dir a path names must be a package of the repo
+    # a `package.workspace` naming a manifest ripple did not read: the root that governs the package may hold a patch ripple cannot see
+    named = meta.get("workspace")
+    unread_root = named is not None and not (isinstance(named, str) and _join(pdir, named) in redirects.read)
     edition = meta.get("edition", "2015")
     if isinstance(edition, dict):  # edition.workspace = true
         shared_package = shared.get("package", {})
         edition = shared_package.get("edition", "2015") if isinstance(shared_package, dict) else "2015"
-    # which of the packages of the repo have a manifest: the dir a path names must be one of them
-    known = {d for d in data if isinstance(data[d].get("package"), dict)}
     deps: dict[str, str | None] = {}
 
     def add(key: str, target: str | None) -> None:
@@ -210,32 +236,251 @@ def _package(pdir: str, data: dict[str, dict]) -> Package:
         else:
             deps[name] = target
 
-    sections = []
-    targets = manifest.get("target", {})
-    for scope in (manifest, *(t for t in (targets.values() if isinstance(targets, dict) else ()) if isinstance(t, dict))):
-        sections += [scope.get(k, {}) for k in ("dependencies", "dev-dependencies", "build-dependencies")]
-    for section in sections:
+    maybe: list[str | None] = []
+    outside_libs: list[str] = []
+    for section in _dependency_sections(manifest):
         if not isinstance(section, dict):
             continue
         for key, spec in section.items():
-            real, path = key, None
+            real, path, source = key, None, spec if isinstance(spec, dict) else {}
             if isinstance(spec, dict):
                 real = spec.get("package", key)
                 if spec.get("workspace") and isinstance(shared_deps.get(key), dict):
                     wide = shared_deps[key]
-                    real = wide.get("package", real)
+                    real, source = wide.get("package", real), wide
                     if isinstance(wide.get("path"), str) and root is not None:
                         path = _join(root, wide["path"])
                 elif isinstance(spec.get("path"), str):
                     path = _join(pdir, spec["path"])
-            if path is None and real in patches:
-                path = patches[real]
-            add(key, path if path in known else None)
+            redirected = redirects.redirected((key, real), unread_root) if path is None else None
+            if redirected is not None:  # from a registry or a git source that a patch or a replace may redirect: Rule P
+                add(key, PATCH_UNPROVEN)
+                maybe += redirected
+            else:  # a path dependency, or the fetched crate
+                add(key, path if path in known else None)
+            if isinstance(source.get("path"), str) and path not in known:
+                # a path dependency that is no package ripple read. Outside the analysed directory its Cargo.toml (and nothing else of it) says what
+                # its library is called, which is all the std question needs; where that cannot be read, or the path is a directory of the repo
+                # that holds no package ripple read, a library ripple cannot read: it may be called std. (A git or a registry source is no
+                # such dependency: the README assumes it does not name its library std, core or alloc.)
+                lib = _outside_lib(repo, path) if path is not None and _leaves_repo(path) else None
+                if lib is None:
+                    maybe.append(None)
+                else:
+                    outside_libs.append(lib)
+    replaced = "a [replace] entry" if manifest.get("replace") or top.get("replace") else None
     lib = manifest.get("lib")
     lib_name = None  # a package with no [lib] table has a library only if src/lib.rs exists (see _targets)
     if "lib" in manifest:
         lib_name = str(lib.get("name", meta["name"]) if isinstance(lib, dict) else meta["name"]).replace("-", "_")
-    return Package(pdir, meta["name"], lib_name, deps, manifest, str(edition))
+    return Package(pdir, meta["name"], lib_name, deps, manifest, str(edition), maybe=tuple(dict.fromkeys(maybe)), std_why=replaced, outside_libs=tuple(dict.fromkeys(outside_libs)))
+
+
+# ---- Rule P: which dependencies a `[patch]` or a `[replace]` may redirect
+#
+# Whether cargo applies a patch depends on the source it patches, the version, a Cargo.lock, which root governs the package, `members` against
+# `exclude`, a `package.workspace`, a versionless git dependency taking a pre-release: tests/test_rs_patch_probes.py builds each, and ripple does
+# not follow them. A dependency that is not a `path` dependency is PATCH_UNPROVEN, never an edge through a patch or a replace and never external,
+# when it MAY be redirected: (1) some entry of any `[patch.<table>]` or `[replace]` ripple can read in the analysed directory (every manifest, every
+# cargo config of it) names its package, whether or not cargo would apply that entry, or a table ripple cannot parse is there at all; or (2) a
+# manifest that may govern the package was not read and the package of the repo of that name is what an unseen patch could point at (a patch
+# supplies a dependency only with the package of the dependency's own name). Otherwise it is the fetched crate, outside the repo.
+
+PATCH_UNPROVEN = "?patch"  # a dependency a patch or a replace may make a package of the repo: unresolved
+UNRESOLVED_DEPS = (AMBIGUOUS, PATCH_UNPROVEN)  # a Package.deps value that is no dir and no None
+
+
+def _canon(name: str) -> str:
+    """A package name as a patch entry and a dependency may spell it alike: a hyphen is an underscore, and case does not tell two apart."""
+    return name.replace("-", "_").lower()
+
+
+@dataclass
+class Redirects:
+    """What the `[patch]` and `[replace]` entries and the manifests ripple read say of which dependency may be redirected (Rule P above).
+
+    `names`: a package name some entry names -> the dirs of the packages of the repo its entries' paths name (None: a path that is no package
+    ripple read, a git source, no path). `unparsable`: why some table cannot be read, which makes every dependency a candidate. `unread`: why some
+    manifest that may govern a package was not read (a Cargo.toml above the analysed directory or one that could not be read, a cargo config that
+    could not be read). `packages`: the name of each package of the repo -> its dirs (None: one ripple did not read as above a source file).
+    `read`: the dirs of the manifests read, for a `package.workspace` to name."""
+
+    names: dict[str, set[str | None]] = field(default_factory=dict)
+    unparsable: str | None = None
+    unread: str | None = None
+    packages: dict[str, set[str | None]] = field(default_factory=dict)
+    read: set[str] = field(default_factory=set)
+
+    def redirected(self, written: tuple[str, ...], unread_root: bool) -> list[str | None] | None:
+        """None when nothing can redirect a dependency of this package name (its key and its `package`), else the dirs of the packages of the repo
+        it may then be, None among them where ripple cannot place one (that is what the question of `std` asks, Package.maybe)."""
+        # `{*written}` raises TypeError for a `package` that is a list or a table, as the lookup of it always did (the manifest is one cargo rejects, and
+        # load_workspace says the package is not read: test_rs_malformed bad_dep_package); a number is tolerated as before (bad_deps) and names nothing
+        names = {_canon(name) for name in {*written} if isinstance(name, str)}
+        if self.unparsable is not None:
+            return [None]
+        found: set[str | None] = set()
+        named = names & self.names.keys()
+        for name in named:
+            found |= self.names[name]
+        unseen = names & self.packages.keys() if self.unread is not None or unread_root else set()
+        for name in unseen:
+            found |= self.packages[name]
+        return sorted(found, key=lambda dir_: (dir_ is None, dir_ or "")) if named or unseen else None
+
+
+def _words(key: str) -> set[str]:
+    """The names a `[replace]` key may spell: it is a package id (`name`, `name:version`, `name@version`, `url#version`, `url#name:version`: the name
+    of an id with no other is the last segment of its url), so every word of it is read as one. A word is never part of another."""
+    return {_canon(word) for word in re.split(r"[^A-Za-z0-9_-]+", key) if word}
+
+
+def _entries(doc: dict, base: str, known: set[str], out: Redirects, where: str) -> None:
+    """Add every `[patch.<table>]` and `[replace]` entry of a manifest or a cargo config to `out` (`base`: the directory its paths are relative to,
+    the one above its `.cargo` for a config)."""
+    patch, replace = doc.get("patch"), doc.get("replace")
+    entries: list[tuple[set[str], object]] = []  # (the names the entry spells, its value)
+    if isinstance(patch, dict) and all(isinstance(table, dict) for table in patch.values()):
+        entries += [({key}, spec) for table in patch.values() for key, spec in table.items()]
+    elif patch is not None:
+        out.unparsable = out.unparsable or f"{where} has a [patch] of a form ripple does not read"
+    if isinstance(replace, dict):
+        entries += [(_words(key), spec) for key, spec in replace.items()]
+    elif replace is not None:
+        out.unparsable = out.unparsable or f"{where} has a [replace] of a form ripple does not read"
+    for names, spec in entries:
+        where_to: str | None = None
+        if isinstance(spec, dict):
+            package = spec.get("package")
+            if isinstance(package, str):
+                names = names | {package}
+            elif package is not None:
+                out.unparsable = out.unparsable or f"{where} has an entry whose `package` is no string"
+            if isinstance(spec.get("path"), str):
+                path = _join(base, spec["path"])
+                where_to = path if path in known else None
+        elif not isinstance(spec, str):
+            out.unparsable = out.unparsable or f"{where} has an entry of a form ripple does not read"
+        for name in names:
+            out.names.setdefault(_canon(name), set()).add(where_to)
+
+
+def read_redirects(repo: Path, data: dict[str, dict], known: set[str], unreadable: set[str], configs: list[str], found: list[str]) -> Redirects:
+    """Every `[patch]` and `[replace]` entry of every Cargo.toml (`data`: those above a source file; `found`: every one the walk of the repo finds,
+    of a directory with no source file too) and of every cargo config of the repo (`configs`), and what of it ripple could not read."""
+    toml = _toml()
+    out = Redirects(read=set(data))
+    docs = dict(data)
+    if unreadable:
+        out.unread = f"{_join(min(unreadable), 'Cargo.toml')} could not be read"
+    for rel in found:
+        directory = posixpath.dirname(rel)
+        if directory in docs or directory in unreadable:
+            continue
+        try:
+            docs[directory] = toml.loads((repo / rel).read_text(encoding="utf-8"))
+        except (OSError, ValueError, UnicodeDecodeError):
+            out.unread = out.unread or f"{rel} could not be read"
+            continue
+        out.read.add(directory)
+    for directory, doc in sorted(docs.items()):
+        _entries(doc, directory, known, out, _join(directory, "Cargo.toml"))
+        package = doc.get("package")
+        if isinstance(package, dict) and isinstance(package.get("name"), str):
+            out.packages.setdefault(_canon(package["name"]), set()).add(directory if directory in known else None)
+    for rel in configs:
+        try:
+            conf = toml.loads((repo / rel).read_text(encoding="utf-8"))
+        except (OSError, ValueError, UnicodeDecodeError):
+            out.unread = out.unread or f"{rel} could not be read"
+            continue
+        base = posixpath.dirname(posixpath.dirname(rel))
+        _entries(conf, base, known, out, rel)
+        # the old override: `paths = ["dir"]` makes the dependency whose package is at `dir` that one (probe config_paths), by name
+        paths = conf.get("paths")
+        if paths is not None and not (isinstance(paths, list) and all(isinstance(p, str) for p in paths)):
+            out.unparsable = out.unparsable or f"{rel} has a `paths` of a form ripple does not read"
+        for entry in paths if isinstance(paths, list) else ():
+            at = docs.get(_join(base, entry)) if isinstance(entry, str) else None
+            package = at.get("package") if at is not None else None
+            if isinstance(package, dict) and isinstance(package.get("name"), str):
+                directory = _join(base, entry)
+                out.names.setdefault(_canon(package["name"]), set()).add(directory if directory in known else None)
+            elif isinstance(entry, str):
+                out.unparsable = out.unparsable or f"{rel} has `paths` naming {entry}, which holds no package ripple read"
+    above = above_manifests(repo)
+    if above:
+        out.unread = out.unread or f"{above[0]} is above the analysed directory"
+    return out
+
+
+def above_manifests(repo: Path) -> list[str]:
+    """The Cargo.toml of each directory above the analysed one, as a path from it (`../Cargo.toml`). Cargo looks above a package for the
+    `[workspace]` that governs it, and that workspace's `[patch]` reaches the package. Ripple does not read them (read_redirects only says they
+    are there), and the cache watches whether there is one."""
+    out, here, depth = [], Path(os.path.realpath(repo)), 0
+    while here.parent != here:
+        here, depth = here.parent, depth + 1
+        if (here / "Cargo.toml").is_file():
+            out.append("/".join([".."] * depth) + "/Cargo.toml")
+    return out
+
+
+def _dep_paths(pdir: str, data: dict[str, dict]) -> list[str]:
+    """The directory (repo-relative, normalised, `../x` when it leaves the repo) of every path dependency of a package: its own tables', and a
+    workspace dependency's."""
+    root = _workspace_root(pdir, data)
+    shared = data[root].get("workspace", {}) if root is not None and isinstance(data[root].get("workspace"), dict) else {}
+    shared_deps = shared.get("dependencies", {}) if isinstance(shared.get("dependencies"), dict) else {}
+    out = []
+    for section in _dependency_sections(data[pdir]):
+        for key, spec in (section.items() if isinstance(section, dict) else ()):
+            if not isinstance(spec, dict):
+                continue
+            wide = shared_deps.get(key) if spec.get("workspace") and isinstance(shared_deps.get(key), dict) else None
+            if wide is not None:
+                if isinstance(wide.get("path"), str) and root is not None:
+                    out.append(_join(root, wide["path"]))
+            elif isinstance(spec.get("path"), str):
+                out.append(_join(pdir, spec["path"]))
+    return out
+
+
+def _leaves_repo(path: str) -> bool:
+    """Whether a normalised repo-relative directory is outside the analysed directory (`../x`, or an absolute path)."""
+    return path == ".." or path.startswith("../") or posixpath.isabs(path)
+
+
+def outside_manifests(repo: Path, sources: list[Path]) -> list[str]:
+    """The Cargo.toml of every path dependency that leaves the analysed directory, as a path from it (`../lib/Cargo.toml`): the one file of
+    such a package that ripple reads (_outside_lib), so the cache fingerprints it."""
+    data: dict[str, dict] = {}
+    for rel in manifests(repo, sources):
+        try:
+            data[posixpath.dirname(rel)] = _toml().loads((repo / rel).read_text(encoding="utf-8"))
+        except (OSError, ValueError, UnicodeDecodeError):
+            continue
+    out = set()
+    for pdir in data:
+        try:
+            out |= {_join(path, "Cargo.toml") for path in _dep_paths(pdir, data) if _leaves_repo(path)}
+        except (AttributeError, TypeError, ValueError, KeyError):
+            continue  # a manifest cargo would reject: load_workspace says so
+    return sorted(out)
+
+
+def _outside_lib(repo: Path, path: str) -> str | None:
+    """The library name of the package at a directory outside the analysed directory, from its Cargo.toml alone (the package's name, or the
+    `[lib]` table's: no source file of it is read), or None when that file cannot be read or does not say."""
+    try:
+        manifest = _toml().loads((repo / path / "Cargo.toml").read_text(encoding="utf-8"))
+    except (OSError, ValueError, UnicodeDecodeError):
+        return None
+    package, lib = manifest.get("package"), manifest.get("lib", {})
+    if not isinstance(package, dict) or not isinstance(package.get("name"), str) or not isinstance(lib, dict):
+        return None
+    name = lib.get("name", package["name"])
+    return name.replace("-", "_") if isinstance(name, str) else None
 
 
 # ---- whether a dependency is the published crate
@@ -271,6 +516,13 @@ CONFIG_KEYS = {
     "resolver": {"incompatible-rust-versions", "feature-unification"},  # not `lockfile-path`
     "env": None,
 }
+# The set for the other question, whether a config can make `std`, `core` or `alloc` another crate or `rustc` another compiler. Those keys
+# of the trust proof's refusal that cannot: an `[alias]` (cargo never lets one shadow `build`, `test` or `check`: built, "user-defined alias
+# `test` is ignored"), `[source]` and `[registries]` and `registry` (only where a registry or a git dependency comes from, which the
+# README assumes is no crate called `std`), and a `[profile]` unless it sets rustflags. Still refused: `patch` (Rule P reads it for which
+# dependency may be redirected, and a library a patch may supply may be called `std`), `paths`, `include`, `[unstable]`, the forbidden `env` entries, rustflags beyond codegen, lints and `--cfg`,
+# `build.rustc*`, and any key not listed.
+STD_CONFIG_KEYS = {**CONFIG_KEYS, "alias": None, "source": None, "registries": None, "registry": None, "profile": None}
 TARGET_KEYS = frozenset({"rustflags", "linker", "runner", "ar"})
 # `[env]` entries cargo hands to rustc and to build scripts: not the ones that choose a compiler, a wrapper, flags or a search path
 ENV_FORBIDDEN = ("RUSTC", "RUSTFLAGS", "RUSTDOC", "RUSTUP", "CARGO", "PATH", "LD_", "DYLD_")
@@ -371,12 +623,24 @@ def _flags_problem(flags) -> str | None:
     return f"rustflags ends in {wanted}" if wanted else None
 
 
-def _config_table_problem(conf: dict) -> str | None:
+def _profile_flags(value) -> bool:
+    """Whether a `[profile]` value sets `rustflags` anywhere in it (`profile.dev`, `profile.dev.package."*"`, `profile.dev.build-override`)."""
+    if isinstance(value, dict):
+        return any(key == "rustflags" or _profile_flags(sub) for key, sub in value.items())
+    return False
+
+
+def _config_table_problem(conf: dict, keys: dict = CONFIG_KEYS) -> str | None:
     for key, value in conf.items():
-        if key not in CONFIG_KEYS:
+        if key not in keys:
             return f"the key `{key}`"
-        allowed = CONFIG_KEYS[key]
-        if key == "env":
+        allowed = keys[key]
+        if key == "profile":  # only in STD_CONFIG_KEYS
+            if not isinstance(value, dict):
+                return "`profile` of a form ripple does not read"
+            if _profile_flags(value):
+                return "`profile` sets rustflags"
+        elif key == "env":
             if not isinstance(value, dict):
                 return "`env` of a form ripple does not read"
             for name in value:
@@ -404,14 +668,22 @@ def _config_table_problem(conf: dict) -> str | None:
 
 def cargo_configs(repo: Path) -> list[str]:
     """Every cargo config file cargo could read for a package of the repo (a file called `config` or `config.toml` in a directory called
-    `.cargo`), repo-relative and sorted, wherever it is, with the names matched in any case (cargo on a case-insensitive file system
-    reads `.Cargo/Config.toml`; reading it everywhere only refuses more). The walk follows a link to a directory that is inside the
-    repo (each directory once, by its real path, so a loop ends) and reads a `.cargo` that is a link wherever it points; it does
-    not enter a link that leaves the repo, which cargo reads for no package of the repo. It skips `.git` and `node_modules`, and a `target`
-    directory with a Cargo.toml beside it, which is where the source walk reads no file either (rs_indexer.reads_as_source): one
-    with none beside it is a directory like any other, and a package may sit in it."""
+    `.cargo`), repo-relative and sorted: the first half of `_walk`."""
+    return _walk(repo)[0]
+
+
+def _walk(repo: Path) -> tuple[list[str], list[str]]:
+    """(every cargo config file, every Cargo.toml) of the repo, repo-relative and sorted, wherever they are. The configs are the files called
+    `config` or `config.toml` in a directory called `.cargo`, with the names matched in any case (cargo on a case-insensitive file system
+    reads `.Cargo/Config.toml`; reading it everywhere only refuses more). The manifests are every Cargo.toml, in a directory with a source
+    file below it or not (a root with no source of its own may hold the `[patch]` of a member elsewhere). The walk follows a link to a
+    directory that is inside the repo (each directory once, by its real path, so a loop ends) and reads a `.cargo` that is a link wherever
+    it points; it does not enter a link that leaves the repo, which cargo reads for no package of the repo. It skips `.git` and
+    `node_modules`, and a `target` directory with a Cargo.toml beside it, which is where the source walk reads no file either
+    (rs_indexer.reads_as_source): one with none beside it is a directory like any other, and a package may sit in it."""
     root = os.path.realpath(repo)
     found: list[str] = []
+    manifest_files: list[str] = []
     visited = {root}
     stack = [(os.fspath(repo), "", root)]  # (path as walked, repo-relative path, real path)
     while stack:
@@ -421,6 +693,8 @@ def cargo_configs(repo: Path) -> list[str]:
         except OSError:
             continue
         manifest = any(e.name == "Cargo.toml" and e.is_file() for e in entries)
+        if manifest:
+            manifest_files.append(f"{rel}/Cargo.toml" if rel else "Cargo.toml")
         for entry in sorted(entries, key=lambda e: (e.is_symlink(), e.name)):  # a real directory is walked before a link to it
             try:
                 if not entry.is_dir():  # a link is followed here: a link to a file or a dangling one is no directory
@@ -437,7 +711,7 @@ def cargo_configs(repo: Path) -> list[str]:
                 continue
             visited.add(below)
             stack.append((entry.path, path, below))
-    return sorted(set(found))
+    return sorted(set(found)), sorted(set(manifest_files))
 
 
 def _within(path: str, root: str) -> bool:
@@ -453,18 +727,30 @@ def _config_names(directory: str, rel: str) -> list[str]:
     return [f"{rel}/{n}" for n in names if n.lower() in ("config", "config.toml") and os.path.isfile(os.path.join(directory, n))]
 
 
-def _config_problem(repo: Path) -> str | None:
-    """Why a cargo config file `cargo_configs` finds may change what a crate or `rustc` is: it cannot be read, or sets something that
-    is not in CONFIG_KEYS (or a rustflag, or an env entry, that is not allowed)."""
+def _config_problems(repo: Path, configs: list[str] | None = None) -> tuple[str | None, str | None]:
+    """Why a cargo config file `cargo_configs` finds (`configs`, when the caller has walked) may change what a crate or `rustc` is, read once
+    for both questions: (for the trust proof, for what `std` names). A file that cannot be read, or one that sets something that is not in
+    CONFIG_KEYS (the trust proof) or STD_CONFIG_KEYS (std), or a rustflag or an env entry that is not allowed, is the reason; None when no
+    file has one."""
     toml = _toml()
-    for rel in cargo_configs(repo):
+    trust = std = None
+    for rel in cargo_configs(repo) if configs is None else configs:
         try:
             conf = toml.loads((repo / rel).read_text(encoding="utf-8"))
         except (OSError, ValueError, UnicodeDecodeError):
-            return f"{rel} could not be read"
-        if (why := _config_table_problem(conf)) is not None:
-            return f"{rel} sets {why}"
-    return None
+            trust = trust or f"{rel} could not be read"
+            std = std or f"{rel} could not be read"
+            continue
+        if trust is None and (why := _config_table_problem(conf)) is not None:
+            trust = f"{rel} sets {why}"
+        if std is None and (why := _config_table_problem(conf, STD_CONFIG_KEYS)) is not None:
+            std = f"{rel} sets {why}"
+    return trust, std
+
+
+def _config_problem(repo: Path) -> str | None:
+    """Why a cargo config of the repo may change what a crate is, for the trust proof."""
+    return _config_problems(repo)[0]
 
 
 def _lock_packages(repo: Path, base: str):

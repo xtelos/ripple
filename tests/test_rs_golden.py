@@ -141,6 +141,8 @@ def test_every_file_the_crates_reach_is_read_and_none_is_left_out(graph):
 def test_the_cli_answers_with_a_language_flag_and_without_one(capsys):
     from ripple.cli import main
 
+    # read from the app package alone, its path dependencies are outside the repo: ripple reads their Cargo.toml (and nothing else of them) for
+    # the name of their library, so `Cart::new()` in main keeps its edge (tests/test_rs_outside_path_deps.py)
     for flags in ([], ["--lang", "rust"]):
         assert main(["callers", "src/cart:Cart::total", "--repo", str(WAREHOUSE / "app"), *flags]) == 0
         out = capsys.readouterr().out

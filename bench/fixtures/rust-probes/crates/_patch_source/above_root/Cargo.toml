@@ -1,0 +1,6 @@
+[workspace]
+members = ["app"]
+resolver = "2"
+
+[patch."@GIT@/foo"]
+foo = { path = "app/foo" }
