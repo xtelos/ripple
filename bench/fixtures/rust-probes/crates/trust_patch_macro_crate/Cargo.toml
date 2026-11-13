@@ -1,0 +1,10 @@
+[package]
+name = "trust_patch_macro_crate"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
+
+[patch.crates-io]
+tokio-macros = { path = "../_ext/tokio-macros" }

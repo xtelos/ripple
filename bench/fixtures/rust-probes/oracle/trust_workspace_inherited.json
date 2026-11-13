@@ -1,0 +1,49 @@
+{
+ "calls": [
+  {
+   "c0": 4,
+   "c1": 10,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     6
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 9,
+   "text": "helper"
+  },
+  {
+   "c0": 19,
+   "c1": 25,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     6
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 17,
+   "text": "helper"
+  },
+  {
+   "c0": 26,
+   "c1": 29,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     8
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 22,
+   "text": "run"
+  }
+ ],
+ "complete": true,
+ "probe": "trust_workspace_inherited",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

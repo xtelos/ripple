@@ -69,6 +69,27 @@ PROVEN: dict[str, dict[tuple[str, int, str, int], str]] = {
         # `#[pm::swap_one_for_two]` rewrites `one()` to `two()`: rust-analyzer resolves the call as written
         ("app/src/lib.rs", 18, "one", 0): "repo:app/src/lib.rs:16",
     },
+    # The trust_* probes below are attribute macros ripple would trust if the attribute were the published tokio's or
+    # serial_test's (rs_indexer.TRUSTED_ATTRS). In each, the attribute is a macro of crates/_ext/ that rewrites `one()` into
+    # `two()` while rust-analyzer resolves the call as written: the crate's own #[test] shows `two` ran, so a ripple edge to
+    # `one` would be a false one and these answers make the differential suite say so. The probes that are not here
+    # (trust_tokio_main and the other positives) run the published crates, whose body is what it says, and the oracle is
+    # right as written.
+    "trust_path_dep_named_tokio": {("src/lib.rs", 5, "one", 0): "repo:src/lib.rs:3"},
+    "trust_renamed_dep": {("src/lib.rs", 5, "one", 0): "repo:src/lib.rs:3"},
+    "trust_workspace_path": {("member/src/lib.rs", 5, "one", 0): "repo:member/src/lib.rs:3"},
+    "trust_target_table_path": {("src/lib.rs", 5, "one", 0): "repo:src/lib.rs:3"},
+    "trust_patch_macro_crate": {("src/lib.rs", 5, "one", 0): "repo:src/lib.rs:3"},
+    "trust_config_paths": {("src/lib.rs", 5, "one", 0): "repo:src/lib.rs:3"},
+    "trust_replace": {("src/lib.rs", 5, "one", 0): "repo:src/lib.rs:3"},
+    "trust_extern_crate_alias": {("src/lib.rs", 6, "one", 0): "repo:src/lib.rs:4"},
+    "trust_repo_is_tokio": {("tests/own_main.rs", 5, "one", 0): "repo:tests/own_main.rs:3"},
+    "trust_shadowed_names": {
+        ("src/lib.rs", 13, "one", 0): "repo:src/lib.rs:3",
+        ("src/lib.rs", 18, "one", 0): "repo:src/lib.rs:3",
+        ("src/lib.rs", 23, "one", 0): "repo:src/lib.rs:3",
+        ("src/lib.rs", 28, "one", 0): "repo:src/lib.rs:3",
+    },
 }
 
 # rust-analyzer names a function by its path and not by its block, so a function declared in a body has the same symbol
@@ -328,8 +349,11 @@ def apply_proven(probe: str, found: list[dict]) -> None:
         sys.exit(f"{probe}: proven answers match no reference: {sorted(wanted)}")
 
 
+TEST_ATTRIBUTE = re.compile(r"#\s*\[\s*(::\s*)?(tokio\s*::\s*)?test\b")  # `#[test]`, `#[tokio::test]`, `#[::tokio::test(..)]`
+
+
 def has_tests(copy: Path) -> bool:
-    return any("#[test]" in p.read_text(errors="replace") for p in copy.rglob("*.rs") if "target" not in p.parts)
+    return any(TEST_ATTRIBUTE.search(p.read_text(errors="replace")) for p in copy.rglob("*.rs") if "target" not in p.parts)
 
 
 def probe_names(only: list[str]) -> list[str]:

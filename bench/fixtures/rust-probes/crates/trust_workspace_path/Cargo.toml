@@ -1,0 +1,6 @@
+[workspace]
+members = ["member"]
+resolver = "2"
+
+[workspace.dependencies]
+tokio = { path = "../_ext/tokio" }

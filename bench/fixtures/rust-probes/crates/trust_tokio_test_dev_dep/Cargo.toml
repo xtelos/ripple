@@ -1,0 +1,7 @@
+[package]
+name = "trust_tokio_test_dev_dep"
+version = "0.1.0"
+edition = "2021"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt"] }

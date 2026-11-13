@@ -1,0 +1,67 @@
+{
+ "calls": [
+  {
+   "c0": 9,
+   "c1": 18,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 6,
+   "text": "to_string"
+  },
+  {
+   "c0": 21,
+   "c1": 28,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 6,
+   "text": "replace"
+  },
+  {
+   "c0": 47,
+   "c1": 52,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 6,
+   "text": "parse"
+  },
+  {
+   "c0": 55,
+   "c1": 61,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 6,
+   "text": "unwrap"
+  },
+  {
+   "c0": 24,
+   "c1": 27,
+   "defs": [
+    [
+     "tests/own_main.rs",
+     3
+    ]
+   ],
+   "file": "tests/own_main.rs",
+   "kind": "repo",
+   "line": 5,
+   "proof": "runtime",
+   "text": "one"
+  },
+  {
+   "c0": 15,
+   "c1": 24,
+   "defs": [],
+   "file": "tests/own_main.rs",
+   "kind": "lost",
+   "line": 8,
+   "text": "rewritten"
+  }
+ ],
+ "complete": true,
+ "probe": "trust_repo_is_tokio",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

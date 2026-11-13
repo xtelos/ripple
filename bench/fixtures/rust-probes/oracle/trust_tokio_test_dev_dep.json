@@ -1,0 +1,21 @@
+{
+ "calls": [
+  {
+   "c0": 15,
+   "c1": 21,
+   "defs": [
+    [
+     "src/lib.rs",
+     1
+    ]
+   ],
+   "file": "tests/t.rs",
+   "kind": "repo",
+   "line": 10,
+   "text": "helper"
+  }
+ ],
+ "complete": true,
+ "probe": "trust_tokio_test_dev_dep",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}
