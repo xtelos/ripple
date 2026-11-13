@@ -1,0 +1,7 @@
+[package]
+name = "trust_serial_forms"
+version = "0.1.0"
+edition = "2021"
+
+[dev-dependencies]
+serial_test = { version = "2", default-features = false }

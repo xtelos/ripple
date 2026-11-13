@@ -1,0 +1,7 @@
+[package]
+name = "trust_path_dep_named_tokio"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { path = "../_ext/tokio" }

@@ -1,0 +1,44 @@
+{
+ "calls": [
+  {
+   "c0": 14,
+   "c1": 30,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 17,
+   "text": "type_name_of_val"
+  },
+  {
+   "c0": 32,
+   "c1": 43,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 17,
+   "text": "_u_internal"
+  },
+  {
+   "c0": 26,
+   "c1": 31,
+   "defs": [
+    [
+     "src/lib.rs",
+     16
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 24,
+   "text": "other"
+  }
+ ],
+ "complete": true,
+ "probe": "trust_serial_after_tokio_test",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

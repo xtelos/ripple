@@ -1,0 +1,122 @@
+{
+ "calls": [
+  {
+   "c0": 4,
+   "c1": 10,
+   "defs": [
+    [
+     "src/lib.rs",
+     6
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 9,
+   "text": "helper"
+  },
+  {
+   "c0": 4,
+   "c1": 7,
+   "defs": [
+    [
+     "src/lib.rs",
+     8
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 12,
+   "text": "run"
+  },
+  {
+   "c0": 27,
+   "c1": 30,
+   "defs": [
+    [
+     "src/lib.rs",
+     8
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 18,
+   "text": "run"
+  },
+  {
+   "c0": 41,
+   "c1": 47,
+   "defs": [
+    [
+     "src/lib.rs",
+     11
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 18,
+   "text": "caller"
+  },
+  {
+   "c0": 18,
+   "c1": 22,
+   "defs": [],
+   "file": "src/main.rs",
+   "kind": "external",
+   "line": 5,
+   "text": "exit"
+  },
+  {
+   "c0": 26,
+   "c1": 30,
+   "defs": [
+    [
+     "src/main.rs",
+     2
+    ]
+   ],
+   "file": "src/main.rs",
+   "kind": "repo",
+   "line": 5,
+   "text": "tick"
+  },
+  {
+   "c0": 40,
+   "c1": 43,
+   "defs": [],
+   "file": "tests/run.rs",
+   "kind": "external",
+   "line": 3,
+   "text": "new"
+  },
+  {
+   "c0": 84,
+   "c1": 90,
+   "defs": [],
+   "file": "tests/run.rs",
+   "kind": "external",
+   "line": 3,
+   "text": "status"
+  },
+  {
+   "c0": 93,
+   "c1": 99,
+   "defs": [],
+   "file": "tests/run.rs",
+   "kind": "external",
+   "line": 3,
+   "text": "unwrap"
+  },
+  {
+   "c0": 19,
+   "c1": 26,
+   "defs": [],
+   "file": "tests/run.rs",
+   "kind": "external",
+   "line": 4,
+   "text": "success"
+  }
+ ],
+ "complete": true,
+ "probe": "trust_tokio_main",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

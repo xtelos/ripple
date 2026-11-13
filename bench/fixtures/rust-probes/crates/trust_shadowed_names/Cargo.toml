@@ -1,0 +1,9 @@
+[package]
+name = "trust_shadowed_names"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
+serial_test = { version = "2", default-features = false }
+fakemacros = { path = "../_ext/fakemacros" }
