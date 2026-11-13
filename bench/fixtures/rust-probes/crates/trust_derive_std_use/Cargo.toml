@@ -1,0 +1,6 @@
+[package]
+name = "trust_derive_std_use"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]

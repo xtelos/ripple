@@ -581,7 +581,11 @@ visible, so it can neither be proven absent nor chosen between. The same goes fo
 (ripple evaluates no condition, so a definition that may not exist is not chosen over what would stand in its place), and
 for an item under an attribute that is not a built-in one (`#[tracing::instrument]`, `#[pm::attr]`, any attribute macro, bar the three below): calls
 inside it and the name it declares are unresolved, though a name beside a derive that no `use` brings in is that derive's
-helper (`#[serde(..)]`) and rewrites nothing. `#[test]`, `#[bench]`, `#[derive]` and `#[global_allocator]` are the standard library's attribute macros, not the compiler's, so a `use`
+helper (`#[serde(..)]`) and rewrites nothing. A derive can still emit items beside the type, so a derive ripple does not know (`#[derive(Serialize)]`), or a standard derive's
+name (`Debug`, `Clone`, ...) that something other than the standard library could supply (a `use` of another path such as `use derive_more::Debug;`, a
+`#[macro_use] extern crate`, a macro of the repo), makes its scope one where a macro may have generated names, so a name found only through a glob import or the prelude is
+unresolved there. A `use` of the standard library's own derive (`use std::fmt::Debug;`) is not such a supply when ripple proves it: `std` or `core` is the real crate there (not a module,
+alias, dependency or block item of that name) and the path is one the library exports the derive under, unrenamed. `#[test]`, `#[bench]`, `#[derive]` and `#[global_allocator]` are the standard library's attribute macros, not the compiler's, so a `use`
 that gives one of those names in the item's module or in a block around it, or a `#[macro_use] extern crate`, makes the attribute another macro, and ripple reads it as one
 (a glob import cannot: rustc rejects it as ambiguous with the prelude's macro). `#[rustfmt::skip]`, `#[clippy::..]` and `#[diagnostic::..]` are tool attributes, which a `mod`, a
 `use`, an `extern crate` alias or a dependency key of that name makes another macro: they are read as inert only when nothing of that name is declared, imported, aliased or

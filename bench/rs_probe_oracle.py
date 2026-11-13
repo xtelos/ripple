@@ -119,6 +119,14 @@ PROVEN: dict[str, dict[tuple[str, int, str, int], str]] = {
     # rust-analyzer reads the impl of a block mod as it reads the trait's: `S::new()` runs the inherent `new` (the assertion shows 2)
     "trust_block_mod_effects": {("src/lib.rs", 30, "new", 0): "repo:src/lib.rs:27"},
     "trust_outside_glob_block_mod": {("src/lib.rs", 13, "helper", 0): "lost"},
+    # a derive emits `fn one()` beside the type, which beats the glob's `one` (rust-analyzer does not expand it): the function is one no
+    # file defines. The derive is not the standard library's, or has the name of one that a `use` replaced
+    "trust_derive_unknown": {("src/lib.rs", 11, "one", 0): "lost"},
+    "trust_derive_shadow": {("src/lib.rs", 12, "one", 0): "lost"},
+    # `mod std` re-exporting the other derive makes `use std::fmt::Debug;` that derive (built: the crate's test asserts 2), so a use of
+    # the spelling is not the standard library's unless `std` is proved to be the crate. `trust_derive_std_use` is the control: the real
+    # `std::fmt::Debug` emits nothing, and the glob's `one` is the call's callee (no proof needed: rust-analyzer says the same)
+    "trust_derive_std_shadow": {("src/lib.rs", 17, "one", 0): "lost"},
 }
 
 # probe -> the directory of the probe where its package is, and where cargo runs: a probe whose point is a file cargo reads from the
