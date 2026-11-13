@@ -31,6 +31,11 @@ the reason, never guessed:
     may rewrite it: calls inside it, and the name it declares, are unresolved, and the scope may hold names it generated.
     A single name beside a derive that is not a standard one is that derive's helper, unless a `use`, a macro of the
     repo, a `#[macro_use] extern crate` or a glob from outside the repo could bring an attribute macro of that name;
+  * three attribute macros are the exception (TRUSTED_ATTRS): `tokio::main`, `tokio::test` and `serial_test::serial` leave
+    the body of the free function they sit on where it was, so its calls are read as an ordinary function's, once the repo
+    proves that each is the crates.io macro (Index.decide_trust: the manifests, the lock, the cargo config files and how the
+    attribute is written). The name the function declares stays unresolved. An async `serial`, an impl or trait method, a
+    module and a second attribute macro on the item are not trusted, and a site that is not proven is read as it always was;
   * a comment is not a token: the source is read with every comment replaced by spaces (same bytes, same lines), so
     none can move a node of the tree.
 A path through a trait is an edge only when the impl that runs is certain: an inherent function of a repo
@@ -187,6 +192,13 @@ BUILTIN_ATTRS = frozenset(
     "windows_subsystem no_main panic_handler thread_local linkage naked optimize no_link link_section "
     "macro_use must_not_suspend".split()
 )  # fmt: skip
+# The attribute macros ripple trusts not to change what a name in the body of the function they are written on resolves to,
+# as written -> the crate whose macro each is. Trusted only where the repo proves the crate is the published one (see
+# rs_modules.TRUSTED_CRATES and Index.decide_trust), and only for the body of a free function (trusted_target).
+TRUSTED_ATTRS = {
+    "tokio::main": "tokio", "::tokio::main": "tokio", "tokio::test": "tokio", "::tokio::test": "tokio",
+    "serial_test::serial": "serial_test", "::serial_test::serial": "serial_test", "serial": "serial_test",
+}  # fmt: skip
 
 TYPE_KINDS = frozenset({"struct", "enum", "union", "trait", "type", "mod", "extern_crate"})
 VALUE_KINDS = frozenset({"fn", "const", "static", "tuple_struct", "unit_struct", "variant", "foreign"})
@@ -330,7 +342,8 @@ class CrateCtx:
         self.externs: dict[str, tuple] | None = None
         self.macro_use_extern = False  # `#[macro_use] extern crate x;`: macros of a crate ripple has not read are in scope
         self.macro_sites: list[tuple[Scope, str, bool, str, int]] = []  # (scope, macro, path starts at std, file, line) of each macro invoked where it may generate items
-        self.attr_sites: list[tuple[str, int, str]] = []  # (file, line, what) of each attribute macro or derive that may generate items
+        self.attr_sites: list[tuple[str, int, str] | TrustSite] = []  # (file, line, what) of each attribute macro or derive that may generate items, in source order (see attr_reasons)
+        self.trust_sites: list[TrustSite] = []  # each function under trusted attributes only, until the repo proves them (Index.decide_trust)
         self.taint: list[str] = []  # why the impls ripple read may not be all of this crate's (see Index.mark_macros)
         self.pending_heads: list[tuple[Scope, tuple[str, ...], str, int]] = []  # (scope, attributes, file, line) of each on the target of a derive that is not a standard one
         self.use_names: set[str] = set()  # every name a `use` of the crate gives
@@ -339,6 +352,29 @@ class CrateCtx:
             self.edition = int(crate.package.edition)
         except ValueError:
             self.edition = 2015
+
+    def attr_reasons(self):
+        """(file, line, what) of each attribute macro or derive that may generate items, in the order they were met. A function
+        under trusted attributes is one only once refused, and then where it was met, as it would have been all along."""
+        for site in self.attr_sites:
+            if not isinstance(site, TrustSite):
+                yield site
+            elif site.refused is not None:
+                yield site.entry
+
+
+@dataclass(eq=False)
+class TrustSite:
+    """A free function under the attributes of TRUSTED_ATTRS and no other, until the repo proves them (Index.decide_trust).
+    Its calls are read as an ordinary function's; a refusal reads it all as it is read under any attribute macro."""
+
+    scope: Scope
+    item: object
+    file: str
+    line: int
+    heads: tuple[str, ...]  # the trusted attributes, as written
+    entry: tuple[str, int, str]  # what CrateCtx.attr_sites says of it once refused: what a macro there would have said
+    refused: str | None = None  # why the repo does not prove them
 
 
 @dataclass(eq=False)
@@ -504,7 +540,7 @@ def parse_visibility(written: str) -> tuple:
 class Attrs:
     """What the attributes written before an item say that matters here."""
 
-    __slots__ = ("cfg", "macro", "macro_use", "proc_macro", "derives", "unknown_derive", "what", "heads")
+    __slots__ = ("cfg", "macro", "macro_use", "proc_macro", "derives", "unknown_derive", "what", "heads", "trust")
 
     def __init__(self) -> None:
         self.cfg = False  # a #[cfg] or #[cfg_attr]: the item may not exist (ripple evaluates no condition)
@@ -515,6 +551,7 @@ class Attrs:
         self.unknown_derive = False  # a derive that is not one of the standard library's: it may generate any item
         self.what = ""  # the first attribute macro or derive of that kind, as written
         self.heads: list[str] = []  # attributes that are one plain name and not built in: an attribute macro, or the helper of a derive
+        self.trust: list[str] = []  # attributes of TRUSTED_ATTRS, as written, that no attribute macro beside them or the item they are on rules out: trusted once the repo proves them
 
     @property
     def generates(self) -> bool:
@@ -532,7 +569,7 @@ def _token_groups(tree) -> list[list]:
     return groups
 
 
-def _classify_attribute(head: str, args, src: bytes, out: Attrs) -> None:
+def _classify_attribute(head: str, args, src: bytes, out: Attrs, trust: bool = True) -> None:
     first = head.split("::")[0]
     if head == "cfg":
         out.cfg = True
@@ -543,7 +580,7 @@ def _classify_attribute(head: str, args, src: bytes, out: Attrs) -> None:
                 path = "".join(text(src, c) for c in group if c.type in ("identifier", "::", "self", "crate", "super"))
                 tree = next((c for c in group if c.type == "token_tree"), None)
                 if path:
-                    _classify_attribute(path, tree, src, out)
+                    _classify_attribute(path, tree, src, out, trust)
     elif head == "derive":
         for group in _token_groups(args) if args is not None else ():
             written = "".join(text(src, c) for c in group)
@@ -559,6 +596,8 @@ def _classify_attribute(head: str, args, src: bytes, out: Attrs) -> None:
         out.macro_use = True
     elif head in ("proc_macro", "proc_macro_attribute"):
         out.proc_macro = True
+    elif trust and head in TRUSTED_ATTRS and not (TRUSTED_ATTRS[head] == "serial_test" and args is not None and "inner_attrs" in text(src, args).lower()):
+        out.trust.append(head)  # serial's `inner_attrs = [..]` (any case) moves the body into a function that carries attributes of any kind
     elif first not in BUILTIN_ATTRS:
         if "::" in head:  # a path is no helper of a derive
             out.macro = True
@@ -567,21 +606,52 @@ def _classify_attribute(head: str, args, src: bytes, out: Attrs) -> None:
             out.heads.append(head)
 
 
-def read_attributes(attributes: list, src: bytes) -> Attrs:
+def read_attributes(attributes: list, src: bytes, trust: bool = True) -> Attrs:
+    """What attributes say. With `trust` the three of TRUSTED_ATTRS are set apart (Attrs.trust) instead of read as attribute
+    macros; the caller decides whether the item they are on lets them stay apart (attrs_of)."""
     out = Attrs()
     for item in attributes:
         attribute = next((c for c in item.named_children if c.type == "attribute"), None)
         path = attribute.named_children[0] if attribute is not None and attribute.named_children else None
         if path is not None:
-            _classify_attribute("".join(text(src, path).split()), attribute.child_by_field_name("arguments"), src, out)
+            _classify_attribute("".join(text(src, path).split()), attribute.child_by_field_name("arguments"), src, out, trust)
     return out
 
 
-def attrs_of(item, src: bytes) -> Attrs:
+def attr_site(attrs: Attrs, file: str, line: int, what: str) -> tuple[str, int, str]:
+    """What CrateCtx.attr_sites says of an item under an attribute macro or a derive that is not the standard library's."""
+    return (file, line, f"{attrs.what} on a {what} (an attribute macro or a derive that is not the standard library's)")
+
+
+def trusted_target(item) -> bool:
+    """Whether the attributes of TRUSTED_ATTRS are on what they are trusted on: a function of a module or of a block. Not an
+    impl's or a trait's method (serial_test drops its `self` and puts a function beside it), not a module (`#[serial]`
+    rewrites the tests of one), not a type. (attrs_of also rules out serial_test's on an `async fn`.)"""
+    if item.type != "function_item":
+        return False
+    parent = item.parent
+    return not (parent is not None and parent.type == "declaration_list" and parent.parent is not None and parent.parent.type in ("impl_item", "trait_item"))
+
+
+def is_async(item) -> bool:
+    modifiers = next((c for c in item.children if c.type == "function_modifiers"), None)
+    return modifiers is not None and any(c.type == "async" for c in modifiers.children)
+
+
+def attrs_of(item, src: bytes, trust: bool = True) -> Attrs:
     """The attributes written directly before an item (or a statement, or an impl item). A single name that is not built in
     is an attribute macro, except beside a derive that is not a standard one, where it may be that derive's helper (the
-    caller settles it, once every `use` of the crate is known)."""
-    out = read_attributes(rs_modules._attributes(item), src)
+    caller settles it, once every `use` of the crate is known).
+
+    The attributes of TRUSTED_ATTRS are left out of that (they are in `.trust`) only when nothing rules them out: the item is
+    a free function (trusted_target), none is serial_test's on an `async fn` (whose body moves into a function named
+    `_<name>_internal`, beside the function or inside it by version), and no other attribute macro is on the item, which
+    could rewrite what these see. Otherwise they are read as attribute macros, as every attribute that is not built in is.
+    `trust=False` reads them that way always: what a site not proven by the repo is."""
+    attributes = rs_modules._attributes(item)
+    out = read_attributes(attributes, src, trust)
+    if out.trust and (out.macro or out.heads or out.unknown_derive or not trusted_target(item) or (is_async(item) and any(TRUSTED_ATTRS[h] == "serial_test" for h in out.trust))):
+        out = read_attributes(attributes, src, trust=False)
     if out.heads and not (out.unknown_derive and item.type in ("struct_item", "enum_item", "union_item")):
         out.macro = True
         out.what = out.what or f"the attribute `#[{out.heads[0]}]`"
@@ -590,7 +660,7 @@ def attrs_of(item, src: bytes) -> Attrs:
 
 def inner_attrs_of(container, src: bytes) -> Attrs:
     """The inner attributes (`#![cfg(..)]`) a module's file or block begins with."""
-    return read_attributes([c for c in container.named_children if c.type == "inner_attribute_item"], src)
+    return read_attributes([c for c in container.named_children if c.type == "inner_attribute_item"], src, trust=False)
 
 
 def squash(written: str) -> str:
@@ -795,7 +865,7 @@ class Index:
         if attrs.macro:
             scope.attribute_macro = True  # an attribute macro may rewrite the item and generate any other beside it
         if attrs.macro or attrs.unknown_derive:  # a derive generates impls (and any item), but rewrites nothing
-            ctx.attr_sites.append((file, line, f"{attrs.what} on a {what} (an attribute macro or a derive that is not the standard library's)"))
+            ctx.attr_sites.append(attr_site(attrs, file, line, what))
 
     def collect_items(self, scope: Scope, container, m: Module, ctx: CrateCtx, owner_id: str | None = None, block: bool = False, rw: bool = False) -> None:
         """The items a container (a module's body or a block) declares, into the scope. `rw` is a container inside an
@@ -808,6 +878,9 @@ class Index:
             key = (m.file, item.start_byte)
             vis = visibility(item, src) if t in ITEM_NODES else PRIVATE
             attrs = attrs_of(item, src) if t != "attribute_item" else Attrs()
+            queued = bool(attrs.trust) and not rw  # trusted attributes on a function, until the repo proves them (Index.decide_trust)
+            if attrs.trust and rw:
+                attrs = attrs_of(item, src, trust=False)  # inside an item an attribute macro may have rewritten, they are read as one
             if attrs.heads and not attrs.macro:
                 # a name beside a derive that is not a standard one is that derive's helper, unless an attribute macro of
                 # that name is in scope (decided once every `use` of the crate is known: see Index.mark_macros)
@@ -815,11 +888,16 @@ class Index:
             facts = {"vis": vis}
             if attrs.cfg:
                 facts["cfg"] = True
-            if rw or attrs.macro:
-                facts["rw"] = True
+            if rw or attrs.macro or queued:
+                facts["rw"] = True  # a trusted function keeps its name unresolved: old versions of both macro crates drop its `pub`
             elif attrs.heads:
                 facts["heads"] = tuple(attrs.heads)
-            if t != "macro_invocation" and t != "attribute_item":
+            if queued:  # note_attrs is for a site that is refused: it is told what a macro there would have said
+                today = attrs_of(item, src, trust=False)
+                site = TrustSite(scope, item, m.file, item.start_point[0] + 1, tuple(attrs.trust), attr_site(today, m.file, item.start_point[0] + 1, "function"))
+                ctx.attr_sites.append(site)
+                ctx.trust_sites.append(site)
+            elif t != "macro_invocation" and t != "attribute_item":
                 self.note_attrs(ctx, scope, attrs, m.file, item.start_point[0] + 1, t.replace("_item", "").replace("_", " "))
             if t == "function_item":
                 sid = self.make_id(m, owner_id, name)
@@ -926,19 +1004,139 @@ class Index:
         one a `use` brings in, is another macro). And whether it may generate impls: any such invocation, in any scope
         (an impl or a trait body, a block), any attribute macro, and any derive that is not a standard one, which may
         generate any item; each is a reason the impls of the crate that holds it may not be all ripple read."""
+        self.decide_trust()
         for ctx in self.ctxs:
             ctx.taint = []
             self.settle_helpers(ctx)
-            for scope in self.all_scopes(ctx):
-                scope.item_macros = scope.attribute_macro or any(not self.is_std_macro(scope, name, qualified) for name, qualified in scope.macro_calls)
+            self.mark_item_macros(ctx)
             for scope, name, qualified, file, line in ctx.macro_sites:
                 if not self.is_std_macro(scope, name, qualified, STD_PURE_MACROS | STD_NO_IMPL_MACROS):
                     ctx.taint.append(f"the macro `{name}!` invoked in {file} may generate impls")
-            for file, line, what in ctx.attr_sites:
+            for file, line, what in ctx.attr_reasons():
                 ctx.taint.append(f"{what} in {file} may generate impls")
         for spec in self.impl_specs:
             if spec.lost:
                 spec.scope.crate.taint.append(spec.lost)
+
+    def mark_item_macros(self, ctx: CrateCtx) -> None:
+        for scope in self.all_scopes(ctx):
+            scope.item_macros = scope.attribute_macro or any(not self.is_std_macro(scope, name, qualified) for name, qualified in scope.macro_calls)
+
+    # ---- trusted attribute macros
+    def decide_trust(self) -> None:
+        """Whether each function under trusted attributes only (CrateCtx.trust_sites) is under the published crates' macros: the
+        package must depend on the crate as crates.io's (rs_modules._trust), and the attribute as written must name it here
+        (`tokio` resolves to that dependency; `serial` is imported by `use serial_test::serial`). One that is not proven is
+        read as under any attribute macro: its body is rewritten and its scope may hold names it generated. That can make
+        a scope one in which a macro may make names (the `tokio` of another site there is no longer proven), so this runs
+        until nothing changes. The sites of an impl's body are found after the first run, so it runs again then.
+
+        The sites are collected as trusted and flipped when refused, rather than held back until decided, because proving one
+        needs every scope of the crate read, the blocks inside the trusted functions included (their globs and macros
+        decide what a name there can be)."""
+        if not any(ctx.trust_sites for ctx in self.ctxs):
+            return
+        for ctx in self.ctxs:
+            self.settle_helpers(ctx)
+        while True:
+            for ctx in self.ctxs:
+                self.mark_item_macros(ctx)
+            self.cache.clear()
+            changed = False
+            for ctx in self.ctxs:
+                for site in ctx.trust_sites:
+                    if site.refused is None:
+                        why = self.trust_identity(ctx, site)
+                        if why is not None:
+                            self.refuse_trust(ctx, site, why)
+                            changed = True
+            if not changed:
+                break
+        self.cache.clear()
+
+    def trust_identity(self, ctx: CrateCtx, site: TrustSite) -> str | None:
+        """None when every attribute of the site is the published crate's macro, else why one may not be."""
+        for head in site.heads:
+            crate = TRUSTED_ATTRS[head]
+            why = ctx.crate.package.trust.get(crate, "no verdict for this package")
+            if why:
+                return "manifest: " + why
+            if ctx.edition < 2018:
+                return "edition: " + EDITION
+            if head == "serial":
+                why = self.serial_imported(site.scope)
+            elif head.startswith("::"):
+                got = [self.externs(ctx).get(crate)]
+                why = None if got == [("ext", "crate:" + crate)] else f"`::{crate}` is {got}"
+            else:
+                got = self.lookup(site.scope, crate, "type")
+                why = None if got == [("ext", "crate:" + crate)] else f"`{crate}` here is {[(kind, getattr(x, 'name', x)) for kind, x in got][:2]}"
+            if why:
+                return "name: " + why
+        return None
+
+    def serial_imported(self, scope: Scope) -> str | None:
+        """None when `serial` written as an attribute here is `serial_test::serial`: the nearest scope (a block, then the module,
+        never the parent modules) that declares or imports the name imports it by exactly one `use serial_test::serial;` that
+        is not under a `#[cfg]`, and `serial_test` there is the crate. A glob or a macro that may make names, met first, or a
+        macro of the repo called serial, may be another."""
+        if "serial" in self.repo_macros:
+            return "a macro of the repo is called serial"
+        s: Scope | None = scope
+        while s is not None:
+            if "serial" in s.uses:
+                entries = s.uses["serial"]
+                if len(entries) != 1 or entries[0] not in (["serial_test", "serial"], ["::", "serial_test", "serial"]):
+                    return f"serial is imported as {entries}"
+                if s.use_cfg["serial"][0]:
+                    return "the use of serial is under a #[cfg]"
+                if entries[0][0] == "::":
+                    got = [self.externs(s.crate).get("serial_test")]
+                else:
+                    got = self.lookup(s, "serial_test", "type")
+                return None if got == [("ext", "crate:serial_test")] else f"`serial_test` here is {got[:2]}"
+            if s.globs:
+                return "a glob import may bring another serial"
+            if s.item_macros:
+                return "a macro may define serial here"
+            s = s.outer
+        return "no use brings serial in"
+
+    def refuse_trust(self, ctx: CrateCtx, site: TrustSite, why: str) -> None:
+        """A site the repo does not prove: everything inside it is read as under an attribute macro, as it was before the rule.
+        What that sets is what collect_items and the readers of an item set for one that is rewritten: the scope holds names
+        the macro may have made, the name and everything declared inside are unresolved, and the attribute may generate impls
+        (CrateCtx.attr_reasons). Sites inside it are inside an item that is rewritten, so they are refused with it."""
+        site.refused = why
+        site.scope.attribute_macro = True
+        file, a, b = site.file, site.item.start_byte, site.item.end_byte
+
+        def inside(f: str, start: int) -> bool:
+            return f == file and a <= start < b
+
+        for spec in self.bodies:
+            if spec.scope.crate is ctx and inside(spec.module.file, spec.node.start_byte):
+                spec.rewritten = True
+        for (f, start), block in ctx.blocks.items():
+            if inside(f, start):
+                block.rewritten = True
+                for defs in block.items.values():
+                    for d in defs:
+                        if d.kind != "macro":
+                            d.extra["rw"] = True
+        for spec in self.impl_specs:
+            if spec.scope.crate is ctx and inside(spec.module.file, spec.node.start_byte):
+                spec.rewritten = True
+                for defs in (*spec.methods.values(), *spec.consts.values()):
+                    for d in defs:
+                        d.extra["rw"] = True
+        for d, decls in self.trait_decl.items():
+            if d.scope.crate is ctx and inside(d.key[0], d.key[1]):
+                for decl in decls.values():
+                    decl.extra["rw"] = True
+        for other in ctx.trust_sites:
+            if other.refused is None and other is not site and inside(other.file, other.item.start_byte):
+                self.refuse_trust(ctx, other, "inside a refused one")
 
     def settle_helpers(self, ctx: CrateCtx) -> None:
         """Which attributes beside a derive are its helpers. A single name is one when no attribute macro of that name can be in

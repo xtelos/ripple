@@ -579,9 +579,15 @@ they do not resolve alike, and any name looked up in a scope where a macro may d
 invokes a macro other than the standard ones that define nothing, or an attribute macro): the macro's expansion is not
 visible, so it can neither be proven absent nor chosen between. The same goes for what a `#[cfg]` or `#[cfg_attr]` guards
 (ripple evaluates no condition, so a definition that may not exist is not chosen over what would stand in its place), and
-for an item under an attribute that is not a built-in one (`#[tokio::test]`, `#[pm::attr]`, any attribute macro): calls
+for an item under an attribute that is not a built-in one (`#[tracing::instrument]`, `#[pm::attr]`, any attribute macro, bar the three below): calls
 inside it and the name it declares are unresolved, though a name beside a derive that no `use` brings in is that derive's
-helper (`#[serde(..)]`) and rewrites nothing. `Type::f()` and `<T as Trait>::f()` also need the impls ripple read to be all
+helper (`#[serde(..)]`) and rewrites nothing. `#[test]`, `#[bench]`, `#[derive]` and `#[global_allocator]` are the standard library's attribute macros, not the compiler's, so a `use`
+that gives one of those names in the item's module or in a block around it, or a `#[macro_use] extern crate`, makes the attribute another macro, and ripple reads it as one
+(a glob import cannot: rustc rejects it as ambiguous with the prelude's macro). `#[rustfmt::skip]`, `#[clippy::..]` and `#[diagnostic::..]` are tool attributes, which a `mod`, a
+`use`, an `extern crate` alias or a dependency key of that name makes another macro: they are read as inert only when nothing of that name is declared, imported, aliased or
+depended on anywhere in the crate. A `mod` written inside a block shadows the items of its name
+around it and its contents are not read, so a path that starts at it, from inside that block, is unresolved. What such a `mod` holds still acts outside it: it taints the impls
+of its crate like any item ripple does not read, and a `#[macro_use]` one makes every macro name used in its block possibly the repo's. `Type::f()` and `<T as Trait>::f()` also need the impls ripple read to be all
 there are: a macro invoked anywhere in a crate that can name the type (an item, an impl or trait body, a block), an
 attribute macro, a derive that is not a standard one, or an impl header that names a path ripple could not resolve, may
 add an impl, so the call is unresolved with the macro or the impl named, except an inherent function (rustc accepts one
@@ -590,6 +596,68 @@ target only when its impl is for every instantiation of the type or for the one 
 and it is a function. Calls that happen with no call site (`Drop`, `Display` through `format!`, `?` through `From`,
 operators) are not edges, so a trait impl's method can show no callers.
 `check` has no default command for Rust yet (pass `--test-command`).
+
+**Attribute macros ripple trusts.** Three attribute macros are the exception to the rule above: `#[tokio::main]`,
+`#[tokio::test]` and `#[serial_test::serial]` (also written `#[serial]` after `use serial_test::serial;`). The published
+expansions wrap the body of the function in an `async` block or a closure of the same function and add no name the body
+can see and no item beside it. So on a free function (not an impl or trait method, not a module) ripple reads the calls in
+the body as it reads any function's, but only where the repo proves that the macro is the one on crates.io. `serial` is
+trusted only on a function that is not `async` and has no `inner_attrs` argument, and any other attribute macro on the
+same item cancels the trust. The name the function declares stays unresolved, since old versions of both macro crates drop
+its `pub`. A site the repo does not prove is read as under any other attribute macro, with the same reason.
+
+Ripple trusts a site only when all of these hold:
+
+- Every dependency section of the package (its own, `dev-dependencies`, `build-dependencies` and each `[target.*]`) names
+  the crate plainly: a version, with at most `features`, `default-features` or `optional`, and no `path`, `git`,
+  `registry`, `package` or other key. `workspace = true` counts when the workspace's entry is plain. The package depends on
+  the crate at all.
+- No `[replace]` entry and no `[patch.*]` entry, of any crate and written in any way, is in the package's manifest, in a
+  manifest above it or in its workspace root. A patch of `quote`, `syn` or `proc-macro2` reaches the macro crates too.
+- Every `Cargo.toml` at or above the package can be read. A `package.workspace` names a manifest that ripple has read and
+  that has a `[workspace]`. The workspace does not exclude the package (an `exclude` entry that is its directory, one above
+  it or a glob), since cargo then builds it as a workspace of its own, with its own `Cargo.lock`.
+- Every cargo config file ripple finds can be read and sets only keys from an allowlist, because cargo reads the ones above
+  the directory it is run in, which may be any directory of the repo. The walk looks for a file called `config` or
+  `config.toml` in a directory called `.cargo`, with the names matched in any case (cargo on a case-insensitive file system
+  reads `.Cargo/Config.toml`). It follows a link to a directory that stays inside the repo (each directory once, so a loop
+  ends) and reads a `.cargo` that is a link wherever it points. It does not enter a link that leaves the repo. It skips
+  `.git`, `node_modules` and a `target` directory with a `Cargo.toml` beside it (build output, where the source walk reads
+  no file either); a `target` directory with none beside it is walked, because a package may sit in it. The allowed keys are:
+  `build` (`jobs`, `target`, `target-dir`, `build-dir`, `artifact-dir`, `incremental`, `dep-info-basedir`, `pipelining`,
+  `warnings`, `rustflags`), `target.<triple or cfg>` (`rustflags`, `linker`, `runner`, `ar`), `resolver`
+  (`incompatible-rust-versions`, `feature-unification`), `future-incompat-report.frequency`, `doc.browser`, `[env]` entries
+  that do not name a compiler, a wrapper, flags or a search path (names that start with `RUSTC`, `RUSTFLAGS`, `RUSTDOC`,
+  `RUSTUP`, `CARGO`, `PATH`, `LD_` or `DYLD_`), and the `term`, `cache`, `net` (`retry`, `git-fetch-with-cli`, `offline`),
+  `http` (not `proxy` or `cainfo`) and `install.root` settings. Rustflags may hold only `-C` codegen options, lint levels
+  and `--cfg`. Anything else refuses every package of the repo, a key ripple does not know included: `paths`, `[source]`,
+  `[patch]`, `include`, `[registries]`, `[registry]`, `[alias]`, `[profile]`, `build.rustc*`, `resolver.lockfile-path`,
+  a `[target.<triple>.<links>]` build-script override, `--extern`, `-L`.
+- A `Cargo.lock` in the workspace root, when there is one, can be read and takes the crate and its macro crate (`tokio-macros`,
+  `serial_test_derive`) from crates.io.
+- No package of the repo is named `tokio`, `tokio-macros`, `serial_test` or `serial_test_derive`.
+- The crate that uses the attribute is of edition 2018 or later.
+- The attribute as written reaches the crate. `tokio` is not a local module, an alias, a glob from outside the repo or a `mod`
+  written in a block. `serial` is brought in by exactly one `use serial_test::serial;` that is not under a `#[cfg]`, and no
+  macro of the repo is called `serial`.
+- Nothing can make a `#[test]`, `#[bench]`, `#[derive]` or `#[global_allocator]` on the item another macro: no `use` that
+  gives one of those names is in the item's module or a block around it, no `#[macro_use] extern crate` is in the crate and no
+  macro of the repo has the name.
+- Nothing can make a `#[rustfmt::..]`, `#[clippy::..]` or `#[diagnostic::..]` beside the attribute another macro: no `mod`,
+  `use`, `extern crate` or dependency key of that name exists anywhere in the crate. A path that starts at any other built-in
+  name (`#[doc::x]`) or a bare tool name is a macro whenever the program builds, so it is read as one.
+
+What ripple cannot prove, and so assumes:
+
+- What the published macros expand to. It was read for every version published when this was written (tokio-macros 0.2 to
+  2.7, serial_test_derive 0.1 to 4.0) and is assumed for later ones: nothing checks the version, not even the one in a
+  `Cargo.lock`.
+- What lives outside the repo: `RUSTFLAGS`, `RUSTC_WRAPPER`, `--extern`, a cargo config file above the repo (including the
+  one in `CARGO_HOME`), a workspace manifest above the repo, and a registry mirror that serves other code under the same
+  names.
+- Build artifacts committed in the repo that a config points cargo at: `build.target-dir` and `build.build-dir` (and
+  `-C incremental=`) name a directory, and one that holds a pre-built, forged copy of a macro crate may be taken by cargo as
+  up to date. Ripple does not look in it.
 
 ## Java
 
