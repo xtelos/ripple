@@ -720,7 +720,10 @@ crate of its name; a repo with a manifest or a library name ripple cannot read r
   (a leading `::` allowed) in the nearest scope that imports it, a block before the module and never a parent module: not under
   a `#[cfg]`, not renamed, not beside another import of the name, with the crate there being the dependency. A path written
   in the derive (`serde::Serialize`, `::clap::Parser`) must resolve the same way. A glob or a macro that may make names met
-  before the import, a macro of the repo of that name, a `#[macro_use] extern crate` and edition 2015 refuse it.
+  before the import, a macro of the repo of that name, a `#[macro_use] extern crate` and edition 2015 refuse it. The edition is the crate's own: a target
+  table's `edition` (`[lib] edition = "2015"`, `[[bin]]`, `[[test]]`, `[[example]]`, `[[bench]]`) decides before the package's, and
+  one that is not a known edition reads as 2015. The same edition decides every other rule that reads it, so it also keeps a
+  standard derive from being proved by a `use core::fmt::Debug` that a 2015 target reads as its own module.
 - For `use serde::Name;` and `use clap::Name;`, no glob import in the importing scope or in a block around it up to the module.
   Their `derive` feature is not asked for: with it off the import gives the trait alone and the name in the macro namespace
   goes on to a glob (built with a local proc-macro crate), and a manifest that turns it on says nothing of another

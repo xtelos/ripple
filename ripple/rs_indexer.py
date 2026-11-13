@@ -530,10 +530,7 @@ class CrateCtx:
         self.use_names: set[str] = set()  # every name a `use` of the crate gives
         self.tools: frozenset[str] = frozenset()  # the names of TOOL_ATTRS that something of the crate declares, imports or depends on (Index.shadowed_tools)
         self.outside_glob = False  # a glob import that may bring a macro of a crate ripple has not read
-        try:
-            self.edition = int(crate.package.edition)
-        except ValueError:
-            self.edition = 2015
+        self.edition = crate.edition_year  # the target's own `edition` if its table sets one, else the package's
 
     def attr_reasons(self):
         """(file, line, what) of each attribute macro or derive that may generate items, in the order they were met. A function
