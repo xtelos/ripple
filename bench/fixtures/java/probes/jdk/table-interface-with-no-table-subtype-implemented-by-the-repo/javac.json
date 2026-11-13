@@ -1,0 +1,11 @@
+{
+ "invokes": [
+  ["p/Use.java", 10, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Mine.<init>:()V", 1],
+  ["p/Use.java", 14, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Use.<init>:()V", 1],
+  ["p/Use.java", 15, "invokeinterface", "java.lang.System$Logger", "getName", "()Ljava/lang/String;", "p.Use.read:(Ljava/lang/System$Logger;)Ljava/lang/String;", 1]
+ ],
+ "classes": {
+  "p.Mine": {"supers": ["java.lang.Object", "java.lang.System$Logger"], "methods": [["<init>", "()V", 0], ["getName", "()Ljava/lang/String;", 1]], "bridges": [], "compiler": []},
+  "p.Use": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["read", "(Ljava/lang/System$Logger;)Ljava/lang/String;", 8]], "bridges": [], "compiler": []}
+ }
+}

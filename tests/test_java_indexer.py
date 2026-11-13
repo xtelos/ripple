@@ -387,7 +387,9 @@ def test_a_method_of_a_class_with_a_library_supertype_is_not_proven(make_repo):
     )
     assert calls(g, "p.Ledger.record(Item)") == set()
     assert all("may declare another write" in r for r in reasons(g, "p.Ledger.record(Item)")) and len(reasons(g, "p.Ledger.record(Item)")) == 3
-    assert calls(g, "p.Use.f(Ledger,Item)") == set()
+    # l.write(i) may be Writer's; but `helper` is a name no JDK gives Writer (the table is the union of five), so it is Ledger's
+    assert calls(g, "p.Use.f(Ledger,Item)") == {"p.Ledger.helper()"}
+    assert any("may declare another write" in r for r in reasons(g, "p.Use.f(Ledger,Item)"))
 
 
 def test_the_members_of_object_enum_and_record_are_known_so_they_do_not_block(make_repo):
@@ -406,23 +408,35 @@ def test_the_members_of_object_enum_and_record_are_known_so_they_do_not_block(ma
     )
     assert calls(g, "p.Use.f(Point,Op)") == {"p.Point.origin()", "p.Op.run(int)", "p.Op.parse(String)", "p.Point.sum()"}
     assert reasons(g, "p.Use.f(Point,Op)") == []
-    assert g.external_reasons["implicit enum member"] == 2 and g.external_reasons["implicit record accessor"] >= 1
+    # valueOf(s) is the compiler's own; ordinal() is Enum's, read from the table (JDK 12's describeConstable is a name only
+    # some JDKs have, so no enum name but values and valueOf is an "implicit member" any more)
+    assert g.external_reasons["implicit enum member"] == 1 and g.external_reasons["implicit record accessor"] >= 1
+    assert g.external_reasons["inherited from an external supertype"] >= 1
     # an enum may overload one of Enum's names, and then a call of that name is not provably the repo's
     g2 = index(make_repo, {"p/B.java": "package p;\nenum Lvl { LOW; static Lvl valueOf(int i) { return LOW; } }\nclass Use2 { Lvl f() { return Lvl.valueOf(1); } }\n"})
     assert calls(g2, "p.Use2.f()") == set() and reasons(g2, "p.Use2.f()")
 
 
 def test_an_anonymous_class_of_a_jdk_interface_may_inherit_the_name_it_calls(make_repo):
-    # Executor is not one of the types whose members ripple knows, so it may declare any name
+    # ActionListener is java.desktop's, not in the JDK table (java.base and java.compiler), so it may declare any name
     g = index(
         make_repo,
         {
             "p/A.java": "package p;\nclass A {\n static void helper() {}\n"
+            " void m() { java.awt.event.ActionListener r = new java.awt.event.ActionListener() { public void actionPerformed(java.awt.event.ActionEvent x) { helper(); } }; r.actionPerformed(null); }\n}\n"
+        },
+    )
+    assert calls(g, "p.A.m()$1.actionPerformed(ActionEvent)") == set()
+    assert any("may be inherited from external base java.awt.event.ActionListener" in r for r in reasons(g, "p.A.m()$1.actionPerformed(ActionEvent)"))
+    # Executor is in the table and declares execute and nothing else, so an anonymous Executor's helper() is the class around it
+    known = index(
+        make_repo,
+        {
+            "p/B.java": "package p;\nclass B {\n static void helper() {}\n"
             " void m() { java.util.concurrent.Executor r = new java.util.concurrent.Executor() { public void execute(Runnable x) { helper(); } }; r.execute(null); }\n}\n"
         },
     )
-    assert calls(g, "p.A.m()$1.execute(Runnable)") == set()
-    assert any("may be inherited from external base java.util.concurrent.Executor" in r for r in reasons(g, "p.A.m()$1.execute(Runnable)"))
+    assert calls(known, "p.B.m()$1.execute(Runnable)") == {"p.B.helper()"}
 
 
 def test_an_anonymous_class_of_a_jdk_interface_whose_members_are_known_inherits_only_those(make_repo):
@@ -577,12 +591,17 @@ def test_a_type_name_is_not_found_past_a_member_type_that_an_unseen_supertype_ma
         {
             "p/Item.java": "package p;\npublic class Item { void add() {} }\n",
             "p/Plain.java": "package p;\nimport java.io.Serializable;\npublic class Plain implements Serializable, Comparable<Plain> {\n public int compareTo(Plain o) { return 0; }\n void f(Item i) { i.add(); }\n}\n",
-            "p/Mine.java": "package p;\npublic class Mine extends java.util.AbstractMap<String, String> {\n public java.util.Set<java.util.Map.Entry<String, String>> entrySet() { return null; }\n void f(Item i) { i.add(); }\n}\n",
+            "p/Entry.java": "package p;\npublic class Entry { void add() {} }\n",
+            "p/Mine.java": "package p;\npublic class Mine extends java.util.AbstractMap<String, String> {\n public java.util.Set<java.util.Map.Entry<String, String>> entrySet() { return null; }\n void f(Item i, Entry e) { i.add(); e.add(); }\n}\n",
+            "p/Out.java": "package p;\npublic class Out extends java.io.Writer {\n public void write(char[] b, int o, int l) {}\n public void flush() {}\n public void close() {}\n void f(Item i, Entry e) { i.add(); e.add(); }\n}\n",
         },
     )
     assert edges(g, "p.Plain.f(Item)") == {"call p.Item.add()"}  # Serializable and Comparable declare no member type: known
-    assert edges(g, "p.Mine.f(Item)") == set()  # AbstractMap's Map.Entry could as well have been another Item
-    assert any("may be a member type that p.Mine inherits from java.util.AbstractMap" in r for r in reasons(g, "p.Mine.f(Item)"))
+    # AbstractMap brings the member types Entry, SimpleEntry and SimpleImmutableEntry (its own and Map's): its `Entry` could
+    # have been the p.Entry written in Mine, but `Item` is a name no JDK gives it, so the table proves that one
+    assert edges(g, "p.Mine.f(Item,Entry)") == {"call p.Item.add()"}
+    assert any("type Entry may be a member type that p.Mine inherits from java.util.AbstractMap" in r for r in reasons(g, "p.Mine.f(Item,Entry)"))
+    assert edges(g, "p.Out.f(Item,Entry)") == {"call p.Item.add()", "call p.Entry.add()"}  # Writer has no member type
 
 
 def test_a_private_field_of_a_supertype_is_not_inherited(make_repo):
@@ -651,13 +670,13 @@ def test_a_marker_interface_declares_nothing_so_it_blocks_no_call(make_repo):
         {
             "p/A.java": "package p;\nimport java.io.Serializable;\nclass Data implements Serializable, Cloneable { void use() {} }\n"
             "class Res implements AutoCloseable { void use() {} public void close() {} public void close(int n) {} }\n"
-            "class Lib implements java.util.concurrent.Executor { void use() {} public void execute(Runnable r) {} }\n"
+            "class Lib implements java.awt.event.ActionListener { void use() {} public void actionPerformed(java.awt.event.ActionEvent r) {} }\n"
             "class C { void f(Data d, Res r, Lib l) { d.use(); r.use(); r.close(1); r.close(); l.use(); } }\n"
         },
     )
     # AutoCloseable declares close() and nothing else: close(int) is not its, and close() is the one Res overrides
     assert calls(g, "p.C.f(Data,Res,Lib)") == {"p.Data.use()", "p.Res.use()", "p.Res.close(int)", "p.Res.close()"}
-    assert len(reasons(g, "p.C.f(Data,Res,Lib)")) == 1 and "Executor" in reasons(g, "p.C.f(Data,Res,Lib)")[0]  # only the type ripple does not know
+    assert len(reasons(g, "p.C.f(Data,Res,Lib)")) == 1 and "ActionListener" in reasons(g, "p.C.f(Data,Res,Lib)")[0]  # only the type that is not in the table
 
 
 def test_a_method_whose_header_the_parser_cannot_read_decides_no_call_of_its_name(make_repo):

@@ -1,0 +1,15 @@
+{
+ "invokes": [
+  ["p/Outer.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Outer.<init>:()V", 1],
+  ["p/Outer.java", 9, "invokespecial", "java.lang.Enum", "<init>", "(Ljava/lang/String;I)V", "p.Outer$Op.<init>:(Ljava/lang/String;I)V", 3],
+  ["p/Outer.java", 9, "invokestatic", "java.lang.Enum", "valueOf", "(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Enum;", "p.Outer$Op.valueOf:(Ljava/lang/String;)Lp/Outer$Op;", 3],
+  ["p/Outer.java", 9, "invokestatic", "p.Outer$Op", "$values", "()[Lp/Outer$Op;", "p.Outer$Op.<clinit>:()V", 13],
+  ["p/Outer.java", 9, "invokevirtual", "[Lp.Outer$Op;", "clone", "()Ljava/lang/Object;", "p.Outer$Op.values:()[Lp/Outer$Op;", 3],
+  ["p/Outer.java", 10, "invokespecial", "p.Outer$Op", "<init>", "(Ljava/lang/String;I)V", "p.Outer$Op.<clinit>:()V", 7],
+  ["p/Outer.java", 13, "invokevirtual", "p.Outer$Op", "describeConstable", "()Ljava/util/Optional;", "p.Outer$Op.f:()Ljava/lang/Object;", 1]
+ ],
+ "classes": {
+  "p.Outer": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["describeConstable", "()Ljava/lang/Object;", 8]], "bridges": [], "compiler": []},
+  "p.Outer$Op": {"supers": ["java.io.Serializable", "java.lang.Comparable", "java.lang.Enum", "java.lang.Object", "java.lang.constant.Constable"], "methods": [["<init>", "(Ljava/lang/String;I)V", 2], ["f", "()Ljava/lang/Object;", 0]], "bridges": [], "compiler": [["valueOf", "(Ljava/lang/String;)Lp/Outer$Op;", 9], ["values", "()[Lp/Outer$Op;", 9]]}
+ }
+}

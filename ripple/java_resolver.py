@@ -14,8 +14,12 @@ makes it safe (the repo compiles, so a call has a target and the declared types 
              there). A local class is in scope from its declaration to the end of its block: a name written outside
              that is not decided; inside a local or anonymous class the member types it declares or inherits come
              before the local classes of the method around it. A member type inherited from a supertype outside the
-             repo hides everything further out, so with such a supertype (one not in KNOWN_SUPERTYPES) a name its repo
-             members do not supply is unresolved.
+             repo hides everything further out, so with such a supertype a name its repo members do not supply is
+             unresolved, unless the supertype is in the JDK table (java_jdk.py) and none of the JDKs it was
+             generated from (8 through 27) gives it, or any type above it, a member type of that name: `HashMap` brings
+             `Entry` and `SimpleEntry`, `Writer` brings none. The class's own simple name comes after all of these:
+             inside `class Entry extends AbstractMap`, `Entry` is the Map.Entry it inherits (JLS 6.4.1), and so is
+             `Node` inside `class Node extends Base` when Base declares a member `Node`.
   receivers  `this`, `super`, `new T()`, a cast, a parameter, local, field or `var` with a written or initializer type,
              a chain of calls through each method's declared return type, a pattern variable, a string or number
              literal. Generics are erased (`List<Item>.get(0)` is a List's call), so a type variable, an array
@@ -47,20 +51,37 @@ makes it safe (the repo compiles, so a call has a target and the declared types 
              `Type.m()` or `new T().m()`, which are exact.
   strict     A supertype from outside the repo may declare another method of the name, and with no classpath that is
              not known: a call that could be answered by one is unresolved, "an external supertype may declare
-             another m". The exceptions are the supertypes whose members are all known (KNOWN_MEMBERS: Object, Enum
-             and Record, which the language puts under every class, enum and record, and every type of
-             KNOWN_SUPERTYPES, from the JDK's own declarations): one that lacks the name cannot declare it, a marker
-             interface such as Serializable or Cloneable declares nothing, and the reason is only given for a name
-             such a type, or one that is not known, may declare. This was measured against javac's bytecode: the
-             lenient rule (ignore them) made a wrong edge, `Ledger.write(Item)` for a call javac sends to
-             java.io.Writer.write(String).
+             another m". The exceptions are the supertypes whose members are all known: Object, Enum and Record, which
+             the language puts under every class, enum and record, and every type in the JDK table (java_jdk.py, from
+             the JDK's own class files). One that lacks the name cannot declare it, a marker interface such as
+             Serializable or Cloneable declares nothing, and the reason is only given for a name (or a number of
+             arguments, or a field) such a type, or one that is not known, may declare. This was measured against
+             javac's bytecode: the lenient rule (ignore them) made a wrong edge, `Ledger.write(Item)` for a call javac
+             sends to java.io.Writer.write(String).
+  jdk table  The table is the UNION over every released JDK from 8 through 27 (the repo may be built with any), so only an
+             ABSENCE proves anything: a member, field, member type, number of arguments or supertype it does not hold is
+             in none of them. THE HORIZON IS 27: a repo built with a later JDK may meet a member (or a supertype, field or
+             member type) that no JDK of the table has, and ripple cannot prove from the repo that it does not, so an
+             absence is proof only under the ASSUMPTION that no later JDK adds one (JDK 26 gave Process a supertype and a
+             close(); the table is regenerated, bench/java_jdk/generate.py, when a JDK is released). A table the
+             loader refuses (a truncated file) has no type in it: every type outside the repo is unknown, and the graph's
+             `unread` notes say so. A member it holds may be in only one JDK, so it blocks (the call is unresolved) and never proves:
+             in `class Q extends Thread` nested in a class that declares `destroy()`, an unqualified `destroy()` is
+             Thread's on JDK 8 and the outer class's on 11 and later, so it is not decided. `final` is the intersection,
+             a type that is not in the table is unknown and may declare, inherit and be anything, and a repo that
+             declares a type in a package of the table (`package java.util;`) reaches what the table leaves out
+             (package-private members), so its supertypes from outside the repo are all unknown.
   outside    A call counts as outside the repo only when it provably cannot run repo code. A value typed with an
              external class or interface (or Object) may be an instance of a repo type that has that supertype, so a
-             call of a name such a type declares is unresolved (`List l = new MyList(); l.add(x)`), unless the JDK
-             class is final (FINAL_EXTERNAL): the class that declares the method, and every subtype of it that
+             call of a name such a type declares is unresolved (`List l = new MyList(); l.add(x)`), unless no repo type
+             can be an instance of the JDK class: it is final in every JDK, or it is a class whose constructors are
+             all private or package-private in every JDK and so are those of every table type below it that is not final
+             (`java.util.Arrays`). Otherwise the class that declares the method, and every subtype of it that
              inherits it (`class Task extends RunBase implements Runnable {}` runs RunBase.run for `Runnable.run()`),
-             are asked. A method no repo class above the receiver declares is outside the repo only if no subtype of
-             the receiver declares it either.
+             are asked, and the names of the types above a repo class's supertype come from the table: a name that is
+             not canonical (`?.Entry`, `HashMap.Entry`) is matched by its simple name, never to say False. A method no
+             repo class above the receiver declares is outside the repo only if no subtype of the receiver declares it
+             either.
   absence    A method name no repo source declares with that arity cannot run repo code, so a call of it that is
              otherwise unresolved counts as outside the repo. Off in a repo that uses Lombok, which writes methods
              no source holds. A method whose header the parser could not read (a type annotation on a varargs
@@ -72,9 +93,11 @@ never an edge. A lambda's calls belong to the method around it.
 
 from __future__ import annotations
 
+import functools
 import re
 from collections import Counter, defaultdict
 
+from . import java_jdk
 from .java_indexer import (
     CALLABLES,
     CONSTRUCTOR,
@@ -94,211 +117,44 @@ from .profile import LanguageProfile
 
 OBJECT = "java.lang.Object"
 
-# The members of the three supertypes the language itself puts under every class, enum and record (JLS 8.1.4, 8.9.3,
-# 8.10.3), read off java.lang.Object, java.lang.Enum and java.lang.Record with `javap -protected` on JDK 21. Nothing
-# else about the JDK is known, and no other external type is trusted to lack a name.
-#
+# What the language itself puts under every class, enum and record (JLS 8.1.4, 8.9.3, 8.10.3) and no class file holds:
 # Object's methods with the parameter types of each arity. A repo method of the same name and arity either repeats
-# these (it overrides Object's) or does not (an overload that a call of Object's may be meant for).
+# these (it overrides Object's) or does not (an overload that a call of Object's may be meant for). Every other
+# member of a type from outside the repo is read from the JDK table (java_jdk.py): this is all that stays by hand.
 OBJECT_SIGNATURES: dict[tuple[str, int], tuple[str, ...]] = {
     ("equals", 1): (OBJECT,), ("wait", 1): ("long",), ("wait", 2): ("long", "int"),
     **{(name, 0): () for name in ("getClass", "hashCode", "clone", "toString", "notify", "notifyAll", "wait", "finalize")},
 }  # fmt: skip
 OBJECT_MEMBERS = frozenset(name for name, _ in OBJECT_SIGNATURES)
-# What java.lang.Enum adds to Object's (any arity: `valueOf` is declared with one and two parameters, and a repo
-# enum may overload `valueOf` or `compareTo`). java.lang.Record adds nothing: its three methods are Object's.
-ENUM_MEMBERS = frozenset({"name", "ordinal", "compareTo", "getDeclaringClass", "describeConstable", "values", "valueOf"})
-# The supertypes outside the repo whose members are known: member name -> the numbers of parameters it is declared with
-# (ANY: not known, which is any number). A name, or a number of arguments, that is not in the entry is not that type's, so
-# a call of it is not one that such a supertype could answer. Enum and Record are put under every enum and record by the
-# language; every entry of KNOWN_SUPERTYPES below is known the same way (what the type and everything above it
-# declares). A marker interface (Serializable, Cloneable, RandomAccess, EventListener) declares nothing at all.
-ANY = (-1,)
-KNOWN_MEMBERS: dict[str, dict[str, tuple[int, ...]]] = {"java.lang.Record": {}}
-
-# The well known JDK types whose whole supertype list is known, with that list (java.lang.Object left out), and which
-# declare no member type that a subclass inherits (a public or protected nested type: `Map.Entry`, `Thread.State`,
-# `Enum.EnumDesc`). Read off JDK 21 with `javap -v -p` (the InnerClasses entries of each, and the supers of its
-# header, closed over the JDK's own types). A repo type with any other external supertype may inherit a member type of
-# that supertype, which hides a type of the same name from an outer scope or an import, and may itself be an instance
-# of any type that supertype extends: neither is known, so a name or a call that depends on it is not proven.
-KNOWN_SUPERTYPES: dict[str, tuple[str, ...]] = {
-    "java.io.Serializable": (), "java.lang.Cloneable": (), "java.lang.Comparable": (), "java.lang.Runnable": (),
-    "java.util.concurrent.Callable": (), "java.lang.AutoCloseable": (), "java.lang.Iterable": (), "java.util.Iterator": (),
-    "java.lang.CharSequence": (), "java.lang.Appendable": (), "java.util.RandomAccess": (), "java.util.Comparator": (),
-    "java.util.function.Supplier": (), "java.util.function.Function": (), "java.util.function.Consumer": (),
-    "java.util.function.Predicate": (), "java.util.function.BiFunction": (), "java.util.function.BiConsumer": (),
-    "java.io.Flushable": (), "java.util.EventListener": (), "java.lang.annotation.Annotation": (), "java.lang.Record": (),
-    "java.util.Map.Entry": (), "java.lang.reflect.Type": (), "java.lang.reflect.InvocationHandler": (),
-    "java.util.concurrent.ThreadFactory": (),
-    "java.io.Closeable": ("java.lang.AutoCloseable",),
-    "java.lang.reflect.ParameterizedType": ("java.lang.reflect.Type",),
-    "java.lang.reflect.GenericArrayType": ("java.lang.reflect.Type",),
-    "java.lang.reflect.WildcardType": ("java.lang.reflect.Type",),
-    "java.lang.reflect.TypeVariable": ("java.lang.reflect.AnnotatedElement", "java.lang.reflect.Type"),
-    "java.util.ListIterator": ("java.util.Iterator",),
-    "java.util.Random": ("java.io.Serializable", "java.util.random.RandomGenerator"),
-    "java.beans.VetoableChangeListener": ("java.util.EventListener",),
-    "java.util.function.UnaryOperator": ("java.util.function.Function",),
-    "java.util.function.BinaryOperator": ("java.util.function.BiFunction",),
-    "java.lang.Number": ("java.io.Serializable",),
-    "java.lang.Throwable": ("java.io.Serializable",),
-    "java.lang.Enum": ("java.io.Serializable", "java.lang.Comparable", "java.lang.constant.Constable"),
-    "java.lang.Exception": ("java.io.Serializable", "java.lang.Throwable"),
-    "java.lang.Error": ("java.io.Serializable", "java.lang.Throwable"),
-    "java.io.IOException": ("java.io.Serializable", "java.lang.Exception", "java.lang.Throwable"),
-    "java.lang.InterruptedException": ("java.io.Serializable", "java.lang.Exception", "java.lang.Throwable"),
-    "java.lang.CloneNotSupportedException": ("java.io.Serializable", "java.lang.Exception", "java.lang.Throwable"),
-    "java.lang.ReflectiveOperationException": ("java.io.Serializable", "java.lang.Exception", "java.lang.Throwable"),
-    "java.lang.AssertionError": ("java.io.Serializable", "java.lang.Error", "java.lang.Throwable"),
-    "java.io.FileNotFoundException": ("java.io.IOException", "java.io.Serializable", "java.lang.Exception", "java.lang.Throwable"),
-    "java.lang.RuntimeException": ("java.io.Serializable", "java.lang.Exception", "java.lang.Throwable"),
-    **{
-        name: ("java.io.Serializable", "java.lang.Exception", "java.lang.RuntimeException", "java.lang.Throwable")
-        for name in (
-            "java.lang.IllegalArgumentException", "java.lang.IllegalStateException", "java.lang.UnsupportedOperationException",
-            "java.lang.ClassCastException", "java.lang.NullPointerException", "java.lang.IndexOutOfBoundsException",
-            "java.lang.SecurityException", "java.lang.ArithmeticException", "java.util.NoSuchElementException",
-            "java.util.ConcurrentModificationException", "java.io.UncheckedIOException",
-        )
-    },
-    "java.lang.NumberFormatException": (
-        "java.io.Serializable", "java.lang.Exception", "java.lang.IllegalArgumentException", "java.lang.RuntimeException",
-        "java.lang.Throwable",
-    ),
-}  # fmt: skip
-# the exceptions to "declares none": java.util.Random inherits the member interfaces of RandomGenerator (JDK 17 and up)
-MEMBER_TYPES: dict[str, frozenset[str]] = {
-    "java.lang.Enum": frozenset({"EnumDesc"}),
-    "java.util.Random": frozenset({"StreamableGenerator", "SplittableGenerator", "JumpableGenerator", "LeapableGenerator", "ArbitrarilyJumpableGenerator"}),
-}  # fmt: skip
-
-# The public and protected methods and fields (static ones too) that each type of KNOWN_SUPERTYPES, and each type it
-# names above it, declares itself: `javap -protected` on JDK 21, nothing from a later JDK is in it. KNOWN_MEMBERS is the
-# union over a type and its supertypes.
-DECLARED_MEMBERS: dict[str, dict[str, tuple[int, ...]]] = {
-    "java.beans.VetoableChangeListener": {"vetoableChange": (1,)},
-    "java.io.Closeable": {"close": (0,)},
-    "java.io.FileNotFoundException": {},
-    "java.io.Flushable": {"flush": (0,)},
-    "java.io.IOException": {},
-    "java.io.Serializable": {},
-    "java.io.UncheckedIOException": {"getCause": (0,)},
-    "java.lang.Appendable": {"append": (1, 3)},
-    "java.lang.ArithmeticException": {},
-    "java.lang.AssertionError": {},
-    "java.lang.AutoCloseable": {"close": (0,)},
-    "java.lang.CharSequence": {
-        "charAt": (1,), "chars": (0,), "codePoints": (0,), "isEmpty": (0,), "length": (0,), "subSequence": (2,),
-        "toString": (0,)
-    },
-    "java.lang.ClassCastException": {},
-    "java.lang.CloneNotSupportedException": {},
-    "java.lang.Cloneable": {},
-    "java.lang.Comparable": {"compareTo": (1,)},
-    "java.lang.Enum": {
-        "clone": (0,), "compareTo": (1,), "describeConstable": (0,), "equals": (1,), "finalize": (0,),
-        "getDeclaringClass": (0,), "hashCode": (0,), "name": (0,), "ordinal": (0,), "toString": (0,), "valueOf": (2,)
-    },
-    "java.lang.Error": {},
-    "java.lang.Exception": {},
-    "java.lang.IllegalArgumentException": {},
-    "java.lang.IllegalStateException": {},
-    "java.lang.IndexOutOfBoundsException": {},
-    "java.lang.InterruptedException": {},
-    "java.lang.Iterable": {"forEach": (1,), "iterator": (0,), "spliterator": (0,)},
-    "java.lang.NullPointerException": {"fillInStackTrace": (0,), "getMessage": (0,)},
-    "java.lang.Number": {
-        "byteValue": (0,), "doubleValue": (0,), "floatValue": (0,), "intValue": (0,), "longValue": (0,), "shortValue":
-        (0,)
-    },
-    "java.lang.NumberFormatException": {},
-    "java.lang.ReflectiveOperationException": {},
-    "java.lang.Runnable": {"run": (0,)},
-    "java.lang.RuntimeException": {},
-    "java.lang.SecurityException": {},
-    "java.lang.Throwable": {
-        "addSuppressed": (1,), "fillInStackTrace": (0,), "getCause": (0,), "getLocalizedMessage": (0,), "getMessage":
-        (0,), "getStackTrace": (0,), "getSuppressed": (0,), "initCause": (1,), "printStackTrace": (0, 1),
-        "setStackTrace": (1,), "toString": (0,)
-    },
-    "java.lang.UnsupportedOperationException": {},
-    "java.lang.annotation.Annotation": {"annotationType": (0,), "equals": (1,), "hashCode": (0,), "toString": (0,)},
-    "java.lang.constant.Constable": {"describeConstable": (0,)},
-    "java.lang.reflect.AnnotatedElement": {
-        "getAnnotation": (1,), "getAnnotations": (0,), "getAnnotationsByType": (1,), "getDeclaredAnnotation": (1,),
-        "getDeclaredAnnotations": (0,), "getDeclaredAnnotationsByType": (1,), "isAnnotationPresent": (1,)
-    },
-    "java.lang.reflect.GenericArrayType": {"getGenericComponentType": (0,)},
-    "java.lang.reflect.InvocationHandler": {"invoke": (3,)},
-    "java.lang.reflect.ParameterizedType": {"getActualTypeArguments": (0,), "getOwnerType": (0,), "getRawType": (0,)},
-    "java.lang.reflect.Type": {"getTypeName": (0,)},
-    "java.lang.reflect.TypeVariable": {
-        "getAnnotatedBounds": (0,), "getBounds": (0,), "getGenericDeclaration": (0,), "getName": (0,)
-    },
-    "java.lang.reflect.WildcardType": {"getLowerBounds": (0,), "getUpperBounds": (0,)},
-    "java.util.Comparator": {
-        "compare": (2,), "equals": (1,), "reversed": (0,), "thenComparing": (1, 2), "thenComparingDouble": (1,),
-        "thenComparingInt": (1,), "thenComparingLong": (1,)
-    },
-    "java.util.ConcurrentModificationException": {},
-    "java.util.EventListener": {},
-    "java.util.Iterator": {"forEachRemaining": (1,), "hasNext": (0,), "next": (0,), "remove": (0,)},
-    "java.util.ListIterator": {
-        "add": (1,), "hasNext": (0,), "hasPrevious": (0,), "next": (0,), "nextIndex": (0,), "previous": (0,),
-        "previousIndex": (0,), "remove": (0,), "set": (1,)
-    },
-    "java.util.Map.Entry": {"equals": (1,), "getKey": (0,), "getValue": (0,), "hashCode": (0,), "setValue": (1,)},
-    "java.util.NoSuchElementException": {},
-    "java.util.Random": {
-        "doubles": (0, 1, 2, 3), "from": (1,), "ints": (0, 1, 2, 3), "longs": (0, 1, 2, 3), "next": (1,), "nextBoolean":
-        (0,), "nextBytes": (1,), "nextDouble": (0,), "nextFloat": (0,), "nextGaussian": (0,), "nextInt": (0, 1),
-        "nextLong": (0,), "setSeed": (1,)
-    },
-    "java.util.RandomAccess": {},
-    "java.util.concurrent.Callable": {"call": (0,)},
-    "java.util.concurrent.ThreadFactory": {"newThread": (1,)},
-    "java.util.function.BiConsumer": {"accept": (2,), "andThen": (1,)},
-    "java.util.function.BiFunction": {"andThen": (1,), "apply": (2,)},
-    "java.util.function.BinaryOperator": {},
-    "java.util.function.Consumer": {"accept": (1,), "andThen": (1,)},
-    "java.util.function.Function": {"andThen": (1,), "apply": (1,), "compose": (1,)},
-    "java.util.function.Predicate": {"and": (1,), "negate": (0,), "or": (1,), "test": (1,)},
-    "java.util.function.Supplier": {"get": (0,)},
-    "java.util.function.UnaryOperator": {},
-    "java.util.random.RandomGenerator": {
-        "doubles": (0, 1, 2, 3), "ints": (0, 1, 2, 3), "isDeprecated": (0,), "longs": (0, 1, 2, 3), "nextBoolean": (0,),
-        "nextBytes": (1,), "nextDouble": (0, 1, 2), "nextExponential": (0,), "nextFloat": (0, 1, 2), "nextGaussian":
-        (0, 2), "nextInt": (0, 1, 2), "nextLong": (0, 1, 2)
-    },
-}  # fmt: skip
+ENUM = "java.lang.Enum"
+RECORD = "java.lang.Record"
+# The two methods the compiler adds to every enum type (JLS 8.9.3): `values()` and `valueOf(String)`. No class file has
+# them (java.lang.Enum's own `valueOf` takes a Class and a String), so the table cannot say. Any number of arguments: a
+# repo enum may overload either, and `Enum.valueOf(Class, String)` is another. Everything else an enum inherits
+# (`name`, `ordinal`, `compareTo`, `getDeclaringClass`) is read from the table like any other supertype's: that
+# `describeConstable` is JDK 12 and later is a fact only the table's union knows, and it is a name, never a proof.
+ENUM_IMPLICIT = frozenset({"values", "valueOf"})
 
 
-def _known_members(name: str) -> dict[str, tuple[int, ...]]:
-    """What a type of KNOWN_SUPERTYPES and everything above it declare: member -> the numbers of parameters."""
-    found: dict[str, set[int]] = {}
-    for above in (name, *KNOWN_SUPERTYPES[name]):
-        for member, counts in DECLARED_MEMBERS.get(above, {}).items():
-            found.setdefault(member, set()).update(counts)
-    return {member: tuple(sorted(counts)) for member, counts in found.items()}
+@functools.lru_cache(maxsize=1)
+def _all_jdks() -> tuple[int, ...]:
+    """The JDKs the table was generated from, from its header lines (`# jdk 8: 1.8.0_512-b09 ...`)."""
+    return tuple(int(header.split(":")[0].split()[1]) for header in java_jdk.table().headers if header.startswith("jdk "))
 
 
-KNOWN_MEMBERS.update({name: _known_members(name) for name in KNOWN_SUPERTYPES if name != "java.lang.Record"})
-KNOWN_MEMBERS["java.lang.Enum"].update({member: ANY for member in ENUM_MEMBERS})
-# JDK classes that are final, so no repo type is an instance of one (`javap` prints `final class`): a call on a value
-# of such a type cannot run repo code.
-FINAL_EXTERNAL = frozenset(
-    {
-        "java.lang." + n
-        for n in ("String", "StringBuilder", "StringBuffer", "Integer", "Long", "Short", "Byte", "Character", "Boolean", "Double",
-                  "Float", "Class", "Math", "StrictMath", "System", "Void", "StackTraceElement", "ProcessBuilder")
-    }
-    | {
-        "java.util." + n
-        for n in ("Objects", "Optional", "OptionalInt", "OptionalLong", "OptionalDouble", "Arrays", "UUID", "Scanner", "StringJoiner", "Locale")
-    }
-    | {"java.util.regex.Pattern", "java.util.regex.Matcher"}
-)  # fmt: skip
+@functools.lru_cache(maxsize=1)
+def _jdk_layout()-> tuple[frozenset[str], frozenset[str]]:
+    """(the packages the table's types are in, the simple names of its member types), from the canonical names alone. A
+    package name has no capital letter in it (java.util, javax.tools): the first segment that has one is the type."""
+    packages, nested = set(), set()
+    for name in java_jdk.table().names():
+        parts = name.split(".")
+        first_type = next(i for i, part in enumerate(parts) if part[:1].isupper())
+        packages.add(".".join(parts[:first_type]))
+        if first_type < len(parts) - 1:
+            nested.add(parts[-1])
+    return frozenset(packages), frozenset(nested)
+
 
 TYPE_ASKS = ("type_identifier", "scoped_type_identifier", "generic_type", "annotation", "marker_annotation", "type_arguments")
 STATEMENT_ENDS = ("statement", "declaration", "declarator")
@@ -347,6 +203,8 @@ class JavaResolver:
         self._implicit: dict[JavaType, list[JavaMethod]] = {}
         self._views: dict[tuple, dict[str, str] | None] = {}
         self._ext_asked: dict[tuple[str, str, int], bool] = {}
+        self._jdk_patched: bool | None = None
+        self._unextended: dict[str, bool] = {}
         self.ready = False
         self.by_name: dict[str, list[JavaMethod]] = defaultdict(list)
         for t in self.d.every_type:
@@ -356,6 +214,32 @@ class JavaResolver:
         self.lombok = any(LOMBOK & t.annotations for t in self.d.every_type)
         # methods whose header the parser could not read (JavaMethod.broken): a call of their name is not decided
         self.broken_names = {m.name for t in self.d.every_type for m in [*(x for ms in t.methods.values() for x in ms), *t.ctors] if m.broken}
+
+    # ---- the JDK table -----------------------------------------------------------------------------------------
+
+    def jdk_patched(self) -> bool:
+        """Whether the repo declares a type in a package that the JDK table has types in (`package java.util;`). Such a
+        type reaches what the table leaves out: a package-private member, field, member type or constructor of the JDK
+        type beside it. So for such a repo the table is not read at all and every type outside the repo is unknown."""
+        if self._jdk_patched is None:
+            self._jdk_patched = any(t.pkg in _jdk_layout()[0] for t in self.d.every_type)
+        return self._jdk_patched
+
+    def jdk_row(self, name: str) -> java_jdk.JdkType | None:
+        """The table's row for a type from outside the repo by canonical name; None when nothing about it is known: it is
+        not in the table (a library's, another JDK module's, a name spelled through a subtype, or one only an on-demand
+        import names), or the repo patches the JDK's own packages."""
+        if name.startswith("?.") or self.jdk_patched():
+            return None
+        return java_jdk.jdk_type(name)
+
+    @staticmethod
+    def _in_every_jdk(name: str) -> bool:
+        row = java_jdk.jdk_type(name)
+        return row is not None and row.jdks == _all_jdks()
+
+    def _ext_row(self, ext: tuple) -> java_jdk.JdkType | None:
+        return self.jdk_row(ext[1]) if ext[0] == "ext" else None
 
     # ---- supertypes --------------------------------------------------------------------------------------------
 
@@ -457,9 +341,14 @@ class JavaResolver:
         return None
 
     def _member_type_blocker(self, c: JavaType, name: str) -> str:
-        """Why `name` may be a member type that c inherits from a supertype outside the repo (see KNOWN_SUPERTYPES), or ""."""
+        """Why `name` may be a member type that c inherits from a supertype outside the repo, or "". Only a supertype in the
+        JDK table whose member types (declared or inherited, over every JDK) lack `name` cannot supply it: `HashMap` brings
+        `Entry` and `SimpleEntry`, which hide an outer or imported type of the same name."""
         for e in self.ancestors(c)[1]:
-            if e != OBJECT_EXTERNAL and not (e[0] == "ext" and e[1] in KNOWN_SUPERTYPES and name not in MEMBER_TYPES.get(e[1], ())):
+            if e == OBJECT_EXTERNAL:
+                continue
+            row = self._ext_row(e)
+            if row is None or row.may_declare_member_type(name):
                 return f"type {name} may be a member type that {c.fqn} inherits from {e[1]}, which ripple cannot see into"
         return ""
 
@@ -493,14 +382,17 @@ class JavaResolver:
         c = ctx  # (the member a local class sits in is looked at below, after the class's own and inherited member types)
         while c is not None:
             if not (header and c is ctx):  # (a class's own members are not in scope in its own header)
-                if c.simple == name and c.kind != "anon":
-                    return ("repo", c)
                 found = self._member_type(name, c)
                 if found is not None:
                     return ("repo", found)
                 blocked = self._member_type_blocker(c, name)
                 if blocked:
                     return ("unres", blocked)
+                # the class's own name comes AFTER the member types it declares or inherits: inside `class Entry extends
+                # AbstractMap`, Entry is the Map.Entry it inherits and not the class itself (JLS 6.4.1: a member type
+                # shadows a type of the same name in an enclosing scope, and the class is a member of that scope)
+                if c.simple == name and c.kind != "anon":
+                    return ("repo", c)
             if isinstance(c.ctx_method, JavaMethod):
                 local = self.d.types.get(f"{c.ctx_method.id}.{name}")
             else:  # a local class of an initializer block is named for the class around it
@@ -534,6 +426,11 @@ class JavaResolver:
         if len(found) > 1:
             return ("unres", f"two on-demand imports provide {name}")
         if name in self.java_lang:
+            if external_on_demand and not self._in_every_jdk("java.lang." + name):
+                # `Module`, `StackWalker`, `Record` and the like: the implicit import lists them for every JDK, but a JDK built
+                # before they were added lets an on-demand import of a library supply the name (JLS 6.4.1), so the table's
+                # row (a type of some JDKs) does not say what this name is
+                return ("ext", "?." + name)
             return ("ext", "java.lang." + name)
         if external_on_demand:
             return ("ext", "?." + name)  # a type from a package an on-demand import names: which one is not known
@@ -1106,16 +1003,29 @@ class JavaResolver:
         same = [c for c in found if self.signature(c) == at and not c.varargs and self._generics_agree(c, args, t, m)]
         return same[0] if len(same) == 1 else None
 
-    @staticmethod
-    def may_declare(ext: tuple, name: str, n: int | None = None, field: bool = False) -> bool:
-        """Whether a supertype from outside the repo may declare a member `name` other than Object's (which a call checks
-        on its own, by OBJECT_SIGNATURES) that takes n arguments. True unless the supertype is one whose members are known
-        (KNOWN_MEMBERS) and lack it: nothing else about a type from outside the repo is known."""
-        members = KNOWN_MEMBERS.get(ext[1]) if ext[0] == "ext" else None
-        if members is None:
+    def may_declare(self, ext: tuple, name: str, n: int | None = None, field: bool = False) -> bool:
+        """Whether a supertype from outside the repo may declare or inherit a field (field=True) or a method `name` other
+        than Object's (which a call checks on its own, by OBJECT_SIGNATURES) that takes n arguments. True unless the
+        supertype is in the JDK table and the table lacks it: the table is the union over JDK 8 through 27, so a name or an
+        argument count it does not hold is in none of them (a JDK after 27 is the table's horizon), and one it holds may be in only one, which is only ever a
+        reason to leave the call unresolved. Nothing about a type that is not in the table is known."""
+        if ext[0] != "ext":
             return True
-        counts = members.get(name)
-        return not field and counts is not None and (n is None or ANY[0] in counts or n in counts)
+        if ext[1] == ENUM and not field and name in ENUM_IMPLICIT:
+            return True  # the compiler's own `values()` and `valueOf(String)`: no class file has them
+        if ext[1] == RECORD and not field:
+            return False  # nothing but Object's three methods, which a call checks on its own
+        row = self._ext_row(ext)
+        if row is None:
+            return True
+        return row.may_declare_field(name) if field else row.may_declare_method(name, n)
+
+    def declares_no_parameters(self, ext: tuple, name: str) -> bool:
+        """Whether the type is known to declare a method `name` taking exactly no parameters in some JDK, which a repo
+        method `name()` then overrides. A varargs `name(Object...)` takes no arguments too but is not that signature, so
+        `Arities.exact` is asked and `admits(0)` never is: a repo `name()` does not override it."""
+        row = self._ext_row(ext)
+        return row is not None and name in row.methods and 0 in row.methods[name].exact
 
     def label(self, qualified: str) -> str:
         if qualified.startswith("?."):
@@ -1144,7 +1054,7 @@ class JavaResolver:
                 return ("unres", f"'{name}' is not declared on {rt.fqn}, but a subtype of it declares {name}")
             if name in OBJECT_MEMBERS and not any(name in a.methods for a in order):
                 return ("ext", OBJECT_MEMBER)
-            if rt.kind == "enum" and name in ENUM_MEMBERS:
+            if rt.kind == "enum" and name in ENUM_IMPLICIT:
                 return ("ext", IMPLICIT_ENUM_MEMBER)
             if rt.kind == "record" and n == 0 and any(component == name for _, component in rt.components):
                 return ("ext", IMPLICIT_RECORD_ACCESSOR)
@@ -1159,7 +1069,7 @@ class JavaResolver:
         if n == 0 and any(not c.params for c in found):
             # a method with no parameters that a type outside the repo declares too (`close()` of AutoCloseable) has the
             # signature of the candidate: the candidate overrides it, and there is no other
-            blockers = [e for e in blockers if not (e[0] == "ext" and e[1] in KNOWN_MEMBERS and 0 in KNOWN_MEMBERS[e[1]].get(name, ()))]
+            blockers = [e for e in blockers if not self.declares_no_parameters(e, name)]
         if blockers:  # the strict rule: a supertype from outside the repo may declare another `name`
             kind, written = blockers[0]
             if kind == "unres":
@@ -1386,18 +1296,56 @@ class JavaResolver:
 
     def _may_be_instance(self, c: JavaType, ext_name: str) -> bool:
         """Whether an instance of the repo type c may also be of the external type: one of c's supertypes outside the
-        repo is it, or may extend it (nothing of it is known unless it is in KNOWN_SUPERTYPES)."""
-        simple = ext_name.rsplit(".", 1)[-1]
+        repo is it, or may extend it (nothing of it is known unless it is in the JDK table). It errs only toward True."""
         for e in self.ancestors(c)[1]:
             if e == OBJECT_EXTERNAL:
                 continue
-            known = KNOWN_SUPERTYPES.get(e[1]) if e[0] == "ext" else None
-            if known is None:
+            row = self._ext_row(e)
+            if row is None or self._row_may_be(row, ext_name):
                 return True
-            for above in (e[1], *known):
-                if above == ext_name or (ext_name.startswith("?.") and above.rsplit(".", 1)[-1] == simple):
-                    return True
         return False
+
+    def _row_may_be(self, row: java_jdk.JdkType, ext_name: str) -> bool:
+        """Whether a value of the table type `row` may also be of the external type `ext_name`, as written. The row lists
+        every type above it by canonical name (the union over JDK 8 through 27), so a canonical name that is not there is no
+        supertype of it. But a name is not always canonical: `?.Entry` has no package (an on-demand import), and
+        `java.util.HashMap.Entry` spells the member type `java.util.Map.Entry` through a subtype. Those are compared by simple
+        name (and a name that is not in the table and ends in the name of some JDK member type is taken to be one), which
+        can only say True where the canonical comparison says False."""
+        above = (row.name, *row.supers)
+        if ext_name in above:
+            return True
+        simple = ext_name.rsplit(".", 1)[-1]
+        if ext_name.startswith("?."):
+            return any(a.rsplit(".", 1)[-1] == simple for a in above)
+        if self.jdk_row(ext_name) is not None:
+            return False  # a canonical name of the table, and not one of those above the row
+        return simple in _jdk_layout()[1]  # not canonical, or not a JDK type: only a member type's name can spell another's
+
+    def no_repo_instance(self, name: str) -> bool:
+        """Whether no repo type can be an instance of the JDK class `name`, on any JDK. `final` proves it (a type that is
+        final in one JDK only is open in the intersection). So does this: the type is a class with no public or protected
+        constructor in any JDK (`ctor` false), and so is every type of the table below it that is not final, so that a repo
+        class has no class to extend that has it as an ancestor (`java.util.Arrays`, final only from JDK 21). An interface
+        proves nothing (a repo class implements it), and neither does a class that has an accessible constructor anywhere
+        at or below it. A name not in the table, or any name when the repo patches the JDK's packages, proves nothing."""
+        known = self._unextended.get(name)
+        if known is None:
+            row = self.jdk_row(name)
+            if row is None:
+                known = False
+            elif row.final:
+                known = True
+            elif row.kind != "class" or row.ctor is not False:
+                known = False
+            else:
+                known = all(
+                    below.final or below.ctor is False
+                    for below in (java_jdk.jdk_type(other) for other in java_jdk.table().names())
+                    if below is not None and name in below.supers
+                )
+            self._unextended[name] = known
+        return known
 
     def ext_may_be_repo(self, ext_name: str, name: str, n: int) -> bool:
         """Whether a value typed with the external class or interface `ext_name` may be an instance of a repo type that
@@ -1408,13 +1356,13 @@ class JavaResolver:
         if known is None:
             # the class that declares the method, or a subtype of it that inherits it: `class Task extends RunBase
             # implements Runnable {}` runs RunBase.run for `Runnable.run()`
-            known = self._ext_asked[key] = ext_name not in FINAL_EXTERNAL and any(
+            known = self._ext_asked[key] = any(
                 not mm.static
                 and not mm.private
                 and mm.arity_ok(n)
                 and (ext_name == OBJECT or any(self._may_be_instance(x, ext_name) for x in (mm.owner, *self.all_subs(mm.owner))))
                 for mm in self.by_name.get(name, ())
-            )
+            ) and not self.no_repo_instance(ext_name)
         return known
 
     def implicit_member(self, c: JavaType, name: str, n: int) -> str:
@@ -1423,7 +1371,7 @@ class JavaResolver:
         if name in OBJECT_MEMBERS:
             return OBJECT_MEMBER
         kinds = {a.kind for a in self.ancestors(c)[0]}
-        if "enum" in kinds and name in ENUM_MEMBERS:
+        if "enum" in kinds and name in ENUM_IMPLICIT:
             return IMPLICIT_ENUM_MEMBER
         if "record" in kinds and n == 0 and any(component == name for a in self.ancestors(c)[0] for _, component in a.components):
             return IMPLICIT_RECORD_ACCESSOR

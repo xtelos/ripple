@@ -140,6 +140,8 @@ class Javac:
 
     def __init__(self, data: dict):
         self.classes = data["classes"]
+        for info in self.classes.values():
+            info["supers"] = [self.binary_name(s) for s in info["supers"]]
         self.by_file: dict[str, list] = defaultdict(list)
         for row in data["invokes"]:
             self.by_file[row[0]].append(row)
@@ -148,6 +150,19 @@ class Javac:
         for c, info in self.classes.items():
             for s in info["supers"]:
                 self.subs[s].add(c)
+
+    def binary_name(self, name: str) -> str:
+        """The key of `classes` that a supertype's name stands for. javap's header writes a member class of a generic class
+        as `pkg.Outer.Inner` (`class Outer<T> { class Inner {} }`, then `new Inner() {}`), where the key is `pkg.Outer$Inner`;
+        a name that is no class of the tree (the JDK's, or one already a key) is left as it is."""
+        if name in self.classes:
+            return name
+        parts = name.split(".")
+        for i in range(len(parts) - 1, 0, -1):
+            candidate = ".".join(parts[:i]) + "$" + "$".join(parts[i:])
+            if candidate in self.classes:
+                return candidate
+        return name
 
     def supers(self, name: str) -> set[str]:
         return set(self.classes[name]["supers"]) if name in self.classes else set()
@@ -405,8 +420,14 @@ class Oracle:
         return f" (ripple: {site.info})"
 
 
-def read_javac(directory: Path) -> Javac:
-    return Javac(json.loads((directory / "javac.json").read_text()))
+def read_javac(directory: Path, name: str = "javac.json") -> Javac:
+    return Javac(json.loads((directory / name).read_text()))
+
+
+def other_answers(directory: Path) -> list[str]:
+    """The names of the answers of other javac versions beside javac.json (`javac-8.json`): a probe whose meaning depends
+    on the JDK it is built with keeps one for each, and ripple has to be right (or silent) for every one of them."""
+    return sorted(p.name for p in directory.glob("javac-*.json"))
 
 
 def read_ripple(src: Path) -> Sites:

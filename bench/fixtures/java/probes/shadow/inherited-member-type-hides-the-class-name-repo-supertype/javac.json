@@ -1,0 +1,13 @@
+{
+ "invokes": [
+  ["p/Node.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Base.<init>:()V", 1],
+  ["p/Node.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Base$Node.<init>:()V", 1],
+  ["p/Node.java", 8, "invokespecial", "p.Base", "<init>", "()V", "p.Node.<init>:()V", 1],
+  ["p/Node.java", 11, "invokevirtual", "p.Base$Node", "run", "()V", "p.Node.f:(Lp/Base$Node;)V", 1]
+ ],
+ "classes": {
+  "p.Base": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Base$Node": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["run", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Node": {"supers": ["java.lang.Object", "p.Base"], "methods": [["<init>", "()V", 1], ["f", "(Lp/Base$Node;)V", 0], ["run", "()V", 0]], "bridges": [], "compiler": []}
+ }
+}

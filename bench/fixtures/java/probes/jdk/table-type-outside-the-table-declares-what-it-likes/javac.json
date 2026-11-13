@@ -1,0 +1,11 @@
+{
+ "invokes": [
+  ["p/Outer.java", 9, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Outer.<init>:()V", 1],
+  ["p/Outer.java", 14, "invokespecial", "java.awt.Point", "<init>", "()V", "p.Outer$Q.<init>:(Lp/Outer;)V", 6],
+  ["p/Outer.java", 16, "invokevirtual", "p.Outer$Q", "getX", "()D", "p.Outer$Q.f:()D", 1]
+ ],
+ "classes": {
+  "p.Outer": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["getX", "()D", 0]], "bridges": [], "compiler": []},
+  "p.Outer$Q": {"supers": ["java.awt.Point", "java.awt.geom.Point2D", "java.io.Serializable", "java.lang.Cloneable", "java.lang.Object"], "methods": [["<init>", "(Lp/Outer;)V", 1], ["f", "()D", 0]], "bridges": [], "compiler": []}
+ }
+}

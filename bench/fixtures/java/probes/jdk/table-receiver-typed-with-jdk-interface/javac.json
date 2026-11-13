@@ -1,0 +1,17 @@
+{
+ "invokes": [
+  ["p/Use.java", 9, "invokespecial", "java.util.LinkedList", "<init>", "()V", "p.Fifo.<init>:()V", 1],
+  ["p/Use.java", 9, "invokevirtual", "p.Fifo", "add", "(Ljava/lang/String;)Z", "p.Fifo.add:(Ljava/lang/Object;)Z", 5],
+  ["p/Use.java", 15, "invokespecial", "java.util.ArrayList", "<init>", "()V", "p.Tags.<init>:()V", 1],
+  ["p/Use.java", 15, "invokevirtual", "p.Tags", "add", "(Ljava/lang/String;)Z", "p.Tags.add:(Ljava/lang/Object;)Z", 5],
+  ["p/Use.java", 21, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Use.<init>:()V", 1],
+  ["p/Use.java", 23, "invokeinterface", "java.util.Queue", "add", "(Ljava/lang/Object;)Z", "p.Use.q:(Ljava/util/Queue;)Z", 3],
+  ["p/Use.java", 27, "invokeinterface", "java.util.Set", "add", "(Ljava/lang/Object;)Z", "p.Use.s:(Ljava/util/Set;)Z", 3],
+  ["p/Use.java", 31, "invokevirtual", "p.Tags", "add", "(Ljava/lang/String;)Z", "p.Use.t:(Lp/Tags;)Z", 3]
+ ],
+ "classes": {
+  "p.Fifo": {"supers": ["java.io.Serializable", "java.lang.Cloneable", "java.lang.Iterable", "java.lang.Object", "java.util.AbstractCollection", "java.util.AbstractList", "java.util.AbstractSequentialList", "java.util.Collection", "java.util.Deque", "java.util.LinkedList", "java.util.List", "java.util.Queue", "java.util.SequencedCollection"], "methods": [["<init>", "()V", 0], ["add", "(Ljava/lang/String;)Z", 1]], "bridges": [["add", "(Ljava/lang/Object;)Z", "(Ljava/lang/String;)Z"]], "compiler": []},
+  "p.Tags": {"supers": ["java.io.Serializable", "java.lang.Cloneable", "java.lang.Iterable", "java.lang.Object", "java.util.AbstractCollection", "java.util.AbstractList", "java.util.ArrayList", "java.util.Collection", "java.util.List", "java.util.RandomAccess", "java.util.SequencedCollection"], "methods": [["<init>", "()V", 0], ["add", "(Ljava/lang/String;)Z", 1]], "bridges": [["add", "(Ljava/lang/Object;)Z", "(Ljava/lang/String;)Z"]], "compiler": []},
+  "p.Use": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["q", "(Ljava/util/Queue;)Z", 0], ["s", "(Ljava/util/Set;)Z", 0], ["t", "(Lp/Tags;)Z", 0]], "bridges": [], "compiler": []}
+ }
+}

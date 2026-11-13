@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from ripple import java_resolver
+import java_hand_tables as hand
 from ripple.java_jdk import Arities, JdkTable, jdk_type, parse_row, table
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -347,7 +347,7 @@ def test_parse_row_round_trip():
     assert JdkTable("# a header\n# rows: 1\n" + "a.F | class | open | ctor=yes | jdk=8 | supers= | types= | fields= | methods=\n").get("a.F") == empty
 
 
-# ---- the hand tables of java_resolver, an independent source ------------------------------------------------------------
+# ---- the hand tables the resolver used to hold (frozen in tests/java_hand_tables.py), an independent source -------------
 #
 # They were read off JDK 21 by hand and reviewed twice. Where the table disagrees, the JDK settles it: these are the
 # disagreements, each named with the side the class files support. A disagreement that is not listed here fails.
@@ -358,14 +358,14 @@ NOT_A_JDK_MEMBER = {("java.lang.Enum", "values")}  # hand: an enum's `values` (t
 
 
 def test_every_hand_supertype_list_is_a_subset_of_the_tables():
-    for name, above in java_resolver.KNOWN_SUPERTYPES.items():
+    for name, above in hand.KNOWN_SUPERTYPES.items():
         if name in OUT_OF_SCOPE:
             continue
         assert set(above) <= known(name).supers, (name, set(above) - known(name).supers)
 
 
 def test_every_hand_declared_member_arity_is_admitted_by_the_table():
-    for name, members in java_resolver.DECLARED_MEMBERS.items():
+    for name, members in hand.DECLARED_MEMBERS.items():
         if name in OUT_OF_SCOPE:
             continue
         for member, counts in members.items():
@@ -374,24 +374,24 @@ def test_every_hand_declared_member_arity_is_admitted_by_the_table():
 
 
 def test_every_hand_known_member_is_a_member_in_the_table():
-    for name, members in java_resolver.KNOWN_MEMBERS.items():
+    for name, members in hand.KNOWN_MEMBERS.items():
         if name in OUT_OF_SCOPE:
             continue
         for member, counts in members.items():
             if (name, member) in NOT_A_JDK_MEMBER:
                 assert not known(name).may_declare_method(member)
                 continue
-            for n in (None,) if java_resolver.ANY[0] in counts else counts:
+            for n in (None,) if hand.ANY[0] in counts else counts:
                 assert known(name).may_declare_method(member, n), (name, member, n)
 
 
 def test_the_hand_member_type_claims_equal_the_tables():
-    for name in java_resolver.KNOWN_SUPERTYPES:
+    for name in hand.KNOWN_SUPERTYPES:
         if name in OUT_OF_SCOPE:
             continue
-        assert known(name).member_types == java_resolver.MEMBER_TYPES.get(name, frozenset()), name
+        assert known(name).member_types == hand.MEMBER_TYPES.get(name, frozenset()), name
 
 
 def test_every_hand_final_external_type_is_final_in_the_table_but_the_jdk_disagrees_on_arrays():
-    for name in java_resolver.FINAL_EXTERNAL:
+    for name in hand.FINAL_EXTERNAL:
         assert (name in NOT_FINAL_IN_EVERY_JDK) != known(name).final, name
