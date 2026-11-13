@@ -1,0 +1,7 @@
+[package]
+name = "core_dep_no_std"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+core = { package = "fakestd", path = "../../_ext/fakestd" }

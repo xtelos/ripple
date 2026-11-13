@@ -1,0 +1,7 @@
+[package]
+name = "std_extern_crate_alias"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+fakestd = { path = "../../_ext/fakestd" }
