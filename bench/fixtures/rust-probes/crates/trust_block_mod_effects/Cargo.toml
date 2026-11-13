@@ -1,0 +1,4 @@
+[package]
+name = "trust_block_mod_effects"
+version = "0.1.0"
+edition = "2021"

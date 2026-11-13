@@ -1,0 +1,4 @@
+# this package sits in a directory called `target` with no Cargo.toml beside it, so it is source, and cargo run in it reads this
+# file: it patches tokio-macros (the path is relative to this package: probe, crates, crates/target, then the probes' _ext)
+[patch.crates-io]
+tokio-macros = { path = "../../../_ext/tokio-macros" }

@@ -128,14 +128,14 @@ def read(root):
 
 def variants(root, tmp_path, name: str):
     """Yield (seed, edited copy of the crate, the edits by file) for each seed."""
-    sources = sorted(p for p in root.rglob("*.rs") if "target" not in p.relative_to(root).parts)
+    sources = sorted(p for p in root.rglob("*.rs") if not any(q.name == "target" and (q.parent / "Cargo.toml").is_file() for q in p.parents))
     parser = rs.load_parser()
     parsed = {p: (p.read_bytes(),) for p in sources}
     trees = {p: parser.parse(parsed[p][0]).root_node for p in sources}
     cands = {p: candidates(parsed[p][0], trees[p]) for p in sources}
     for seed in range(SEEDS):
         copy = tmp_path / f"{name}-{seed}"
-        shutil.copytree(root, copy, ignore=shutil.ignore_patterns("target", "Cargo.lock"))
+        shutil.copytree(root, copy, ignore=lambda d, names: [n for n in names if n == "Cargo.lock" or (n == "target" and "Cargo.toml" in names)])
         edits: dict[str, Edits] = {}
         for p in sources:
             rng = random.Random(f"{name}:{p.relative_to(root)}:{seed}")

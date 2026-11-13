@@ -31,6 +31,17 @@ the reason, never guessed:
     may rewrite it: calls inside it, and the name it declares, are unresolved, and the scope may hold names it generated.
     A single name beside a derive that is not a standard one is that derive's helper, unless a `use`, a macro of the
     repo, a `#[macro_use] extern crate` or a glob from outside the repo could bring an attribute macro of that name;
+  * `#[test]`, `#[bench]`, `#[derive]` and `#[global_allocator]` are the standard library's attribute macros, not the
+    compiler's attributes: they are the built-ins except where a `use` that gives the name is in the item's scope (or a block
+    around it), a `#[macro_use] extern crate` or a macro of the repo of that name could make them another macro
+    (Index.shadow_problem), and there they are read as any attribute macro;
+  * `#[rustfmt::skip]`, `#[clippy::..]` and `#[diagnostic::..]` are tool attributes, which a `mod`, a `use`, an `extern crate`
+    alias or a dependency key of the tool's name makes another macro (rustc builds all four): they are inert only when the
+    crate declares, imports, aliases or depends on nothing of that name anywhere (CrateCtx.tools). A path that starts at any
+    other name of BUILTIN_ATTRS (`#[doc::x]`) builds only through a module of that name, and a bare tool name builds only as a
+    macro: both are read as attribute macros;
+  * a `mod` written inside a block shadows the items of its name around it, and its items are not read: a path that starts
+    at it, from inside the block, is unresolved (BLOCK_MOD);
   * three attribute macros are the exception (TRUSTED_ATTRS): `tokio::main`, `tokio::test` and `serial_test::serial` leave
     the body of the free function they sit on where it was, so its calls are read as an ordinary function's, once the repo
     proves that each is the crates.io macro (Index.decide_trust: the manifests, the lock, the cargo config files and how the
@@ -115,6 +126,7 @@ MACRO_BLOCK_ITEMS = "the call is in a block inside the arguments of a standard m
 INVISIBLE_PATH = "the visibility of a name a glob import may bring (`pub(in path)`) names a module ripple cannot find"
 CFG_UNKNOWN = "the name is declared under a `#[cfg]` or `#[cfg_attr]` ripple does not evaluate, so whether that definition exists, and what is called if it does not, is not known"
 ATTR_MACRO = "the call is inside, or the name is declared by, an item under an attribute macro (an attribute ripple does not know to be inert), which may rewrite it"
+BLOCK_MOD = "the path starts at a `mod` written inside a block, whose items ripple does not read, and which shadows the item of that name outside the block"
 IMPLS_INCOMPLETE = "the impls ripple read may not be all there are: {}"
 INHERENT_NOT_VISIBLE = "the inherent function of that name is not visible here (it is private to its module), so a trait function may be the one called"
 INSTANTIATION = "an impl for other type arguments of the type defines the name, and the type arguments written here do not select one impl"
@@ -192,6 +204,18 @@ BUILTIN_ATTRS = frozenset(
     "windows_subsystem no_main panic_handler thread_local linkage naked optimize no_link link_section "
     "macro_use must_not_suspend".split()
 )  # fmt: skip
+# The names on that list that are the standard library's attribute MACROS (the prelude's `test`, `bench`, `derive` and
+# `global_allocator`), not attributes of the compiler: a `use` of another attribute macro by that name, or a
+# `#[macro_use] extern crate` that has one, makes `#[test]` that macro (rustc builds all four forms: tried with local proc-macro
+# crates). Every other name on the list, but the tool names (TOOL_ATTRS), is ambiguous with a macro of that name, which rustc rejects. A glob import that brings
+# one in is ambiguous with the prelude's, which it rejects too. So they are the built-ins unless Index.shadow_problem finds one of
+# those forms; until then each site is queued (TrustSite.shadow).
+SHADOWABLE_ATTRS = frozenset({"test", "bench", "derive", "global_allocator"})
+# The names on BUILTIN_ATTRS that are tool namespaces (`#[rustfmt::skip]`), whose path a `mod`, a `use`, an `extern crate` alias or a
+# dependency key of that name makes another macro, without the ambiguity that rustc reports for the other names (built with local
+# proc-macro crates). Such a head is inert only when the crate has no such name anywhere (Index.shadowed_tools). A path that starts at
+# any other name of the list, and a bare tool name, can only be written where a macro is: both are read as attribute macros.
+TOOL_ATTRS = frozenset({"rustfmt", "clippy", "diagnostic"})
 # The attribute macros ripple trusts not to change what a name in the body of the function they are written on resolves to,
 # as written -> the crate whose macro each is. Trusted only where the repo proves the crate is the published one (see
 # rs_modules.TRUSTED_CRATES and Index.decide_trust), and only for the body of a free function (trusted_target).
@@ -284,6 +308,27 @@ def blank_comments(parser, src: bytes, tree) -> tuple[bytes, object]:
     return blanked, parser.parse(blanked)
 
 
+_TOOLS = None
+
+
+def tool_names_in(root, src: bytes) -> frozenset[str]:
+    """The names of TOOL_ATTRS that a file declares as a `mod`, or has in a `use` (as a segment, a name or an alias) or an `extern crate`."""
+    global _TOOLS
+    from tree_sitter import Query, QueryCursor
+
+    if _TOOLS is None:
+        names = " ".join(f'"{n}" "r#{n}"' for n in sorted(TOOL_ATTRS))
+        _TOOLS = Query(load_parser().language, f"((identifier) @t (#any-of? @t {names}))")
+    found = set()
+    for node in QueryCursor(_TOOLS).captures(root).get("t", []):
+        up = node.parent
+        while up is not None and up.type in ("scoped_identifier", "use_as_clause", "scoped_use_list", "use_list", "use_wildcard"):
+            up = up.parent
+        if up is not None and up.type in ("mod_item", "extern_crate_declaration", "use_declaration"):
+            found.add(name_text(src, node))
+    return frozenset(found)
+
+
 # ---- the definitions and scopes of a crate
 
 
@@ -315,6 +360,7 @@ class Scope:
     attribute_macro: bool = False  # an attribute macro or a derive that is not the standard library's is written on an item here
     item_macros: bool = False  # a macro invoked here may generate names (set once every crate is collected: see Index.mark_macros)
     rewritten: bool = False  # inside an item under an attribute macro, which may have rewritten all of it
+    macro_use_mod: bool = False  # a block that holds a `#[macro_use] mod`, whose macro_rules ripple does not read: any macro name used here may be the repo's
 
     @property
     def may_make(self) -> bool:
@@ -344,9 +390,11 @@ class CrateCtx:
         self.macro_sites: list[tuple[Scope, str, bool, str, int]] = []  # (scope, macro, path starts at std, file, line) of each macro invoked where it may generate items
         self.attr_sites: list[tuple[str, int, str] | TrustSite] = []  # (file, line, what) of each attribute macro or derive that may generate items, in source order (see attr_reasons)
         self.trust_sites: list[TrustSite] = []  # each function under trusted attributes only, until the repo proves them (Index.decide_trust)
+        self.block_mods: list[tuple[str, int]] = []  # (file, line) of each `mod` written in a block, whose items ripple does not read: any impl in one applies to the whole crate
         self.taint: list[str] = []  # why the impls ripple read may not be all of this crate's (see Index.mark_macros)
         self.pending_heads: list[tuple[Scope, tuple[str, ...], str, int]] = []  # (scope, attributes, file, line) of each on the target of a derive that is not a standard one
         self.use_names: set[str] = set()  # every name a `use` of the crate gives
+        self.tools: frozenset[str] = frozenset()  # the names of TOOL_ATTRS that something of the crate declares, imports or depends on (Index.shadowed_tools)
         self.outside_glob = False  # a glob import that may bring a macro of a crate ripple has not read
         try:
             self.edition = int(crate.package.edition)
@@ -359,22 +407,33 @@ class CrateCtx:
         for site in self.attr_sites:
             if not isinstance(site, TrustSite):
                 yield site
-            elif site.refused is not None:
+            elif site.refused is not None and not site.nested:
                 yield site.entry
 
 
 @dataclass(eq=False)
 class TrustSite:
-    """A free function under the attributes of TRUSTED_ATTRS and no other, until the repo proves them (Index.decide_trust).
-    Its calls are read as an ordinary function's; a refusal reads it all as it is read under any attribute macro."""
+    """An item under attributes that are what they look like only if the repo proves it (Index.decide_trust): the attributes of
+    TRUSTED_ATTRS on a free function and no other attribute macro, and the standard library's own attribute macros
+    (SHADOWABLE_ATTRS), which a `use` may have replaced. It is read as if they were what they look like; a refusal reads it
+    all as it is read under any attribute macro."""
 
     scope: Scope
     item: object
     file: str
     line: int
     heads: tuple[str, ...]  # the trusted attributes, as written
-    entry: tuple[str, int, str]  # what CrateCtx.attr_sites says of it once refused: what a macro there would have said
+    shadow: tuple[str, ...]  # the standard library's attribute macros, as written
+    name: str | None
+    src: bytes
     refused: str | None = None  # why the repo does not prove them
+    nested: bool = False  # refused only for being inside an item that is: what its attributes say is then no reason of its own
+
+    @property
+    def entry(self) -> tuple[str, int, str]:
+        """What CrateCtx.attr_sites says of it once refused: what a macro there would have said."""
+        macro = attrs_of(self.item, self.src, self.scope.crate.tools, trust=False, shadow=MACRO if self.shadow else BUILTIN)
+        return attr_site(macro, self.file, self.line, self.item.type.replace("_item", "").replace("_", " "))
 
 
 @dataclass(eq=False)
@@ -540,7 +599,7 @@ def parse_visibility(written: str) -> tuple:
 class Attrs:
     """What the attributes written before an item say that matters here."""
 
-    __slots__ = ("cfg", "macro", "macro_use", "proc_macro", "derives", "unknown_derive", "what", "heads", "trust")
+    __slots__ = ("cfg", "macro", "macro_use", "proc_macro", "derives", "unknown_derive", "what", "heads", "trust", "shadow")
 
     def __init__(self) -> None:
         self.cfg = False  # a #[cfg] or #[cfg_attr]: the item may not exist (ripple evaluates no condition)
@@ -552,6 +611,7 @@ class Attrs:
         self.what = ""  # the first attribute macro or derive of that kind, as written
         self.heads: list[str] = []  # attributes that are one plain name and not built in: an attribute macro, or the helper of a derive
         self.trust: list[str] = []  # attributes of TRUSTED_ATTRS, as written, that no attribute macro beside them or the item they are on rules out: trusted once the repo proves them
+        self.shadow: list[str] = []  # attributes of SHADOWABLE_ATTRS, as written: the standard library's, unless the repo shows another macro of that name in scope
 
     @property
     def generates(self) -> bool:
@@ -569,7 +629,11 @@ def _token_groups(tree) -> list[list]:
     return groups
 
 
-def _classify_attribute(head: str, args, src: bytes, out: Attrs, trust: bool = True) -> None:
+# What to make of an attribute of SHADOWABLE_ATTRS: queue it (Attrs.shadow), read it as an attribute macro, or as the built-in
+QUEUE, MACRO, BUILTIN = "queue", "macro", "builtin"
+
+
+def _classify_attribute(head: str, args, src: bytes, out: Attrs, tools: frozenset, trust: bool = True, shadow: str = QUEUE) -> None:
     first = head.split("::")[0]
     if head == "cfg":
         out.cfg = True
@@ -580,7 +644,7 @@ def _classify_attribute(head: str, args, src: bytes, out: Attrs, trust: bool = T
                 path = "".join(text(src, c) for c in group if c.type in ("identifier", "::", "self", "crate", "super"))
                 tree = next((c for c in group if c.type == "token_tree"), None)
                 if path:
-                    _classify_attribute(path, tree, src, out, trust)
+                    _classify_attribute(path, tree, src, out, tools, trust, shadow)
     elif head == "derive":
         for group in _token_groups(args) if args is not None else ():
             written = "".join(text(src, c) for c in group)
@@ -592,29 +656,51 @@ def _classify_attribute(head: str, args, src: bytes, out: Attrs, trust: bool = T
             if name not in STD_DERIVES or ("::" in written and written.split("::")[0] not in ("std", "core", "alloc")):
                 out.unknown_derive = True
                 out.what = out.what or f"the derive `{written}`"
+        _shadowable(head, out, shadow)
     elif head == "macro_use":
         out.macro_use = True
     elif head in ("proc_macro", "proc_macro_attribute"):
         out.proc_macro = True
     elif trust and head in TRUSTED_ATTRS and not (TRUSTED_ATTRS[head] == "serial_test" and args is not None and "inner_attrs" in text(src, args).lower()):
         out.trust.append(head)  # serial's `inner_attrs = [..]` (any case) moves the body into a function that carries attributes of any kind
-    elif first not in BUILTIN_ATTRS:
-        if "::" in head:  # a path is no helper of a derive
+    elif head in SHADOWABLE_ATTRS:
+        _shadowable(head, out, shadow)
+    elif first not in BUILTIN_ATTRS or _tool_is_macro(head, first, tools):
+        if "::" in head or head in TOOL_ATTRS:  # a path is no helper of a derive, and a bare tool name builds only as a macro
             out.macro = True
             out.what = out.what or f"the attribute `#[{head}]`"
         else:
             out.heads.append(head)
 
 
-def read_attributes(attributes: list, src: bytes, trust: bool = True) -> Attrs:
+def _tool_is_macro(head: str, first: str, tools: frozenset) -> bool:
+    """Whether a head whose first segment is on BUILTIN_ATTRS is a macro anyway. `rustfmt::skip` is inert unless something of the
+    tool's name is in the crate (`tools`). Any other path that starts at a name of the list builds only through a module of that
+    name (`mod doc { pub use m::foo; }` then `#[doc::foo]`), and a bare tool name only as a macro: neither is an attribute of the compiler."""
+    if "::" not in head:
+        return head in TOOL_ATTRS
+    return first not in TOOL_ATTRS or first in tools
+
+
+def _shadowable(head: str, out: Attrs, shadow: str) -> None:
+    if shadow == QUEUE:
+        out.shadow.append(head)  # the built-in, unless the repo shows another macro of that name in scope (Index.shadow_problem)
+    elif shadow == MACRO:
+        out.macro = True
+        out.what = out.what or f"the attribute `#[{head}]`"
+
+
+def read_attributes(attributes: list, src: bytes, tools: frozenset, trust: bool = True, shadow: str = QUEUE) -> Attrs:
     """What attributes say. With `trust` the three of TRUSTED_ATTRS are set apart (Attrs.trust) instead of read as attribute
-    macros; the caller decides whether the item they are on lets them stay apart (attrs_of)."""
+    macros, and the standard library's attribute macros (SHADOWABLE_ATTRS) are set apart too (Attrs.shadow, by `shadow`),
+    instead of read as built in; the caller decides whether the item they are on lets them stay apart (attrs_of). `tools` is
+    the crate's CrateCtx.tools: the tool attributes (TOOL_ATTRS) that are macros there."""
     out = Attrs()
     for item in attributes:
         attribute = next((c for c in item.named_children if c.type == "attribute"), None)
         path = attribute.named_children[0] if attribute is not None and attribute.named_children else None
         if path is not None:
-            _classify_attribute("".join(text(src, path).split()), attribute.child_by_field_name("arguments"), src, out, trust)
+            _classify_attribute("".join(text(src, path).split()), attribute.child_by_field_name("arguments"), src, out, tools, trust, shadow)
     return out
 
 
@@ -638,7 +724,14 @@ def is_async(item) -> bool:
     return modifiers is not None and any(c.type == "async" for c in modifiers.children)
 
 
-def attrs_of(item, src: bytes, trust: bool = True) -> Attrs:
+def queueable(item) -> bool:
+    """Whether the attributes of SHADOWABLE_ATTRS are on what each can be written on, and what Index.collect_items queues: a
+    function, a type or a static of a module or of a block. Written anywhere else (the method of an impl, a statement, a
+    module) the built-in would be an error, so only another macro of that name can be there: it is read as one."""
+    return trusted_target(item) or item.type in ("struct_item", "enum_item", "union_item", "static_item")
+
+
+def attrs_of(item, src: bytes, tools: frozenset, trust: bool = True, shadow: str = QUEUE) -> Attrs:
     """The attributes written directly before an item (or a statement, or an impl item). A single name that is not built in
     is an attribute macro, except beside a derive that is not a standard one, where it may be that derive's helper (the
     caller settles it, once every `use` of the crate is known).
@@ -647,20 +740,26 @@ def attrs_of(item, src: bytes, trust: bool = True) -> Attrs:
     a free function (trusted_target), none is serial_test's on an `async fn` (whose body moves into a function named
     `_<name>_internal`, beside the function or inside it by version), and no other attribute macro is on the item, which
     could rewrite what these see. Otherwise they are read as attribute macros, as every attribute that is not built in is.
-    `trust=False` reads them that way always: what a site not proven by the repo is."""
+    `trust=False` reads them that way always: what a site not proven by the repo is.
+
+    The standard library's own attribute macros (`test`, `bench`, `derive`, `global_allocator`) are in `.shadow` on an item that
+    can carry them (queueable), else read as attribute macros; `shadow=BUILTIN` reads them as the built-ins they are unless a
+    `use` says otherwise, which is what an item inside one that is rewritten already is, and `shadow=MACRO` as macros."""
     attributes = rs_modules._attributes(item)
-    out = read_attributes(attributes, src, trust)
-    if out.trust and (out.macro or out.heads or out.unknown_derive or not trusted_target(item) or (is_async(item) and any(TRUSTED_ATTRS[h] == "serial_test" for h in out.trust))):
-        out = read_attributes(attributes, src, trust=False)
+    out = read_attributes(attributes, src, tools, trust, shadow)
+    off = bool(out.trust) and bool(out.macro or out.heads or out.unknown_derive or not trusted_target(item) or (is_async(item) and any(TRUSTED_ATTRS[h] == "serial_test" for h in out.trust)))
+    elsewhere = bool(out.shadow) and not queueable(item)
+    if off or elsewhere:
+        out = read_attributes(attributes, src, tools, trust=trust and not off, shadow=MACRO if elsewhere else shadow)
     if out.heads and not (out.unknown_derive and item.type in ("struct_item", "enum_item", "union_item")):
         out.macro = True
         out.what = out.what or f"the attribute `#[{out.heads[0]}]`"
     return out
 
 
-def inner_attrs_of(container, src: bytes) -> Attrs:
+def inner_attrs_of(container, src: bytes, tools: frozenset) -> Attrs:
     """The inner attributes (`#![cfg(..)]`) a module's file or block begins with."""
-    return read_attributes([c for c in container.named_children if c.type == "inner_attribute_item"], src, trust=False)
+    return read_attributes([c for c in container.named_children if c.type == "inner_attribute_item"], src, tools, trust=False, shadow=BUILTIN)
 
 
 def squash(written: str) -> str:
@@ -796,7 +895,9 @@ class Index:
             self.ctxs.append(ctx)
             if crate.kind == "lib":
                 self.lib_ctx[crate.package.dir] = ctx
+        named: dict[str, frozenset[str]] = {}  # file -> the tool names it declares or imports, for a file that several crates read
         for ctx in self.ctxs:
+            ctx.tools = self.shadowed_tools(ctx, named)
             self.collect(ctx)
         self.mark_macros()
         done = 0
@@ -818,6 +919,23 @@ class Index:
                     self.blanket_fns |= set(self.trait_decl.get(spec.trait_target[1], {}))
             if spec.trait_target is not None and spec.trait_target[0] == "def" and (spec.self_target is None or spec.self_target[0] == "generic"):
                 self.wild_traits.add(spec.trait_target[1])
+
+    @staticmethod
+    def shadowed_tools(ctx: CrateCtx, named: dict[str, frozenset[str]]) -> frozenset[str]:
+        """The names of TOOL_ATTRS (`rustfmt`, `clippy`, `diagnostic`) that something of the crate declares, imports, aliases or depends
+        on, anywhere: a `mod`, a `use` with the name in it, an `extern crate` of it (or aliased to it), a dependency key of the
+        package, or, for a binary or a test of a package with a library, that library's name (it is in their extern prelude). Each makes
+        `#[rustfmt::skip]` another macro in rustc's eyes (built with local proc-macro crates), wherever the attribute is written
+        in the crate, since the rule is the simple one: a head of such a name is a macro like any other when this set holds its first segment."""
+        found = {name for name in ctx.crate.package.deps if name in TOOL_ATTRS}
+        if ctx.crate.kind != "lib" and ctx.crate.package.lib_name in TOOL_ATTRS:
+            found.add(ctx.crate.package.lib_name)
+        for m in ctx.modules:
+            if m.node.type == "source_file":
+                if m.file not in named:
+                    named[m.file] = tool_names_in(m.node, m.src)
+                found |= named[m.file]
+        return frozenset(found)
 
     # ---- ids
     def make_id(self, m: Module, owner_id: str | None, *names: str) -> str:
@@ -846,8 +964,8 @@ class Index:
             if m.parent is not None:
                 parent = ctx.scopes[id(m.parent)]
                 scope.parent = parent
-                declared = attrs_of(m.decl, m.parent.src) if m.decl is not None else Attrs()
-                inner = inner_attrs_of(m.node, m.src)
+                declared = attrs_of(m.decl, m.parent.src, ctx.tools) if m.decl is not None else Attrs()
+                inner = inner_attrs_of(m.node, m.src, ctx.tools)
                 extra = {"scope": scope, "vis": parse_visibility(m.vis) if m.vis else PRIVATE}
                 if declared.cfg or inner.cfg:
                     extra["cfg"] = True
@@ -877,10 +995,10 @@ class Index:
             name = name_text(src, name_node) if name_node is not None else None
             key = (m.file, item.start_byte)
             vis = visibility(item, src) if t in ITEM_NODES else PRIVATE
-            attrs = attrs_of(item, src) if t != "attribute_item" else Attrs()
-            queued = bool(attrs.trust) and not rw  # trusted attributes on a function, until the repo proves them (Index.decide_trust)
-            if attrs.trust and rw:
-                attrs = attrs_of(item, src, trust=False)  # inside an item an attribute macro may have rewritten, they are read as one
+            attrs = attrs_of(item, src, ctx.tools) if t != "attribute_item" else Attrs()
+            queued = bool(attrs.trust or attrs.shadow) and not rw  # attributes that are what they look like only once the repo proves it (Index.decide_trust)
+            if (attrs.trust or attrs.shadow) and rw:
+                attrs = attrs_of(item, src, ctx.tools, trust=False, shadow=BUILTIN)  # inside an item an attribute macro may have rewritten, they are read as one (a built-in is no matter)
             if attrs.heads and not attrs.macro:
                 # a name beside a derive that is not a standard one is that derive's helper, unless an attribute macro of
                 # that name is in scope (decided once every `use` of the crate is known: see Index.mark_macros)
@@ -888,16 +1006,15 @@ class Index:
             facts = {"vis": vis}
             if attrs.cfg:
                 facts["cfg"] = True
-            if rw or attrs.macro or queued:
+            if rw or attrs.macro or attrs.trust:
                 facts["rw"] = True  # a trusted function keeps its name unresolved: old versions of both macro crates drop its `pub`
             elif attrs.heads:
                 facts["heads"] = tuple(attrs.heads)
-            if queued:  # note_attrs is for a site that is refused: it is told what a macro there would have said
-                today = attrs_of(item, src, trust=False)
-                site = TrustSite(scope, item, m.file, item.start_point[0] + 1, tuple(attrs.trust), attr_site(today, m.file, item.start_point[0] + 1, "function"))
+            if queued:  # a site that is refused is read as a macro there would be read (TrustSite.entry, Index.refuse_trust)
+                site = TrustSite(scope, item, m.file, item.start_point[0] + 1, tuple(attrs.trust), tuple(attrs.shadow), name, src)
                 ctx.attr_sites.append(site)
                 ctx.trust_sites.append(site)
-            elif t != "macro_invocation" and t != "attribute_item":
+            if t != "macro_invocation" and t != "attribute_item":
                 self.note_attrs(ctx, scope, attrs, m.file, item.start_point[0] + 1, t.replace("_item", "").replace("_", " "))
             if t == "function_item":
                 sid = self.make_id(m, owner_id, name)
@@ -944,6 +1061,14 @@ class Index:
                 if not block:
                     self.bodies.append(BodySpec((m.file, -1), item, scope, m, src, rewritten=rw or attrs.macro))
                     self.collect_blocks(item, scope, m, ctx, self.make_id(m, owner_id, name), rw or attrs.macro)
+            elif t == "mod_item" and block:
+                # a module declared in a block shadows the items of that name around it, and ripple does not read what is in it: a
+                # path that starts at it is unresolved (Index._lookup). What it holds still acts outside it: an impl applies to the
+                # whole crate (CrateCtx.block_mods taints the impls), and a `#[macro_use]` one leaves its macro_rules in scope
+                # for the rest of the block (Scope.macro_use_mod)
+                scope.items[name].append(Def("mod", name, key, item, scope, {**facts, "opaque": True}))
+                ctx.block_mods.append((m.file, item.start_point[0] + 1))
+                scope.macro_use_mod |= attrs.macro_use
             elif t == "macro_definition":
                 self.repo_macros.add(name)
                 scope.items[name].append(Def("macro", name, key, item, scope))
@@ -960,7 +1085,7 @@ class Index:
                 for f in body.named_children if body is not None else ():
                     fn = f.child_by_field_name("name")
                     if f.type == "function_signature_item" and fn is not None:
-                        inner = attrs_of(f, src)
+                        inner = attrs_of(f, src, ctx.tools)
                         scope.items[name_text(src, fn)].append(
                             Def("foreign", name_text(src, fn), (m.file, f.start_byte), f, scope, {"vis": visibility(f, src), **({"cfg": True} if attrs.cfg or inner.cfg else {}), **({"rw": True} if rw or attrs.macro or inner.macro else {})})
                         )
@@ -1014,6 +1139,8 @@ class Index:
                     ctx.taint.append(f"the macro `{name}!` invoked in {file} may generate impls")
             for file, line, what in ctx.attr_reasons():
                 ctx.taint.append(f"{what} in {file} may generate impls")
+            for file, line in ctx.block_mods:
+                ctx.taint.append(f"the `mod` written in a block in {file} may hold impls, which ripple does not read there")
         for spec in self.impl_specs:
             if spec.lost:
                 spec.scope.crate.taint.append(spec.lost)
@@ -1054,8 +1181,30 @@ class Index:
                 break
         self.cache.clear()
 
+    def shadow_problem(self, ctx: CrateCtx, scope: Scope, name: str) -> str | None:
+        """None when `#[name]` written in this scope is the standard library's (`test`, `bench`, `derive`, `global_allocator`), else
+        why it may be another macro. Only these can make it another: a `use` that gives the name, in the scope or a block around
+        it (a module's own uses only: a parent's reach a child by a glob, which rustc rejects as ambiguous with the prelude's
+        macro, as it does a glob from outside the repo or a macro that makes one); a `#[macro_use] extern crate`, which puts a
+        crate's macros in scope of every module; and a macro of the repo of that name (a `macro_rules!` attribute, still
+        unstable, is the other). The forms were each built against a local proc-macro crate."""
+        if name in self.repo_macros:
+            return f"a macro of the repo is called {name}"
+        if ctx.macro_use_extern:
+            return f"a #[macro_use] extern crate may bring a macro called {name}"
+        s: Scope | None = scope
+        while s is not None:
+            if name in s.uses:
+                return f"a use gives the name {name} here"
+            s = s.outer
+        return None
+
     def trust_identity(self, ctx: CrateCtx, site: TrustSite) -> str | None:
         """None when every attribute of the site is the published crate's macro, else why one may not be."""
+        for name in site.shadow:
+            why = self.shadow_problem(ctx, site.scope, name)
+            if why:
+                return "name: " + why
         for head in site.heads:
             crate = TRUSTED_ATTRS[head]
             why = ctx.crate.package.trust.get(crate, "no verdict for this package")
@@ -1110,6 +1259,9 @@ class Index:
         site.refused = why
         site.scope.attribute_macro = True
         file, a, b = site.file, site.item.start_byte, site.item.end_byte
+        for d in site.scope.items.get(site.name, ()):
+            if d.key == (file, a):
+                d.extra["rw"] = True  # a built-in that is another macro may have rewritten the item, as a macro there would
 
         def inside(f: str, start: int) -> bool:
             return f == file and a <= start < b
@@ -1136,7 +1288,10 @@ class Index:
                     decl.extra["rw"] = True
         for other in ctx.trust_sites:
             if other.refused is None and other is not site and inside(other.file, other.item.start_byte):
-                self.refuse_trust(ctx, other, "inside a refused one")
+                if other.heads:
+                    self.refuse_trust(ctx, other, "inside a refused one")
+                else:  # only the standard library's attribute macros: inside an item that is rewritten they are read as built in
+                    other.refused, other.nested = "inside a refused one", True
 
     def settle_helpers(self, ctx: CrateCtx) -> None:
         """Which attributes beside a derive are its helpers. A single name is one when no attribute macro of that name can be in
@@ -1144,7 +1299,8 @@ class Index:
         import from a crate ripple has not read can bring it. Otherwise it is an attribute macro, which may rewrite the item."""
         scopes = list(self.all_scopes(ctx))
         ctx.use_names = {name for sc in scopes for name in sc.uses}
-        local = {d.name for sc in scopes for defs in sc.items.values() for d in defs if d.kind in ("mod", "enum")}
+        # a `mod` written in a block is no module a module-level glob path names, so it makes no glob local
+        local = {d.name for sc in scopes for defs in sc.items.values() for d in defs if d.kind in ("mod", "enum") and not d.extra.get("opaque")}
         ctx.outside_glob = any(g and g[0] not in ("crate", "self", "super", "$crate", *STD_CRATES) and g[0] not in local for sc in scopes for g in sc.globs)
         for scope, heads, file, line in ctx.pending_heads:
             if not self.heads_inert(ctx, heads):
@@ -1169,7 +1325,7 @@ class Index:
             return False
         s = scope
         while s is not None:
-            if name in s.uses:
+            if name in s.uses or s.macro_use_mod:
                 return False
             s = s.outer
         return not scope.module_scope.uses.get(name)
@@ -1230,7 +1386,7 @@ class Index:
                 fname = name_text(src, f.child_by_field_name("name"))
                 key = (m.file, f.start_byte)
                 sid = self.make_id(m, owner_id, d.name, fname)
-                fattrs = attrs_of(f, src)
+                fattrs = attrs_of(f, src, ctx.tools)
                 made = Def("decl", fname, key, f, scope, {"trait": d, "has_body": f.type == "function_item", "cfg": fattrs.cfg, "rw": rw or fattrs.macro})
                 if fname in decls:
                     decls[fname].extra["twin"] = True  # the same declaration under different cfgs: which is built is not known
@@ -1279,7 +1435,7 @@ class Index:
         while stack:
             n, current = stack.pop()
             if n.type == "block":
-                if any(c.type in ITEM_NODES and c.type != "mod_item" or statement_macro(c) is not None or c.type in ("let_declaration", "expression_statement") and attrs_of(c, m.src).generates for c in n.named_children):
+                if any(c.type in ITEM_NODES or statement_macro(c) is not None or c.type in ("let_declaration", "expression_statement") and attrs_of(c, m.src, ctx.tools).generates for c in n.named_children):
                     inner = Scope(ctx, None, outer=current, home=current.module_scope, rewritten=rw or current.rewritten)
                     ctx.blocks[(m.file, n.start_byte)] = inner
                     self.collect_items(inner, n, m, ctx, owner_id, block=True, rw=rw)
@@ -1331,14 +1487,14 @@ class Index:
         body = node.child_by_field_name("body")
         for f in body.named_children if body is not None else ():
             if f.type == "const_item" and f.child_by_field_name("name") is not None:
-                cattrs = attrs_of(f, src)
+                cattrs = attrs_of(f, src, spec.scope.crate.tools)
                 cname = name_text(src, f.child_by_field_name("name"))
                 spec.consts.setdefault(cname, []).append(
                     Def("assoc_const", cname, (m.file, f.start_byte), f, spec.scope, {"impl": spec, "vis": visibility(f, src), "cfg": spec.cfg or cattrs.cfg, "rw": spec.rewritten or cattrs.macro})
                 )
             if f.type != "function_item":
                 continue
-            fattrs = attrs_of(f, src)
+            fattrs = attrs_of(f, src, spec.scope.crate.tools)
             fname = name_text(src, f.child_by_field_name("name"))
             key = (m.file, f.start_byte)
             if trnode is None:
@@ -1468,7 +1624,7 @@ class Index:
                 seen = self.sees(d.extra.get("vis"), s, viewer)
                 if seen:
                     rewritten = d.extra.get("rw") or d.extra.get("heads") and not self.heads_inert(s.crate, d.extra["heads"])
-                    result = ("unknown", ATTR_MACRO) if rewritten else ("def", d)
+                    result = ("unknown", BLOCK_MOD) if d.extra.get("opaque") else ("unknown", ATTR_MACRO) if rewritten else ("def", d)
                     found.append(result)
                     if not d.extra.get("cfg"):
                         plain.add(_key(result))
@@ -1531,6 +1687,8 @@ class Index:
                     continue
                 else:
                     unreadable = True
+                    if (kind, x) == ("unknown", BLOCK_MOD):
+                        uncertain.append(BLOCK_MOD)  # the glob is of a `mod` written in a block: say so, not that it is from outside the repo
                     continue
                 found += [g for g in got if g[0] != "unknown"]
                 uncertain += [g[1] for g in got if g[0] == "unknown"]
@@ -2101,7 +2259,7 @@ class Index:
             return path_segs(mnode, body.src)[0] in ("std", "core", "alloc")
         s = body.scope
         while s is not None:
-            if name in s.uses:
+            if name in s.uses or s.macro_use_mod:
                 return False
             s = s.outer
         return not (body.scope.module_scope.uses.get(name))

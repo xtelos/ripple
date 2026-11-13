@@ -1,0 +1,10 @@
+[package]
+name = "trust_replace_at"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
+
+[replace]
+"tokio-macros@2.1.0" = { path = "../_ext/tokio-macros" }

@@ -1,0 +1,9 @@
+[package]
+name = "trust_tool_dep_key"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
+# a dependency key called after a tool namespace puts that crate in the extern prelude under the name, which beats the tool
+clippy = { path = "../_ext/fakemacros", package = "fakemacros" }

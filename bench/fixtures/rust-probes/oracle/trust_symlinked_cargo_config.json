@@ -1,0 +1,31 @@
+{
+ "calls": [
+  {
+   "c0": 28,
+   "c1": 31,
+   "defs": [
+    [
+     "src/lib.rs",
+     3
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 5,
+   "proof": "runtime",
+   "text": "one"
+  },
+  {
+   "c0": 26,
+   "c1": 35,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "lost",
+   "line": 10,
+   "text": "rewritten"
+  }
+ ],
+ "complete": true,
+ "probe": "trust_symlinked_cargo_config",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}
