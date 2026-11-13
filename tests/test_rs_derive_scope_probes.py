@@ -71,6 +71,12 @@ OUTCOME = {
     "block_closure_use": OTHER,
     "block_method_body": OTHER,
     "prelude_import_child": OTHER,  # nightly: `#[prelude_import] use mypre::*;` makes the crate's prelude its own, and `mypre` gives `Debug` (the probe needs RUSTC_BOOTSTRAP)
+    "std_dep_prelude": OTHER,  # `std = { package = "fakestd", path = ".." }`: its `prelude::rust_2021` gives genmacros' `Debug` (stable)
+    "core_dep_no_std": OTHER,  # the same under the key `core`, in a `#![no_std]` crate
+    "std_lib_named_std": OTHER,  # a dependency of another key whose library is called std
+    "std_own_lib_named_std": OTHER,  # the package's own library is called std: its binary gets it as `std`
+    "std_extern_crate_alias": STD,  # `extern crate fakestd as std;` leaves the prelude alone
+    "std_self_alias": STD,  # so does `extern crate self as std;`
     "prelude_import_macro": OTHER,  # the attribute written in a macro_rules body: ripple does not read it, the gate in the root does
     "prelude_import_include": OTHER,  # in an include!d file
     "prelude_import_blockmod": OTHER,  # in a mod written in a block

@@ -1,0 +1,14 @@
+[package]
+name = "std_own_lib_named_std"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+genmacros = { path = "../../_ext/genmacros" }
+
+[lib]
+name = "std"
+
+[[bin]]
+name = "own"
+path = "src/main.rs"

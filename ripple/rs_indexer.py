@@ -1361,15 +1361,37 @@ class Index:
             pending = [i for i in range(len(ctx.pending_derives)) if i not in ctx.derive_replaced]
             if not pending:
                 continue
+            std_replaced = self.prelude_may_not_be_std(ctx)
             seen: dict[tuple[int, str], bool] = {}  # (scope, name) -> whether the scope holds a use of the name that is not proved std's
             for i in pending:
                 scope, names, file, line = ctx.pending_derives[i]
-                hit = next((n for n in names if ctx.macro_use_extern or ctx.prelude_import or n in self.repo_macros or self.use_replaces_derive(scope, n, seen)), None)
+                hit = next((n for n in names if ctx.macro_use_extern or ctx.prelude_import or std_replaced or n in self.repo_macros or self.use_replaces_derive(scope, n, seen)), None)
                 if hit is not None:
                     ctx.derive_replaced[i] = hit
                     scope.attribute_macro = True
                     changed = True
         return changed
+
+    def prelude_may_not_be_std(self, ctx: CrateCtx) -> bool:
+        """Whether the standard prelude of the crate may be another crate's, which gives a bare `Debug` with no `use` of it anywhere.
+        rustc injects `::std::prelude::rust_2021::*` (`::core::` in a `#![no_std]` crate) and resolves `std` in the extern prelude, which
+        cargo fills from `--extern <name>`: a dependency keyed `std` or `core` (any table: the crate's targets differ in which they
+        get), a dependency whose library is called so (the key is not the name: probe std_lib_named_std), and the package's own library
+        for its binaries and tests (std_own_lib_named_std). A package of the repo that a dependency names, whose library ripple did not
+        read, may be one of those. `extern crate x as std;` and `extern crate self as std;` are not (probes std_extern_crate_alias,
+        std_self_alias), which is why this reads the manifests and not Index.externs, where those aliases are. What cannot be read: a
+        library of that name in a package outside the repo (a registry crate cannot be published as `std`, and `rustc-std-workspace-*` is
+        the only one with a library called so), and flags cargo is given from outside the repo."""
+        package = ctx.crate.package
+        if package.lib_name in ("std", "core") or any(key in package.deps for key in ("std", "core", "rustc_std_workspace_core", "rustc_std_workspace_std")):
+            return True
+        for target in package.deps.values():
+            if target is None or target == rs_modules.AMBIGUOUS:
+                continue
+            lib = self.lib_ctx.get(target)
+            if lib is None or lib.crate.package.lib_name in ("std", "core"):
+                return True
+        return False
 
     def use_replaces_derive(self, scope: Scope, name: str, seen: dict[tuple[int, str], bool]) -> bool:
         """Whether the bare `name` in `#[derive(name)]`, written on an item of `scope`, may be a derive a `use` gave. rustc resolves it as
