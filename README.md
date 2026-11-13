@@ -567,6 +567,10 @@ standard macros (`println!`, `format!`, `vec!`, `assert_eq!`, ...), which are pa
 (`Some(x)`, `Pair(1, 2)`) runs no code and is neither an edge nor unresolved. `Type::f()` is an edge for an inherent
 function of a repo type, and for a function of a repo trait that has one impl for the type and no blanket impl; a trait
 from outside the repo is never one (the standard library may implement it for the type in ways ripple does not read).
+A block is a scope of its own wherever a body holds one: a function, a `const` or `static` initializer (also inside a function), the initializer
+of an associated const of an impl or a trait, an inline `const { .. }`, an array length or const generic argument written in an expression
+(a name the block declares or imports comes before a glob's, as rustc does; each position built). A call in an enum discriminant, or in an array
+length or const generic default of a signature or type, is read by no body, so it has no verdict.
 **Calls outside the repo** are counted with the reason (the standard library, a crate from outside, the prelude, a
 primitive, a derive), and only when nothing of the repo can be what runs: a path through a trait (`fmt::Display::fmt(&x, f)`,
 `FromStr::from_str(s)`) that a repo impl of that trait could answer is unresolved. None of the standard library's own names is taken as

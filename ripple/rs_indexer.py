@@ -1602,6 +1602,8 @@ class Index:
                     self.collect_blocks(fn_body, scope, m, ctx, sid, rw or fattrs.macro)
             elif f.type in ("const_item", "macro_invocation"):
                 self.bodies.append(BodySpec((m.file, -1), f, scope, m, src, None, d, generics, rw))
+                if f.type == "const_item":  # the blocks of a default value are scopes (probe trait_const_default), as a function's are
+                    self.collect_blocks(f, scope, m, ctx, self.make_id(m, owner_id, d.name, name_text(src, f.child_by_field_name("name"))), rw)
                 if f.type == "macro_invocation":
                     d.extra["macro_body"] = True
                     self.note_macro(scope, f, src, ctx, m.file, names=False)
@@ -1626,6 +1628,10 @@ class Index:
         for f in body.named_children if body is not None else ():
             if f.type in ("const_item", "macro_invocation"):
                 self.bodies.append(BodySpec((m.file, -1), f, scope, m, src, spec, None, spec.generics, rw))
+            if f.type == "const_item" and f.child_by_field_name("name") is not None:
+                # the blocks of the initializer are scopes (probes impl_const, impl_const_trait, impl_const_in_fn), as a method's are
+                owner = f"<{spec.tname} as {spec.trait_plain}>" if trnode is not None else spec.tname
+                self.collect_blocks(f, scope, m, scope.crate, self.make_id(m, owner_id, owner, name_text(src, f.child_by_field_name("name"))), rw)
             if f.type == "macro_invocation":
                 mnode = f.child_by_field_name("macro")
                 spec.macro_body = path_segs(mnode, src)[-1] if mnode is not None else "?"
