@@ -788,9 +788,11 @@ crate of its name; a repo with a manifest or a library name ripple cannot read r
 - serde: the `serde` dependency is plain, since the expansion says `extern crate serde`.
 - clap: `clap` is the dependency where the derive is written, not a module, an alias or an extern crate of that name, since
   the impls are written `impl clap::Parser for ..` and a local `mod clap` captures that path (built with a local proc-macro crate).
-- thiserror: `std` is the standard library where the derive is written, by the lookup and by the test the standard derives'
-  replacement uses (no dependency or library called `std` or `core`), since the impls are written `impl std::fmt::Display for ..`
-  up to thiserror 1.0.69.
+- thiserror: `std` is the standard library where the derive is written, by the lookup and by a test that no dependency or library
+  called `std` or `core` may make it another crate, since the impls are written `impl std::fmt::Display for ..` up to thiserror
+  1.0.69. That test is a second guard: the `derive` attribute of the item is refused first, by the test of the next entry (which is
+  wider: it covers a prelude the crate sets too), so the standard derives' replacement and this check are not the same test, and
+  the derive tests stay green with this one removed.
 - None of the three where the crate's `std` or `core` may be another crate's (the test above): the `derive` attribute is a macro of
   the standard prelude, which that crate may replace, so a derive written under it is no proof of anything.
 - No other derive that is not a standard one and no attribute macro is on the same type, and each bare attribute beside the

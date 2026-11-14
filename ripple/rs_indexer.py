@@ -1819,8 +1819,12 @@ class Index:
             `serde(crate = ..)` (the impls would be those of that path); no lock that lists a serde_derive that runs a
             precompiled binary (PRECOMPILED_SERDE_DERIVE), which no manifest or lock-less repo can show;
           * clap (3.0.0-beta.3 on): `clap::..` in the impl headers, so `clap` here is the dependency, not a module, alias or glob;
-          * thiserror (1.0.69 and before): `std::..`, so `std` here is the standard library, by the lookup and by the same test the
-            standard derives' replacement uses (prelude_may_not_be_std), which cannot then disagree."""
+          * thiserror (1.0.69 and before): `std::..`, so `std` here is the standard library, by the lookup and by prelude_may_not_be_std, a
+            second guard: shadow_problem refuses the item's `derive` attribute first, by prelude_replaced (which is wider: it covers the
+            crate's own prelude too) and by macro_use_extern(ctx), and refuse_trust refuses the derive with it. The standard derives'
+            replacement uses prelude_replaced, so the two tests are not the same. Nothing here tests that this check is what refuses (the
+            derive tests stay green with it removed): it is a backstop for a change to that order. derive_imported still reads the raw
+            `macro_use_extern` field of the crate, which macro_use_extern(ctx) widens by an extern crate `std`, `core` or `alloc` that may be another crate's."""
         if ctx.edition < 2018:
             return "edition: " + EDITION
         scope, package = site.scope, ctx.crate.package
