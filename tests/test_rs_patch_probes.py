@@ -96,9 +96,9 @@ def run(cwd, *args):
     subprocess.run(args, cwd=cwd, check=True, capture_output=True, env=env)
 
 
-def stage(name, tmp_path):
-    """The probe as a repo in tmp_path/repo, with `@GIT@` the url of two local git repositories (`foo` and `bar`, each answering 2) and a vendored
-    crates.io holding foo 1.0.0. Returns the repo."""
+def stage(name, tmp_path, probes=PROBES):
+    """The probe as a repo in tmp_path/repo, with `@GIT@` the url of two local git repositories (`foo` and `bar`, each answering 2), `@REPO@` the repo
+    itself and a vendored crates.io holding foo 1.0.0. Returns the repo."""
     for crate in ("foo", "bar"):
         src = tmp_path / "gitsrc" / crate
         (src / "src").mkdir(parents=True)
@@ -115,17 +115,17 @@ def stage(name, tmp_path):
     (vendored / "src" / "lib.rs").write_text("pub fn f() -> u32 { 2 }\n")
     (vendored / ".cargo-checksum.json").write_text('{"files":{},"package":null}')
     repo = tmp_path / "repo"
-    shutil.copytree(PROBES / name, repo)
+    shutil.copytree(probes / name, repo)
     for path in repo.rglob("*"):
         if path.is_file() and path.suffix in (".toml", ".rs"):
-            path.write_text(path.read_text().replace("@GIT@", f"file://{tmp_path}/gitsrc"))
+            path.write_text(path.read_text().replace("@GIT@", f"file://{tmp_path}/gitsrc").replace("@REPO@", str(repo)))
     return repo
 
 
-def cargo(root, tmp_path, cwd, name, *args):
+def cargo(root, tmp_path, cwd, name, *args, vendored=VENDORED):
     env = {**os.environ, "CARGO_HOME": str(tmp_path / "cargo-home"), "RUSTUP_HOME": str(root / "rustup"), "CARGO_TARGET_DIR": str(tmp_path / "target"), "PATH": f"{root}/cargo/bin:" + os.environ["PATH"]}
     full = ["cargo", *args]
-    if name in VENDORED:
+    if name in vendored:
         full += ["--config", 'source.crates-io.replace-with="vend"', "--config", f'source.vend.directory="{tmp_path}/vendor"']
     return subprocess.run(full, cwd=cwd, env=env, capture_output=True, text=True, timeout=600)
 

@@ -583,20 +583,51 @@ from the sysroot whatever the prelude is, unless the crate says `#[macro_use] ex
 under a `#[cfg]` or `cfg_attr`, the `#![no_std]` idiom) where that name may be another crate: the extern crate is then that crate, its
 `#[macro_export]` macros come before the sysroot's, and a bare macro is read as one ripple has not read, so its arguments are not calls (each
 built with rustc). Where `std` is the real crate that line changes nothing.
-**A `[patch]` or `[replace]` is never an edge; it makes a dependency unresolved (Rule P).** Whether cargo applies a patch depends on more than a
-manifest reader can follow: the source it patches, the version it has against the requirement, a `Cargo.lock` that pins the dependency, which
-root governs the package, `members` against `exclude`, a `package.workspace`, a git dependency with no version taking a pre-release, a config
-that is read only from below its `.cargo` (each built with cargo, the probes in `bench/fixtures/rust-probes/crates/_patch_source` pass only when
-cargo does what they say), so ripple does not decide it. A dependency that is not a `path` dependency is unresolved, never an edge through the
-patch and never external, when it may be redirected: (1) its package name (the dependency's key, or its `package =`) is named by any
-`[patch.<anything>]` or `[replace]` entry ripple can read in the analysed directory, in any manifest (a root, a member, a lone package, an
-excluded one, a member's own that cargo ignores, one in a directory with no source file) or any cargo config of it (also a config's `paths`
-override), whether or not cargo would apply that entry (a name is a word of a `[replace]` key, so `foo`, `foo:1.0.0`, `url#foo:1.0.0`); a patch,
-replace or `paths` table ripple cannot parse names every dependency; or (2) a manifest that may govern the package was not read (a
-`package.workspace` naming one outside the analysed directory, a Cargo.toml above the analysed directory, one that cannot be read, a config that
-cannot be read) and the name is that of a package of the repo, which an unseen patch could point at. Otherwise it is the fetched crate, outside
-the repo. A `path` dependency is unchanged. What cargo is given from outside the repo (a patch in `~/.cargo/config.toml` or a `--config`) is not
-seen, which is the assumption below.
+**A `[patch]`, a `[replace]` or a `paths` override is never an edge; it makes a dependency unresolved (Rule P).** Whether cargo applies one
+depends on more than a manifest reader can follow: the source it patches, the version it has against the requirement, a `Cargo.lock` that pins
+the dependency, which root governs the package, `members` against `exclude`, a `package.workspace`, a git dependency with no version taking a
+pre-release, a config that is read only from below its `.cargo` (each built with cargo, the probes in
+`bench/fixtures/rust-probes/crates/_patch_source` and `_redirect_reach` pass only when cargo does what they say), so ripple does not decide it.
+It refuses instead, by what it can read of each redirect, and in every case where it can see a redirect and cannot read it.
+A dependency that is not a `path` dependency (a registry or git one) is unresolved, never an edge through the redirect and never external,
+when it may be redirected: (1) its package name (the dependency's key, or its `package =`) is named by any `[patch.<anything>]` or `[replace]`
+entry ripple can read in the analysed directory, in any manifest (a root, a member, a lone package, an excluded one, a member's own that cargo
+ignores, one in a directory with no source file) or any cargo config of it, whether or not cargo would apply that entry (a name is a word of a
+`[replace]` key, so `foo`, `foo:1.0.0`, `url#foo:1.0.0`); or (2) a
+manifest that may govern the package was not read (a `package.workspace` naming one outside the analysed directory, a Cargo.toml above the
+analysed directory, one that cannot be read, a config that cannot be read) and the name is that of a package of the repo, which an unseen
+patch could point at. Otherwise it is the fetched crate, outside the repo.
+A `path` dependency is an edge to the directory its `path` names unless it may be redirected, which cargo does in two ways ripple reads by name
+(each built): an entry of a `[patch.<key>]` table of the dependency's name (the key, or its `package =`), unless the key is `crates-io` or an http, https, ssh or git url, which cannot be a path source's url (cargo
+leaves such a patch unused), where a `file:` url is the url of a path source and a registry name or anything else is read as one, since ripple
+cannot tell which index url a name stands for; an entry of a `[replace]` of that name whose key holds `file:` or `path+`, the id of a package of
+a path source, which cargo applies when the entry has a source of its own (`foo:1.0.0`, `foo@1.0.0` and the id of a registry or git source are
+not a path package's, and cargo leaves the path dependency alone: the edge is right there). A `[patch.crates-io]` therefore leaves a path
+dependency an edge.
+A third redirect is the config's `paths`, and ripple does not follow it at all. A `paths = ["dir"]` entry makes cargo load every package at or
+below `dir` and also every path dependency of each of those packages, transitively, in every
+dependency table and wherever the path points (built: a registry dependency becomes the package a nested path names, a path dependency is replaced
+by a package outside `dir` that a package below it reaches, through a `[dev-dependencies]` and a second hop too), and a dependency of the name of
+any package so loaded is that package, whatever its source. Following that reach was missed in part three reviews running, so ripple does not
+try: any `paths` entry in any cargo config of the analysed directory makes every dependency of every package unresolved, a path dependency too,
+whatever the entry holds (a package of another name, no package, a directory outside the analysed directory) and wherever the config sits among the
+directories the walk of the repo reads: a config inside a `.git`, `node_modules` or `__pycache__` directory, or a `target` beside a `Cargo.toml`, is
+never read, so an entry there refuses nothing, though cargo run from inside such a directory would apply it (the assumption at the walk of the
+configs, below). An
+empty `paths = []` names no directory and is no entry (built: cargo overrides nothing for it). A `paths` that is no list of strings is a form
+ripple cannot read, and refuses the same way as an entry.
+Where ripple sees a redirect and cannot read it, every dependency is unresolved, a path dependency too: an `include` key in any form in a cargo
+config (cargo applies the `[patch]` and the `paths` of the included file, built; ripple does not read it); a cargo config that cannot be read
+(for a registry or git dependency, only as rule (2) says). A manifest that governs a package and cannot be
+read (its own, one above it inside the analysed directory, or the root its `package.workspace` names when that root is inside the analysed
+directory) makes its path dependencies unresolved as well. A `[patch]` or
+`[replace]` of a form ripple does not read makes every registry or git dependency unresolved (cargo rejects those forms, so a path dependency
+keeps its edge).
+What cargo is given from outside what ripple reads is not seen, and is assumed to redirect nothing: a `--config` on the command line, the
+`CARGO_*` environment (a config key set there), a cargo config in a directory above the analysed one or in `CARGO_HOME`, and for a `path`
+dependency a manifest above the analysed directory or named by a `package.workspace` that points outside it (a `[patch."file:///..."]` or a
+`[replace]` in it; for a registry or git dependency that manifest is rule (2)). A manifest in `.git`, `node_modules`, a `target` directory beside a Cargo.toml or
+`__pycache__` is not read for a `[patch]`, which only matters where a build reaches an indexed package by it.
 **Unresolved, with the reason:** every method call `recv.m()` (what it calls depends on the receiver's type, which is not
 followed yet: `impact` lists same-named ones under `possible_missed_callers`), a name two definitions share (cfg twins),
 a name a pattern or closure binds, a call inside a macro other than the standard ones, a glob from outside the repo in a

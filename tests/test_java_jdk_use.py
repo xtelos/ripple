@@ -732,7 +732,7 @@ def test_a_java_graph_cached_by_the_code_that_used_the_hand_tables_is_rebuilt(ma
     assert not cached and calls(graph, "p.A.f()") == {"p.A.helper()"}
     path = cache_file(repo.resolve(), cache_dir, JAVA)
     saved = json.loads(path.read_text())
-    assert saved["format"] == CACHE_FORMAT == f"{__version__}-28"  # the table shipped under -17, and -16 is the format before it
+    assert saved["format"] == CACHE_FORMAT == f"{__version__}-29"  # the table shipped under -17, and -16 is the format before it
     assert load_graph(repo, cache_dir, profile=JAVA)[1] is True
     saved["format"] = f"{__version__}-16"  # (the table was regenerated from twenty JDKs without another bump: this is still the one)
     saved["graph"]["edges"] = []  # what the old code's answer for this repo would have been: nothing proven past Writer

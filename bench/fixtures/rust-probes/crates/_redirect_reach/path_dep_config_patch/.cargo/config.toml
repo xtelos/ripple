@@ -1,0 +1,2 @@
+[patch."file://@REPO@/foo"]
+foo = { path = "alt" }

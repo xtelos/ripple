@@ -1,0 +1,10 @@
+[package]
+name = "p"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+foo = { path = "foo" }
+
+[patch."file://@REPO@/foo"]
+foo = { path = "alt" }
