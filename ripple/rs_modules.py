@@ -79,7 +79,8 @@ def config_files(repo: Path, sources: list[Path]) -> list[str]:
     """The files besides the sources that the index depends on, which the cache fingerprints (registry.py): the manifests, the
     Cargo.lock beside each, every cargo config file `cargo_configs` finds (what `_trust` reads to prove an attribute macro is the
     published crate's), every Cargo.toml the walk of the repo finds (read_redirects looks in each for a `[patch]` or a `[replace]`, in a
-    directory with no source file too), the Cargo.toml of each directory above the repo (whether there is one), the Cargo.toml of
+    directory with no source file too), the Cargo.toml of every package below a vendored `[source]` directory of a config (`redirect_manifests`,
+    read for the package's name, in a directory the walk skips too), the Cargo.toml of each directory above the repo (whether there is one), the Cargo.toml of
     each path dependency outside the repo, and the manifest of each path dependency inside the repo that the walk gave no source file to
     (`_extra_manifests`, read for the requirements that decide the lock)."""
     read = manifests(repo, sources)
@@ -91,7 +92,7 @@ def config_files(repo: Path, sources: list[Path]) -> list[str]:
     configs, found = _walk(repo)
     data, unreadable, _ = _read_manifests(repo, read)
     out += _extra_manifests(repo, data, unreadable)[1]
-    return sorted({*out, *configs, *found, *above_manifests(repo), *outside_manifests(repo, sources)})
+    return sorted({*out, *configs, *found, *redirect_manifests(repo, configs), *above_manifests(repo), *outside_manifests(repo, sources)})
 
 
 def _toml():
@@ -328,7 +329,9 @@ def _package(repo: Path, pdir: str, data: dict[str, dict], redirects: Redirects)
 #
 #   A dependency that is not a `path` dependency (a registry or git one):
 #   (1) some entry of any `[patch.<table>]` or `[replace]` ripple can read in the analysed directory (every manifest, every cargo config of it)
-#       names its package, whether or not cargo would apply that entry; or a table ripple cannot parse is there at all;
+#       names its package, whether or not cargo would apply that entry; or a vendored `[source]` `directory` inside the analysed directory holds
+#       a package of its name (cargo builds the vendored package, which ripple indexes: never an edge into it, never external); or a table ripple
+#       cannot parse is there at all;
 #   (2) a manifest that may govern the package was not read and the package of the repo of that name is what an unseen patch could point at (a
 #       patch supplies a dependency only with the package of the dependency's own name).
 #   A `path` dependency (path_names): named by an entry of a `[patch.<key>]` whose key may be the url of a path
@@ -339,9 +342,10 @@ def _package(repo: Path, pdir: str, data: dict[str, dict], redirects: Redirects)
 # (cargo loads every package below it and the path dependencies of each, transitively, wherever they point, and overrides by name: ripple follows
 # none of it, so the entry refuses, whatever it holds; `paths = []` is no entry), an `include` of a cargo config (the included file is not read),
 # a config or a manifest that governs the package and cannot be read, a `package.workspace` root inside the analysed directory that cannot be read
-# (for a path dependency: for a registry or git dependency an unreadable config or manifest refuses only as (2) says). This holds for the configs
-# ripple's walk reads: it enters no `.git`, `node_modules` or `__pycache__`, and no `target` beside a Cargo.toml, so a config there is not seen
-# (`_walk`; README, the assumption on the walk of the configs). Otherwise it is the fetched crate (outside the repo) or the package the path names.
+# (for a path dependency: for a registry or git dependency an unreadable config or manifest refuses only as (2) says). A `[source]` it cannot read
+# refuses every registry or git dependency (a path dependency is no source's). This holds for the configs ripple's walk reads: it enters no `.git`,
+# `node_modules` or `__pycache__`, and no `target` beside a Cargo.toml, so a config there is not seen (`_walk`; README, the assumption on the walk of
+# the configs). Otherwise it is the fetched crate (outside the repo) or the package the path names.
 
 PATCH_UNPROVEN = "?patch"  # a dependency something may redirect to another package than its manifest names: unresolved
 UNRESOLVED_DEPS = (AMBIGUOUS, PATCH_UNPROVEN)  # a Package.deps value that is no dir and no None
@@ -354,11 +358,12 @@ def _canon(name: str) -> str:
 
 @dataclass
 class Redirects:
-    """What the `[patch]` and `[replace]` entries and the manifests ripple read say of which dependency may be redirected, and what ripple saw of
-    a redirect and could not read or follow (a `paths` entry, an `include`: `unparsable`, `path_unparsable`) (Rule P above).
+    """What the `[patch]` and `[replace]` entries, the vendored `[source]` directories and the manifests ripple read say of which dependency may be
+    redirected, and what ripple saw of a redirect and could not read or follow (a `paths` entry, an `include`: `unparsable`, `path_unparsable`)
+    (Rule P above).
 
-    `names`: a package name some entry names -> the dirs of the packages of the repo its entries' paths name (None: a path that is no package
-    ripple read, a git source, no path). `path_names`: the same for the entries that can redirect a PATH dependency. `unparsable`: why some table
+    `names`: a package name some entry or vendored directory names -> the dirs of the packages of the repo they name (None: a path
+    that is no package ripple read, a git source, no path). `path_names`: the same for the entries that can redirect a PATH dependency. `unparsable`: why some table
     cannot be read, which makes every non-path dependency a candidate; `path_unparsable`: why some redirect cannot be read that may be one of a path
     dependency too. `unread`: why some manifest that may govern a package was not read (a Cargo.toml above the analysed directory or one that could
     not be read, a cargo config that could not be read); `unreadable`: the dirs of the manifests that could not be read. `packages`: the name of each
@@ -457,10 +462,92 @@ def _entries(doc: dict, base: str, known: set[str], out: Redirects, where: str) 
                 out.path_names.setdefault(_canon(name), set()).add(where_to)
 
 
+def _place(repo: Path, base: str, entry: str) -> str | None:
+    """The directory (repo-relative) a path written in a config under `base` points at, by where it really is (`..` back into the directory, an
+    absolute path and a link are followed); None when it is outside the analysed directory."""
+    real, root = os.path.realpath(os.path.join(repo, base, entry)), os.path.realpath(repo)
+    if not _within(real, root):
+        return None
+    rel = os.path.relpath(real, root).replace(os.sep, "/")
+    return "" if rel == "." else rel
+
+
+def _manifests_below(repo: Path, place: str) -> list[str]:
+    """Every Cargo.toml at or below a directory of the repo, repo-relative (every directory but one whose name starts with a dot, which cargo does not
+    enter for a package either; cargo reads only the direct children of a vendored directory, so reading all below it only refuses more, and a
+    `target` and a `node_modules` are read here). The walk of the repo for manifests (`_walk`) skips `node_modules` and a `target`, so this one is
+    its own.
+
+    A link is not entered (a loop would not end), with one exception, the one cargo makes: a direct child of the directory that is a link, to a
+    directory inside the analysed directory, holding a `Cargo.toml` (cargo keeps a child when `child/Cargo.toml` exists, following links: a
+    dangling link, a link to a file and one that loops have none) is a package of the repo, and its manifest is listed by the path through the link.
+    A link to a directory outside the analysed directory is a crate from outside it, as a vendored directory outside is, and is not listed. A
+    `Cargo.toml` that is itself a link is listed where the walk finds it (a dangling one too, which `_packages_below` cannot read, and refuses)."""
+    root = os.path.realpath(repo)
+    top, out = os.path.join(root, place), []
+    for here, dirs, files in os.walk(top):
+        dirs[:] = sorted(d for d in dirs if not d.startswith("."))
+        if "Cargo.toml" in files:
+            out.append(_join(place, os.path.relpath(here, top).replace(os.sep, "/"), "Cargo.toml"))
+    try:
+        children = sorted(os.listdir(top))
+    except OSError:
+        return out
+    for name in children:
+        child = os.path.join(top, name)
+        if not name.startswith(".") and os.path.islink(child) and _within(os.path.realpath(child), root) and os.path.exists(os.path.join(child, "Cargo.toml")):
+            out.append(_join(place, name, "Cargo.toml"))
+    return out
+
+
+def _packages_below(repo: Path, base: str, entry: str, out: Redirects) -> list[tuple[str, str]] | None:
+    """(directory, package name) of every package at or below the directory a config's path names, None when it is outside the analysed directory.
+    A manifest there that cannot be read refuses every registry or git dependency (a path dependency is no source's)."""
+    place = _place(repo, base, entry)
+    if place is None:
+        return None
+    found = []
+    for rel in _manifests_below(repo, place):
+        try:
+            doc = _toml().loads((repo / rel).read_text(encoding="utf-8"))
+        except (OSError, ValueError, UnicodeDecodeError):
+            _refuse(out, f"{rel} could not be read")
+            continue
+        package = doc.get("package")
+        if isinstance(package, dict) and isinstance(package.get("name"), str):
+            found.append((posixpath.dirname(rel), package["name"]))
+    return found
+
+
+def _config_directories(conf: dict) -> list[str]:
+    """The directories ripple reads packages below, as a cargo config writes them: its `[source.*]` `directory` values that are strings (a `paths`
+    entry is no directory ripple reads: any entry refuses, `_config_paths`)."""
+    source = conf.get("source")
+    tables = [t for t in source.values() if isinstance(t, dict)] if isinstance(source, dict) else []
+    return [t["directory"] for t in tables if isinstance(t.get("directory"), str)]
+
+
+def redirect_manifests(repo: Path, configs: list[str]) -> list[str]:
+    """The Cargo.toml of every package at or below a directory inside the analysed directory that a config's `[source]` `directory` names
+    (`_packages_below` reads them, in a `node_modules` too, which the walk of the repo does not enter): so the cache fingerprints them."""
+    out: set[str] = set()
+    for rel in configs:
+        try:
+            conf = _toml().loads((repo / rel).read_text(encoding="utf-8"))
+        except (OSError, ValueError, UnicodeDecodeError):
+            continue
+        base = posixpath.dirname(posixpath.dirname(rel))
+        for entry in _config_directories(conf):
+            place = _place(repo, base, entry)
+            if place is not None:
+                out |= set(_manifests_below(repo, place))
+    return sorted(out)
+
+
 def read_redirects(repo: Path, data: dict[str, dict], known: set[str], unreadable: set[str], configs: list[str], found: list[str]) -> Redirects:
     """Every `[patch]` and `[replace]` entry of every Cargo.toml (`data`: those above a source file; `found`: every one the walk of the repo finds,
-    of a directory with no source file too) and of every cargo config of the repo (`configs`) (a `paths` entry is no table to read: it refuses
-    everything), and what of it ripple could not read."""
+    of a directory with no source file too) and of every cargo config of the repo (`configs`) and the packages below every vendored `[source]`
+    directory (a `paths` entry is no table to read: it refuses everything), and what of it ripple could not read."""
     toml = _toml()
     out = Redirects(read=set(data), unreadable=set(unreadable))
     docs = dict(data)
@@ -494,6 +581,7 @@ def read_redirects(repo: Path, data: dict[str, dict], known: set[str], unreadabl
         if "include" in conf:  # in any form: the files it names may hold any of what follows, and ripple reads none of them
             _refuse(out, f"{rel} has an `include`, whose files ripple does not read", True)
         _config_paths(conf, rel, out)
+        _config_sources(repo, conf, base, rel, known, out)
     above = above_manifests(repo)
     if above:
         out.unread = out.unread or f"{above[0]} is above the analysed directory"
@@ -514,6 +602,30 @@ def _config_paths(conf: dict, rel: str, out: Redirects) -> None:
         _refuse(out, f"{rel} has a `paths` of a form ripple does not read", True)
     elif paths:
         _refuse(out, f"{rel} has a `paths` entry, and cargo loads every package below it and the path dependencies of each", True)
+
+
+def _config_sources(repo: Path, conf: dict, base: str, rel: str, known: set[str], out: Redirects) -> None:
+    """A vendored source: `[source.<name>] directory = "dir"` is where cargo reads the packages of a registry or git source that another source
+    `replace-with`s (also through a chain of them): probes vendored_directory, vendored_chain. Which source replaces which is not asked, so every
+    `directory` of every `[source.*]` table counts, whatever form the table is written in (dotted, inline and a `[source.x]` header are one table once
+    parsed). A dependency with a package of its name at or below such a directory inside the analysed directory is unresolved: cargo builds that
+    package, which ripple indexes, so the call is neither external nor an edge (the repo's own package of a vendored one is not a dependency edge:
+    no edge is drawn into a vendor directory). A directory outside the analysed directory holds crates from outside the repo, which external says."""
+    source = conf.get("source")
+    if source is None:
+        return
+    if not (isinstance(source, dict) and all(isinstance(table, dict) for table in source.values())):
+        _refuse(out, f"{rel} has a [source] of a form ripple does not read")
+        return
+    for table in source.values():
+        directory = table.get("directory")
+        if directory is None:
+            continue
+        if not isinstance(directory, str):
+            _refuse(out, f"{rel} has a [source] `directory` of a form ripple does not read")
+            continue
+        for found, name in _packages_below(repo, base, directory, out) or ():
+            out.names.setdefault(_canon(name), set()).add(found if found in known else None)
 
 
 def above_manifests(repo: Path) -> list[str]:
@@ -806,7 +918,7 @@ def _walk(repo: Path) -> tuple[list[str], list[str]]:
             entries = list(os.scandir(here))
         except OSError:
             continue
-        manifest = any(e.name == "Cargo.toml" and e.is_file() for e in entries)
+        manifest = any(e.name == "Cargo.toml" and _is_file(e) for e in entries)
         if manifest:
             manifest_files.append(f"{rel}/Cargo.toml" if rel else "Cargo.toml")
         for entry in sorted(entries, key=lambda e: (e.is_symlink(), e.name)):  # a real directory is walked before a link to it
@@ -830,6 +942,14 @@ def _walk(repo: Path) -> tuple[list[str], list[str]]:
 
 def _within(path: str, root: str) -> bool:
     return path == root or path.startswith(root.rstrip("/") + "/")
+
+
+def _is_file(entry: os.DirEntry) -> bool:
+    """Whether a directory entry is a file, a link followed; a link that loops is none (DirEntry.is_file raises for it where Path.is_file says no)."""
+    try:
+        return entry.is_file()
+    except OSError:
+        return False
 
 
 def _config_names(directory: str, rel: str) -> list[str]:

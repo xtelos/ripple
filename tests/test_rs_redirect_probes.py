@@ -17,6 +17,16 @@ cargo half passes only when cargo does what the probe says (test_cargo_says_so);
     overridden by name by a package outside the entry, and the reach is transitive and covers `[dev-dependencies]`), so ripple does not follow
     an entry: any entry refuses every dependency.
   * config_include, config_include_tables: the `[patch]` of a file a config `include`s (an array of paths, `[[include]]` tables) is applied.
+  * vendored_directory, vendored_dotted, vendored_inline, vendored_chain: `cargo vendor`'s config, a `[source]` `directory` inside the repo that
+    replaces crates.io, builds the vendored package (here the vendored foo answers 7, from `vendor/foo-1.0.0` too) in each way the tables can be
+    written (header, dotted keys, inline tables, a chain of `replace-with`); vendored_outside (control): a directory outside the repo is a crate
+    from outside it, and ripple says external. A git source replaced by a vendored directory is built too (not a probe: it needs a Cargo.lock
+    written before the replacement is read).
+  * vendored_symlink, vendored_symlink_outside, vendored_dir_link, vendored_manifest_link: a link between the configured directory and the
+    package. Cargo keeps a direct child of the directory whose `Cargo.toml` exists, following links, so a child that is a link to a package of the
+    repo builds that package (the repo's own code runs, answer 7: ripple must not say external), a child that is a link to a directory outside
+    the repo builds a crate from outside it (control: external), the directory itself may be a link, and a `Cargo.toml` may be a link. The
+    staging copies a link as what it points at, so the links are made here (LINKS) after the probe is staged.
 """
 
 import pytest
@@ -46,13 +56,37 @@ UNRESOLVED = {  # probe -> what ripple says of the call through `foo`: neither a
     "paths_transitive_devdep_over_path",
     "config_include",
     "config_include_tables",
+    "vendored_directory",
+    "vendored_dotted",
+    "vendored_inline",
+    "vendored_chain",
+    "vendored_symlink",
+    "vendored_dir_link",
+    "vendored_manifest_link",
+}
+LINKS = {  # probe -> {a link to make in the staged repo: what it points at, as the link says it}; the outside one is the staged vendored foo, answering 2
+    "vendored_symlink": {"vendor/foo": "../crates/foo"},
+    "vendored_symlink_outside": {"vendor/foo": "../../vendor/foo"},
+    "vendored_dir_link": {"vendor": "crates/vend"},
+    "vendored_manifest_link": {"vendor/foo/Cargo.toml": "../../manifests/foo.toml"},
 }
 CONTROLS = {  # probe -> the one verdict ripple gives the call, where nothing of the probe reaches the dependency
     "path_dep_patch_crates_io": ("edge", "foo/src/lib:f"),
     "path_dep_patch_https_url": ("edge", "foo/src/lib:f"),
     "path_dep_replace_crates_io_id": ("edge", "foo/src/lib:f"),
     "paths_empty": ("edge", "foo/src/lib:f"),
+    "vendored_outside": ("external", "a path into a crate from outside the repo"),
+    "vendored_symlink_outside": ("external", "a path into a crate from outside the repo"),
 }
+
+
+def staged(name, tmp_path):
+    """The probe as a repo (stage), with the links of LINKS made: the staging copies a link as the file or directory it points at."""
+    repo = stage(name, tmp_path, PROBES)
+    for link, target in LINKS.get(name, {}).items():
+        (repo / link).parent.mkdir(parents=True, exist_ok=True)
+        (repo / link).symlink_to(target)
+    return repo
 
 
 def test_every_probe_of_the_directory_is_in_a_table():
@@ -64,7 +98,7 @@ def test_cargo_says_so(name, tmp_path):
     root = toolchain()
     if root is None:
         pytest.skip("no Rust toolchain or no git (set RIPPLE_RUST_TOOLCHAIN to a directory with cargo/bin)")
-    repo = stage(name, tmp_path, PROBES)
+    repo = staged(name, tmp_path)
     result = cargo(root, tmp_path, repo, name, "test", "--quiet", vendored=VENDORED)
     out = result.stdout + result.stderr
     assert result.returncode == 0 and "test result: ok. 1 passed; 0 failed" in out, out[-1500:]
@@ -72,7 +106,7 @@ def test_cargo_says_so(name, tmp_path):
 
 @pytest.mark.parametrize("name", sorted(UNRESOLVED))
 def test_ripple_says_neither_edge_nor_external_for_the_call_through_a_dependency_a_redirect_may_make_another_package(name, tmp_path):
-    repo = stage(name, tmp_path, PROBES)
+    repo = staged(name, tmp_path)
     got = verdicts(repo)
     callers = {key for key in got if key[1] == CALLS.get(name, "foo::f") and key[0].startswith("src/")}
     assert callers, (name, sorted(got))  # ripple read the site
@@ -84,7 +118,7 @@ def test_ripple_says_neither_edge_nor_external_for_the_call_through_a_dependency
 
 @pytest.mark.parametrize("name", sorted(CONTROLS))
 def test_ripple_keeps_the_verdict_of_a_control(name, tmp_path):
-    repo = stage(name, tmp_path, PROBES)
+    repo = staged(name, tmp_path)
     got = verdicts(repo)
     callers = {key for key in got if key[1] == "foo::f" and key[0].startswith("src/")}
     assert callers, (name, sorted(got))

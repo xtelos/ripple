@@ -31,7 +31,7 @@ def locked(version):
 
 
 def test_the_format_moved_with_the_rule():
-    assert CACHE_FORMAT == f"{__version__}-29"
+    assert CACHE_FORMAT == f"{__version__}-30"
 
 
 def test_the_lock_beside_the_manifest_is_fingerprinted_for_the_derives_too(make_repo):

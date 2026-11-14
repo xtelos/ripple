@@ -54,6 +54,15 @@ REDIRECTS = {
         },
     ),
     "a `paths` entry outside the tree": (lambda c: "", lambda c: {".cargo/config.toml": 'paths = ["../outside"]\n'}),
+    # `cargo vendor`'s config: cargo builds the package under the directory for the registry dependency, and ripple indexes it (rs_modules._config_sources)
+    "a vendored source directory that holds the crate": (
+        lambda c: "",
+        lambda c: {
+            ".cargo/config.toml": '[source.crates-io]\nreplace-with = "vendored-sources"\n\n[source.vendored-sources]\ndirectory = "vendor"\n',
+            f"vendor/{c}-1.0.0/Cargo.toml": VENDORED.format(crate=c),
+            f"vendor/{c}-1.0.0/src/lib.rs": "",
+        },
+    ),
 }
 
 

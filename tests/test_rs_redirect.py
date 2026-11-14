@@ -9,8 +9,8 @@ not a `path` dependency is PATCH_UNPROVEN, never an edge and never external, whe
   2. a manifest that may govern the package was not read (a `package.workspace` naming one, one above the analysed directory, an unreadable one,
      an unreadable config) and the name is that of a package of the repo.
 
-Otherwise it is the fetched crate: external. A `path` dependency, a `paths` entry (any entry refuses every dependency), and an `include` are
-judged in tests/test_rs_redirect_reach.py. Each test here fails when the branch it names is removed.
+Otherwise it is the fetched crate: external. A `path` dependency, a `paths` entry (any entry refuses every dependency), an `include` and what a
+vendored source directory holds are judged in tests/test_rs_redirect_reach.py. Each test here fails when the branch it names is removed.
 """
 
 import pytest
