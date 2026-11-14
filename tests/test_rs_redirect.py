@@ -9,7 +9,8 @@ not a `path` dependency is PATCH_UNPROVEN, never an edge and never external, whe
   2. a manifest that may govern the package was not read (a `package.workspace` naming one, one above the analysed directory, an unreadable one,
      an unreadable config) and the name is that of a package of the repo.
 
-Otherwise it is the fetched crate: external. A `path` dependency is as it was. Each test here fails when the branch it names is removed.
+Otherwise it is the fetched crate: external. A `path` dependency, a `paths` entry (any entry refuses every dependency), and an `include` are
+judged in tests/test_rs_redirect_reach.py. Each test here fails when the branch it names is removed.
 """
 
 import pytest
@@ -170,16 +171,17 @@ def test_a_patch_in_a_cargo_config_of_the_repo_names_the_package(make_repo, conf
     assert deps(make_repo, lone(**config)) == {"foo": UNPROVEN}
 
 
-def test_a_config_paths_entry_names_the_package_at_its_directory(make_repo):
-    """`paths = ["foo"]` in a cargo config is no `[patch]`, and cargo builds it as the repo's foo for the registry's (probe config_paths). It
-    names the package whose Cargo.toml is at the directory, from the directory above its `.cargo`."""
+def test_a_config_paths_entry_makes_every_dependency_unresolved_not_only_the_one_it_holds(make_repo):
+    """`paths = ["foo"]` in a cargo config is no `[patch]`, and cargo builds it as the repo's foo for the registry's (probe config_paths). Cargo
+    loads the packages below the entry and the path dependencies of each, wherever they point, so the entry refuses every dependency, `serde`
+    too, whose package is not at `foo`."""
     files = lone(**{".cargo/config.toml": 'paths = ["foo"]\n'})
     files["Cargo.toml"] += 'serde = "1"\n'
-    assert deps(make_repo, files) == {"foo": UNPROVEN, "serde": OUT}
+    assert deps(make_repo, files) == {"foo": UNPROVEN, "serde": UNPROVEN}
 
 
 @pytest.mark.parametrize("paths", ['["../outside"]', '["nowhere"]', '[3]', '"foo"'], ids=["outside", "no_package", "not_a_string", "not_a_list"])
-def test_a_config_paths_entry_ripple_cannot_place_makes_every_dependency_unresolved(make_repo, paths):
+def test_a_config_paths_ripple_cannot_read_makes_every_dependency_unresolved(make_repo, paths):
     files = lone(**{".cargo/config.toml": f"paths = {paths}\n"})
     files["Cargo.toml"] += 'serde = "1"\n'
     assert deps(make_repo, files) == {"foo": UNPROVEN, "serde": UNPROVEN}

@@ -38,6 +38,22 @@ REDIRECTS = {
         lambda c: "",
         lambda c: {".cargo/config.toml": f'paths = ["vendor/{c}"]\n', f"vendor/{c}/Cargo.toml": VENDORED.format(crate=c), f"vendor/{c}/src/lib.rs": ""},
     ),
+    # any `paths` entry refuses every dependency (rs_modules._config_paths): cargo also loads the path dependencies of each package below it
+    "a `paths` entry that holds no package of the crate's name": (
+        lambda c: "",
+        lambda c: {".cargo/config.toml": 'paths = ["sub"]\n', "sub/Cargo.toml": VENDORED.format(crate="other"), "sub/src/lib.rs": ""},
+    ),
+    "a `paths` entry whose package reaches the crate by a path dependency": (
+        lambda c: "",
+        lambda c: {
+            ".cargo/config.toml": 'paths = ["sub"]\n',
+            "sub/Cargo.toml": VENDORED.format(crate="sub") + f'\n[dependencies]\n{c} = {{ path = "../third/{c}" }}\n',
+            "sub/src/lib.rs": "",
+            f"third/{c}/Cargo.toml": VENDORED.format(crate=c),
+            f"third/{c}/src/lib.rs": "",
+        },
+    ),
+    "a `paths` entry outside the tree": (lambda c: "", lambda c: {".cargo/config.toml": 'paths = ["../outside"]\n'}),
 }
 
 

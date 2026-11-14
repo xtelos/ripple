@@ -10,7 +10,8 @@ tests, examples, benches and build script, found as cargo finds them, with `[lib
 overrides), and what each package can name by `use`: its dependencies by the name they are written
 under (a hyphen is an underscore, a renamed one is its key), and which of them are packages of this
 repo (a `path` dependency, a `workspace = true` one that the workspace gives a path). Everything else a package names is outside the
-repo, unless a `[patch]` or a `[replace]` may redirect it: then it is unresolved, never an edge and never external (Rule P, Redirects).
+repo, unless a `[patch]`, a `[replace]` or a config's `paths` may redirect it: then it is unresolved, never an edge and never external (Rule P,
+Redirects). A `path` dependency is an edge unless one of those may redirect it too.
 
 The module tree of a crate starts at its root file and follows `mod` declarations: `mod x;` is x.rs
 or x/mod.rs beside the declaring file (or inside the directory a non-mod.rs file owns), `#[path]`
@@ -260,6 +261,11 @@ def _package(repo: Path, pdir: str, data: dict[str, dict], redirects: Redirects)
     # a `package.workspace` naming a manifest ripple did not read: the root that governs the package may hold a patch ripple cannot see
     named = meta.get("workspace")
     unread_root = named is not None and not (isinstance(named, str) and _join(pdir, named) in redirects.read)
+    # a manifest that governs the package could not be read: its own or one above it, or the root `package.workspace` names when that root is
+    # inside the analysed directory (a root outside it is the README's stated assumption for a path dependency, and Rule P (2) for the rest)
+    unread_here = _unread_above(pdir, redirects.unreadable) is not None or (
+        unread_root and not (isinstance(named, str) and _leaves_repo(_join(pdir, named)))
+    )
     edition = meta.get("edition", "2015")
     if isinstance(edition, dict):  # edition.workspace = true
         shared_package = shared.get("package", {})
@@ -289,11 +295,11 @@ def _package(repo: Path, pdir: str, data: dict[str, dict], redirects: Redirects)
                         path = _join(root, wide["path"])
                 elif isinstance(spec.get("path"), str):
                     path = _join(pdir, spec["path"])
-            redirected = redirects.redirected((key, real), unread_root) if path is None else None
-            if redirected is not None:  # from a registry or a git source that a patch or a replace may redirect: Rule P
+            redirected = redirects.redirected((key, real), unread_root, path is not None, unread_here)
+            if redirected is not None:  # a registry or git source, or a path, that something may redirect (a patch, a replace, a `paths`...): Rule P
                 add(key, PATCH_UNPROVEN)
                 maybe += redirected
-            else:  # a path dependency, or the fetched crate
+            else:  # a path dependency nothing names, or the fetched crate
                 add(key, path if path in known else None)
             if isinstance(source.get("path"), str) and path not in known:
                 # a path dependency that is no package ripple read. Outside the analysed directory its Cargo.toml (and nothing else of it) says what
@@ -313,17 +319,31 @@ def _package(repo: Path, pdir: str, data: dict[str, dict], redirects: Redirects)
     return Package(pdir, meta["name"], lib_name, deps, manifest, str(edition), maybe=tuple(dict.fromkeys(maybe)), std_why=replaced, outside_libs=tuple(dict.fromkeys(outside_libs)))
 
 
-# ---- Rule P: which dependencies a `[patch]` or a `[replace]` may redirect
+# ---- Rule P: which dependencies a `[patch]`, a `[replace]` or a `paths` may redirect
 #
 # Whether cargo applies a patch depends on the source it patches, the version, a Cargo.lock, which root governs the package, `members` against
 # `exclude`, a `package.workspace`, a versionless git dependency taking a pre-release: tests/test_rs_patch_probes.py builds each, and ripple does
-# not follow them. A dependency that is not a `path` dependency is PATCH_UNPROVEN, never an edge through a patch or a replace and never external,
-# when it MAY be redirected: (1) some entry of any `[patch.<table>]` or `[replace]` ripple can read in the analysed directory (every manifest, every
-# cargo config of it) names its package, whether or not cargo would apply that entry, or a table ripple cannot parse is there at all; or (2) a
-# manifest that may govern the package was not read and the package of the repo of that name is what an unseen patch could point at (a patch
-# supplies a dependency only with the package of the dependency's own name). Otherwise it is the fetched crate, outside the repo.
+# not follow them. A dependency is PATCH_UNPROVEN, never an edge through a redirect and never external, when it MAY be redirected. The redirects
+# cargo accepts, and what ripple reads of each (tests/test_rs_redirect_reach.py, probes in crates/_redirect_reach, each built with cargo):
+#
+#   A dependency that is not a `path` dependency (a registry or git one):
+#   (1) some entry of any `[patch.<table>]` or `[replace]` ripple can read in the analysed directory (every manifest, every cargo config of it)
+#       names its package, whether or not cargo would apply that entry; or a table ripple cannot parse is there at all;
+#   (2) a manifest that may govern the package was not read and the package of the repo of that name is what an unseen patch could point at (a
+#       patch supplies a dependency only with the package of the dependency's own name).
+#   A `path` dependency (path_names): named by an entry of a `[patch.<key>]` whose key may be the url of a path
+#   source (any key but `crates-io` and an http, https, ssh or git url: a `file:` url is one, and a registry name stands for an index url ripple
+#   does not follow); by an entry of a `[replace]` whose key may be the id of a path source (it holds `file:` or `path+`).
+#
+# And everything is unresolved, path dependencies too, when ripple sees a redirect it cannot read or follow: any `paths` entry of a cargo config
+# (cargo loads every package below it and the path dependencies of each, transitively, wherever they point, and overrides by name: ripple follows
+# none of it, so the entry refuses, whatever it holds; `paths = []` is no entry), an `include` of a cargo config (the included file is not read),
+# a config or a manifest that governs the package and cannot be read, a `package.workspace` root inside the analysed directory that cannot be read
+# (for a path dependency: for a registry or git dependency an unreadable config or manifest refuses only as (2) says). This holds for the configs
+# ripple's walk reads: it enters no `.git`, `node_modules` or `__pycache__`, and no `target` beside a Cargo.toml, so a config there is not seen
+# (`_walk`; README, the assumption on the walk of the configs). Otherwise it is the fetched crate (outside the repo) or the package the path names.
 
-PATCH_UNPROVEN = "?patch"  # a dependency a patch or a replace may make a package of the repo: unresolved
+PATCH_UNPROVEN = "?patch"  # a dependency something may redirect to another package than its manifest names: unresolved
 UNRESOLVED_DEPS = (AMBIGUOUS, PATCH_UNPROVEN)  # a Package.deps value that is no dir and no None
 
 
@@ -334,29 +354,42 @@ def _canon(name: str) -> str:
 
 @dataclass
 class Redirects:
-    """What the `[patch]` and `[replace]` entries and the manifests ripple read say of which dependency may be redirected (Rule P above).
+    """What the `[patch]` and `[replace]` entries and the manifests ripple read say of which dependency may be redirected, and what ripple saw of
+    a redirect and could not read or follow (a `paths` entry, an `include`: `unparsable`, `path_unparsable`) (Rule P above).
 
     `names`: a package name some entry names -> the dirs of the packages of the repo its entries' paths name (None: a path that is no package
-    ripple read, a git source, no path). `unparsable`: why some table cannot be read, which makes every dependency a candidate. `unread`: why some
-    manifest that may govern a package was not read (a Cargo.toml above the analysed directory or one that could not be read, a cargo config that
-    could not be read). `packages`: the name of each package of the repo -> its dirs (None: one ripple did not read as above a source file).
-    `read`: the dirs of the manifests read, for a `package.workspace` to name."""
+    ripple read, a git source, no path). `path_names`: the same for the entries that can redirect a PATH dependency. `unparsable`: why some table
+    cannot be read, which makes every non-path dependency a candidate; `path_unparsable`: why some redirect cannot be read that may be one of a path
+    dependency too. `unread`: why some manifest that may govern a package was not read (a Cargo.toml above the analysed directory or one that could
+    not be read, a cargo config that could not be read); `unreadable`: the dirs of the manifests that could not be read. `packages`: the name of each
+    package of the repo -> its dirs (None: one ripple did not read as above a source file). `read`: the dirs of the manifests read, for a
+    `package.workspace` to name."""
 
     names: dict[str, set[str | None]] = field(default_factory=dict)
+    path_names: dict[str, set[str | None]] = field(default_factory=dict)
     unparsable: str | None = None
+    path_unparsable: str | None = None
     unread: str | None = None
+    unreadable: set[str] = field(default_factory=set)
     packages: dict[str, set[str | None]] = field(default_factory=dict)
     read: set[str] = field(default_factory=set)
 
-    def redirected(self, written: tuple[str, ...], unread_root: bool) -> list[str | None] | None:
+    def redirected(self, written: tuple[str, ...], unread_root: bool, is_path: bool = False, unread_here: bool = False) -> list[str | None] | None:
         """None when nothing can redirect a dependency of this package name (its key and its `package`), else the dirs of the packages of the repo
-        it may then be, None among them where ripple cannot place one (that is what the question of `std` asks, Package.maybe)."""
+        it may then be, None among them where ripple cannot place one (that is what the question of `std` asks, Package.maybe). `is_path`: a `path`
+        dependency, which only `path_names` and an unreadable redirect can reach; `unread_here`: a manifest that governs the package could not be read."""
         # `{*written}` raises TypeError for a `package` that is a list or a table, as the lookup of it always did (the manifest is one cargo rejects, and
         # load_workspace says the package is not read: test_rs_malformed bad_dep_package); a number is tolerated as before (bad_deps) and names nothing
         names = {_canon(name) for name in {*written} if isinstance(name, str)}
+        if is_path:
+            if self.path_unparsable is not None or unread_here:
+                return [None]
+            named = names & self.path_names.keys()
+            found: set[str | None] = set().union(*(self.path_names[name] for name in named))
+            return sorted(found, key=lambda dir_: (dir_ is None, dir_ or "")) if named else None
         if self.unparsable is not None:
             return [None]
-        found: set[str | None] = set()
+        found = set()
         named = names & self.names.keys()
         for name in named:
             found |= self.names[name]
@@ -364,6 +397,26 @@ class Redirects:
         for name in unseen:
             found |= self.packages[name]
         return sorted(found, key=lambda dir_: (dir_ is None, dir_ or "")) if named or unseen else None
+
+
+def _refuse(out: Redirects, why: str, path_too: bool = False) -> None:
+    """Something of the redirects ripple cannot read: every non-path dependency is a candidate, and every path dependency too when `path_too`."""
+    out.unparsable = out.unparsable or why
+    if path_too:
+        out.path_unparsable = out.path_unparsable or why
+
+
+def _patch_may_be_path(key: str) -> bool:
+    """Whether a `[patch.<key>]` table may be the one of a path source. Cargo matches a patch to a dependency by the source's url, and a path
+    source's is its `file:` url; `crates-io` and an http, https, ssh or git url are never that. A registry name (an index url from `[registries]`,
+    which may be in a config ripple cannot see), a `file:` url and anything else are not proven to be anything else."""
+    return not (key == "crates-io" or re.match(r"(?i)(https?|ssh|git)://", key))
+
+
+def _replace_may_be_path(key: str) -> bool:
+    """Whether a `[replace]` key may be the id of a package of a path source (`path+file:///dir#name@version`, `file:///dir#version`): it holds a
+    `file:` url. `name:version`, `name@version` and the id of a registry or git source are not."""
+    return re.search(r"(?i)file:|path\+", key) is not None
 
 
 def _words(key: str) -> set[str]:
@@ -376,16 +429,16 @@ def _entries(doc: dict, base: str, known: set[str], out: Redirects, where: str) 
     """Add every `[patch.<table>]` and `[replace]` entry of a manifest or a cargo config to `out` (`base`: the directory its paths are relative to,
     the one above its `.cargo` for a config)."""
     patch, replace = doc.get("patch"), doc.get("replace")
-    entries: list[tuple[set[str], object]] = []  # (the names the entry spells, its value)
+    entries: list[tuple[set[str], object, bool]] = []  # (the names the entry spells, its value, whether it may redirect a path dependency)
     if isinstance(patch, dict) and all(isinstance(table, dict) for table in patch.values()):
-        entries += [({key}, spec) for table in patch.values() for key, spec in table.items()]
+        entries += [({key}, spec, _patch_may_be_path(url)) for url, table in patch.items() for key, spec in table.items()]
     elif patch is not None:
         out.unparsable = out.unparsable or f"{where} has a [patch] of a form ripple does not read"
     if isinstance(replace, dict):
-        entries += [(_words(key), spec) for key, spec in replace.items()]
+        entries += [(_words(key), spec, _replace_may_be_path(key)) for key, spec in replace.items()]
     elif replace is not None:
         out.unparsable = out.unparsable or f"{where} has a [replace] of a form ripple does not read"
-    for names, spec in entries:
+    for names, spec, on_path in entries:
         where_to: str | None = None
         if isinstance(spec, dict):
             package = spec.get("package")
@@ -400,13 +453,16 @@ def _entries(doc: dict, base: str, known: set[str], out: Redirects, where: str) 
             out.unparsable = out.unparsable or f"{where} has an entry of a form ripple does not read"
         for name in names:
             out.names.setdefault(_canon(name), set()).add(where_to)
+            if on_path:
+                out.path_names.setdefault(_canon(name), set()).add(where_to)
 
 
 def read_redirects(repo: Path, data: dict[str, dict], known: set[str], unreadable: set[str], configs: list[str], found: list[str]) -> Redirects:
     """Every `[patch]` and `[replace]` entry of every Cargo.toml (`data`: those above a source file; `found`: every one the walk of the repo finds,
-    of a directory with no source file too) and of every cargo config of the repo (`configs`), and what of it ripple could not read."""
+    of a directory with no source file too) and of every cargo config of the repo (`configs`) (a `paths` entry is no table to read: it refuses
+    everything), and what of it ripple could not read."""
     toml = _toml()
-    out = Redirects(read=set(data))
+    out = Redirects(read=set(data), unreadable=set(unreadable))
     docs = dict(data)
     if unreadable:
         out.unread = f"{_join(min(unreadable), 'Cargo.toml')} could not be read"
@@ -418,6 +474,7 @@ def read_redirects(repo: Path, data: dict[str, dict], known: set[str], unreadabl
             docs[directory] = toml.loads((repo / rel).read_text(encoding="utf-8"))
         except (OSError, ValueError, UnicodeDecodeError):
             out.unread = out.unread or f"{rel} could not be read"
+            out.unreadable.add(directory)
             continue
         out.read.add(directory)
     for directory, doc in sorted(docs.items()):
@@ -430,25 +487,33 @@ def read_redirects(repo: Path, data: dict[str, dict], known: set[str], unreadabl
             conf = toml.loads((repo / rel).read_text(encoding="utf-8"))
         except (OSError, ValueError, UnicodeDecodeError):
             out.unread = out.unread or f"{rel} could not be read"
+            out.path_unparsable = out.path_unparsable or f"{rel} could not be read"  # it may hold a `paths` or a patch of a path source
             continue
         base = posixpath.dirname(posixpath.dirname(rel))
         _entries(conf, base, known, out, rel)
-        # the old override: `paths = ["dir"]` makes the dependency whose package is at `dir` that one (probe config_paths), by name
-        paths = conf.get("paths")
-        if paths is not None and not (isinstance(paths, list) and all(isinstance(p, str) for p in paths)):
-            out.unparsable = out.unparsable or f"{rel} has a `paths` of a form ripple does not read"
-        for entry in paths if isinstance(paths, list) else ():
-            at = docs.get(_join(base, entry)) if isinstance(entry, str) else None
-            package = at.get("package") if at is not None else None
-            if isinstance(package, dict) and isinstance(package.get("name"), str):
-                directory = _join(base, entry)
-                out.names.setdefault(_canon(package["name"]), set()).add(directory if directory in known else None)
-            elif isinstance(entry, str):
-                out.unparsable = out.unparsable or f"{rel} has `paths` naming {entry}, which holds no package ripple read"
+        if "include" in conf:  # in any form: the files it names may hold any of what follows, and ripple reads none of them
+            _refuse(out, f"{rel} has an `include`, whose files ripple does not read", True)
+        _config_paths(conf, rel, out)
     above = above_manifests(repo)
     if above:
         out.unread = out.unread or f"{above[0]} is above the analysed directory"
     return out
+
+
+def _config_paths(conf: dict, rel: str, out: Redirects) -> None:
+    """The old override: `paths = ["dir"]` makes cargo load every package at or below `dir` and every path dependency of each of those, transitively,
+    wherever it points (probes paths_nested_pathdep_registry, paths_nested_pathdep_over_path, paths_transitive_devdep_over_path), and a dependency
+    of the name of any of them is that package, whatever its source (a `path` dependency too, probe path_dep_paths_override). Ripple follows none
+    of it (three reviews in a row missed part of what cargo reaches): any entry refuses every dependency of every package, a path dependency
+    too, whatever the entry holds or does not hold. An empty list is no entry (probe paths_empty); a `paths` that is no list of strings is one
+    ripple cannot read, and refuses the same."""
+    paths = conf.get("paths")
+    if paths is None:
+        return
+    if not (isinstance(paths, list) and all(isinstance(p, str) for p in paths)):
+        _refuse(out, f"{rel} has a `paths` of a form ripple does not read", True)
+    elif paths:
+        _refuse(out, f"{rel} has a `paths` entry, and cargo loads every package below it and the path dependencies of each", True)
 
 
 def above_manifests(repo: Path) -> list[str]:

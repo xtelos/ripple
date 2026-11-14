@@ -744,7 +744,7 @@ def test_a_cache_written_before_references_were_followed_is_rebuilt(make_repo, t
     load_graph(repo, cache_dir, profile=TYPESCRIPT)
     path = cache_file(repo.resolve(), cache_dir, TYPESCRIPT)
     saved = json.loads(path.read_text())
-    assert saved["format"] == CACHE_FORMAT == f"{__version__}-28"
+    assert saved["format"] == CACHE_FORMAT == f"{__version__}-29"
     saved["format"] = f"{__version__}-11"
     saved["graph"]["symbols"] = []
     path.write_text(json.dumps(saved))
