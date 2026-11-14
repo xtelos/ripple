@@ -593,12 +593,27 @@ A dependency that is not a `path` dependency (a registry or git one) is unresolv
 when it may be redirected: (1) its package name (the dependency's key, or its `package =`) is named by any `[patch.<anything>]` or `[replace]`
 entry ripple can read in the analysed directory, in any manifest (a root, a member, a lone package, an excluded one, a member's own that cargo
 ignores, one in a directory with no source file) or any cargo config of it, whether or not cargo would apply that entry (a name is a word of a
-`[replace]` key, so `foo`, `foo:1.0.0`, `url#foo:1.0.0`); or (2) a
+`[replace]` key, so `foo`, `foo:1.0.0`, `url#foo:1.0.0`); or a vendored source directory inside the analysed directory holds a package of that
+name (below); or (2) a
 manifest that may govern the package was not read (a `package.workspace` naming one outside the analysed directory, a Cargo.toml above the
 analysed directory, one that cannot be read, a config that cannot be read) and the name is that of a package of the repo, which an unseen
 patch could point at. Otherwise it is the fetched crate, outside the repo.
+A vendored source is the one way besides a `[patch]` and a `[replace]` that a name becomes a package of the repo: `[source.<name>] directory = "dir"` in a cargo config, what `cargo vendor`
+prints, makes cargo build the package of a registry or git dependency from that directory (built, with the table written as a header, as dotted
+keys, as inline tables and through a chain of `replace-with`, and for a git source). Ripple indexes that package, so a registry or git dependency
+that has a package of its name at or below such a directory inside the analysed directory is unresolved: never external, and no edge is drawn
+into `vendor/`. The name is the one in the package's Cargo.toml, not its directory's (`vendor/foo-1.0.0` holds `foo`). Which source replaces which
+is not asked, and every directory below it is read, a dot directory excepted (cargo reads only its direct children, so reading more only refuses more). A link is
+not entered, so that a loop ends, except where cargo follows one (it keeps a direct child whose `Cargo.toml` exists, following links; built): a direct
+child that is a link to a directory inside the analysed directory is a package of the repo, whose code runs, so its name counts; one that points
+outside the analysed directory is a crate from outside it, and the dependency stays external; a link that dangles, loops or names a file holds no
+package; the configured directory may itself be a link, read where it really is; and a `Cargo.toml` that is a link is read through it. A dependency
+with no package of its name there stays external, and so does every dependency when the directory is outside the analysed directory (the crates there are crates from
+outside the repo). A `[source]` table ripple cannot read, or a vendored directory holding a Cargo.toml it cannot read, makes every registry or git
+dependency unresolved; a `path` dependency into `vendor/` is an edge, as any `path` dependency is.
 A `path` dependency is an edge to the directory its `path` names unless it may be redirected, which cargo does in two ways ripple reads by name
-(each built): an entry of a `[patch.<key>]` table of the dependency's name (the key, or its `package =`), unless the key is `crates-io` or an http, https, ssh or git url, which cannot be a path source's url (cargo
+(each built): an entry of a `[patch.<key>]` table of the dependency's name (the key, or its `package =`), unless the key is `crates-io` or an
+http, https, ssh or git url, which cannot be a path source's url (cargo
 leaves such a patch unused), where a `file:` url is the url of a path source and a registry name or anything else is read as one, since ripple
 cannot tell which index url a name stands for; an entry of a `[replace]` of that name whose key holds `file:` or `path+`, the id of a package of
 a path source, which cargo applies when the entry has a source of its own (`foo:1.0.0`, `foo@1.0.0` and the id of a registry or git source are

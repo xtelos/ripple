@@ -1,0 +1,7 @@
+[source.crates-io]
+replace-with = "a"
+[source.a]
+registry = "https://example.invalid/index"
+replace-with = "b"
+[source.b]
+directory = "vendor"
