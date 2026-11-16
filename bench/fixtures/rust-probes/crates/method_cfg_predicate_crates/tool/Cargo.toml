@@ -1,0 +1,12 @@
+[package]
+name = "tool"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+app = { path = "../app", default-features = false }
+
+# the tool's own `f`, on by default: the library's `f` is not it
+[features]
+default = ["f"]
+f = []

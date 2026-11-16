@@ -1,0 +1,156 @@
+{
+ "calls": [
+  {
+   "c0": 10,
+   "c1": 11,
+   "defs": [],
+   "file": "app/src/lib.rs",
+   "kind": "lost",
+   "line": 56,
+   "text": "m"
+  },
+  {
+   "c0": 25,
+   "c1": 26,
+   "defs": [],
+   "file": "app/src/lib.rs",
+   "kind": "lost",
+   "line": 76,
+   "text": "g"
+  },
+  {
+   "c0": 28,
+   "c1": 29,
+   "defs": [],
+   "file": "app/src/lib.rs",
+   "kind": "lost",
+   "line": 77,
+   "text": "f"
+  },
+  {
+   "c0": 29,
+   "c1": 30,
+   "defs": [],
+   "file": "app/src/lib.rs",
+   "kind": "lost",
+   "line": 78,
+   "text": "f"
+  },
+  {
+   "c0": 40,
+   "c1": 41,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     55
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 79,
+   "text": "f"
+  },
+  {
+   "c0": 9,
+   "c1": 18,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 6,
+   "text": "to_string"
+  },
+  {
+   "c0": 21,
+   "c1": 29,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 6,
+   "text": "replacen"
+  },
+  {
+   "c0": 57,
+   "c1": 62,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 6,
+   "text": "parse"
+  },
+  {
+   "c0": 65,
+   "c1": 71,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 6,
+   "text": "unwrap"
+  },
+  {
+   "c0": 9,
+   "c1": 18,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 12,
+   "text": "to_string"
+  },
+  {
+   "c0": 21,
+   "c1": 28,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 12,
+   "text": "replace"
+  },
+  {
+   "c0": 47,
+   "c1": 54,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 12,
+   "text": "replace"
+  },
+  {
+   "c0": 71,
+   "c1": 76,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 12,
+   "text": "parse"
+  },
+  {
+   "c0": 79,
+   "c1": 85,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 12,
+   "text": "unwrap"
+  },
+  {
+   "c0": 87,
+   "c1": 92,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 18,
+   "text": "parse"
+  },
+  {
+   "c0": 95,
+   "c1": 101,
+   "defs": [],
+   "file": "pm/src/lib.rs",
+   "kind": "external",
+   "line": 18,
+   "text": "unwrap"
+  }
+ ],
+ "complete": true,
+ "probe": "method_rebind_attr_macros",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

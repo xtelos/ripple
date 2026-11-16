@@ -1,0 +1,44 @@
+{
+ "calls": [
+  {
+   "c0": 10,
+   "c1": 11,
+   "defs": [
+    [
+     "src/lib.rs",
+     17
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 22,
+   "text": "m"
+  },
+  {
+   "c0": 26,
+   "c1": 31,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "lost",
+   "line": 30,
+   "text": "extra"
+  },
+  {
+   "c0": 29,
+   "c1": 30,
+   "defs": [
+    [
+     "src/lib.rs",
+     21
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 31,
+   "text": "f"
+  }
+ ],
+ "complete": true,
+ "probe": "method_unread_alias_std",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

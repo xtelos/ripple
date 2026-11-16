@@ -1,0 +1,371 @@
+{
+ "calls": [
+  {
+   "c0": 10,
+   "c1": 11,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     8
+    ]
+   ],
+   "file": "app/examples/ex.rs",
+   "kind": "repo",
+   "line": 8,
+   "proof": "runtime",
+   "text": "m"
+  },
+  {
+   "c0": 11,
+   "c1": 15,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     11
+    ]
+   ],
+   "file": "app/examples/ex.rs",
+   "kind": "repo",
+   "line": 11,
+   "proof": "runtime",
+   "text": "make"
+  },
+  {
+   "c0": 19,
+   "c1": 22,
+   "defs": [
+    [
+     "app/examples/ex.rs",
+     7
+    ]
+   ],
+   "file": "app/examples/ex.rs",
+   "kind": "repo",
+   "line": 15,
+   "text": "via"
+  },
+  {
+   "c0": 19,
+   "c1": 23,
+   "defs": [
+    [
+     "app/examples/ex.rs",
+     10
+    ]
+   ],
+   "file": "app/examples/ex.rs",
+   "kind": "repo",
+   "line": 16,
+   "text": "make"
+  },
+  {
+   "c0": 10,
+   "c1": 11,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     26
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 52,
+   "text": "m"
+  },
+  {
+   "c0": 19,
+   "c1": 22,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     51
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 56,
+   "text": "via"
+  },
+  {
+   "c0": 22,
+   "c1": 26,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     29
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 57,
+   "text": "make"
+  },
+  {
+   "c0": 10,
+   "c1": 11,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     38
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 65,
+   "text": "m"
+  },
+  {
+   "c0": 19,
+   "c1": 22,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     64
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 70,
+   "text": "via"
+  },
+  {
+   "c0": 22,
+   "c1": 26,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     41
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 71,
+   "text": "make"
+  },
+  {
+   "c0": 10,
+   "c1": 11,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     8
+    ]
+   ],
+   "file": "app/tests/it.rs",
+   "kind": "repo",
+   "line": 6,
+   "proof": "runtime",
+   "text": "m"
+  },
+  {
+   "c0": 11,
+   "c1": 15,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     11
+    ]
+   ],
+   "file": "app/tests/it.rs",
+   "kind": "repo",
+   "line": 9,
+   "proof": "runtime",
+   "text": "make"
+  },
+  {
+   "c0": 19,
+   "c1": 22,
+   "defs": [
+    [
+     "app/tests/it.rs",
+     5
+    ]
+   ],
+   "file": "app/tests/it.rs",
+   "kind": "repo",
+   "line": 13,
+   "text": "via"
+  },
+  {
+   "c0": 19,
+   "c1": 23,
+   "defs": [
+    [
+     "app/tests/it.rs",
+     8
+    ]
+   ],
+   "file": "app/tests/it.rs",
+   "kind": "repo",
+   "line": 14,
+   "text": "make"
+  },
+  {
+   "c0": 10,
+   "c1": 11,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     8
+    ]
+   ],
+   "file": "pm/src/lib.rs",
+   "kind": "repo",
+   "line": 7,
+   "proof": "runtime",
+   "text": "m"
+  },
+  {
+   "c0": 11,
+   "c1": 15,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     11
+    ]
+   ],
+   "file": "pm/src/lib.rs",
+   "kind": "repo",
+   "line": 10,
+   "proof": "runtime",
+   "text": "make"
+  },
+  {
+   "c0": 19,
+   "c1": 22,
+   "defs": [
+    [
+     "pm/src/lib.rs",
+     6
+    ]
+   ],
+   "file": "pm/src/lib.rs",
+   "kind": "repo",
+   "line": 14,
+   "text": "via"
+  },
+  {
+   "c0": 19,
+   "c1": 23,
+   "defs": [
+    [
+     "pm/src/lib.rs",
+     9
+    ]
+   ],
+   "file": "pm/src/lib.rs",
+   "kind": "repo",
+   "line": 15,
+   "text": "make"
+  },
+  {
+   "c0": 10,
+   "c1": 11,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     8
+    ]
+   ],
+   "file": "tool/src/lib.rs",
+   "kind": "repo",
+   "line": 8,
+   "proof": "runtime",
+   "text": "m"
+  },
+  {
+   "c0": 11,
+   "c1": 15,
+   "defs": [
+    [
+     "app/src/lib.rs",
+     11
+    ]
+   ],
+   "file": "tool/src/lib.rs",
+   "kind": "repo",
+   "line": 11,
+   "proof": "runtime",
+   "text": "make"
+  },
+  {
+   "c0": 19,
+   "c1": 22,
+   "defs": [
+    [
+     "tool/src/lib.rs",
+     7
+    ]
+   ],
+   "file": "tool/src/lib.rs",
+   "kind": "repo",
+   "line": 15,
+   "text": "via"
+  },
+  {
+   "c0": 19,
+   "c1": 23,
+   "defs": [
+    [
+     "tool/src/lib.rs",
+     10
+    ]
+   ],
+   "file": "tool/src/lib.rs",
+   "kind": "repo",
+   "line": 16,
+   "text": "make"
+  },
+  {
+   "c0": 10,
+   "c1": 11,
+   "defs": [],
+   "file": "tool/src/lib.rs",
+   "kind": "shared",
+   "line": 24,
+   "proof": "runtime",
+   "text": "m"
+  },
+  {
+   "c0": 11,
+   "c1": 15,
+   "defs": [],
+   "file": "tool/src/lib.rs",
+   "kind": "shared",
+   "line": 27,
+   "proof": "runtime",
+   "text": "make"
+  },
+  {
+   "c0": 19,
+   "c1": 22,
+   "defs": [
+    [
+     "tool/src/lib.rs",
+     23
+    ]
+   ],
+   "file": "tool/src/lib.rs",
+   "kind": "repo",
+   "line": 32,
+   "text": "via"
+  },
+  {
+   "c0": 19,
+   "c1": 23,
+   "defs": [
+    [
+     "tool/src/lib.rs",
+     26
+    ]
+   ],
+   "file": "tool/src/lib.rs",
+   "kind": "repo",
+   "line": 33,
+   "text": "make"
+  }
+ ],
+ "complete": true,
+ "probe": "method_cfg_predicate_crates",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

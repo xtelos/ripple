@@ -69,8 +69,18 @@ path ripple could not resolve may have added one (the reason names it; see Index
 no parameters that a qualified path names is the impl whatever else exists: rustc rejects a second. A trait
 from outside the repo may have impls ripple does not read (the standard library's blanket `Borrow`, `From`, `Into`),
 so a call through one that a repo impl could answer is unresolved, and is outside the repo only when none could.
-Every method call `recv.m()` is unresolved: what it calls depends on the type of the receiver, which
-is not followed yet.
+A method call `recv.m()` is an edge only in one case (Index.method_call): the receiver is `self`, or a name bound once in the function
+by a parameter or a `let` that writes its type as a struct, enum or union of the repo (`S`, `&S`, `&mut S`, `Self`), the call is where that
+binding is in effect, and an inherent method `m` of the type takes the receiver in the form the receiver has (`self` for `S`, `&self` for
+`&S`, `&mut self` for `&mut S`). rustc tries a type by value before it takes a reference, and an inherent method before a trait's, so that
+method is found first whatever traits are in scope. Everything else is unresolved with a reason of its own, and none is outside the repo:
+a receiver that is an expression (a call, a field), a local with no written type, a name bound twice, a generic, a trait object, a type from
+outside the repo, a method that takes another form (found at a later probe step, after a trait method that takes the receiver by value),
+no inherent method of the name, an impl with bounds, a method private to its module, one under a `#[cfg]` (or in a module, function or
+statement under one) that the call is not under too (the same attribute on a node around both, or a plain `#[cfg]` of the same tokens read by the same crate: head_shared, cfg_covers), a macro in a pattern of the function (it may bind any name), and any crate (or one that can name the type) with source
+ripple did not read: a file or a `mod` it could not read or follow, `include!`, and a macro invoked where an item may stand that may expand to
+`mod x;` or `include!(..)` (Index.method_taint). An impl a macro may have made is not a reason: rustc rejects a second inherent method of
+the name (E0592) and takes the inherent one first.
 
 The arguments of the standard macros (`println!`, `vec!`, `assert_eq!`, ...) are expressions, and are
 parsed again as such, so the calls in them are read like any other. A call inside any other macro is
@@ -83,9 +93,10 @@ The parser (tree-sitter and tree-sitter-rust) is imported only when a file is pa
 
 from __future__ import annotations
 
+import posixpath
 import re
 from collections import Counter, defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from . import rs_modules
@@ -97,8 +108,44 @@ INSTALL_HINT = "pip install 'ripple-code[rust]'"
 REINSTALL = f"it needs tree-sitter>=0.25,<0.27 and tree-sitter-rust>=0.24.2,<0.25, which {INSTALL_HINT} installs"
 
 # ---- why a call is unresolved
-METHOD = "a method call: ripple does not resolve method calls on Rust yet, because what one calls depends on the type of its receiver"
-LOCAL = "the name is bound by a pattern, a parameter or a closure in this function, so it is a local value (a closure or a function pointer), not a repo function"
+METHOD_PREFIX = "a method call: "  # every reason a method call is unresolved starts so (the SCIP comparison and the queries tell a method from a path call by it)
+M_NOT_METHOD = METHOD_PREFIX + "the callee is not a method name (a field or an element that holds a closure, called through a method call's syntax)"
+M_NOT_NAME = METHOD_PREFIX + "the receiver is not a plain name or `self` (it is a call, a field, a literal, a reference, an index, ...), and ripple does not follow the type of an expression"
+M_NO_TYPE = METHOD_PREFIX + "the receiver is a local whose type its binding does not write (a `let` without a type, a closure parameter, a pattern, a loop variable)"
+M_NOT_LOCAL = METHOD_PREFIX + "the receiver is a name that is not a local of this function (a static, a const, a captured name, a name a macro brings), so its type is not the one a binding here writes"
+M_REBOUND = METHOD_PREFIX + "the receiver name is bound more than once in the function (a parameter and a `let`, a shadowing `let`, a closure parameter, a match arm), so which binding the call sees is not known"
+M_PATTERN_MACRO = METHOD_PREFIX + "a macro in a pattern of the function (a `let`, an arm, an `if let`, a `for`, a parameter) may bind the receiver name, so the binding that writes a type is not known to be the one in effect"
+M_OUT_OF_SCOPE = METHOD_PREFIX + "the receiver name's `let` is not in effect at the call (the call is before it, or outside the block it is in), so the name may be an item or an outer binding"
+M_SHADOWED = METHOD_PREFIX + "an item of the same name, an import that gives the name, a glob import, a macro invoked as a statement that may bind it, or a statement ripple has no rule for is in a block around the call, so the name may not be the binding the receiver seems to have"
+M_CFG_BINDING = METHOD_PREFIX + "the receiver's binding (a parameter or a `let`) is under a `#[cfg]`, a `#[cfg_attr]` or an attribute ripple has no rule for, so it may not exist, and the name may then be an item's"
+M_PATTERN_ITEM = METHOD_PREFIX + "the name the binding writes is also a const, a unit struct or a variant in scope (or a glob or a macro may bring one), so it may be a pattern that binds nothing"
+M_SELF_NONE = METHOD_PREFIX + "`self` here is not the receiver parameter of the function the call is in"
+M_SELF_TRAIT = METHOD_PREFIX + "`self` is in a trait's default method, where Self is whatever implements the trait"
+M_SELF_TYPED = METHOD_PREFIX + "`self` is written with an explicit type (`self: Box<Self>`, `self: Rc<Self>`, `self: Self`), which ripple does not read as a form of the receiver"
+M_SELF_TYPE = METHOD_PREFIX + "`self` is of a type that is generic, from outside the repo, or not one name (an impl for a reference, a tuple, a trait object, or a blanket impl)"
+M_GENERIC = METHOD_PREFIX + "the receiver is of a generic type, whose bounds (the trait methods they give) ripple does not follow yet"
+M_DYN = METHOD_PREFIX + "the receiver is a trait object or an `impl Trait`, so a method of the trait it names is called, which ripple does not follow yet"
+M_EXT_TYPE = METHOD_PREFIX + "the receiver is of a type from outside the repo (the standard library, a smart pointer, another crate): its own methods come first, and a repo type may be reached by deref"
+M_NOT_PATH_TYPE = METHOD_PREFIX + "the receiver's type is written as a tuple, an array, a slice, a pointer, a function type or a primitive, which no repo impl can be for"
+M_TYPE_LOST = METHOD_PREFIX + "the receiver's type is written as a path that ripple cannot resolve to one struct, enum or union of the repo (a trait, several definitions, a name a macro or a glob may change)"
+M_REF_REF = METHOD_PREFIX + "the receiver is a reference to a reference, whose probe steps ripple does not follow"
+M_ALIAS_ARGS = METHOD_PREFIX + "the receiver's type is written through a type alias of a generic type, whose arguments ripple does not read through the alias"
+M_UNSIZED = METHOD_PREFIX + "the receiver's type has a parameter that may be unsized (`?Sized`), for which an impl of every type of a parameter does not apply"
+M_INCOMPLETE = METHOD_PREFIX + "ripple did not read all of the source that can rebind the receiver or its type: {}"
+M_NO_INHERENT = METHOD_PREFIX + "no inherent impl ripple read gives the type a method of that name, so the call is to a trait method, a method reached by deref or at a later probe step, or one a macro made"
+M_NO_INHERENT_ARGS = METHOD_PREFIX + "only impls for other type arguments of the type define a method of that name, so the call is to a trait method or one found at a later probe step"
+M_CONST = METHOD_PREFIX + "an associated const of the type has the same name, so which item an inherent lookup means is not known"
+M_CFG = METHOD_PREFIX + "something the call's proof reads (the method, its impl, the receiver's type, the call itself, or a function, block, arm or module around the impl) is under a `#[cfg]`, a `#[cfg_attr]` or an attribute ripple has no rule for, which it does not evaluate and the call is not under too (not the same attribute, nor a plain `#[cfg]` of the same tokens in the same crate, on a node around both), so whether it exists, and what is called if not, is not known"
+M_ATTR = METHOD_PREFIX + "the method, or the impl it is in, is under an attribute macro, which may rewrite it"
+M_INSTANTIATION = METHOD_PREFIX + "an impl for other type arguments of the type defines the name, and the type arguments the receiver is written with do not select one impl"
+M_SEVERAL = METHOD_PREFIX + "several inherent impls that apply to the receiver's type define the name (the same method under different cfgs, or impls for overlapping type arguments)"
+M_BOUNDED = METHOD_PREFIX + "the impl that defines the method has bounds on its parameters (`impl<T: Bound>`, a where clause), which an inherent candidate must satisfy or the probe goes on to trait methods"
+M_NOT_VISIBLE = METHOD_PREFIX + "the inherent method is not visible here (it is private to its module), so a trait method may be the one called"
+M_INVISIBLE_PATH = METHOD_PREFIX + "the visibility of the inherent method (`pub(in path)`) names a module ripple cannot find"
+M_LATER = METHOD_PREFIX + "the inherent method takes {} and the receiver is {}, so it is found only at a later probe step (an autoref or a deref), after trait methods of an earlier step that ripple does not read"
+M_NO_SELF = METHOD_PREFIX + "the inherent function of that name takes no `self` receiver"
+LOCAL_MAYBE = "a macro in a pattern of this function may bind the name (a macro_rules! one binds only a name it was given, a procedural one any), so it may be a local value, not a repo function"
+LOCAL ="the name is bound by a pattern, a parameter or a closure in this function, so it is a local value (a closure or a function pointer), not a repo function"
 EDITION = "the crate is of edition 2015 (or sets no edition), where `use` paths and extern crates are named by rules ripple does not read"
 SEVERAL = "the path names more than one definition (the same item under different cfgs, or a name two imports bring in), and which one is built or imported is not known"
 NOT_FOUND = "the name is not declared in the module and not imported by any use ripple can see"
@@ -138,7 +185,7 @@ EXT_TRAIT_IMPL = "the call goes through a trait from outside the repo, which the
 BLANKET_IMPL = "the trait has a blanket impl in the repo (an impl for a generic type), so which impl the call selects is not known"
 MACRO_BLOCK_ITEMS = "the call is in a block inside the arguments of a standard macro, and the block declares items or invokes a macro, which ripple does not read there"
 INVISIBLE_PATH = "the visibility of a name a glob import may bring (`pub(in path)`) names a module ripple cannot find"
-CFG_UNKNOWN = "the name is declared under a `#[cfg]` or `#[cfg_attr]` ripple does not evaluate, so whether that definition exists, and what is called if it does not, is not known"
+CFG_UNKNOWN = "the name is declared under a `#[cfg]` or `#[cfg_attr]` ripple does not evaluate and the call is not under too (not the same attribute, nor a plain `#[cfg]` of the same tokens in the same crate, on a node around both), so whether that definition exists, and what is called if it does not, is not known"
 ATTR_MACRO = "the call is inside, or the name is declared by, an item under an attribute macro (an attribute ripple does not know to be inert), which may rewrite it"
 BLOCK_MOD = "the path starts at a `mod` written inside a block, whose items ripple does not read, and which shadows the item of that name outside the block"
 IMPLS_INCOMPLETE = "the impls ripple read may not be all there are: {}"
@@ -219,6 +266,14 @@ STD_EXPR_MACROS = frozenset(
 PRELUDE_IMPORT = re.compile(rb"\bprelude_import\b")  # the feature gate of the crate's own prelude, and the attribute itself (a raw `r#prelude_import` too)
 STD_ARRAY_MACROS = frozenset({"vec"})
 QUOTE_MACROS = frozenset({"quote", "quote_spanned", "parse_quote", "parse_quote_spanned", "format_ident"})
+# The tokens a macro's expansion needs to bring in source ripple did not read: `mod x;` (a file), `include!(..)` (a file), or a `macro_rules!` that
+# defines the macro that does. A macro_rules! expansion is its body's tokens and its invocation's, so neither holding one means it brings none.
+BRINGS_SOURCE = re.compile(rb"\b(mod|include|macro_rules)\b")
+# A macro invoked inside a macro body: an optional path, the name, `!` (and not the `!=` operator, nor a unary `!` after a keyword).
+STRING_LITERAL = re.compile(rb'"(?:\\.|[^"\\])*"', re.S)
+CHAR_LITERAL = re.compile(rb"'(?:\\.|[^'\\\n])'")
+NESTED_MACRO = re.compile(rb"((?:[\w$]+\s*::\s*)*)([\w$]+)\s*!(?!=)")
+NOT_A_MACRO_NAME = frozenset(b"return if while match in else let mut as break continue move ref loop for unsafe await yield".split())
 # Attributes the language or its tools define, none of which generates items (any other attribute is a macro).
 BUILTIN_ATTRS = frozenset(
     "derive cfg cfg_attr test allow deny warn forbid expect doc inline must_use path macro_use macro_export repr "
@@ -488,6 +543,7 @@ class Scope:
     item_macros: bool = False  # a macro invoked here may generate names (set once every crate is collected: see Index.mark_macros)
     rewritten: bool = False  # inside an item under an attribute macro, which may have rewritten all of it
     macro_use_mod: bool = False  # a block that holds a `#[macro_use] mod`, whose macro_rules ripple does not read: any macro name used here may be the repo's
+    opaque_stmt: bool = False  # a block that holds a kind of statement block_child_known does not know: what it does to a value name is not known
 
     @property
     def may_make(self) -> bool:
@@ -518,12 +574,16 @@ class CrateCtx:
         # macro_use prelude already, so these bring in macros of another crate only where that name may not be the sysroot's (Index.macro_use_extern)
         self.macro_use_std: set[str] = set()
         self.prelude_import = False  # `#[prelude_import] use m::*;` (nightly) somewhere: the crate's standard prelude is a module of its own, whose `use`s no scope shows
-        self.macro_sites: list[tuple[Scope, str, bool, str, int]] = []  # (scope, macro, path starts at std, file, line) of each macro invoked where it may generate items
+        # (scope, macro, path starts at std, file, line, in a scope's own items (not an impl or a trait body), name and tokens allow a proof it
+        # brings no file) of each macro invoked where it may generate items
+        self.macro_sites: list[tuple[Scope, str, bool, str, int, bool, bool, int, bool]] = []  # the last: the name is written bare (one segment)
+        self.block_attr_sites: set[int] = set()  # id of each attr_sites entry (a tuple) written on an item of a block: what it generates stays in the block
         self.attr_sites: list[tuple[str, int, str] | TrustSite] = []  # (file, line, what) of each attribute macro or derive that may generate items, in source order (see attr_reasons)
         self.trust_sites: list[TrustSite] = []  # each function under trusted attributes only, until the repo proves them (Index.decide_trust)
         self.derive_sites: list[DeriveSite] = []  # each type under derives of TRUSTED_DERIVES only, until the repo proves them (Index.decide_trust)
         self.block_mods: list[tuple[str, int]] = []  # (file, line) of each `mod` written in a block, whose items ripple does not read: any impl in one applies to the whole crate
         self.taint: list[str] = []  # why the impls ripple read may not be all of this crate's (see Index.mark_macros)
+        self.unread_taint: list[str] = []  # why source of this crate may be in a file or a module ripple did not read, by a macro (see Index.mark_macros)
         self.pending_derives: list[tuple[Scope, tuple[str, ...], str, int]] = []  # (scope, names, file, line) of each standard derive written by its bare name: another macro if something replaces the name (Index.settle_derives)
         self.derive_replaced: dict[int, str] = {}  # index into pending_derives -> the name of the derive that something replaces (Index.derive_step)
         self.pending_heads: list[tuple[Scope, tuple[str, ...], str, int] | None] = []  # (scope, attributes, file, line) of each on the target of a derive that is not a standard one, in source order; None for the slot of a trusted derive site's helpers (DeriveSite.head_slot)
@@ -608,7 +668,11 @@ class ImplSpec:
     trait_target: tuple | None = None
     methods: dict[str, list[Def]] = field(default_factory=dict)  # name -> its definitions (several: cfg twins in one impl)
     consts: dict[str, list[Def]] = field(default_factory=dict)  # name -> the associated consts it defines
-    cfg: bool = False  # the impl is under a #[cfg]
+    cfg: bool = False  # the impl may not exist: it is under a #[cfg], or has one (or an attribute not proven inert) in its generics, its type or its body's inner attributes, or inherited_cfg
+    inherited_cfg: bool = False  # the impl is inside something under a #[cfg] (a module, a function, an impl, a block, an arm, a statement, an element): part of `cfg`; which attributes: cfg_keys
+    header_cfg: bool = False  # the impl's generics, type, trait or where clause, or its body's inner attributes, have an attribute not proven inert: what `Self` is may depend on it
+    header_keys: frozenset = frozenset()  # the keys (attribute_key) of those attributes, and of the impl's own: the ones on the path of a call inside the impl can be shared
+    cfg_keys: frozenset = frozenset()  # the keys of every attribute not proven inert on the way from the crate root to the impl, header_keys included (the impl may not exist: cfg)
     rewritten: bool = False  # the impl is under an attribute macro, or inside an item that is
     macro_body: str | None = None  # a macro invoked in the body, which may define functions: its name
     via_alias: bool = False  # the self type is written through a type alias
@@ -630,6 +694,18 @@ class BodySpec:
     rewritten: bool = False  # under an attribute macro: every call in it is unresolved
 
 
+@dataclass(eq=False)
+class Typed:
+    """A name of a function whose type its binding writes (a parameter, or a `let` with a type), or `self` with its form."""
+
+    name: str
+    tnode: object | None  # the type as written; None for `self`
+    scope: Scope  # where the type is written, so where its names are looked up
+    src: bytes = b""  # the source the type node is of (a call in the arguments of a macro is of another)
+    window: tuple[int, int] | None = None  # a `let`: the bytes of its file in which the binding is in effect (after the statement, to the end of its block)
+    form: str | None = None  # `self`: value, ref, refmut, or other (an explicit type)
+
+
 @dataclass
 class Body:
     scope: Scope
@@ -640,6 +716,9 @@ class Body:
     generics: frozenset
     locals: frozenset
     rewritten: bool = False
+    typed: dict = field(default_factory=dict)  # name -> Typed, or the reason (a string) the name has no written type here
+    origin: int = 0  # the byte of the file that byte 0 of `src` is (the arguments of a macro are parsed again as text of their own)
+    anchor: tuple | None = None  # (node, source, file) of the call in the file's own tree, or of the macro invocation a call in its arguments is in: what the call is under (Index.call_cfg)
 
 
 def path_segs(node, src: bytes) -> list[str]:
@@ -686,6 +765,9 @@ def pattern_names(pattern, src: bytes) -> list[str]:
     return out
 
 
+PATTERN_MACRO_BINDS = "*"  # in scan_locals' names: not an identifier, so no source name is it; it says a macro in a pattern may bind any name
+
+
 def scan_locals(root, src: bytes) -> frozenset:
     """Every name a function (or an expression) binds anywhere: parameters, lets, closure parameters, loop and
     match patterns. A single-segment call of one of them is a call of a local value, wherever in the body it is
@@ -708,7 +790,108 @@ def scan_locals(root, src: bytes) -> frozenset:
                 if child.type != "parameter":
                     names.update(pattern_names(child, src))
         stack.extend(n.named_children)
+    if has_pattern_macro(root):
+        names.add(PATTERN_MACRO_BINDS)  # a macro in a pattern may bind any name (a procedural one, spanned at the call site, binds `helper` for a call of `helper()`)
     return frozenset(names)
+
+
+def count_bindings(root, src: bytes) -> Counter:
+    """How many times each name is bound in a function: scan_locals, counted. A name bound once is one binding's."""
+    counts: Counter = Counter()
+    stack = [root]
+    while stack:
+        n = stack.pop()
+        t = n.type
+        if n is not root and t in NESTED_ITEMS:
+            continue
+        if t == "macro_invocation":
+            continue
+        if t in ("let_declaration", "parameter", "let_condition", "for_expression", "match_arm"):
+            counts.update(pattern_names(n.child_by_field_name("pattern"), src))
+        elif t == "closure_parameters":
+            for child in n.named_children:
+                if child.type != "parameter":
+                    counts.update(pattern_names(child, src))
+        stack.extend(n.named_children)
+    return counts
+
+
+def has_pattern_macro(root) -> bool:
+    """Whether a pattern under `root` (a `let`, a match arm, an `if let` or `while let`, a `for`, a closure or function parameter) holds a
+    macro invocation: scan_locals and count_bindings read the identifiers written in a pattern, and a macro in one is not an identifier. A
+    macro_rules! macro binds only a name it was given (hygiene), a procedural one any name, spanned at the call site, so the names a pattern
+    with a macro binds are not known. Code of nested items is another function's."""
+    stack = [root]
+    while stack:
+        n = stack.pop()
+        t = n.type
+        if n is not root and t in NESTED_ITEMS:
+            continue
+        if t == "macro_invocation":
+            continue
+        patterns: list = []
+        if t in ("let_declaration", "parameter", "let_condition", "for_expression", "match_arm"):
+            pattern = n.child_by_field_name("pattern")
+            if pattern is not None:
+                patterns = pattern.named_children[:1] if pattern.type == "match_pattern" else [pattern]  # not the guard of an arm
+        elif t == "closure_parameters":
+            patterns = [c for c in n.named_children if c.type != "parameter"]
+        for pattern in patterns:
+            inside = [pattern]
+            while inside:
+                p = inside.pop()
+                if p.type == "macro_invocation":
+                    return True
+                inside.extend(p.named_children)
+        stack.extend(n.named_children)
+    return False
+
+
+def unparen(node):
+    """An expression with the parentheses around it taken off (`(x).m()` is `x.m()`)."""
+    while node is not None and node.type == "parenthesized_expression" and len(node.named_children) == 1:
+        node = node.named_children[0]
+    return node
+
+
+def self_form(fn) -> str | None:
+    """The form of a method's receiver: value (`self`, `mut self`), ref (`&self`), refmut (`&mut self`), other (it is written with a
+    type), or None when the function takes no `self`."""
+    params = fn.child_by_field_name("parameters")
+    first = next((c for c in params.named_children if c.type not in ("attribute_item", "line_comment", "block_comment")), None) if params is not None else None
+    if first is None:
+        return None
+    if first.type == "self_parameter":
+        if any(c.type == "&" for c in first.children):
+            return "refmut" if any(c.type == "mutable_specifier" for c in first.children) else "ref"
+        return "value"
+    pattern = first.child_by_field_name("pattern") if first.type == "parameter" else None
+    return "other" if pattern is not None and pattern.type == "self" else None
+
+
+FORMS = {"value": "`self`", "ref": "`&self`", "refmut": "`&mut self`", "other": "`self` with a type"}
+RECEIVERS = {"value": "a value", "ref": "a `&` reference", "refmut": "a `&mut` reference"}
+
+
+def bounded(node) -> bool:
+    """Whether an impl or a type puts a bound on a type parameter (`<T: Bound>`, `where T: Bound`, `?Sized`): an inherent impl with
+    one applies only to the types that meet it, and a method call whose receiver does not goes on to the next candidate."""
+    if node.child_by_field_name("type_parameters") is not None:
+        for p in node.child_by_field_name("type_parameters").named_children:
+            if p.type in ("type_parameter", "constrained_type_parameter", "optional_type_parameter") and (p.child_by_field_name("bounds") is not None or p.type == "constrained_type_parameter"):
+                return True
+    return any(c.type == "where_clause" for c in node.children)
+
+
+def maybe_unsized(node) -> bool:
+    """Whether a type's parameters (or its where clause) include a `?Sized`: a type may then be written with an unsized argument."""
+    stack = [c for c in node.children if c.type in ("type_parameters", "where_clause")]
+    while stack:
+        n = stack.pop()
+        if n.type == "removed_trait_bound":
+            return True
+        stack.extend(n.children)
+    return False
 
 
 PUBLIC = ("pub",)
@@ -789,6 +972,364 @@ def _token_groups(tree) -> list[list]:
     return groups
 
 
+# The attributes proven unable to make what they are on exist in some builds and not in others: lint levels, documentation and hints, and
+# `derive` (it adds impls, which ripple reads as its own thing). The list is of what is proven, not of what is not: `cfg`, `cfg_attr` with
+# anything else beside these, `test`, `bench`, an attribute macro, `path` and every attribute not named here are read as conditional.
+INERT_ATTRS = frozenset("allow warn deny forbid expect doc must_use inline cold deprecated track_caller repr non_exhaustive automatically_derived derive".split())
+# Also inert written plainly (not as what `cfg_attr` adds, where `cfg_attr(.., path = ..)` names another file): they only say where a file is,
+# what a macro's name is exported as, or what the linker sees.
+PLAIN_INERT_ATTRS = INERT_ATTRS | frozenset("macro_use macro_export path no_mangle export_name link_name link used".split())
+
+
+def attribute_payloads(args, src: bytes) -> list[tuple[str, object]]:
+    """(path, token tree) of each attribute `cfg_attr(condition, ..)` adds, in order; the path is "" for one ripple cannot name."""
+    out = []
+    for group in _token_groups(args)[1:]:
+        if group:  # a trailing comma is no attribute
+            path = "".join(text(src, c) for c in group if c.type in ("identifier", "::", "self", "crate", "super"))
+            out.append((path, next((c for c in group if c.type == "token_tree"), None)))
+    return out
+
+
+def head_inert(head: str, args, src: bytes, tools: frozenset, plain: bool) -> bool:
+    """Whether an attribute is on the list of those proven unable to make anything conditional (INERT_ATTRS; PLAIN_INERT_ATTRS written
+    plainly): a tool attribute that no item of the crate makes a macro, or a `cfg_attr` whose every payload is inert."""
+    if head in INERT_ATTRS or plain and head in PLAIN_INERT_ATTRS:
+        return True
+    first = head.split("::")[0]
+    if "::" in head:
+        return first in TOOL_ATTRS and not _tool_is_macro(head, first, tools)
+    if head == "cfg_attr":
+        return args is not None and all(path != "" and head_inert(path, tree, src, tools, False) for path, tree in attribute_payloads(args, src))
+    return False
+
+
+# Where the grammar puts an attribute: an outer one is a sibling written before what it is on (an item or a statement of a block or a
+# module, an element of an array, a tuple or a call, a parameter, a generic parameter, an enum variant, a field), or the first child of
+# its host (a match arm, a struct expression's field); an inner one is the first child of the container it is in (a module, a block, an
+# impl or trait or extern body, and the first arm of a match, which is the match's). A parent type not named here is a position this
+# does not know: tests/test_rs_method_cfg.py walks every attribute of the probe crates and fails on one.
+ATTRIBUTE_PARENTS = {
+    "arguments": "sibling", "array_expression": "sibling", "block": "sibling", "declaration_list": "sibling", "enum_variant_list": "sibling",
+    "field_declaration_list": "sibling", "ordered_field_declaration_list": "sibling", "parameters": "sibling", "source_file": "sibling",
+    "tuple_expression": "sibling", "type_parameters": "sibling",
+    "field_initializer": "child", "match_arm": "child",
+}  # fmt: skip
+ATTRIBUTE_TYPES = ("attribute_item", "inner_attribute_item")
+
+
+def attributes_on(node) -> list:
+    """Every attribute written on a node: those before it, the outer ones its host holds as children, the inner ones it holds, and for a
+    match body the inner ones the grammar puts on its first arm."""
+    out = list(rs_modules._attributes(node))
+    if node.type in ("match_arm", "field_initializer"):
+        out += [c for c in node.named_children if c.type == "attribute_item"]
+    out += [c for c in node.named_children if c.type == "inner_attribute_item"]
+    if node.type == "match_block" and node.named_children:
+        out += [c for c in node.named_children[0].named_children if c.type == "inner_attribute_item"]
+    return out
+
+
+def hidden_inner_attributes(root, src: bytes, tools: frozenset) -> list[bool]:
+    """For each inner attribute of a file that tree-sitter reads as a shebang and that is not proven inert, whether it is one a call may share
+    with a declaration (head_shared; False for one ripple cannot read). tree-sitter takes `#!` and the rest of the first line for a shebang,
+    so `#! /* c */ [cfg(..)]` and `#! // c` then `[cfg(..)]` (inner attributes rustc reads: a shebang is `#!` not followed by `[`, comments
+    and spaces aside) are no `inner_attribute_item` here, and what they say would be missed."""
+    out = []
+    for c in root.children:
+        if c.type != "shebang":
+            continue
+        line = re.sub(rb"/\*.*?\*/|//[^\n]*", b"", src[c.start_byte : c.end_byte], flags=re.S).strip()
+        if line == b"#!":  # the attribute may begin on a later line
+            rest = re.sub(rb"/\*.*?\*/|//[^\n]*", b"", src[c.end_byte :], flags=re.S).lstrip()
+            if rest[:1] == b"[":
+                out.append(False)
+            continue
+        if not line.startswith(b"#!") or line[2:].lstrip()[:1] != b"[":
+            continue  # a shebang
+        attribute = b"#!" + line[2:].lstrip()
+        if attribute.count(b"[") != attribute.count(b"]"):
+            out.append(False)
+            continue
+        written = attribute + b"\nfn f() {}\n"
+        tree = load_parser().parse(written)
+        found = [a for a in tree.root_node.children if a.type == "inner_attribute_item"]
+        if tree.root_node.has_error or len(found) != 1:
+            out.append(False)
+        elif attribute_conditional(found[0], written, tools):
+            out.append(attribute_shared(found[0], written, tools))
+    return out
+
+
+def hidden_inner_attribute(root, src: bytes, tools: frozenset) -> bool:
+    """Whether a file begins with an inner attribute that tree-sitter reads as a shebang and that is not proven inert (hidden_inner_attributes)."""
+    return bool(hidden_inner_attributes(root, src, tools))
+
+
+def attribute_conditional(item, src: bytes, tools: frozenset) -> bool:
+    """Whether one attribute is not proven inert (head_inert): a `cfg`, a `cfg_attr` that may add anything but an inert attribute, or any
+    other attribute not named inert."""
+    parts = attribute_parts(item, src)
+    return parts is None or not head_inert(parts[0], parts[1], src, tools, True)
+
+
+def attribute_parts(item, src: bytes):
+    attribute = next((c for c in item.named_children if c.type == "attribute"), None)
+    path = attribute.named_children[0] if attribute is not None and attribute.named_children else None
+    return None if path is None else ("".join(text(src, path).split()), attribute.child_by_field_name("arguments"))
+
+
+def conditional_above(node, src: bytes, tools: frozenset) -> bool:
+    """Whether a node, or a node around it up to its file, has an attribute that is not proven inert, in any position the grammar
+    gives one: the node may not exist. (A file's own inner attributes are the module's: Scope.mod_def.)"""
+    n = node
+    while n is not None and n.type != "source_file":
+        if any(attribute_conditional(a, src, tools) for a in attributes_on(n)):
+            return True
+        n = n.parent
+    return False
+
+
+def conditional_inside(node, src: bytes, tools: frozenset, members=None) -> bool:
+    """Whether an attribute that is not proven inert is written anywhere in a node (its parameters, generics, where clause, return type,
+    arguments), but for the members of `members`, a body whose items are read one by one: of it only its own inner attributes count."""
+    stack = [node]
+    while stack:
+        n = stack.pop()
+        for c in n.children:
+            if c.type in ATTRIBUTE_TYPES:
+                if attribute_conditional(c, src, tools):
+                    return True
+            elif members is not None and c.id == members.id:
+                if any(attribute_conditional(a, src, tools) for a in c.children if a.type == "inner_attribute_item"):
+                    return True
+            elif c.is_named:
+                stack.append(c)
+    return False
+
+
+def header_conditional(node, src: bytes, tools: frozenset) -> bool:
+    """Whether an impl, a function or a type declaration has an attribute that is not proven inert: written on it, or in its generics,
+    parameters, where clause or type, or (an impl, a function) inner to its body. The attributes of an impl's members are theirs."""
+    own = any(attribute_conditional(a, src, tools) for a in rs_modules._attributes(node))
+    return own or conditional_inside(node, src, tools, node.child_by_field_name("body"))
+
+
+# ---- the shared cfg: a conditional attribute that the call and the declaration are both under
+#
+# An inherent method or associated function that is under a `#[cfg]` (written on it, on its impl, or on anything around them: a module
+# declaration, a module file's own inner attribute, a function, a block, an arm) may not exist, and the call may then find a trait's item of the
+# name instead. That is a reason to refuse the call only where the call can exist without the declaration. The rule: an edge is drawn only if
+# every conditional attribute on the path from the crate root to the declaration (the method, its impl, the type the call's proof reads, and
+# everything enclosing them: the keys of Def.extra["cfg_keys"]) is also on the path from the crate root to the call (call_cfg), as the same
+# attribute on the same syntactic ancestor, in the same crate (an attribute's key is its crate, its file and its byte). The call is then
+# in the build only if every one of them is on, so the declaration is in it, and the program the call is read in is the program with those
+# attributes deleted, which the rest of the proof reads as it reads any declaration. Not shared, so refused as before: an attribute on a
+# sibling, on the impl or the method when the call is outside it, on a generic parameter or a where clause of the impl (the call is never
+# inside one), on the receiver's own `let` or parameter, on another crate's copy of a file, and an attribute that does more than make
+# its host exist or not (head_shared). The attribute need not be the same text as one elsewhere: two `#[cfg(test)]` on two modules are two
+# attributes.
+#
+# The same predicate. A declaration's attribute is also satisfied by another attribute on the call's path whose predicate is identical
+# (cfg_covers, attribute_predicate): ripgrep's `#[cfg(test)] mod testutil;` holds the impl and the sibling `#[cfg(test)] mod tests` holds the
+# calls, with no ancestor shared. It holds only if (1) both are read by one crate (the key's crate part: a file that is a module of the library
+# and of the binary is two crates, and the attribute is on in one's test build and off in the other's); (2) both are plain `#[cfg(..)]` or
+# `#![cfg(..)]` written in place, which a call may share (never a `cfg_attr`, a `test`, an attribute macro, a predicate a macro made, `cfg!`); (3)
+# the predicates are the same tokens, compared token by token (comments and white space between tokens are nothing, a literal is its text byte
+# for byte, a raw string or an escape is another token, the order matters: no boolean reasoning); (4) every other attribute on the
+# declaration's path is matched, one by one, by identity or by this rule; an attribute in the header of the impl or the method (a generic, a
+# parameter, a where clause) is never on a path and is matched by identity only; (5) the other definitions the rule for a shared ancestor
+# refuses a call for are refused here too: a second definition that wins would have to exist beside the one the call finds, and rustc rejects two
+# under one predicate (E0592), ripple refuses two under different ones, and a trait method found at an earlier probe step is a refusal of its own.
+
+
+def head_shared(head: str, args, src: bytes, tools: frozenset) -> bool:
+    """Whether an attribute does no more than make what it is on exist or not, so that a call under it and a declaration under it are in the same
+    program once it is on: `cfg`, or a `cfg_attr` whose payloads are each one of these or inert. Any other attribute that is not inert (an attribute
+    macro, `test`, `path`, `no_implicit_prelude`) may change what is inside it, which ripple does not read, so it is never shared."""
+    if head == "cfg":
+        return True
+    if head == "cfg_attr":
+        return args is not None and all(path != "" and (head_inert(path, tree, src, tools, False) or head_shared(path, tree, src, tools)) for path, tree in attribute_payloads(args, src))
+    return False
+
+
+def attribute_shared(item, src: bytes, tools: frozenset) -> bool:
+    """Whether an attribute node is one head_shared reads as only making its host exist or not."""
+    parts = attribute_parts(item, src)
+    return parts is not None and head_shared(parts[0], parts[1], src, tools)
+
+
+PREDICATE_PUNCTUATION = frozenset({"(", ")", ",", "="})
+PREDICATE_LEAVES = frozenset({"identifier", "string_literal", "raw_string_literal", "boolean_literal"})
+DOC_COMMENTS = (b"///", b"//!", b"/**", b"/*!")
+
+
+def attribute_predicate(item, src: bytes) -> tuple | None:
+    """The predicate of a plain `#[cfg(..)]` or `#![cfg(..)]` written where it is read, as the tokens it is made of, or None for anything else
+    (a `cfg_attr`, any other attribute, a predicate that holds a token other than a name, a literal string, `true`, `false`, `(`, `)`, `,` and
+    `=`, a comment that is a doc comment, a parse error). The tokens are compared as written: comments and white space between them are not
+    tokens, and every one is its text byte for byte, so a literal `"a b"` is not `"a  b"`, `r"x"` is not `"x"`, and `all(a, b)` is not `all(b, a)`
+    (rustc reads them as different tokens, or as one cfg that ripple does not reason about: recall lost, never an edge drawn)."""
+    attribute = next((c for c in item.named_children if c.type == "attribute"), None)
+    if attribute is None or not attribute.named_children:
+        return None
+    path, arguments = attribute.named_children[0], attribute.child_by_field_name("arguments")
+    if path.type != "identifier" or src[path.start_byte : path.end_byte] != b"cfg" or arguments is None or arguments.type != "token_tree" or arguments.has_error:
+        return None
+    tokens: list[bytes] = []
+    stack = [arguments]
+    while stack:
+        node = stack.pop()
+        if node.type == "token_tree":
+            stack.extend(reversed(node.children))
+            continue
+        written = src[node.start_byte : node.end_byte]
+        if node.type in ("line_comment", "block_comment"):
+            if written.startswith(DOC_COMMENTS):
+                return None
+        elif node.type in PREDICATE_LEAVES or (not node.is_named and node.type in PREDICATE_PUNCTUATION):
+            tokens.append(written)
+        else:
+            return None
+    return tuple(tokens) if len(tokens) > 2 else None  # `cfg()` has no predicate
+
+
+def attribute_key(ctx, file: str, item, src: bytes | None = None) -> tuple:
+    """The identity of an attribute: the crate that reads it, the file it is in, and its byte (two nodes with one key are the same attribute), and
+    the predicate it is read to have where `src` is given (attribute_predicate; the last part is not part of the identity, it is a function of the
+    attribute, and is what `cfg_covers` compares)."""
+    return (id(ctx), file, item.start_byte, None if src is None else attribute_predicate(item, src))
+
+
+def attribute_keys(attributes, ctx, file: str, src: bytes, tools: frozenset, shared: bool = False, predicate: bool = True) -> set:
+    """The keys of the attributes among these that are not proven inert; with `shared`, only of those a call may share (attribute_shared); with
+    `predicate` false the keys carry no predicate, so they are matched by identity only."""
+    return {attribute_key(ctx, file, a, src if predicate else None) for a in attributes if attribute_conditional(a, src, tools) and (not shared or attribute_shared(a, src, tools))}
+
+
+def cfg_covers(needed, held) -> bool:
+    """Whether every attribute key of a declaration (`needed`) is one the call is under (`held`, the keys on the path of the call): the same
+    attribute (the key is in both), or one the call is under with the same predicate (attribute_predicate: plain `cfg`s with identical tokens) read by
+    the same crate. A `cfg` on a node around the call is true wherever the call exists, and an identical one around the declaration is then true
+    where the declaration is, in the one crate that evaluates both: a test build or a feature set is a crate's own."""
+    if needed <= held:
+        return True
+    same = {(k[0], k[3]) for k in held if k[3] is not None}
+    return all(k in held or (k[3] is not None and (k[0], k[3]) in same) for k in needed)
+
+
+def keys_above(node, ctx, file: str, src: bytes, tools: frozenset, shared: bool = False) -> set:
+    """The keys of the attributes on a node and on every node around it up to its file, in any position the grammar gives one (conditional_above
+    says whether there are any). A file's own inner attributes are its module's (Scope.mod_def)."""
+    out: set = set()
+    n = node
+    while n is not None and n.type != "source_file":
+        out |= attribute_keys(attributes_on(n), ctx, file, src, tools, shared)
+        n = n.parent
+    return out
+
+
+def keys_inside(node, ctx, file: str, src: bytes, tools: frozenset, members=None) -> set:
+    """The keys of the attributes written anywhere in a node, but for the members of `members` (conditional_inside says whether there are any)."""
+    out: set = set()
+    stack = [node]
+    while stack:
+        n = stack.pop()
+        for c in n.children:
+            if c.type in ATTRIBUTE_TYPES:
+                out |= attribute_keys([c], ctx, file, src, tools, predicate=False)  # in the header (a generic, a parameter, a where clause): never on a path
+            elif members is not None and c.id == members.id:
+                out |= attribute_keys([a for a in c.children if a.type == "inner_attribute_item"], ctx, file, src, tools)
+            elif c.is_named:
+                stack.append(c)
+    return out
+
+
+def header_keys(node, ctx, file: str, src: bytes, tools: frozenset) -> set:
+    """The keys of the attributes header_conditional reads: those written on an impl or a function, and inside its header. The ones on the node
+    and the inner ones of its body are on the path of a call inside it; the others (generics, parameters, where clause, type) never are."""
+    return attribute_keys(rs_modules._attributes(node), ctx, file, src, tools) | keys_inside(node, ctx, file, src, tools, node.child_by_field_name("body"))
+
+
+def cfg_attribute_keys(attributes, ctx, file: str, src: bytes, tools: frozenset) -> tuple[frozenset, frozenset]:
+    """(the keys of the attributes among these that Attrs.cfg reads as a cfg, those of them a call may share): what a module's own attributes are."""
+    every, shared = set(), set()
+    for a in attributes:
+        if read_attributes([a], src, tools, trust=False, shadow=BUILTIN).cfg:
+            every.add(attribute_key(ctx, file, a, src))
+            if attribute_shared(a, src, tools):
+                shared.add(attribute_key(ctx, file, a, src))
+    return frozenset(every), frozenset(shared)
+
+
+def module_keys(scope, shared: bool = False) -> frozenset:
+    """The keys of every attribute on the way from the crate root to a scope's module: the `mod` declarations' and the module files' own inner
+    attributes (Def.extra["cfg_keys"], or "cfg_shared" for the ones a call may share)."""
+    out: set = set()
+    s = scope.module_scope
+    while s is not None:
+        if s.mod_def is not None:
+            out |= s.mod_def.extra.get("cfg_shared" if shared else "cfg_keys", frozenset())
+        s = s.parent
+    return frozenset(out)
+
+
+# ---- the statements of a block, by what each can do to what a value name written in the block means (the Reference: items, statements,
+# names and scopes). tests/test_rs_method_names.py walks the children of every block of the probe crates and fails on a kind not here.
+BLOCK_DECLARES = frozenset("function_item const_item static_item struct_item foreign_mod_item".split())  # may declare a value name: Scope.items says which
+BLOCK_IMPORTS = frozenset({"use_declaration"})  # may bring any name: refused for the name an import gives and for every glob
+BLOCK_TYPE_ONLY = frozenset("enum_item union_item trait_item impl_item type_item mod_item extern_crate_declaration macro_definition".split())  # type or macro namespace only
+BLOCK_NO_NAMES = frozenset("line_comment block_comment attribute_item inner_attribute_item empty_statement label let_declaration expression_statement macro_invocation".split())
+# a statement macro: Scope.item_macros says whether it may bind; a `let` binds, counted by count_bindings; an expression statement's own bindings are counted
+EXPRESSION_LEAVES = frozenset(
+    "identifier self scoped_identifier generic_function integer_literal float_literal string_literal raw_string_literal char_literal boolean_literal "
+    "metavariable crate super".split()
+)  # fmt: skip
+
+
+def block_child_known(kind: str) -> bool:
+    """Whether a kind of node a block holds is one whose effect on a value name is settled: an item or an import, a statement, or an
+    expression (an expression binds only through a pattern, which count_bindings counts, or through an item or a block of its own)."""
+    return kind in BLOCK_DECLARES or kind in BLOCK_IMPORTS or kind in BLOCK_TYPE_ONLY or kind in BLOCK_NO_NAMES or kind in EXPRESSION_LEAVES or kind.endswith("_expression")
+
+
+# What a written type argument may be for two impls' arguments to be compared as the types they name: the primitive types and what is
+# built of them from named children only. Every other kind (a path, a generic type, `Self`, `impl Trait`, a macro) names a type that
+# the scope may change, and is refused. TypeArg resolves each primitive name where it is written.
+CONCRETE_TYPE_KINDS = frozenset("primitive_type tuple_type array_type reference_type unit_type integer_literal mutable_specifier".split())
+REFUSED_TYPE_KINDS = frozenset(
+    "type_identifier scoped_type_identifier generic_type generic_type_with_turbofish function_type pointer_type dynamic_type abstract_type bounded_type "
+    "never_type macro_invocation qualified_type slice_type lifetime higher_ranked_trait_bound removed_trait_bound array_type_with_const_expr "
+    "block identifier scoped_identifier binary_expression unary_expression type_binding type_arguments parameters".split()
+)  # fmt: skip
+
+
+class TypeArg(str):
+    """One type argument as written: its text, the scope its names are looked up in and the generic parameters in effect there (None where
+    that is not known), and whether its node is built only of CONCRETE_TYPE_KINDS."""
+
+    scope: object
+    generics: tuple
+    shape: bool
+
+    def __new__(cls, written: str, scope=None, generics: tuple = (), shape: bool = False):
+        self = super().__new__(cls, written)
+        self.scope, self.generics, self.shape = scope, generics, shape
+        return self
+
+
+def concrete_shape(node) -> bool:
+    """Whether a type argument node is built only of CONCRETE_TYPE_KINDS."""
+    stack = [node]
+    while stack:
+        n = stack.pop()
+        if n.type not in CONCRETE_TYPE_KINDS:
+            return False
+        stack.extend(n.named_children)
+    return True
+
+
 # What to make of an attribute of SHADOWABLE_ATTRS: queue it (Attrs.shadow), read it as an attribute macro, or as the built-in
 QUEUE, MACRO, BUILTIN = "queue", "macro", "builtin"
 
@@ -798,11 +1339,10 @@ def _classify_attribute(head: str, args, src: bytes, out: Attrs, tools: frozense
     if head == "cfg":
         out.cfg = True
     elif head == "cfg_attr":
-        out.cfg = True
-        if args is not None:  # `cfg_attr(condition, attribute, ..)`: what it adds is as unknown as the condition
-            for group in _token_groups(args)[1:]:
-                path = "".join(text(src, c) for c in group if c.type in ("identifier", "::", "self", "crate", "super"))
-                tree = next((c for c in group if c.type == "token_tree"), None)
+        if not head_inert(head, args, src, tools, False):  # `cfg_attr(condition, attribute, ..)`: what it adds is as unknown as the condition, unless all of it is inert
+            out.cfg = True
+        if args is not None:
+            for path, tree in attribute_payloads(args, src):
                 if path:
                     _classify_attribute(path, tree, src, out, tools, trust, shadow)
     elif head == "derive":
@@ -1293,27 +1833,22 @@ def in_namespace(d: Def, ns: str) -> bool:
     return d.kind == "macro"
 
 
-def written_args_of(node, src: bytes) -> tuple | None:
-    """The type arguments a written type carries, lifetimes left out, each as one text: () for a path with none, None for
-    a type that is no path."""
+def written_args_of(node, src: bytes, scope=None, generics: tuple = ()) -> tuple | None:
+    """The type arguments a written type carries, lifetimes left out, each as one TypeArg (its text, and where it is written): () for a
+    path with none, None for a type that is no path. `scope` and `generics` are where the type is written."""
     if node is None:
         return None
     if node.type in ("generic_type", "generic_type_with_turbofish"):
         args = node.child_by_field_name("type_arguments")
-        return tuple(squash(text(src, a)) for a in args.named_children if a.type != "lifetime") if args is not None else ()
+        return tuple(TypeArg(squash(text(src, a)), scope, tuple(generics), concrete_shape(a)) for a in args.named_children if a.type != "lifetime") if args is not None else ()
     if node.type in ("type_identifier", "scoped_type_identifier", "identifier", "scoped_identifier"):
         return ()
     return None
 
 
-def written_args(node, src: bytes) -> tuple | None:
+def written_args(node, src: bytes, scope=None, generics: tuple = ()) -> tuple | None:
     """The type arguments a call or an alias writes after the type (`G::<u16>::f`, `type A = G<u16>`); None when it writes none."""
-    return written_args_of(node, src) if node is not None and node.type in ("generic_type", "generic_type_with_turbofish") else None
-
-
-def concrete_args(args: tuple) -> bool:
-    """Whether type arguments name only primitive types (`u8`, `(u8, bool)`, `[u8; 4]`), which no name in scope can change."""
-    return all(re.fullmatch(r"[A-Za-z0-9_,()\[\];&* ]+", a) and all(w in PRIMITIVES for w in re.findall(r"[A-Za-z_][A-Za-z_0-9]*", a)) for a in args)
+    return written_args_of(node, src, scope, generics) if node is not None and node.type in ("generic_type", "generic_type_with_turbofish") else None
 
 
 class Index:
@@ -1331,6 +1866,8 @@ class Index:
         self.supertraits: dict[Def, tuple[object, Scope]] = {}
         self.derives: dict[Def, set[str]] = defaultdict(set)
         self.repo_macros: set[str] = set()
+        self.macro_bodies: dict[str, list[bytes]] = defaultdict(list)  # name -> the source after the name of each `macro_rules!` of the repo called so
+        self.proc_macro_names: set[str] = set()  # the names of the repo's procedural macros (whose output is whatever their code builds)
         self.trait_fn_names: set[str] = set()  # every function name some repo trait declares
         self.blanket_fns: set[str] = set()  # the functions of impls for a generic type (`impl<T: X> Tr for T`)
         self.impl_fn_names: set[str] = set()  # the functions of every trait impl in the repo
@@ -1346,6 +1883,10 @@ class Index:
         self.cuts = 0
         self.cache: dict[tuple, list] = {}
         self.reach_cache: dict[int, list] = {}
+        self.erroneous: set[str] = set()  # files the parser read with errors (read_repo sets it once every tree is built)
+        self.unread_why: dict[int, str] = {}  # id(ctx) -> a `mod` of the crate that names no file, or a file outside the walk (read_repo)
+        self.lost_file: str | None = None  # a file the parser could not read at all: it belongs to a crate ripple cannot tell
+        self.parse_taints: dict[int, str | None] = {}
         # libraries first, so a file several crates share is read in its library's context first
         order = {"lib": 0, "bin": 1}
         for crate, tree in sorted((ct for ct in trees if ct[1].modules), key=lambda ct: order.get(ct[0].kind, 2)):
@@ -1432,8 +1973,16 @@ class Index:
                 declared = attrs_of(m.decl, m.parent.src, ctx.tools) if m.decl is not None else Attrs()
                 inner = inner_attrs_of(m.node, m.src, ctx.tools)
                 extra = {"scope": scope, "vis": parse_visibility(m.vis) if m.vis else PRIVATE}
-                if declared.cfg or inner.cfg:
+                hidden = hidden_inner_attributes(m.node, m.src, ctx.tools)
+                if declared.cfg or inner.cfg or hidden:
                     extra["cfg"] = True
+                # the attributes the module is under, by identity: its `mod` declaration's (written in the parent's file) and its own inner ones
+                # (a file's, or an inline module's body's); the shebang-shaped inner attribute of a file has the key of its file's start
+                on_decl = cfg_attribute_keys(rs_modules._attributes(m.decl), ctx, m.parent.file, m.parent.src, ctx.tools) if m.decl is not None else (frozenset(), frozenset())
+                on_body = cfg_attribute_keys([c for c in m.node.named_children if c.type == "inner_attribute_item"], ctx, m.file, m.src, ctx.tools)
+                on_hidden = ({(id(ctx), m.file, -1, None)}, {(id(ctx), m.file, -1, None)} if all(hidden) else set()) if hidden else (set(), set())
+                extra["cfg_keys"] = frozenset(on_decl[0] | on_body[0] | on_hidden[0])
+                extra["cfg_shared"] = frozenset(on_decl[1] | on_body[1] | on_hidden[1])
                 scope.rewritten = parent.rewritten or declared.macro
                 if scope.rewritten:
                     extra["rw"] = True
@@ -1448,7 +1997,10 @@ class Index:
         if attrs.macro or attrs.unknown_derive:
             scope.attribute_macro = True  # an attribute macro may rewrite the item and generate any other beside it, and a derive generate any item beside it
         if attrs.macro or attrs.unknown_derive:  # a derive generates impls (and any item), but rewrites nothing
-            ctx.attr_sites.append(attr_site(attrs, file, line, what))
+            site = attr_site(attrs, file, line, what)
+            ctx.attr_sites.append(site)
+            if scope.module is None:
+                ctx.block_attr_sites.add(id(site))
         if attrs.std_derives:
             ctx.pending_derives.append((scope, tuple(attrs.std_derives), file, line))
 
@@ -1518,6 +2070,7 @@ class Index:
                 scope.items[name].append(d)
                 if attrs.proc_macro:
                     self.repo_macros.add(name)
+                    self.proc_macro_names.add(name)
                 self.claim(key, sid, "function", m.file, item)
                 self.bodies.append(BodySpec(key, item, scope, m, src, None, None, generic_names(item, src), rw or attrs.macro))
                 body = item.child_by_field_name("body")
@@ -1567,6 +2120,7 @@ class Index:
                 scope.macro_use_mod |= attrs.macro_use
             elif t == "macro_definition":
                 self.repo_macros.add(name)
+                self.macro_bodies[name].append(src[name_node.end_byte : item.end_byte])
                 scope.items[name].append(Def("macro", name, key, item, scope))
             elif t == "use_declaration":
                 self.collect_use(scope, item.child_by_field_name("argument"), [], src, vis, attrs.cfg)
@@ -1613,14 +2167,21 @@ class Index:
             if names:
                 scope.attribute_macro = True
             if ctx is not None:
-                ctx.macro_sites.append((scope, "?", False, file, node.start_point[0] + 1))
+                ctx.macro_sites.append((scope, "?", False, file, node.start_point[0] + 1, names, False, node.start_byte, False))
             return
         segs = path_segs(mnode, src)
         qualified = len(segs) > 1 and segs[0] in ("std", "core", "alloc")
         if names:
             scope.macro_calls.append((segs[-1], qualified))
         if ctx is not None:
-            ctx.macro_sites.append((scope, segs[-1], qualified, file, node.start_point[0] + 1))
+            tree = next((c for c in node.named_children if c.type == "token_tree"), None)
+            # a proof that the expansion brings no file needs the macro named by a path ripple can follow and the invocation's own tokens
+            # free of what brings one (an expansion is the macro's body and these tokens)
+            # (the text of a string or a char literal is no token: `"--include"` makes no `include!`)
+            provable = (len(segs) == 1 or segs[0] in ("crate", "self", "super")) and (
+                tree is None or BRINGS_SOURCE.search(STRING_LITERAL.sub(b'""', CHAR_LITERAL.sub(b"' '", src[tree.start_byte : tree.end_byte]))) is None
+            )
+            ctx.macro_sites.append((scope, segs[-1], qualified, file, node.start_point[0] + 1, names, provable, node.start_byte, len(segs) == 1))
 
     def mark_macros(self) -> None:
         """Whether a macro may generate names in each scope, once every macro_rules! of the repo is known: an attribute
@@ -1634,16 +2195,34 @@ class Index:
             self.settle_helpers(ctx)
         self.settle_derives()  # after every crate's scopes are flagged: whether `std` is the crate in a scope depends on them
         for ctx in self.ctxs:
+            ctx.unread_taint = []
             for i, name in sorted(ctx.derive_replaced.items()):
                 ctx.taint.append(f"the derive `{name}` in {ctx.pending_derives[i][2]} may be another macro than the standard library's, which may generate impls")
+                if ctx.pending_derives[i][0].module is not None:  # a derive in a block emits into the block
+                    ctx.unread_taint.append(f"the derive `{name}` in {ctx.pending_derives[i][2]} may be another macro than the standard library's, which may emit a `mod` or an `include!` of a file ripple does not read")
             self.mark_item_macros(ctx)
-            for scope, name, qualified, file, line in ctx.macro_sites:
+            for scope, name, qualified, file, line, names, provable, start, bare in ctx.macro_sites:
                 if not self.is_std_macro(scope, name, qualified, STD_PURE_MACROS | STD_NO_IMPL_MACROS):
                     ctx.taint.append(f"the macro `{name}!` invoked in {file} may generate impls")
-            for file, line, what in ctx.attr_reasons():
+                    # Where an expansion may bring a file in (compiled probes, README): items of a module (`mod x;` and `include!(..)`: both
+                    # build); not an impl's or a trait's body (rustc rejects both there), not a block's statements (`include!` makes no
+                    # statement, and a `mod` there needs a `#[path]`, which makes a block module: its file's macros stay in the block, and
+                    # a macro it makes cannot shadow a standard one, E0659), not an expression.
+                    if names and scope.module is not None and not (provable and self.expands_no_source(ctx, scope, name, bare, file, start)):
+                        ctx.unread_taint.append(f"the macro `{name}!` invoked in {file} may expand to a `mod` or an `include!` of a file ripple does not read")
+            for site in ctx.attr_sites:
+                if isinstance(site, (TrustSite, DeriveSite)):
+                    if site.refused is None or getattr(site, "nested", False):
+                        continue
+                    local, (file, line, what) = site.scope.module is None, site.entry
+                else:
+                    local, (file, line, what) = id(site) in ctx.block_attr_sites, site
                 ctx.taint.append(f"{what} in {file} may generate impls")
+                if not local:  # an attribute macro or a derive may emit any item beside the one it is on, `mod x;` and `include!(..)` too
+                    ctx.unread_taint.append(f"{what} in {file} may emit a `mod` or an `include!` of a file ripple does not read")
             for file, line in ctx.block_mods:
                 ctx.taint.append(f"the `mod` written in a block in {file} may hold impls, which ripple does not read there")
+                ctx.unread_taint.append(f"the `mod` written in a block in {file} is a file ripple does not read")
         for spec in self.impl_specs:
             if spec.lost:
                 spec.scope.crate.taint.append(spec.lost)
@@ -2124,6 +2703,69 @@ class Index:
             s = s.outer
         return not scope.module_scope.uses.get(name)
 
+    def textual_macro(self, scope: Scope, name: str, file: str, start: int) -> bool:
+        """Whether a bare `name!` written at byte `start` of `file`, in the module `scope`, is certainly a `macro_rules!` of that module: one
+        called `name` is written before it in the same file and scope, and nothing makes it conditional (a `#[cfg]` or an attribute not
+        proven inert on it or around it, so that it may not be there and the name is another macro's). rustc looks in the textual scope
+        before a glob, an import and the macro_use prelude, so none of them can be what the name is."""
+        src = scope.module_scope.module.src
+        tools = scope.crate.tools
+        # the definition and the invocation are children of one module body, so everything around them is shared (a cfg'd module holding both
+        # is no reason: they are there or not together): only the attributes written on the definition itself can make it absent alone
+        return any(
+            d.kind == "macro" and d.key[0] == file and d.key[1] < start and d.node is not None
+            and not any(attribute_conditional(a, src, tools) for a in rs_modules._attributes(d.node))
+            for d in scope.items.get(name, ())
+        )  # fmt: skip
+
+    def expands_no_source(self, ctx: CrateCtx, scope: Scope, name: str, bare: bool, file: str, start: int) -> bool:
+        """Whether every macro_rules! of the repo called `name` provably brings no file in, so an invocation whose tokens bring none (note_macro)
+        expands to the macro's body and those tokens and nothing else. The forms proven, and no others: a bare name that a `macro_rules!` of the
+        scope reaches textually (textual_macro), or a path that starts at `crate`, `self` or `super` where no `#[macro_use] extern crate` and
+        no glob from outside the repo may bring another macro of the name. The name must be the repo's alone (no procedural macro of the
+        repo has it, and a `use` that gives it names a path of the crate itself under the same name). The body must have no `mod`, `include`
+        or `macro_rules` token, and every macro it invokes must be named so that one macro is meant (body_brings_no_source)."""
+        if not (bare and self.textual_macro(scope, name, file, start)) and (self.macro_use_extern(ctx) or ctx.outside_glob or bare):
+            return False
+        return self.body_brings_no_source(ctx, name, set(), (scope, file, start))
+
+    def body_brings_no_source(self, ctx: CrateCtx, name: str, seen: set[str], site: tuple) -> bool:
+        """`site` is the invocation (scope, file, byte): what a name in an expansion means is what it means there, not where the macro is
+        written. A macro a body invokes is proven only in these forms, each with no alias, glob, `macro_use` or re-export in play: a standard
+        macro of STD_PURE_MACROS or STD_NO_IMPL_MACROS, by `std::`, `core::` or `alloc::` where no dependency or crate of the repo has that
+        name, or bare where no `use` of the crate gives the name, no macro of the repo has it, and no `#[macro_use] extern crate` or glob
+        from outside the repo may; or a bare macro of the repo whose `macro_rules!` is in textual scope at the invocation, itself proven the
+        same way. A path through `$crate`, `crate`, `self`, `super` or another crate is not followed."""
+        if name in seen:
+            return True
+        seen.add(name)
+        if name in self.proc_macro_names or not self.macro_bodies.get(name):
+            return False
+        for scope in self.all_scopes(ctx):
+            for segs in scope.uses.get(name, ()):
+                # `pub(crate) use m;` (the idiom that gives a macro_rules! a path) or a path of the crate itself, under the macro's own name
+                if not (segs and segs[-1] == name and (len(segs) == 1 or segs[0] in ("crate", "self", "super"))):
+                    return False
+        std = STD_PURE_MACROS | STD_NO_IMPL_MACROS
+        for body in self.macro_bodies[name]:
+            body = STRING_LITERAL.sub(b'""', CHAR_LITERAL.sub(b"' '", body))
+            if BRINGS_SOURCE.search(body):
+                return False
+            for prefix, nested in NESTED_MACRO.findall(body):
+                if nested in NOT_A_MACRO_NAME:
+                    continue
+                nn = nested.decode()
+                segs = [p.strip() for p in prefix.decode().split("::") if p.strip()]
+                if segs:
+                    if segs[0] not in ("std", "core", "alloc") or len(segs) > 1 or nn not in std or self.foreign_crates(ctx) & {"std", "core", "alloc"}:
+                        return False
+                elif nn in self.repo_macros:
+                    if not self.textual_macro(site[0], nn, site[1], site[2]) or not self.body_brings_no_source(ctx, nn, seen, site):
+                        return False
+                elif nn not in std or nn in ctx.use_names or self.macro_use_extern(ctx):
+                    return False  # (a glob of another crate bringing the name is E0659 against the standard prelude's macro: Index.macro_is_std)
+        return True
+
     def note_derives(self, d: Def, attrs: Attrs) -> None:
         self.derives[d].update(attrs.derives)
         if attrs.macro:
@@ -2205,7 +2847,11 @@ class Index:
     def collect_impl(self, scope: Scope, item, m: Module, owner_id: str | None, attrs: Attrs | None = None, rw: bool = False) -> None:
         src = m.src
         spec = ImplSpec(scope, m, item, src, generic_names(item, src), owner_id)
-        spec.cfg = bool(attrs and attrs.cfg)
+        spec.header_cfg = header_conditional(item, src, scope.crate.tools)
+        spec.inherited_cfg = self.under_cfg(item, scope, src)
+        spec.cfg = bool(attrs and attrs.cfg) or spec.header_cfg or spec.inherited_cfg
+        spec.header_keys = frozenset(header_keys(item, scope.crate, m.file, src, scope.crate.tools))
+        spec.cfg_keys = spec.header_keys | keys_above(item.parent, scope.crate, m.file, src, scope.crate.tools) | module_keys(scope)
         spec.rewritten = rw
         tnode, trnode = item.child_by_field_name("type"), item.child_by_field_name("trait")
         if tnode is not None:
@@ -2228,6 +2874,20 @@ class Index:
                 spec.macro_body = path_segs(mnode, src)[-1] if mnode is not None else "?"
                 self.note_macro(scope, f, src, scope.crate, m.file, names=False)
 
+    @staticmethod
+    def under_cfg(node, scope: Scope, src: bytes) -> bool:
+        """Whether an item sits inside something that may not exist though its own attributes say nothing: anything around it in its
+        file (conditional_above: a function, impl, trait, block, arm, statement, element, inline module, in any position an attribute may
+        stand, an inner one too), or a module (the `mod` that declares it, or its own file's inner attribute)."""
+        if conditional_above(node.parent, src, scope.crate.tools):
+            return True
+        s = scope.module_scope
+        while s is not None:
+            if s.mod_def is not None and s.mod_def.extra.get("cfg"):
+                return True
+            s = s.parent
+        return False
+
     def collect_blocks(self, node, scope: Scope, m: Module, ctx: CrateCtx, owner_id: str, rw: bool = False) -> None:
         """Walk a function body for blocks that declare items (nested fns, uses, impls, structs). Each gets a
         scope whose outer scope is the one around it. A nested function is a symbol of its own."""
@@ -2235,8 +2895,9 @@ class Index:
         while stack:
             n, current = stack.pop()
             if n.type == "block":
-                if any(c.type in ITEM_NODES or statement_macro(c) is not None or c.type in ("let_declaration", "expression_statement") and attrs_of(c, m.src, ctx.tools).generates for c in n.named_children):
-                    inner = Scope(ctx, None, outer=current, home=current.module_scope, rewritten=rw or current.rewritten)
+                unknown = any(not block_child_known(c.type) for c in n.named_children)
+                if unknown or any(c.type in ITEM_NODES or statement_macro(c) is not None or c.type in ("let_declaration", "expression_statement") and attrs_of(c, m.src, ctx.tools).generates for c in n.named_children):
+                    inner = Scope(ctx, None, outer=current, home=current.module_scope, rewritten=rw or current.rewritten, opaque_stmt=unknown)
                     ctx.blocks[(m.file, n.start_byte)] = inner
                     self.collect_items(inner, n, m, ctx, owner_id, block=True, rw=rw)
                     current = inner
@@ -2306,7 +2967,9 @@ class Index:
                     trait += squash(text(src, args)) if args is not None else ""
                 sid = self.make_id(m, spec.owner_id, f"<{spec.tname} as {trait}>", fname)
             rw = spec.rewritten or fattrs.macro
-            d = Def("method", fname, key, f, spec.scope, {"impl": spec, "vis": visibility(f, src), "cfg": spec.cfg or fattrs.cfg, "rw": rw})
+            tools = spec.scope.crate.tools
+            d = Def("method", fname, key, f, spec.scope, {"impl": spec, "vis": visibility(f, src), "cfg": spec.cfg or fattrs.cfg or header_conditional(f, src, tools), "rw": rw})
+            d.extra["cfg_keys"] = spec.cfg_keys | header_keys(f, spec.scope.crate, m.file, src, tools)  # the attributes whose absence removes it: bool(it) is "cfg"
             spec.methods.setdefault(fname, []).append(d)
             self.claim(key, sid, "method", m.file, f)
             self.bodies.append(BodySpec(key, f, spec.scope, m, src, spec, None, (*spec.generics, *generic_names(f, src)), rw))
@@ -2648,7 +3311,8 @@ class Index:
             segs = path_segs(tnode, src)
             if len(segs) == 1 and segs[0] in generics:
                 return ("generic", segs[0])
-            found = [r for r in self.resolve_path(scope, segs, "type") if r[0] in ("def", "ext", "crate")]
+            # a `use` gives a name in every namespace it is in (`pub use S as R` brings the struct and the unit struct): the type is the one of the type namespace
+            found = [r for r in self.resolve_path(scope, segs, "type") if r[0] in ("def", "ext", "crate") and (r[0] != "def" or in_namespace(r[1], "type"))]
             if len(found) != 1:
                 return None
             kind, x = found[0]
@@ -2681,7 +3345,7 @@ class Index:
         t = fn.type
         if t == "field_expression":
             recv, name = fn.child_by_field_name("value"), text(src, fn.child_by_field_name("field"))
-            return unresolved(METHOD), f"{short(src, recv)[:60].replace(' .', '.')}.{name}"
+            return self.method_call(body, fn), f"{short(src, recv)[:60].replace(' .', '.')}.{name}"
         if t == "identifier":
             return self.path_call(body, [name_text(src, fn)]), text(src, fn)
         if t == "scoped_identifier":
@@ -2689,7 +3353,7 @@ class Index:
             if path is not None and path.type == "bracketed_type":
                 return self.qualified(body, path, name_text(src, fn.child_by_field_name("name"))), short(src, fn)
             segs = path_segs(fn, src)
-            return self.path_call(body, segs, written_args(path, src)), written(segs)
+            return self.path_call(body, segs, written_args(path, src, body.scope, tuple(body.generics))), written(segs)
         if t == "parenthesized_expression":
             return unresolved(CALLS_VALUE), short(src, fn)
         return unresolved(CALLS_VALUE), short(src, fn)
@@ -2700,6 +3364,8 @@ class Index:
         first = segs[0]
         if len(segs) == 1 and first in body.locals:
             return unresolved(LOCAL)
+        if len(segs) == 1 and PATTERN_MACRO_BINDS in body.locals:
+            return unresolved(LOCAL_MAYBE)
         if len(segs) >= 2 and first in body.generics:
             return unresolved(GENERIC_PATH)
         if first == "Self":
@@ -2776,7 +3442,7 @@ class Index:
         if target is None or target[0] != "def":
             return unresolved(SELF_GENERIC)
         spec = body.impl
-        args = None if spec.via_alias else written_args(spec.node.child_by_field_name("type"), spec.src)
+        args = None if spec.via_alias else written_args(spec.node.child_by_field_name("type"), spec.src, spec.scope, spec.generics)
         return self.assoc(body, target[1], name, args)
 
     def with_supertraits(self, traits: list[Def]) -> list[Def]:
@@ -2843,14 +3509,43 @@ class Index:
         macro or a derive that is not a standard one) or an impl header ripple could not resolve may add one, in any
         crate that can name the type or the trait (the owners' crates and the crates that use them), or a blanket impl of a
         trait the call's crate can name (its own crate and its dependencies)."""
+        for c in self.taint_crates(call, *owners):
+            if c.taint:
+                return c.taint[0]
+        return None
+
+    def taint_crates(self, call: CrateCtx, *owners: CrateCtx) -> list[CrateCtx]:
+        """The crates whose items can add an impl a path in `call` reaches about a type of `owners`, in crate order."""
         crates = {id(c): c for c in self.reach(call)}
         for owner in owners:
             for c in self.ctxs:
                 if owner in self.reach(c):
                     crates[id(c)] = c
-        for c in sorted(crates.values(), key=lambda c: c.index):
-            if c.taint:
-                return c.taint[0]
+        return sorted(crates.values(), key=lambda c: c.index)
+
+    def method_taint(self, call: CrateCtx, owner: CrateCtx) -> str | None:
+        """Why part of the source of a crate that can name a type of `owner` was not read, as seen from `call`, or None when all of it was.
+        A method call is an edge when the receiver's name and type name mean what the code ripple read says they mean, and only source
+        ripple did not read can change that without a rule of its own seeing it: a file or a module that is not read (a `mod` that names
+        no file, a file no `mod` reaches, a `#[path]` or a `cfg_attr` one ripple cannot follow, a file the parser could not read whole), and
+        a macro invoked where an item may stand that could expand to `mod x;` or `include!(..)` (CrateCtx.unread_taint). What the unread
+        file holds can be a textual `macro_rules!` that redefines a standard macro the body trusts (`println!(s)` then rebinds `s`: probe
+        method_unread_macro_use), or items a name resolves through. Not read here: whether another impl may exist. rustc rejects a second
+        inherent method of one name for a type (E0592), and an inherent method comes before every trait's at the probe step the edge is for,
+        so a macro-made impl cannot change which function a call finds (the reasons Index.impl_taint gives are for paths, not for this)."""
+        if self.lost_file is not None:
+            return f"{self.lost_file} could not be read at all, and what is in it may rebind a name or a type of any crate"
+        for c in self.taint_crates(call, owner):
+            if id(c) not in self.parse_taints:
+                bad = next((m.file for m in c.modules if m.file in self.erroneous), None)
+                if id(c) in self.unread_why:
+                    self.parse_taints[id(c)] = f"{self.unread_why[id(c)]}, so ripple did not read all of the crate's source"
+                elif bad is not None:
+                    self.parse_taints[id(c)] = f"{bad} has syntax ripple's parser could not read whole, so ripple did not read all of it"
+                else:
+                    self.parse_taints[id(c)] = c.unread_taint[0] if c.unread_taint else None
+            if self.parse_taints[id(c)]:
+                return self.parse_taints[id(c)]
         return None
 
     def covers(self, spec: ImplSpec, tdef: Def) -> bool:
@@ -2858,7 +3553,7 @@ class Index:
         distinct generic parameters (`impl<T> G<T>`)."""
         if spec.via_alias:
             return False
-        args = written_args_of(spec.node.child_by_field_name("type"), spec.src)
+        args = written_args_of(spec.node.child_by_field_name("type"), spec.src, spec.scope, spec.generics)
         if args is None:
             return False
         params = generic_names(tdef.node, tdef.scope.module_scope.module.src)
@@ -2872,10 +3567,23 @@ class Index:
         or `unknown`, where ripple cannot tell whether the impl applies."""
         if self.covers(spec, tdef):
             return "covers"
-        mine = None if spec.via_alias else written_args_of(spec.node.child_by_field_name("type"), spec.src)
-        if mine is None or targs is None or len(mine) != len(targs) or not (concrete_args(mine) and concrete_args(targs)):
+        mine = None if spec.via_alias else written_args_of(spec.node.child_by_field_name("type"), spec.src, spec.scope, spec.generics)
+        if mine is None or targs is None or len(mine) != len(targs) or not all(self.concrete(a) for a in (*mine, *targs)):
             return "unknown"
         return "same" if mine == targs else "disjoint"
+
+    def concrete(self, arg) -> bool:
+        """Whether a written type argument names a type that no name in scope can change: built only of primitive types (`u8`, `(u8, bool)`,
+        `[u8; 4]`, `&u8`: CONCRETE_TYPE_KINDS), and every primitive name, looked up where the argument is written, is the primitive: no item,
+        import, glob, generic parameter, alias or macro of the scope gives it (a struct called `u8` makes `W<u8>` another type than the
+        primitive's). Any other name (a prelude type, a std path, `Self`, a path of the repo) is refused: it is as a scope makes it."""
+        if not isinstance(arg, TypeArg) or not arg.shape or arg.scope is None or not re.fullmatch(r"[A-Za-z0-9_,()\[\];&* ]+", arg):
+            return False
+        return all(w in PRIMITIVES and self.primitive_here(arg.scope, w, arg.generics) for w in re.findall(r"[A-Za-z_][A-Za-z_0-9]*", arg))
+
+    def primitive_here(self, scope: Scope, name: str, generics: tuple) -> bool:
+        """Whether a primitive type's name, written in `scope` with `generics` in effect, is that primitive."""
+        return name not in generics and self.lookup(scope, name, "type") == [("ext", "primitive|" + name)]
 
     def assoc(self, body: Body, tdef: Def, name: str, targs: tuple | None = None, depth: int = 0) -> tuple:
         """`Type::name(..)`: an inherent function of the type wins over a trait function. A trait function is the target
@@ -2893,7 +3601,7 @@ class Index:
                 return unresolved(EXT_TRAIT_SHADOW) if name in self.trait_fn_names or name in self.foreign_impl_fns else external(CRATE_PATH)
             if target[0] != "def":
                 return unresolved(ALIAS_UNKNOWN)
-            args = written_args(inner, tdef.scope.module_scope.module.src) if tdef.node.child_by_field_name("type_parameters") is None else None
+            args = written_args(inner, tdef.scope.module_scope.module.src, tdef.scope) if tdef.node.child_by_field_name("type_parameters") is None else None
             return self.assoc(body, target[1], name, args, depth + 1)
         if tdef.kind == "enum" and name in tdef.extra["variants"]:
             return CTOR
@@ -2925,9 +3633,32 @@ class Index:
             return unresolved(INHERENT_NOT_VISIBLE if seen is not None else INVISIBLE_PATH)
         if d.kind != "method":
             return unresolved(CALLS_CONST)
-        if d.extra.get("cfg"):  # it may not exist: it is the target only if nothing else could be
+        if d.extra.get("cfg") and not self.shares_cfg(d, tdef, body):  # it may not exist where the call does: it is the target only if nothing else could be
             return edge(d) if self.assoc_traits(body, tdef, name, targs) == unresolved(NO_IMPL) else unresolved(CFG_UNKNOWN)
         return edge(d)
+
+    def call_cfg(self, body: Body) -> frozenset:
+        """The keys of the attributes a call may share with a declaration (head_shared): those on the way from the crate root to the call, that
+        is on its module (the `mod` declarations and the files' own inner attributes) and, in the file's own tree, on every node around the call
+        (a call in the arguments of a macro is as much under what the macro invocation is under)."""
+        keys = module_keys(body.scope, shared=True)
+        if body.anchor is not None:
+            node, src, file = body.anchor
+            keys |= keys_above(node, body.ctx, file, src, body.ctx.tools, shared=True)
+        return keys
+
+    def type_keys(self, tdef: Def) -> set:
+        """The keys of the cfgs the type is under: its own (a derive's helper attribute such as `#[serde(..)]` does not make it conditional, as in a
+        name's lookup: Attrs.cfg) and every attribute not proven inert on the way from the crate root to it."""
+        module = tdef.scope.module_scope.module
+        ctx = tdef.scope.crate
+        own = cfg_attribute_keys(rs_modules._attributes(tdef.node), ctx, module.file, module.src, ctx.tools)[0]
+        return own | keys_above(tdef.node.parent, ctx, module.file, module.src, ctx.tools) | module_keys(tdef.scope)
+
+    def shares_cfg(self, d: Def, tdef: Def, body: Body) -> bool:
+        """Whether a declaration that may not exist is under no attribute that the call is not under (the rule at head_shared): every key of
+        the method, its impl and what encloses them (Def.extra["cfg_keys"]) and of the type it is for is on the path of the call."""
+        return cfg_covers(d.extra["cfg_keys"] | self.type_keys(tdef), self.call_cfg(body))
 
     def assoc_traits(self, body: Body, tdef: Def, name: str, targs: tuple | None) -> tuple:
         taint = self.impl_taint(body.ctx, tdef.scope.crate)
@@ -2992,7 +3723,7 @@ class Index:
         if q.type != "qualified_type":  # `<T>::f` is `T::f`
             target = self.self_or_type(body, q)
             if target is not None and target[0] == "def":
-                return self.assoc(body, target[1], name, written_args(q, src))
+                return self.assoc(body, target[1], name, written_args(q, src, body.scope, tuple(body.generics)))
             return unresolved(QUALIFIED_UNKNOWN)
         tnode, trnode = q.child_by_field_name("type"), q.child_by_field_name("alias")
         owner = self.self_or_type(body, tnode)
@@ -3053,6 +3784,214 @@ class Index:
             return None
         return self.type_target(body.scope, tnode, body.src, tuple(body.generics))
 
+    # ---- method calls
+    def scope_at(self, node, spec: BodySpec, file: str) -> Scope:
+        """The scope a node of a function is written in: that of the nearest block around it that declares items or invokes a macro."""
+        ctx = spec.scope.crate
+        n = node.parent
+        while n is not None and n is not spec.node:
+            if n.type == "block":
+                found = ctx.blocks.get((file, n.start_byte))
+                if found is not None:
+                    return found
+            n = n.parent
+        return spec.scope
+
+    def typed_bindings(self, spec: BodySpec, file: str) -> dict:
+        """What a function's source writes about the type of its names: `self` and its form, each parameter that is a plain name with a
+        type, each `let` that is a plain name with a type, and for every other name the reason it has none here (bound more than once, or
+        a macro in a pattern may bind it, or the binding is under an attribute not proven inert). A name bound once, by one of those, is the
+        type written there wherever it is in effect (Typed.window for a `let`); the call site checks that, and that nothing in a block
+        around the call (an item, an import, a glob, a macro invoked as a statement) may give the name another meaning (receiver_type)."""
+        node = spec.node
+        if node.type != "function_item":
+            return {}
+        src, tools = spec.src, spec.scope.crate.tools
+        counts = count_bindings(node, src)
+        found: dict[str, Typed | str] = {}
+        params = node.child_by_field_name("parameters")
+        for p in params.named_children if params is not None else ():
+            if p.type == "attribute_item":
+                continue
+            pattern = p.child_by_field_name("pattern") if p.type == "parameter" else None
+            cond = any(attribute_conditional(a, src, tools) for a in rs_modules._attributes(p))  # `#[cfg(..)] s: &S`: the parameter may not exist
+            if p.type == "self_parameter" or pattern is not None and pattern.type == "self":
+                found["self"] = M_CFG_BINDING if cond else Typed("self", None, spec.scope, src, None, self_form(node))
+            elif pattern is not None and pattern.type == "identifier" and p.child_by_field_name("type") is not None:
+                name = name_text(src, pattern)
+                found[name] = M_CFG_BINDING if cond else Typed(name, p.child_by_field_name("type"), spec.scope, src)
+        block = node.child_by_field_name("body")
+        stack = [block] if block is not None else []
+        while stack:
+            n = stack.pop()
+            t = n.type
+            if t in NESTED_ITEMS or t == "macro_invocation":
+                continue
+            if t == "let_declaration":
+                pattern, written_type = n.child_by_field_name("pattern"), n.child_by_field_name("type")
+                if pattern is not None and pattern.type == "identifier" and written_type is not None and n.parent is not None and n.parent.type == "block":
+                    name = name_text(src, pattern)
+                    cond = any(attribute_conditional(a, src, tools) for a in rs_modules._attributes(n))  # `#[cfg(..)] let s: &S`: the binding may not exist
+                    found[name] = M_CFG_BINDING if cond else Typed(name, written_type, self.scope_at(n, spec, file), src, (n.end_byte, n.parent.end_byte))
+            stack.extend(n.named_children)
+        by_pattern = has_pattern_macro(node)
+        out: dict = {name: M_REBOUND for name, n in counts.items() if n > 1}
+        for name, entry in found.items():
+            if name not in out:
+                out[name] = M_PATTERN_MACRO if by_pattern and name != "self" and not isinstance(entry, str) else entry
+        return out
+
+    def method_call(self, body: Body, fn) -> tuple:
+        """`recv.m(..)`. What it calls depends on the type of the receiver, so it is an edge only where the source writes that type and
+        the call is the first step of rustc's method probe: the receiver is `self` or a name bound once, by a parameter or a `let` that
+        writes its type as a struct, enum or union of the repo (`S`, `&S`, `&mut S`, `Self`), and an inherent method of that name,
+        whose receiver is written the same way (`self` for `S`, `&self` for `&S`, `&mut self` for `&mut S`), is in an impl of the type.
+        The probe tries a candidate type by value before it takes a reference, and inherent methods before trait methods at each
+        try, so that method is found first, with no assumption about any trait. A method that takes another form is found at a later
+        step, after the by-value trait methods of the earlier one, and is not read here. Nor are the types a call or a field has,
+        a generic or a trait object, a trait method, a method reached by deref, and a method no impl of the repo defines (which may be
+        a trait method, or an impl a macro made): each is unresolved with the reason, never external."""
+        field_node = fn.child_by_field_name("field")
+        if field_node is None or field_node.type != "field_identifier":
+            return unresolved(M_NOT_METHOD)
+        name = text(body.src, field_node)
+        if body.ctx.edition < 2018:
+            return unresolved(EDITION)
+        recv = unparen(fn.child_by_field_name("value"))
+        if recv is None or recv.type not in ("self", "identifier"):
+            return unresolved(M_NOT_NAME)
+        key = "self" if recv.type == "self" else name_text(body.src, recv)
+        entry = body.typed.get(key)
+        if entry is None:
+            if key == "self":
+                return unresolved(M_SELF_NONE)
+            return unresolved(M_NO_TYPE if key in body.locals else M_NOT_LOCAL)
+        if isinstance(entry, str):
+            return unresolved(entry)
+        got = self.receiver_type(body, entry, body.origin + recv.start_byte)
+        if isinstance(got, str):
+            return unresolved(got)
+        tdef, args, form = got
+        call = fn.parent  # an attribute on an argument (`s.m(#[cfg(..)] x)`) changes the call's arity, so what it finds
+        if call is not None and call.type == "call_expression" and conditional_inside(call, body.src, body.ctx.tools):
+            return unresolved(M_CFG)
+        if self.type_conditional(tdef):  # `struct S<#[cfg(..)] 'a>`, `where #[cfg(..)] ..`: what the type is may depend on it
+            return unresolved(M_CFG)
+        taint = self.method_taint(body.ctx, tdef.scope.crate)  # before what the name may be: a scope a macro may add names to cannot tell either
+        if taint:
+            return unresolved(M_INCOMPLETE.format(taint))
+        if entry.tnode is not None:
+            named = self.lookup(entry.scope, entry.name, "value")
+            if named != [("unknown", NOT_FOUND)] and not all(r[0] == "def" and r[1].kind == "fn" for r in named):
+                return unresolved(M_PATTERN_ITEM)  # a const, a unit struct or a variant of the name makes `let name: T` a pattern that binds nothing
+        return self.first_probe(body, tdef, args, form, name)
+
+    def receiver_type(self, body: Body, entry: Typed, pos: int) -> tuple | str:
+        """(the type def, the type arguments it is written with or None, the form) of a receiver name, or why it is not known."""
+        if entry.name == "self":
+            if entry.form == "other":
+                return M_SELF_TYPED
+            got = self.self_type(body)
+            return got if isinstance(got, str) else (got[0], got[1], entry.form)
+        if entry.window is not None and not entry.window[0] <= pos < entry.window[1]:
+            return M_OUT_OF_SCOPE
+        s = body.scope
+        while s is not None and s.module is None:
+            # A block around the call is a scope inside every parameter and, for a `let`, around it or outside it: what it declares, imports or
+            # may bind by a macro is tried before the binding. Refused: an item of the name in the value namespace, an import that gives the
+            # name (a glob may give any), a macro that may bind it, a statement of a kind this has no rule for. Harmless, by the Reference
+            # (block_child_known): other items (types, traits, impls, modules, macro_rules!), `let`s (counted), expressions, comments.
+            if s.item_macros or s.opaque_stmt or s.globs or s.uses.get(entry.name) or any(in_namespace(d, "value") for d in s.items.get(entry.name, ())):
+                return M_SHADOWED
+            s = s.outer
+        t, form = entry.tnode, "value"
+        if t.type == "reference_type":
+            form = "refmut" if any(c.type == "mutable_specifier" for c in t.children) else "ref"
+            t = t.child_by_field_name("type")
+            if t is None:
+                return M_NOT_PATH_TYPE
+            if t.type == "reference_type":
+                return M_REF_REF
+        if t.type == "type_identifier" and text(entry.src, t) == "Self":
+            got = self.self_type(body)
+            return got if isinstance(got, str) else (got[0], got[1], form)
+        target = self.type_target(entry.scope, t, entry.src, tuple(body.generics))
+        if target is None:
+            return M_DYN if t.type in ("dynamic_type", "abstract_type", "bounded_type") else M_NOT_PATH_TYPE if t.type in NOT_A_PATH_TYPE else M_TYPE_LOST
+        if target[0] == "generic":
+            return M_GENERIC
+        if target[0] != "def":
+            return M_EXT_TYPE
+        tdef = target[1]
+        if tdef.kind == "trait":
+            return M_DYN  # a bare trait as a type is a trait object (edition 2018)
+        if tdef.kind not in ("struct", "enum", "union"):
+            return M_TYPE_LOST
+        if maybe_unsized(tdef.node):
+            return M_UNSIZED
+        args = None if self.through_alias(entry.scope, t, entry.src) else written_args_of(t, entry.src, entry.scope, tuple(body.generics))
+        return tdef, args, form
+
+    @staticmethod
+    def type_conditional(tdef: Def) -> bool:
+        """Whether a struct, enum or union has an attribute not proven inert in its generics or where clause (an attribute on one of its
+        fields or variants does not change what a method call finds)."""
+        src, tools = tdef.scope.module_scope.module.src, tdef.scope.crate.tools
+        return any(c.type in ("type_parameters", "where_clause") and conditional_inside(c, src, tools) for c in tdef.node.children)
+
+    def self_type(self, body: Body) -> tuple | str:
+        """(the type def, the type arguments the impl writes or None) of `Self` where the call is, or why it is not known."""
+        spec = body.impl
+        if spec is None:
+            return M_SELF_TRAIT if body.trait is not None else M_SELF_NONE
+        if spec.header_cfg and not spec.header_keys <= self.call_cfg(body):
+            return M_CFG  # what `Self` is may depend on an attribute of the impl's generics or type (the impl's own is one the call inside it is under)
+        target = spec.self_target
+        if target is None or target[0] != "def" or target[1].kind not in ("struct", "enum", "union"):
+            return M_SELF_TYPE
+        if maybe_unsized(target[1].node):
+            return M_UNSIZED
+        return target[1], None if spec.via_alias else written_args_of(spec.node.child_by_field_name("type"), spec.src, spec.scope, spec.generics)
+
+    def first_probe(self, body: Body, tdef: Def, args: tuple | None, form: str, name: str) -> tuple:
+        """The first probe step for a receiver of the type `tdef` (written with `args`) in the form `form`: the one inherent method of
+        that name whose receiver is that form, when the impls ripple read are all there are and nothing about the method is conditional."""
+        defs = self.inherent.get(tdef, {}).get(name, [])
+        if not defs:
+            return unresolved(M_NO_INHERENT)
+        if any(d.kind != "method" for d in defs):
+            return unresolved(M_CONST)
+        if any(d.extra.get("rw") for d in defs):
+            return unresolved(M_ATTR)
+        if any(d.extra.get("cfg") and not self.shares_cfg(d, tdef, body) for d in defs):
+            return unresolved(M_CFG)
+        applicable: list[Def] = []
+        unsure = False
+        for d in defs:
+            relation = self.relation(d.extra["impl"], tdef, args)
+            if relation in ("covers", "same"):
+                applicable.append(d)
+            unsure |= relation == "unknown"
+        if unsure:
+            return unresolved(M_INSTANTIATION)
+        if len(applicable) > 1:
+            return unresolved(M_SEVERAL)
+        if not applicable:
+            return unresolved(M_NO_INHERENT_ARGS)
+        d = applicable[0]
+        impl = d.extra["impl"]
+        if bounded(impl.node):
+            return unresolved(M_BOUNDED)
+        seen = self.sees(d.extra.get("vis"), impl.scope, body.scope)
+        if not seen:
+            return unresolved(M_NOT_VISIBLE if seen is not None else M_INVISIBLE_PATH)
+        have = self_form(d.node)
+        if have is None:
+            return unresolved(M_NO_SELF)
+        if have != form:
+            return unresolved(M_LATER.format(FORMS[have], RECEIVERS[form]))
+        return edge(d)
+
     # ---- reading bodies
     def read_bodies(self, parsed: dict[str, tuple]) -> None:
         for spec in self.bodies:
@@ -3061,7 +4000,7 @@ class Index:
             root = node.child_by_field_name("body") if node.type == "function_item" else node
             if root is None:
                 continue
-            body = Body(spec.scope, ctx, spec.src, spec.impl, spec.trait, frozenset(spec.generics), scan_locals(node, spec.src), spec.rewritten or spec.scope.rewritten)
+            body = Body(spec.scope, ctx, spec.src, spec.impl, spec.trait, frozenset(spec.generics), scan_locals(node, spec.src), spec.rewritten or spec.scope.rewritten, self.typed_bindings(spec, spec.module.file))
             self.visit(body, root, spec.module.file, spec.caller, 0, 0, False, False)
 
     def macro_is_std(self, body: Body, name: str, mnode) -> bool:
@@ -3094,7 +4033,7 @@ class Index:
                 elif any(c.type in ITEM_NODES or statement_macro(c) is not None for c in n.named_children):
                     taint = True
             if t == "call_expression":
-                local = body if scope is body.scope else Body(scope, ctx, src, body.impl, body.trait, body.generics, body.locals, body.rewritten)
+                local = replace(body, scope=scope, origin=offset, anchor=body.anchor if in_macro else (n, src, file))  # what a call is under is read from its node, or from the macro invocation it is an argument of
                 result, written_as, name_end = self.classify(local, n)
                 if taint:
                     result = unresolved(MACRO_BLOCK_ITEMS)
@@ -3104,7 +4043,7 @@ class Index:
                     result, caller, line0 + n.start_point[0] + 1, written_as, offset + name_end,
                 )
             elif t == "macro_invocation":
-                self.visit_macro(Body(scope, ctx, src, body.impl, body.trait, body.generics, body.locals, body.rewritten), n, file, caller, line0, offset, taint)
+                self.visit_macro(replace(body, scope=scope, origin=offset, anchor=body.anchor if in_macro else (n, src, file)), n, file, caller, line0, offset, taint)
                 continue
             stack.extend((child, scope, taint) for child in n.named_children)
 
@@ -3133,8 +4072,12 @@ class Index:
                 if start is not None and name == "matches" and start.named_children:
                     start = start.named_children[0]  # the pattern after the comma runs no code
                 if start is not None:
-                    sub = Body(body.scope, body.ctx, wrapped, body.impl, body.trait, body.generics, body.locals | scan_locals(fn, wrapped), body.rewritten)
-                    self.visit(sub, start, file, caller, line0 + tt.start_point[0], offset + tt.start_byte + 1 - len(pre), True, tainted)
+                    inner = scan_locals(fn, wrapped)  # what the arguments bind (a closure parameter, a `let` of a block) is not a name that writes a type
+                    origin = offset + tt.start_byte + 1 - len(pre)
+                    by_pattern = has_pattern_macro(fn)  # a macro in a pattern of the arguments may bind any name
+                    typed = {k: M_PATTERN_MACRO if by_pattern and k != "self" else M_REBOUND if k in inner else v for k, v in body.typed.items()}
+                    sub = Body(body.scope, body.ctx, wrapped, body.impl, body.trait, body.generics, body.locals | inner, body.rewritten, typed, origin, body.anchor)
+                    self.visit(sub, start, file, caller, line0 + tt.start_point[0], origin, True, tainted)
                 return
             reason = STD_MACRO_BODY
         else:
@@ -3249,7 +4192,19 @@ def read_repo(repo: Path, files: list[Path], skipped: list[str]) -> tuple[Index,
         unread += tree.problems
         trees.append((crate, tree))
     index = Index(trees)
+    index.erroneous = with_errors
+    by_crate = {id(ctx.crate): ctx for ctx in index.ctxs}
+    for crate, tree in trees:
+        if (tree.problems or tree.opaque) and id(crate) in by_crate:
+            index.unread_why[id(by_crate[id(crate)])] = (tree.problems or tree.opaque)[0]
+    index.lost_file = next((rel for rel in sorted(parsed) if parsed[rel] is None), None)
     read = {m.file for _, tree in trees for m in tree.modules}
+    unreached = sorted(walked - read)
+    for ctx in index.ctxs:  # a file beside the crate's own sources that no `mod` reaches may still be built (`#[path]` under a cfg_attr, a macro's module)
+        base = posixpath.dirname(ctx.crate.root)
+        near = next((f for f in unreached if (f.startswith(base + "/") if base else "/" not in f)), None)
+        if near is not None and id(ctx) not in index.unread_why:
+            index.unread_why[id(ctx)] = f"{near} is a file of the crate's source directory that no `mod` ripple read reaches"
     index.read_bodies(parsed)
     graph = Graph()
     index.finish({f: parsed[f][0].count(b"\n") + 1 for f in sorted(read) if parsed.get(f)}, graph)

@@ -1,0 +1,133 @@
+{
+ "calls": [
+  {
+   "c0": 6,
+   "c1": 12,
+   "defs": [
+    [
+     "src/hidden.rs",
+     6
+    ]
+   ],
+   "file": "src/hidden.rs",
+   "kind": "repo",
+   "line": 13,
+   "text": "secret"
+  },
+  {
+   "c0": 6,
+   "c1": 12,
+   "defs": [
+    [
+     "src/shapes.rs",
+     6
+    ]
+   ],
+   "file": "src/hidden.rs",
+   "kind": "repo",
+   "line": 17,
+   "text": "radius"
+  },
+  {
+   "c0": 6,
+   "c1": 12,
+   "defs": [
+    [
+     "src/shapes.rs",
+     6
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 11,
+   "text": "radius"
+  },
+  {
+   "c0": 6,
+   "c1": 10,
+   "defs": [
+    [
+     "src/extra.rs",
+     2
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 15,
+   "text": "area"
+  },
+  {
+   "c0": 6,
+   "c1": 17,
+   "defs": [
+    [
+     "src/lib.rs",
+     24
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 19,
+   "text": "inline_only"
+  },
+  {
+   "c0": 6,
+   "c1": 8,
+   "defs": [
+    [
+     "src/lib.rs",
+     33
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 38,
+   "text": "go"
+  },
+  {
+   "c0": 6,
+   "c1": 8,
+   "defs": [
+    [
+     "src/lib.rs",
+     44
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 49,
+   "text": "go"
+  },
+  {
+   "c0": 13,
+   "c1": 15,
+   "defs": [
+    [
+     "src/lib.rs",
+     57
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 54,
+   "text": "go"
+  },
+  {
+   "c0": 13,
+   "c1": 19,
+   "defs": [
+    [
+     "src/shapes.rs",
+     9
+    ]
+   ],
+   "file": "src/shapes.rs",
+   "kind": "repo",
+   "line": 13,
+   "text": "secret"
+  }
+ ],
+ "complete": true,
+ "probe": "method_places",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

@@ -1456,6 +1456,10 @@ class Module:
 class Tree:
     modules: list[Module] = field(default_factory=list)
     problems: list[str] = field(default_factory=list)
+    # source that may be built and that the tree does not hold, though the files it names exist (a `mod` under a `cfg_attr` that may set its
+    # path, so the file read is not certainly the one built; a module nested beyond MAX_DEPTH): not a `problem`, which is what the path
+    # resolver reports as unread, but a reason a method call is not an edge (Index.method_taint)
+    opaque: list[str] = field(default_factory=list)
 
 
 Parse = Callable[[str], "tuple[bytes, object] | None"]
@@ -1523,6 +1527,8 @@ def build_tree(repo: Path, crate: Crate, walked: set[str], parse: Parse) -> Tree
 
 def _children(repo: Path, module: Module, container, owns_dir: bool, inline: tuple[str, ...], walked: set[str], parse: Parse, tree: Tree, depth: int) -> None:
     if depth > MAX_DEPTH:
+        if any(item.type == "mod_item" for item in container.named_children):
+            tree.opaque.append(f"{module.file} (modules nested more than {MAX_DEPTH} deep, which ripple does not follow)")
         return
     src, file = module.src, module.file
     directory, base_name = posixpath.dirname(file), posixpath.basename(file)
@@ -1532,6 +1538,8 @@ def _children(repo: Path, module: Module, container, owns_dir: bool, inline: tup
         name = _name(src, item.child_by_field_name("name"))
         cfg, path_attr, cfg_attr_path = attribute_facts(src, item)
         body = item.child_by_field_name("body")
+        if cfg_attr_path:  # whichever path the condition picks, the file ripple reads (or none) is the default's: the built one may be another
+            tree.opaque.append(f"{file} (`mod {name}` is under a `cfg_attr` that may set its `#[path]`, a file ripple does not read)")
         child_path = module.path + (name,)
         vis = next((_read(src, c) for c in item.children if c.type == "visibility_modifier"), "")
         if body is not None:

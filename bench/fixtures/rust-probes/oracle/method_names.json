@@ -1,0 +1,217 @@
+{
+ "calls": [
+  {
+   "c0": 14,
+   "c1": 16,
+   "defs": [
+    [
+     "src/lib.rs",
+     11
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 18,
+   "text": "go"
+  },
+  {
+   "c0": 14,
+   "c1": 16,
+   "defs": [
+    [
+     "src/lib.rs",
+     11
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 21,
+   "text": "go"
+  },
+  {
+   "c0": 10,
+   "c1": 12,
+   "defs": [
+    [
+     "src/lib.rs",
+     11
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 25,
+   "text": "go"
+  },
+  {
+   "c0": 10,
+   "c1": 12,
+   "defs": [
+    [
+     "src/lib.rs",
+     11
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 29,
+   "text": "go"
+  },
+  {
+   "c0": 6,
+   "c1": 8,
+   "defs": [
+    [
+     "src/lib.rs",
+     11
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 36,
+   "text": "go"
+  },
+  {
+   "c0": 6,
+   "c1": 8,
+   "defs": [
+    [
+     "src/lib.rs",
+     11
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 44,
+   "text": "go"
+  },
+  {
+   "c0": 6,
+   "c1": 8,
+   "defs": [
+    [
+     "src/lib.rs",
+     11
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 48,
+   "text": "go"
+  },
+  {
+   "c0": 6,
+   "c1": 8,
+   "defs": [
+    [
+     "src/lib.rs",
+     7
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 53,
+   "text": "go"
+  },
+  {
+   "c0": 6,
+   "c1": 8,
+   "defs": [
+    [
+     "src/lib.rs",
+     59
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 67,
+   "text": "id"
+  },
+  {
+   "c0": 6,
+   "c1": 8,
+   "defs": [
+    [
+     "src/lib.rs",
+     75
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 82,
+   "text": "hi"
+  },
+  {
+   "c0": 6,
+   "c1": 8,
+   "defs": [
+    [
+     "src/lib.rs",
+     7
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 86,
+   "text": "go"
+  },
+  {
+   "c0": 6,
+   "c1": 8,
+   "defs": [
+    [
+     "src/lib.rs",
+     7
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 90,
+   "text": "go"
+  },
+  {
+   "c0": 6,
+   "c1": 8,
+   "defs": [
+    [
+     "src/lib.rs",
+     11
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 94,
+   "text": "go"
+  },
+  {
+   "c0": 8,
+   "c1": 10,
+   "defs": [
+    [
+     "src/lib.rs",
+     11
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 98,
+   "text": "go"
+  },
+  {
+   "c0": 6,
+   "c1": 8,
+   "defs": [
+    [
+     "src/lib.rs",
+     11
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 102,
+   "text": "go"
+  }
+ ],
+ "complete": true,
+ "probe": "method_names",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}
