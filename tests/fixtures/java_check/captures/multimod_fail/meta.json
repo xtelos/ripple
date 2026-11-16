@@ -1,0 +1,21 @@
+{
+  "project": "multimod_fail",
+  "cwd": ".",
+  "argv": [
+    "mvn",
+    "-B",
+    "--fail-at-end",
+    "test"
+  ],
+  "request": null,
+  "before": null,
+  "written": [
+    "core/TEST-com.acme.core.CoreTest.xml",
+    "util/TEST-com.acme.util.UtilTest.xml"
+  ],
+  "edits": null,
+  "exit_code": 1,
+  "timed_out": false,
+  "timeout_s": 300,
+  "maven": "Apache Maven 3.9.9 (8e8579a9e76f7d015ee5ec7bfcdc97d260186937)"
+}

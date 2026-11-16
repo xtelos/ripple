@@ -1,0 +1,19 @@
+{
+  "project": "shop",
+  "cwd": ".",
+  "argv": [
+    "mvn",
+    "-B",
+    "--fail-at-end",
+    "test",
+    "-Dtest=com.acme.shop.CartTest#nosuch"
+  ],
+  "request": null,
+  "before": null,
+  "written": [],
+  "edits": null,
+  "exit_code": 0,
+  "timed_out": false,
+  "timeout_s": 300,
+  "maven": "Apache Maven 3.9.9 (8e8579a9e76f7d015ee5ec7bfcdc97d260186937)"
+}

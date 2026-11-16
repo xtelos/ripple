@@ -116,7 +116,7 @@ def runner_for(profile: LanguageProfile):
 
 
 # profile name -> module of the runner (see runner_for)
-RUNNERS = {"go": ".go_check", "rust": ".rs_check"}
+RUNNERS = {"go": ".go_check", "rust": ".rs_check", "java": ".java_check"}
 
 
 def run_check(

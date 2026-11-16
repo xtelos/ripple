@@ -311,12 +311,12 @@ def build_parser() -> argparse.ArgumentParser:
     for name, help_text in (("check", "run the test command once"), ("serve", "run the MCP server on stdio")):
         p = sub.add_parser(name, help=help_text)
         if name == "check":
-            p.add_argument("tests", nargs="*", help="test paths, pytest node ids, for Go a _test.go file or file_test.go::TestName[/subtest], or for Rust a .rs file or file.rs::module::test_name (or the id impact lists, src/lib:tests::name) to run instead of the whole suite")
+            p.add_argument("tests", nargs="*", help="test paths, pytest node ids, for Go a _test.go file or file_test.go::TestName[/subtest], for Rust a .rs file or file.rs::module::test_name (or the id impact lists, src/lib:tests::name), or for Java the id impact lists (com.acme.Cart.add()), a test .java file or a directory, to run instead of the whole suite")
         p.add_argument("--repo", default=".")
         p.add_argument(
             "--test-command",
             default=os.environ.get("RIPPLE_TEST_COMMAND"),
-            help="test command (default: python -m pytest -q, using the repo's .venv or venv if present; `go test -json` for a Go repo and `cargo test` for a Rust repo; a repo with no Python, or --lang typescript or javascript, has no default)",
+            help="test command (default: python -m pytest -q, using the repo's .venv or venv if present; `go test -json` for a Go repo, `cargo test` for a Rust repo and `mvn test` for a Maven repo; a repo with no Python, or --lang typescript or javascript, has no default)",
         )
         p.add_argument("--timeout", type=float, default=300, help="seconds before the test run is killed")
 

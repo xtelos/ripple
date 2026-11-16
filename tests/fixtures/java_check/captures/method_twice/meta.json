@@ -1,0 +1,24 @@
+{
+  "project": "shop",
+  "cwd": ".",
+  "argv": [
+    "mvn",
+    "-B",
+    "--fail-at-end",
+    "test",
+    "-Dtest=com.acme.shop.CartTest#addsItems"
+  ],
+  "request": [
+    "com.acme.shop.CartTest.addsItems()",
+    "src/test/java/com/acme/shop/CartTest.java::CartTest.addsItems"
+  ],
+  "before": null,
+  "written": [
+    "./TEST-com.acme.shop.CartTest.xml"
+  ],
+  "edits": null,
+  "exit_code": 0,
+  "timed_out": false,
+  "timeout_s": 300,
+  "maven": "Apache Maven 3.9.9 (8e8579a9e76f7d015ee5ec7bfcdc97d260186937)"
+}

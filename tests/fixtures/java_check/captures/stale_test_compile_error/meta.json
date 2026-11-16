@@ -1,0 +1,20 @@
+{
+  "project": "shop",
+  "cwd": ".",
+  "argv": [
+    "mvn",
+    "-B",
+    "--fail-at-end",
+    "test"
+  ],
+  "request": null,
+  "before": "pass",
+  "written": [],
+  "edits": {
+    "src/test/java/com/acme/shop/CartTest.java": "package com.acme.shop;\n\nimport static org.junit.jupiter.api.Assertions.assertEquals;\n\nimport org.junit.jupiter.api.Disabled;\nimport org.junit.jupiter.api.Nested;\nimport org.junit.jupiter.api.Test;\nimport org.junit.jupiter.api.Timeout;\nimport org.junit.jupiter.params.ParameterizedTest;\nimport org.junit.jupiter.params.provider.ValueSource;\n\nclass CartTest {\n    @Test\n    void addsItems() {\n        Cart c = new Cart();\n        c.add(\"a\", 250);\n        assertEquals(250, c.total());\n    }\n    \n    @Test\n    void broken() {\n        new Cart().nosuch();\n    }\n    \n    @ParameterizedTest\n    @ValueSource(ints = {1, 2})\n    void discounts(int pct) {\n        assertEquals(pct, pct);\n    }\n    \n    @Nested\n    class Receipts {\n        @Test\n        void receiptHasTotal() {\n            assertEquals(1, 1);\n        }\n    }\n    \n}\n"
+  },
+  "exit_code": 1,
+  "timed_out": false,
+  "timeout_s": 300,
+  "maven": "Apache Maven 3.9.9 (8e8579a9e76f7d015ee5ec7bfcdc97d260186937)"
+}
