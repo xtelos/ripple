@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c2: node runs any extension but .json and .node as CommonJS.",
+  "refuse": {
+    "main.js:s1": "another file"
+  }
+}

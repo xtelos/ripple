@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c4: any extension runs as CommonJS.",
+  "refuse": {
+    "main.js:s1": "does not read"
+  }
+}

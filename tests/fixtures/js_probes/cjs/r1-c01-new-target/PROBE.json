@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c1: new.target is no ES module syntax.",
+  "refuse": {
+    "main.js:s1": "another file"
+  }
+}

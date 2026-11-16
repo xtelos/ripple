@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "",
+  "refuse": {
+    "main.js:s1": "vm"
+  }
+}

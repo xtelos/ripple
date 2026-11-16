@@ -1,0 +1,8 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "r3: a write below a destructured member changes the function, not the exports.",
+  "refuse": {}
+}

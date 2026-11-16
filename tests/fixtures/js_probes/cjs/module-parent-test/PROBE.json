@@ -1,0 +1,10 @@
+{
+  "edge": [
+    "main.js:s1"
+  ],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "!module.parent is a test, not a use of the module object.",
+  "refuse": {}
+}

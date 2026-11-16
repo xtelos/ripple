@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "which file is required depends on a condition.",
+  "refuse": {
+    "main.js:s1": "assigned"
+  }
+}

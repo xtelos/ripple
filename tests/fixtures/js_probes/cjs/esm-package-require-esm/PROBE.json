@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.cjs"
+  ],
+  "notes": "require() of an ES module: node 24 loads it; ripple does not follow it.",
+  "refuse": {
+    "main.cjs:s1": "ES module"
+  }
+}

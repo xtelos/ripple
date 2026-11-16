@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the UMD shape: the assignment is in an if.",
+  "refuse": {
+    "main.js:s1": "open"
+  }
+}

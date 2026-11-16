@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a write below a member (a.helper.cache = ...) changes the function, not the exports (node still reaches helper), but the member may hold another exports object: refused.",
+  "refuse": {
+    "main.js:s1": "another file"
+  }
+}

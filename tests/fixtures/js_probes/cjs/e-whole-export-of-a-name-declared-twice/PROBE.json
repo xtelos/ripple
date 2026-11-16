@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "module.exports = helper, where two declarations of helper are in the file.",
+  "refuse": {
+    "main.js:s1": "more than once"
+  }
+}

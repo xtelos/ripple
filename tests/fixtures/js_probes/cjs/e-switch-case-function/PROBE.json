@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a function in a case clause is declared again when the case runs.",
+  "refuse": {
+    "main.js:s1": "more than once"
+  }
+}

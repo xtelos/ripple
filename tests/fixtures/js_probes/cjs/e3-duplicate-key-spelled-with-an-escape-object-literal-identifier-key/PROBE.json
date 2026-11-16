@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the second write is the same name, and wins in node.",
+  "refuse": {
+    "main.js:s1": "twice"
+  }
+}

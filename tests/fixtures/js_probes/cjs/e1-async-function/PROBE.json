@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the body runs to its first await at the call.",
+  "refuse": {
+    "main.js:s1": "this"
+  }
+}

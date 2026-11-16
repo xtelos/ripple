@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the destructured name is assigned again.",
+  "refuse": {
+    "main.js:s1": "more than once"
+  }
+}

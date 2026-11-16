@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "harmless in node, but a class is a value whose members run with this.",
+  "refuse": {
+    "main.js:s1": "class"
+  }
+}

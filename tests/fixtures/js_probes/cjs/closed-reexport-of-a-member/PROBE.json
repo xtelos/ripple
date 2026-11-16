@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "exports.helper = a name destructured from another file: the call reaches a's helper, but a function written in another file may use `this` (the exports of b when called as b.helper()), so b is open.",
+  "refuse": {
+    "main.js:s1": "this"
+  }
+}

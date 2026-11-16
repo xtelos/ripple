@@ -1,0 +1,9 @@
+{
+  "edge": [],
+  "entries": [
+    "lib/a.js",
+    "main.js"
+  ],
+  "notes": "a call through the file's own exports object: not a call to code outside the repo, whatever it reaches.",
+  "refuse": {}
+}

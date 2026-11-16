@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "bind() fixes this: node reaches helper. The value is a call result, which opens the exports all the same.",
+  "refuse": {
+    "main.js:s1": "this"
+  }
+}

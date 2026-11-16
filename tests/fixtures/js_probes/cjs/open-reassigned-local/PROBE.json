@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the object captured the old value, and the name is bound twice.",
+  "refuse": {
+    "main.js:s1": "bound"
+  }
+}

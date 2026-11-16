@@ -1,0 +1,1 @@
+{"name":"selfpkg","exports":{".":"./lib/a.js","./x":"./lib/a.js"}}

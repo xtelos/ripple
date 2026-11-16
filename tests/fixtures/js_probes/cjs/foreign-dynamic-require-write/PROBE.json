@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a computed require whose result is written may be any module.",
+  "refuse": {
+    "main.js:s1": "open"
+  }
+}

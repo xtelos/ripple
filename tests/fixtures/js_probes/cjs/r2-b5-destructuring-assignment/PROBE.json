@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "b5.",
+  "refuse": {
+    "main.js:s1": "more than once"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the write runs after the call, so node reaches helper; the import() of the module builtin still opens everything.",
+  "refuse": {
+    "main.js:s1": "module"
+  }
+}

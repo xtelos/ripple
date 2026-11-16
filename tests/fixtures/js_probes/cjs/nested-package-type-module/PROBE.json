@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the nearest package.json type decides: lib/ is a module package.",
+  "refuse": {
+    "main.js:s1": "ES module"
+  }
+}

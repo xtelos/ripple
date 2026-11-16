@@ -1,0 +1,8 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the write runs after the call (a microtask): node reaches helper, and the await still opens the exports.",
+  "refuse": {}
+}

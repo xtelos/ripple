@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "`+a` is a use of the exports object that is no ===, !==, typeof, !, void or test: it can call a hook (toString, valueOf, Symbol.toPrimitive) or keep the object.",
+  "refuse": {
+    "main.js:s1": "another file"
+  }
+}

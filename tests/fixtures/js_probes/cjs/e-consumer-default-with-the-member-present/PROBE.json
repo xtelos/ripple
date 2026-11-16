@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a default on the consumer side: which function runs depends on the member being there.",
+  "refuse": {
+    "main.js:s1": "destructured"
+  }
+}

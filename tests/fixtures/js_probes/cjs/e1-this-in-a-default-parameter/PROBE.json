@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a default is evaluated with the function's this.",
+  "refuse": {
+    "main.js:s1": "this"
+  }
+}

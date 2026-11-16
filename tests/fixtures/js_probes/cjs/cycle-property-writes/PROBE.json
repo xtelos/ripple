@@ -1,0 +1,11 @@
+{
+  "edge": [],
+  "entries": [
+    "lib/a.js",
+    "lib/b.js"
+  ],
+  "notes": "exports.x = x keeps the object, so a later call from b reaches a:x; ripple refuses a require that is in a cycle at all.",
+  "refuse": {
+    "lib/b.js:s1": "cycle"
+  }
+}

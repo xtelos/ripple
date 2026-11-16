@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c14: exports.helper is undefined: the var holds no function when the statement runs.",
+  "refuse": {
+    "main.js:s1": "after"
+  }
+}

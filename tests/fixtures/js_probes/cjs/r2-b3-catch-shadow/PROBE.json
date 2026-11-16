@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "b3: a catch parameter named like the binding.",
+  "refuse": {
+    "main.js:s1": "more than once"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.mjs"
+  ],
+  "notes": "import a from a CommonJS file: a is module.exports. Not followed.",
+  "refuse": {
+    "main.mjs:s1": "CommonJS"
+  }
+}

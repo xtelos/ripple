@@ -1,0 +1,9 @@
+{
+  "node": "v24.0.1",
+  "sites": {
+    "lib/b.js:s1": {
+      "line": 2,
+      "threw": "TypeError"
+    }
+  }
+}

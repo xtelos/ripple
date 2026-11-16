@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the name was assigned in a function before the export statement ran: b exports a name bound by a require, which may be any function.",
+  "refuse": {
+    "main.js:s1": "no function declared"
+  }
+}

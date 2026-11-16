@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the name a call goes through is bound again in the file.",
+  "refuse": {
+    "main.js:s1": "more than on"
+  }
+}

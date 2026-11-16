@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "inside `with`, a is the object's: a statement that makes every name in the file unreliable.",
+  "refuse": {
+    "main.js:s1": "with"
+  }
+}

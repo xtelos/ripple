@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a literal with an escape is not read as one: it reflects.",
+  "refuse": {
+    "main.js:s1": "computed"
+  }
+}

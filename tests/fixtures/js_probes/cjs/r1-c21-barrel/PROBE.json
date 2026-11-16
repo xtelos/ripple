@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c21: a barrel keeps a's exports in a member, and a write through the barrel changes a.",
+  "refuse": {
+    "main.js:s1": "another file"
+  }
+}

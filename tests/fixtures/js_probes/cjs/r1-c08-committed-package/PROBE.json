@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c8: a package committed into the repo is repo code.",
+  "refuse": {
+    "main.js:s1": "committed into the repo"
+  }
+}

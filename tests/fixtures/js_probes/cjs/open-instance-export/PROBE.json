@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the export is an instance: its methods are not followed.",
+  "refuse": {
+    "main.js:s1": "not a function or class"
+  }
+}

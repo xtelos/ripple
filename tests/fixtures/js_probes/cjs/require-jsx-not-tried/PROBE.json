@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "Node's require does not try .jsx: a bundler might.",
+  "refuse": {
+    "main.js:s1": "no file"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a local named exports in a function: shadowing makes the file refuse (the write is not the module's, but ripple does not tell).",
+  "refuse": {}
+}

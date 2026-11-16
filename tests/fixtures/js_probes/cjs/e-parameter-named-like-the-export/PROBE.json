@@ -1,0 +1,8 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "another binding of the name, in a function: refused (a name is not told from its shadow), never wrong.",
+  "refuse": {}
+}

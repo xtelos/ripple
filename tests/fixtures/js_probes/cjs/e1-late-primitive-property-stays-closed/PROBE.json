@@ -1,0 +1,10 @@
+{
+  "edge": [
+    "main.js:s1"
+  ],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "exports.name = 'x' goes to the old object (dead alias) when module.exports was replaced: refused for that, and the late property by module.exports is a primitive.",
+  "refuse": {}
+}

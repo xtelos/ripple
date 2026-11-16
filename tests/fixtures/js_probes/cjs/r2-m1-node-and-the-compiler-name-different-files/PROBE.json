@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "m1: Node names x.cjs/index.js (no .jsx is tried), the compiler names x.cjs.jsx: which file is not known.",
+  "refuse": {
+    "main.js:s1": "compiler"
+  }
+}

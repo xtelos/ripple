@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a static block runs with this = the class.",
+  "refuse": {
+    "main.js:s1": "class"
+  }
+}

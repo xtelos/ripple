@@ -1,0 +1,10 @@
+{
+  "edge": [
+    "main.js:s1"
+  ],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a directory with an index.js and no package.json.",
+  "refuse": {}
+}

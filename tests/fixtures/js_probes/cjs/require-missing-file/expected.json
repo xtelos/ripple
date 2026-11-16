@@ -1,0 +1,9 @@
+{
+  "node": "v24.0.1",
+  "sites": {
+    "main.js:s1": {
+      "line": 4,
+      "threw": "Error"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "another file assigns a member through its own require of a.",
+  "refuse": {
+    "main.js:s1": "another file"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "t5: a conditional that holds a function.",
+  "refuse": {
+    "main.js:s1": "open"
+  }
+}

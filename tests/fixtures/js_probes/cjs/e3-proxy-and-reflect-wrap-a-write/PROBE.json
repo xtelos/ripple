@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "Proxy and Reflect are named: they reflect outright.",
+  "refuse": {
+    "main.js:s1": "Proxy"
+  }
+}

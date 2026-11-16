@@ -1,0 +1,10 @@
+{
+  "edge": [
+    "main.js:s1"
+  ],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "`a === a` calls no hook on the object.",
+  "refuse": {}
+}

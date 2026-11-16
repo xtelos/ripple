@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a function declaration named require replaces the parameter.",
+  "refuse": {
+    "main.js:s1": "require"
+  }
+}

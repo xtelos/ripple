@@ -1,0 +1,10 @@
+{
+  "edge": [
+    "main.js:s1"
+  ],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the prototype of a local function or class, of a package's class or a global class that is no Object; a method of a prototype read; a defined key.",
+  "refuse": {}
+}

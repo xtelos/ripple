@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "t1: a function assigned to a var after its declaration, exported by name.",
+  "refuse": {
+    "main.js:s1": "open"
+  }
+}

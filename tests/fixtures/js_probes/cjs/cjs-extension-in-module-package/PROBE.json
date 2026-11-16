@@ -1,0 +1,10 @@
+{
+  "edge": [
+    "main.cjs:s1"
+  ],
+  "entries": [
+    "main.cjs"
+  ],
+  "notes": ".cjs is CommonJS whatever the package type says.",
+  "refuse": {}
+}

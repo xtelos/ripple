@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "require assigned a new function.",
+  "refuse": {
+    "main.js:s1": "require"
+  }
+}

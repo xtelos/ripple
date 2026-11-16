@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "n1: a relative path into node_modules.",
+  "refuse": {
+    "main.js:s1": "does not read"
+  }
+}

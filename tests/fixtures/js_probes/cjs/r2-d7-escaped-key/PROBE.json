@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "d7: a string with an escape.",
+  "refuse": {
+    "main.js:s1": "constructor"
+  }
+}

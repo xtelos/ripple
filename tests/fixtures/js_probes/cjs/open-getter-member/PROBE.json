@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a getter returns the function that runs.",
+  "refuse": {
+    "main.js:s1": "getter"
+  }
+}

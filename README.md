@@ -300,10 +300,114 @@ things). `--lang javascript` reads only the JavaScript files, `--lang typescript
 reads both, each into a graph of its own, cached under its own key, with TypeScript first. `ripple index` counts each by
 its label (`TypeScript: 21 files`, `JavaScript: 1 file`).
 
-**ES modules only.** `import` and `export` are followed (default, `export *`, `export { a as b } from`, a directory's
-`index.js`, `..` and `../` for the directory above). CommonJS (`require`, `module.exports`) is not modelled yet: a call
-through one is unresolved with its reason, never an edge. That includes an ES import of a file that assigns
-`module.exports` or `exports.x` (Node gives it named exports), whose reason says the module is CommonJS.
+**ES modules.** `import` and `export` are followed (default, `export *`, `export { a as b } from`, a directory's
+`index.js`, `..` and `../` for the directory above). An ES import of a file that is CommonJS (Node gives its default
+import `module.exports`, and finds its named ones by scanning the file) is unresolved, whose reason says the file is CommonJS,
+and so is `require()` of an ES module.
+
+**CommonJS.** A `.js` or `.cjs` file is CommonJS by Node's rule: a `.cjs` always, a `.js` in the nearest `package.json` whose
+`type` is not `module` (a string other than `module` or `commonjs` is none to Node 24, any other value makes Node throw), with no
+`import`, `export` or `import.meta` in it (`new.target` is not ES syntax; Node 24 reads the syntax where there is no `type`); a
+`.mjs`, a `.jsx` and a `.ts` never. In such a file `require("./x")` of a repo file is a module load: no call, no edge, and not a
+call to code outside the repo. The path is read in Node's order (the file as written, `.js`, `.json`, `.node`, then the directory:
+its `index.js`, or its `package.json` `main`) and stands only where the compiler and the bundlers name the same file. A call
+through the name it is bound to is an edge when the target's exports are CLOSED and prove the function:
+`const a = require("./a"); a.f()`, `const { f, g: h } = require("./a")`, `require("./a").f()`, `const f = require("./f"); f()`
+for `module.exports = f` (a function declared there), and a re-export (`module.exports = require("./y")`). A package
+(`require("lodash")`) binds as an import of a package does, so a call through it is outside the repo.
+
+The rule is an allow-list at every step: ripple draws an edge on an absence (nobody changes these exports), so it proves the small
+good set and anything it does not recognise opens or reflects. "Open" is one module's exports (a call through them is unresolved);
+"reflect" is every module's. An exports object is closed only when all of these hold.
+
+- **What the exports are** is the top-level statements `module.exports = X`, `exports = module.exports = X`,
+  `module.exports.n = v` and `exports.n = v` (each name once, `module.exports` once, a write to `exports` only after
+  `exports = module.exports =`), `X` being an object literal of plain keys, a function declared in the file, or another file's
+  `require`. A name is the name it decodes to (`exports["h\x65lper"]` and `{ helper: f }` are `helper`). An exported name
+  must mean one function for the whole run: the file binds it once (no second declaration, none in a block or a `switch`, no
+  parameter or assignment of that name), as a function declaration or a `const`/`let`/`var` holding a function that is assigned
+  before the export statement. A class is never followed (its statics and methods can be replaced from any file).
+- **Who can write the exports through `this`.** A call `a.f()` runs `f` with `this` = the exports object, a getter runs on a read
+  and a `toString` or `valueOf` on a comparison or a coercion, so any exported value that is not provably harmless can rewrite
+  them. Every own property must be one of these, or the module is open:
+
+  | exported value | allowed |
+  | --- | --- |
+  | a function declaration or expression, an arrow, a method written in this file | only when its body has no `this`, `super` or direct `eval` of its own (an arrow takes the `this` of what holds it; a nested function has its own) |
+  | a name | only when it is one of those functions, declared at the top of the file and bound once |
+  | a number, string, template with no substitution, `true`, `false`, `null`, a negative number | yes |
+  | anything else: a name bound by assignment or by a require, a call result, a member read, a conditional, a logical expression, a class, an object, an array, `new`, a getter or setter, a spread, a computed key | opens the module |
+
+- **Every use of a name bound from a require** (`const a = require("./a")`, `const b = a`, an inline `require("./a")`) is one of
+  these forms or it opens the target's exports:
+
+  | use of the value | allowed |
+  | --- | --- |
+  | a statement of its own; called or constructed (`a()`, `new a()`) | yes |
+  | `typeof a`, `!a`, `void a`, `a === b`, `a !== b`, the test of an `if`, `while`, `do` or ternary | yes |
+  | `a == b`, `a != b`, `a < b`, `a + b`, `` `${a}` ``, `-a`, `'k' in a`, `x instanceof a`, `a ?? b`, `a \|\| b`, an argument, array element, property (`{ a }`), return, default, spread, assignment, `await`, `for ... of a` | opens (these call a hook on the object, or keep it) |
+  | a member read or called (`a.f`, `a.f()`) | yes, with nothing written along the chain (`a.f.x = 1` is a write) and no `valueOf`, `__defineGetter__`, `__defineSetter__` or computed method name called |
+  | `const`, `let` or `var` binding it to a name (whose own uses are judged the same); an object pattern (`const { f } = a`) | yes |
+
+  The name a call goes through must also be bound exactly once in the file (a parameter, a catch parameter, a loop head, an
+  assignment or destructuring assignment, a repeated `var`, a function declared in a block: Annex B assigns it to the name when
+  the block runs); otherwise the call is unresolved. In a file that is not strict, a function whose name is declared again is not
+  followed either. An unicode-escaped spelling of a name or a node kind ripple has no entry for opens.
+- **Every file that may run is read.** The requires of any JavaScript file that is not provably an ES module (`import`, `export`,
+  `import.meta`, a `.mjs`, or a `.js` in a package of type `module`) count as places exports are written, and a `require`
+  declared as a name in the file is an unknown writer. A visible `require` that names a file Node runs and ripple does not read
+  (a hidden directory, `dist/`, a file with no known extension, a package committed into `node_modules`, a `package.json` `main`
+  that picks one) reflects, and so does a relative path into or through a `node_modules`, `bower_components` or `jspm_packages`
+  directory, whether or not a file is there, a symbolic link to a JavaScript file (Node keys its cache by real path), and every
+  computed `require(x)`, whatever text it starts with (`require("./" + name)` may name a hidden file, a `.txt` or a package).
+- **Reaching the loader reflects**, except for the forms listed as harmless:
+
+  | name | harmless |
+  | --- | --- |
+  | `process` | `process.<env\|argv\|argv0\|execArgv\|execPath\|platform\|arch\|version\|versions\|pid\|ppid\|title\|cwd\|exit\|exitCode\|nextTick\|hrtime\|uptime\|memoryUsage\|cpuUsage\|stdout\|stderr\|stdin\|emitWarning>`; `typeof process`; `process.on`, `once` and `off` only as a statement of their own (they return `process`, so the result of one is a use of `process`), with no listener that has a `this` of its own (a listener is called with `this` = `process`) |
+  | `global`, `globalThis` | `global.<console\|timers\|Buffer\|URL\|...>`, a write to `global.x`, `typeof` |
+  | `Function`, `eval` | `typeof Function`, `x instanceof Function`, a read of `Function.prototype`; `eval` never |
+  | `arguments` | inside a function of its own (outside one it is the module wrapper's argument list: `arguments[1]` is `require`); `.callee`, `.caller` and `.arguments` of anything never |
+  | `this` | at the top of the file it is `module.exports` and opens this file's exports. In a function, in a file that is not strict (no `"use strict"` directive at the top, none in the function, not in a class body, not an ES module) it is the global object when the function is called with no receiver, which holds `process`: reflects |
+  | `require` | `require("lit")`, `require.resolve(...)`, `require.main === module`, `require.main.filename` and the like; `require.cache`, `.extensions`, `require` as a value never |
+  | `module` | `module.exports`, `module.id\|filename\|loaded\|path`, `!module.parent`, `typeof`; `module.require`, `.children`, `.constructor`, `.paths` never |
+  | `.constructor` | read for `.name`, compared, set, `Error.captureStackTrace(this, this.constructor)`; a function's `.constructor` is `Function`, so anything else reflects |
+  | `import(...)`, `require(...)` | of `module`, `vm`, `inspector`, `repl`, `process`, `node:`-prefixed or not, a computed path, or a path ripple cannot read: reflects |
+  | `with` | reflects |
+
+- **A lexical net under all of it.** Every identifier, property name, shorthand property, destructuring key, string and template
+  with no substitution in every JavaScript file is read with its escapes decoded (`'\x63onstructor'`, `` `constructor` ``,
+  `constructor`); where it spells a watched name it must stand in a position listed as harmless, or the file reflects. The
+  watched names are the ones above, and `constructor`, `__proto__`, `prototype`, `getPrototypeOf`, `mainModule`,
+  `getBuiltinModule`, `binding`, `dlopen`, `caller`, `callee`, `Reflect`, `Proxy`, `prepareStackTrace`, `getThis`, `getFunction`
+  and `cache`. The listed positions are: a key that is defined, not read (`{ caller: 1 }`, `class K { binding() {} }`, a JSX
+  attribute name; never `__proto__`); a property of some object named `process`, `module`, `exports`, `require`, `global`,
+  `eval` or `Function` (the objects that matter are reached only by the names judged above), or `cache`; `X.prototype` where X is
+  a function or class declared once at the top of the file, a global class that is no `Object` (`Array`, `Error`, `Map`, ...), or
+  a class of a package (a name bound once to a `require` of a bare specifier); a method of a prototype read
+  (`Object.prototype.hasOwnProperty.call`); a string that is the one argument of `require`, `import()` or `require.resolve`; a
+  builtin module name (`vm`, `repl`, ...) that is no call argument. Everything else reflects: `Reflect` and `Proxy` outright,
+  `constructor` destructured or given as a string (`Reflect.get(fn, "constructor")`), `Object.prototype` read, handed on or
+  written (a method put there is a member every exports object inherits, run with `this` = the exports: `a.boot()` reaches it),
+  `getPrototypeOf`, `__proto__`, and a watched name as a string (`'process'`, `'require'`, `'module'`).
+  The invariant test (`tests/test_js_commonjs_invariants.py`) walks every token of every probe, with a decoder of its own, and fails
+  on one that is not classified, and on a loader name classified as harmless anywhere but a defined key.
+- **Other files** open a file's exports by writing through their own `require` of it (`a.f = g`, `Object.assign(a, ...)`, a
+  delete), handing the binding on or aliasing it, a file that imports it with `import` (default or namespace), `import()` of
+  it, a test framework's `mock("./a")` (and a mock with a computed specifier opens every module's), a TypeScript file in the
+  repo (ripple does not read what it does to a JavaScript file), and a file that replaces `module.exports` and is in a require
+  cycle. The cache fingerprints every `package.json` of the repo outside `node_modules` (what a directory's `main` names decides
+  which file a require runs, even when no indexed file stands beside it).
+
+What remains assumed, since the text cannot show it: code outside the repo does not reach in (a loader hook, `NODE_PATH`, a test
+runner's `--require` or `--experimental-test-module-mocks`, a native `.node` addon, a package outside the repo requiring a repo
+file or writing to `Object.prototype`); a class a package exports is not `Object`; a name computed at run time is not a watched one
+(`fn["constr" + "uctor"]`, `globalThis[k]`: a subscript with a key that is no literal is not followed, so `Function` obtained that
+way is a hole); the repo is the files on disk (a file a program writes and then requires, or build output that is not committed, is
+not seen, and a `require` of a file that is not there runs nothing); a `this` in a file that is an ES module only by its package
+`type` or its `.mjs` name is read as sloppy. Not followed, and unresolved with the reason: a `package.json` `main`, `module`,
+`browser` or `exports` of a directory, `imports`, a JSON file, a native addon, a `.jsx` or `.mjs` that `require` does not try. A
+CommonJS file's index time is that of reading it a second time (one more pass over its tree).
 
 **Which file an import names** is the TypeScript compiler's answer where Node and the bundlers agree with it, and
 unresolved, with the reason, where they do not. The compiler tries every TypeScript extension (`.ts`, `.tsx`, then the

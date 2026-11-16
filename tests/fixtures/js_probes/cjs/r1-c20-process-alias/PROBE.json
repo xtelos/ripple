@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c20: process under another name.",
+  "refuse": {
+    "main.js:s1": "process"
+  }
+}

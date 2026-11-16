@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c3: the extension is computed, and the file is a .txt.",
+  "refuse": {
+    "main.js:s1": "computed"
+  }
+}

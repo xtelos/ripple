@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "an instance method replaced on the prototype of the class another file exports.",
+  "refuse": {
+    "main.js:s1": "open"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "an anonymous function value has no symbol to name.",
+  "refuse": {
+    "main.js:s1": "anonymous"
+  }
+}

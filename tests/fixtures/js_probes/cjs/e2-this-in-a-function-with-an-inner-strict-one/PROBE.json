@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the directive of the inner function does not make the outer one strict.",
+  "refuse": {
+    "main.js:s1": "this"
+  }
+}

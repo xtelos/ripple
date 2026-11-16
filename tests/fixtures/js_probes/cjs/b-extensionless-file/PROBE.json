@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a file with no extension is tried first, as it is written.",
+  "refuse": {
+    "main.js:s1": "does not read"
+  }
+}

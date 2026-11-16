@@ -1,0 +1,11 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js",
+    "lib/b.js"
+  ],
+  "notes": "c22: b runs while a is loading, and a.x is not set yet: node throws.",
+  "refuse": {
+    "lib/b.js:s1": "cycle"
+  }
+}

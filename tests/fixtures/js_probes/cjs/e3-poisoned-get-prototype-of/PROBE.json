@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a method put on Object.prototype is a member every exports object has: a.boot() reaches it and writes the exports.",
+  "refuse": {
+    "main.js:s1": "open"
+  }
+}

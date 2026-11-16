@@ -1,0 +1,11 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a computed specifier that starts with ./ is no builtin, but it may name a file ripple does not read (a hidden one, a .txt, one in node_modules): it opens everything.",
+  "refuse": {
+    "main.js:s1": "computed",
+    "main.js:s2": "computed"
+  }
+}

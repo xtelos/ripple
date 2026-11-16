@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "C.make = other replaces the static member before the class is exported.",
+  "refuse": {
+    "main.js:s1": "class"
+  }
+}

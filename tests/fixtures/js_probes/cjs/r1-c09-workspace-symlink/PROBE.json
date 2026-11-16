@@ -1,0 +1,8 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c9: a workspace package linked into node_modules is repo code.",
+  "refuse": {}
+}

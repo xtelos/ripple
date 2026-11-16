@@ -1,0 +1,10 @@
+{
+  "edge": [
+    "main.js:s1"
+  ],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the function is declared after the assignment: hoisted.",
+  "refuse": {}
+}

@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c17: node reaches the repo file by its absolute path.",
+  "refuse": {
+    "main.js:s1": "absolute"
+  }
+}

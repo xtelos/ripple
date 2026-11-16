@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "nothing is there, so node throws: ripple still refuses (what is there later is not known).",
+  "refuse": {
+    "main.js:s1": "does not read"
+  }
+}

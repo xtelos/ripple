@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c3: a string type that is not module or commonjs is no type to node 24.",
+  "refuse": {
+    "main.js:s1": "another file"
+  }
+}

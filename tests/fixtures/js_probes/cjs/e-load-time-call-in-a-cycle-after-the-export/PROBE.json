@@ -1,0 +1,11 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js",
+    "lib/b.js"
+  ],
+  "notes": "the export is set before the require: node reaches a.x, and ripple still refuses a cycle.",
+  "refuse": {
+    "lib/b.js:s1": "cycle"
+  }
+}

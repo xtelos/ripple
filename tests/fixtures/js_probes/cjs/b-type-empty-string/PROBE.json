@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "an empty type is none.",
+  "refuse": {
+    "main.js:s1": "another file"
+  }
+}

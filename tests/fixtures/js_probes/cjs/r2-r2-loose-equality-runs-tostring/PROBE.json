@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "r2: `a == 'x'` calls the exports' toString with this = the exports.",
+  "refuse": {
+    "main.js:s1": "open"
+  }
+}

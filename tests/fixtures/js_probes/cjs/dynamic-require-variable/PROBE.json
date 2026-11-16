@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "require(variable).",
+  "refuse": {
+    "main.js:s1": "computed"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "super.x = v sets x on this.",
+  "refuse": {
+    "main.js:s1": "this"
+  }
+}

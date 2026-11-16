@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "exports passed to defineProperty (the property was writable, so it is replaced).",
+  "refuse": {
+    "main.js:s1": "open"
+  }
+}

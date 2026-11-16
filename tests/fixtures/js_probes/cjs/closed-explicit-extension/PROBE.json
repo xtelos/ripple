@@ -1,0 +1,11 @@
+{
+  "edge": [
+    "main.js:s1",
+    "main.js:s2"
+  ],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a written .js and a written .cjs.",
+  "refuse": {}
+}

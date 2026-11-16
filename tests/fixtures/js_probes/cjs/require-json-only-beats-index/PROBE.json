@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "./lib/a is a.json (Node tries .json before the directory): the call throws.",
+  "refuse": {
+    "main.js:s1": "JSON"
+  }
+}

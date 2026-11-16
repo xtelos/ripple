@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a method called by a name computed at run time may be __defineGetter__.",
+  "refuse": {
+    "main.js:s1": "another file"
+  }
+}

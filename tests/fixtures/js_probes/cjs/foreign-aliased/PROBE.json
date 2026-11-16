@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "const same = a; same.helper = ...",
+  "refuse": {
+    "main.js:s1": "another file"
+  }
+}

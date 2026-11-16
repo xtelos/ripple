@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "t4: a getter that writes the exports, run by a read.",
+  "refuse": {
+    "main.js:s1": "open"
+  }
+}

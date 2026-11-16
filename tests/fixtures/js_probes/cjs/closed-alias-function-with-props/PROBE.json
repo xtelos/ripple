@@ -1,0 +1,10 @@
+{
+  "edge": [
+    "main.js:s1"
+  ],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "exports = module.exports = f, then a property of the function: f() is f, f.g() is not followed.",
+  "refuse": {}
+}

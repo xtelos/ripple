@@ -1,0 +1,8 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "r5: harmless to a file that already has its own require.",
+  "refuse": {}
+}

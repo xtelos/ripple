@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c7: node keys the cache by realpath: b is a.",
+  "refuse": {
+    "main.js:s1": "symbolic link"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "./lib is lib.js, not lib/index.js (Node tries the file first); the two fold to one module id, so ripple may refuse.",
+  "refuse": {}
+}

@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "__defineGetter__ is a method of every object, and it replaces the property.",
+  "refuse": {
+    "main.js:s1": "open"
+  }
+}

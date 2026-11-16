@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a parameter named module.",
+  "refuse": {
+    "main.js:s1": "declared"
+  }
+}

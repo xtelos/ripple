@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the loader names process.dlopen and process.binding: nothing patched here, ripple still reflects.",
+  "refuse": {
+    "main.js:s1": "process"
+  }
+}

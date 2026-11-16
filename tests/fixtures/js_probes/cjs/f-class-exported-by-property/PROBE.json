@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "no member edge through a class, even with nothing that writes it.",
+  "refuse": {
+    "main.js:s1": "class"
+  }
+}

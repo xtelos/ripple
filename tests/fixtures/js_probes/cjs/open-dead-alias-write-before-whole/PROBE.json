@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the write before the assignment is lost with the old object.",
+  "refuse": {
+    "main.js:s1": "old object"
+  }
+}

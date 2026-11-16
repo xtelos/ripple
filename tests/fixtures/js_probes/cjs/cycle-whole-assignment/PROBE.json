@@ -1,0 +1,11 @@
+{
+  "edge": [],
+  "entries": [
+    "lib/a.js",
+    "lib/b.js"
+  ],
+  "notes": "b holds a's first exports object, which module.exports = replaces: a.x is undefined for b, for ever.",
+  "refuse": {
+    "lib/b.js:s1": "cycle"
+  }
+}

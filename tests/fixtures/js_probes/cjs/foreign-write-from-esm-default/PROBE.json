@@ -1,0 +1,11 @@
+{
+  "edge": [],
+  "entries": [
+    "patch.mjs",
+    "main.cjs"
+  ],
+  "notes": "an ES default import is module.exports: a write through it changes the CommonJS file.",
+  "refuse": {
+    "main.cjs:s1": "open"
+  }
+}

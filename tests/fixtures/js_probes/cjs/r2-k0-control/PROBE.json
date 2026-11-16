@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "k0: the plain write through a require.",
+  "refuse": {
+    "main.js:s1": "another file"
+  }
+}

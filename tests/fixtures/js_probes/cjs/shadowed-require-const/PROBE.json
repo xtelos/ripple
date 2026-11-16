@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "var require = ... at the top (a const would be a SyntaxError: require is a parameter of the wrapper).",
+  "refuse": {
+    "main.js:s1": "require"
+  }
+}

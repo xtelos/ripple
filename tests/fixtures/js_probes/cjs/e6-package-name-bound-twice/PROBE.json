@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a package name rebound by an Annex B function: not external.",
+  "refuse": {
+    "main.js:s1": "more than once"
+  }
+}

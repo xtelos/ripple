@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "t2: a function a call made.",
+  "refuse": {
+    "main.js:s1": "open"
+  }
+}

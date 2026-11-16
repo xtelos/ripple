@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "delete a.helper.",
+  "refuse": {
+    "main.js:s1": "another file"
+  }
+}

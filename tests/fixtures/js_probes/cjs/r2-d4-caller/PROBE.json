@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "d4: g.caller is the module wrapper.",
+  "refuse": {
+    "main.js:s1": "caller"
+  }
+}

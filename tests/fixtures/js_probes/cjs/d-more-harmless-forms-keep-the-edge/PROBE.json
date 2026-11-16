@@ -1,0 +1,10 @@
+{
+  "edge": [
+    "main.js:s1"
+  ],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "each of these reads a value and reaches no loader: the process's values and streams, typeof, Function.prototype, a constructor's name or identity, the global timers, require.main and module's plain fields.",
+  "refuse": {}
+}

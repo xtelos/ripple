@@ -1,0 +1,8 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c16: node throws on a type that is not a string, so what the file would be is not known.",
+  "refuse": {}
+}

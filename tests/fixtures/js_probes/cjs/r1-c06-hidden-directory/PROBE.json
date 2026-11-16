@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c6: the walk skips hidden directories.",
+  "refuse": {
+    "main.js:s1": "does not read"
+  }
+}

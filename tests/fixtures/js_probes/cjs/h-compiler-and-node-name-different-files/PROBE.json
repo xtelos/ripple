@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "require('./lib/a') is a.js to node and may be a.mjs to a bundler: which one is not known.",
+  "refuse": {
+    "main.js:s1": "compiler"
+  }
+}

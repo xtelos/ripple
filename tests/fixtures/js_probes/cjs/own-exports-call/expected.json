@@ -1,0 +1,9 @@
+{
+  "node": "v24.0.1",
+  "sites": {
+    "lib/a.js:s1": {
+      "line": 3,
+      "reached": "lib/a:helper"
+    }
+  }
+}

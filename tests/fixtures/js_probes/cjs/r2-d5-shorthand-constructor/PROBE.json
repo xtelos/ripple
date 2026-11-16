@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "d5.",
+  "refuse": {
+    "main.js:s1": "constructor"
+  }
+}

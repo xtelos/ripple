@@ -47,6 +47,9 @@ directory path meaning its tsconfig.json, and are not inherited through `extends
 config's and those of the config that governs the file. `rootDirs` is not followed: a relative import that names no file
 under a config that sets it is "unresolved", for the file may be in another of the roots.
 
+`require` is read apart (ModuleMap.resolve_require): Node's own order for a relative path, which must agree with `resolve`, and the
+format of a file (node_format: .cjs, .mjs, and a .js by the nearest package.json `type`).
+
 Beyond the standard library this module needs the registry, to name the other language when an import reaches one of
 its files, and the walk, to know which of them the other language's index reads. The parser is in ts_indexer.py.
 """
@@ -311,6 +314,16 @@ def _inside(repo: Path, rel: str) -> bool:
         return False
 
 
+def directory_index(file: str) -> bool:
+    """Whether the file is a directory's index (`index.js`, `lib/index.json`)."""
+    return posixpath.basename(file).startswith("index.")
+
+
+def above_root(base: str) -> bool:
+    """Whether a normalised repo-relative path leaves the repo (`..` or `../x`): a directory called `..x` is inside it."""
+    return base == ".." or base.startswith("../")
+
+
 def _anchored(top: str, value: str) -> str | None:
     """The repo-relative path of a value written under `${configDir}` (the directory `top` of the config being compiled),
     None when it is not written that way."""
@@ -513,7 +526,21 @@ def config_files(repo: Path, files: list[Path] | None = None) -> list[str]:
         names += [f for f in load_tsconfig(repo, rel).files if f not in names]
     # a package.json decides whether a directory import names its index file, and its `name` marks a bare import as one of this repo's
     names += [f for f in _package_files(repo, [path.relative_to(repo).as_posix() for path in files] + _other_sources(repo, files)) if f not in names]
+    if any(path.name.endswith((".js", ".cjs")) for path in files):
+        # `resolve_require` reads the package.json of any directory a require names (its `main`, whether it has an entry), and that
+        # directory may hold no indexed file: an edit to one there changes which file a require runs
+        names += [f for f in _every_package_file(repo) if f not in names]
     return names
+
+
+def _every_package_file(repo: Path) -> list[str]:
+    """The repo-relative paths of every package.json of the repo outside node_modules and the tools' own directories."""
+    found = []
+    for dirpath, dirnames, filenames in os.walk(repo):
+        dirnames[:] = sorted(d for d in dirnames if d not in IMPLICIT_EXCLUDES and d not in (".git", ".venv", "venv", "__pycache__", "site-packages", ".tox", ".mypy_cache", ".pytest_cache"))
+        if "package.json" in filenames and _inside(repo, (Path(dirpath) / "package.json").relative_to(repo).as_posix()):
+            found.append((Path(dirpath) / "package.json").relative_to(repo).as_posix())
+    return found
 
 
 def _package_files(repo: Path, rels: list[str]) -> list[str]:
@@ -605,8 +632,40 @@ def _inside_dir(repo: Path, rel: str) -> bool:
 def presence_files(repo: Path, files: list[Path]) -> list[str]:
     """The files the index of this repo depends on only by their being there (cache.fingerprint records no size or time
     for them): the other language's source files, which decide whether an import is unresolved or names nothing, and
-    which same-named file keeps a file out of a config's include."""
-    return _other_sources(repo, files)
+    which same-named file keeps a file out of a config's include. For JavaScript also the .json and .node files of the repo: Node's
+    require tries `./x.json` before the directory `./x`, so one appearing changes which file an extensionless require names."""
+    return sorted({*_other_sources(repo, files), *_require_data_files(repo, files)})
+
+
+def _require_data_files(repo: Path, files: list[Path]) -> list[str]:
+    """Every file and directory of the repo a `require` of a CommonJS file may name that the index does not read, when a
+    CommonJS-capable file is indexed: the .json and .node files, any file in a hidden directory or one the walk skips, a file with
+    no JavaScript extension, a symbolic link to a directory, and what a node_modules directory holds one level down (and two, under a
+    scope). Node runs such a file or loads it as data, so one appearing or going changes what a require names (`resolve_require`)."""
+    if not any(path.name.endswith((".js", ".cjs")) for path in files):
+        return []
+    found = []
+    indexed = set(files)
+    for dirpath, dirnames, filenames in os.walk(repo):
+        here = Path(dirpath)
+        kept = []
+        for d in dirnames:
+            below = (here / d).relative_to(repo).as_posix()
+            if d in (".git", ".venv", "venv", "__pycache__", "site-packages", ".tox", ".mypy_cache", ".pytest_cache"):
+                continue  # tools' own directories, which no require of the repo names
+            if d == "node_modules":
+                found.append(below)
+                for entry in sorted(os.listdir(here / d)):
+                    found.append(f"{below}/{entry}")
+                    if entry.startswith("@") and (here / d / entry).is_dir():
+                        found += [f"{below}/{entry}/{sub}" for sub in sorted(os.listdir(here / d / entry))]
+            elif (here / d).is_symlink():
+                found.append(below)
+            else:
+                kept.append(d)
+        dirnames[:] = kept
+        found += [(here / f).relative_to(repo).as_posix() for f in filenames if (here / f) not in indexed or (here / f).is_symlink()]
+    return sorted(found)
 
 
 def _candidates(base: str, js: bool, directory: bool = False) -> list[str]:
@@ -656,7 +715,10 @@ class ModuleMap:
         self._others: set[str] | None = None  # the other language's files the walk finds (see _has)
         self._elsewhere: dict[tuple, str] = {}  # (specifier, importer) -> _aliased_elsewhere's answer
         self._names: dict[str, str] | None = None  # package name -> its package.json (see _package_names)
+        self._holders: dict[str, bool] = {}  # repo-relative node_modules path -> whether it is a directory (see _committed_package)
         self._directories: dict[str, bool] = {}  # repo-relative path -> whether it is a directory of the repo (see _directory)
+        self._types: dict[str, str] = {}  # repo-relative directory -> the `type` of the package.json that governs it (see package_type)
+        self._by_id: dict[str, str] | None = None  # module id -> the file (see rel_of)
         self.files = files
         self.modules: dict[str, str] = {}  # repo-relative path -> module id
         self.shadowed: list[str] = []  # the files that lost a clash over their id
@@ -688,7 +750,7 @@ class ModuleMap:
         ripple does not read or does not know applies."""
         if specifier.startswith("."):
             base = posixpath.normpath(posixpath.join(posixpath.dirname(importer), specifier))
-            if base.startswith(".."):
+            if above_root(base):
                 return "package", specifier
             # a trailing slash, or `.` or `..` as the last part, names a directory and never a file
             directory = specifier.endswith("/") or specifier.rpartition("/")[2] in (".", "..")
@@ -705,7 +767,9 @@ class ModuleMap:
                 return "unresolved", f"{governor.path} sets rootDirs, so `{specifier}` may name a file in another of the roots, which ripple does not follow"
             return ("package", specifier) if exists else ("missing", specifier)
         if specifier.startswith("/"):
-            return "package", specifier
+            if not importer.endswith(JS_SUFFIXES):
+                return "package", specifier  # TypeScript output is unchanged: tests/test_ts_modules.py holds this answer
+            return "unresolved", f"`{specifier}` is an absolute path: it may name a file of this repo, and ripple does not know where on a machine the repo is"
         if specifier.startswith("#"):
             return "unresolved", f"`{specifier}` is a subpath import: the `imports` of the nearest package.json maps it, and ripple does not read package.json"
         governor = self.governor(importer)
@@ -717,6 +781,194 @@ class ModuleMap:
                 return self._reached(found, specifier, importer)
         why = self._aliased_elsewhere(specifier, importer, governor) or self._own_package(specifier)
         return ("unresolved", why) if why else ("package", specifier)
+
+    # ---- CommonJS: what `require` names, and which files are CommonJS
+
+    def package_type(self, rel: str) -> str:
+        """The `type` of the nearest package.json at or above the file: "module", "commonjs", "" (no package.json, or one with no
+        `type`) or "?" (one that cannot be read, or whose `type` is neither: what the file is then is not known)."""
+        directory = posixpath.dirname(rel)
+        trail = []
+        while True:
+            if directory in self._types:
+                found = self._types[directory]
+                break
+            trail.append(directory)
+            path = posixpath.join(directory, "package.json")
+            if _inside(self.repo, path):
+                try:
+                    data = json.loads((self.repo / path).read_text(encoding="utf-8"))
+                except (OSError, ValueError, UnicodeDecodeError):
+                    found = "?"
+                else:
+                    # node 24 reads a `type` that is a string other than "module" or "commonjs" as none, and throws on any other
+                    # (a number, null, a list): then the files it governs do not run at all, which is not known here
+                    if not isinstance(data, dict):
+                        found = "?"
+                    elif "type" not in data:
+                        found = ""
+                    elif isinstance(data["type"], str):
+                        found = data["type"] if data["type"] in ("module", "commonjs") else ""
+                    else:
+                        found = "?"
+                break
+            if not directory:
+                found = ""
+                break
+            directory = posixpath.dirname(directory)
+        for seen in trail:
+            self._types[seen] = found
+        return found
+
+    def node_format(self, rel: str) -> str:
+        """How Node reads the file by its name and its package.json: "cjs", "esm", "detect" (a .js in a package with no `type`:
+        Node reads its syntax, and a file with no import or export is CommonJS), "?" (not known) or "none" (not a file Node runs)."""
+        if rel.endswith(".cjs"):
+            return "cjs"
+        if rel.endswith(".mjs"):
+            return "esm"
+        if not rel.endswith(".js"):
+            return "none"
+        return {"module": "esm", "commonjs": "cjs", "": "detect"}.get(self.package_type(rel), "?")
+
+    def rel_of(self, module: str) -> str | None:
+        """The repo-relative path of the file a module id of this map is."""
+        if self._by_id is None:
+            self._by_id = {value: key for key, value in self.modules.items()}
+        return self._by_id.get(module)
+
+    def resolve_require(self, specifier: str, importer: str) -> tuple[str, str]:
+        """("repo", module id), ("package", specifier), ("missing", why), ("unresolved", why) or ("executes", why) for
+        `require(specifier)` written in a file that Node may run as CommonJS.
+
+        "missing" is a require that names no file Node's require finds, or one that is data (JSON) or a native addon: it runs no
+        JavaScript of the repo and its result holds no exports ripple follows. "unresolved" is one that may name any file of the repo.
+        "executes" is one that names a file Node runs as CommonJS code that ripple does not read (a file in a directory the walk
+        skips, a hidden one, one with no known extension, a package committed into node_modules): what that file does to the exports
+        of any module is not known.
+
+        A relative path is read in Node's order (the file as written, then .js, .json and .node, then the directory: its
+        package.json, else index.js, index.json, index.node), and the answer stands only where `resolve` (the compiler and the
+        bundlers) names the same file; where they differ, the file the specifier names is not known. A require never names a .jsx,
+        .mjs or .ts file by leaving the extension off, and what is named in full that is not a .js or .cjs file is not CommonJS code
+        ripple follows (JSON is data). An absolute path is unresolved: where the repo is on a machine is not known. A bare specifier
+        is `resolve`'s, unless a package of that name is committed into a node_modules directory above the importer."""
+        if specifier.startswith("/"):
+            return "unresolved", f"`{specifier}` is an absolute path: it may name a file of this repo, and ripple does not know where on a machine the repo is"
+        if not specifier.startswith("."):
+            committed = self._committed_package(specifier, importer)
+            if committed:
+                return "executes", f"`{specifier}` names {committed}, a package committed into the repo (the walk skips node_modules): node runs it, and ripple does not read it"
+            return self.resolve(specifier, importer)
+        base = posixpath.normpath(posixpath.join(posixpath.dirname(importer), specifier))
+        if above_root(base):
+            return "package", specifier
+        skipped = next((part for part in base.split("/") if part in IMPLICIT_EXCLUDES), None)
+        if skipped is not None:
+            # a relative path into (or through) a node_modules directory names a package's file, which node runs and the walk skips
+            # whether or not the file is there when ripple looks: nothing about it is known
+            return "executes", f"`{specifier}` names {base}, which is in a `{skipped}` directory: node runs a file there, and ripple does not read it"
+        directory = specifier.endswith("/") or specifier.rpartition("/")[2] in (".", "..")
+        hit, kind = self._node_file(base, directory)
+        if kind == "package.json":
+            unread = self._unread_main(base)
+            if unread:
+                return "executes", f"`{specifier}` names {base}, whose package.json picks {unread}, a file ripple does not read that node runs"
+            return "unresolved", self._directory_reason(specifier, base)
+        if hit is None:
+            other = self.resolve(specifier, importer)
+            hint = f" (the compiler or a bundler may name {self.rel_of(other[1]) or other[1]}, which Node does not)" if other[0] == "repo" else ""
+            return "missing", f"`{specifier}` names no file Node's require finds{hint}"
+        if hit.endswith((".json", ".node")):
+            what = "a JSON file, which is data" if hit.endswith(".json") else "a native addon"
+            return "missing", f"`{specifier}` names {hit}, {what}, not code ripple follows"
+        if hit not in self.modules:
+            return "executes", f"`{specifier}` names {hit}, a file ripple does not read (the walk skips it, or it is no source file) that node runs as CommonJS"
+        if not hit.endswith((".js", ".cjs")):
+            return "missing", f"`{specifier}` names {hit}, not CommonJS source ripple follows (it is read as a file of its own)"
+        answer = self.resolve(specifier, importer)
+        if answer == ("repo", self.modules[hit]):
+            return answer
+        folder = posixpath.dirname(hit) or "."
+        if answer[0] == "unresolved" and directory_index(hit) and folder == base and self._entryless(folder):
+            return "repo", self.modules[hit]  # `resolve` is unsure only for the package.json, which names no entry: Node takes index.js
+        if answer[0] == "unresolved":
+            return answer
+        return "unresolved", f"`{specifier}` names {hit} to Node and {self.rel_of(answer[1]) or answer[1]} to the compiler, so which file it names is not known"
+
+    def _is_file(self, rel: str) -> bool:
+        try:
+            return (self.repo / rel).is_file()
+        except OSError:
+            return False
+
+    def _node_file(self, base: str, directory: bool) -> tuple[str | None, str]:
+        """(the file Node's require loads for the path `base`, "file"), (the directory, "package.json") when a package.json
+        there picks the file, or (None, "") when it finds none. A symbolic link counts as the file it is."""
+        if not directory:
+            for candidate in (base, base + ".js", base + ".json", base + ".node"):
+                if self._is_file(candidate):
+                    return candidate, "file"
+        if self._directory(base):
+            if self._has_package_json(base) and not self._entryless(base):
+                return base, "package.json"
+            pre = "" if base == "." else base + "/"
+            for candidate in (pre + "index.js", pre + "index.json", pre + "index.node"):
+                if self._is_file(candidate):
+                    return candidate, "file"
+        return None, ""
+
+    def _entryless(self, directory: str) -> bool:
+        """Whether the directory's package.json is valid JSON that sets none of `main`, `module`, `browser` and `exports`, so the
+        directory is its index file to Node (and to a bundler), as it would be with no package.json."""
+        try:
+            data = json.loads((self.repo / directory / "package.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError, UnicodeDecodeError):
+            return False
+        return isinstance(data, dict) and not any(key in data for key in ("main", "module", "browser", "exports"))
+
+    def _unread_main(self, directory: str) -> str:
+        """The file Node runs for a directory with a package.json when ripple does not read it, else "": the `main` it names (as a
+        file, then as a directory), else index.js. A package.json that is not valid JSON makes Node throw, so nothing runs then."""
+        try:
+            data = json.loads((self.repo / directory / "package.json").read_text(encoding="utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            return ""
+        except OSError:
+            return directory + "/package.json"
+        main = data.get("main") if isinstance(data, dict) else None
+        candidates: list[str] = []
+        if isinstance(main, str) and main:
+            where = posixpath.normpath(posixpath.join(directory, main))
+            if not above_root(where):
+                pre = "" if where == "." else where + "/"
+                candidates += [where, where + ".js", where + ".json", where + ".node", f"{pre}index.js", f"{pre}index.json", f"{pre}index.node"]
+        pre = "" if directory == "." else directory + "/"
+        candidates += [f"{pre}index.js", f"{pre}index.json", f"{pre}index.node"]
+        for candidate in candidates:
+            if self._is_file(candidate):
+                return "" if candidate in self.modules or candidate.endswith((".json", ".node")) else candidate
+        return ""
+
+    def _committed_package(self, specifier: str, importer: str) -> str:
+        """The path of a package of this name that sits in a node_modules directory of the repo above the importer, else "": Node
+        reads those first, and the walk does not read them."""
+        if specifier.startswith("node:"):
+            return ""
+        parts = specifier.split("/")
+        name = "/".join(parts[:2]) if specifier.startswith("@") and len(parts) > 1 else parts[0]
+        directory = posixpath.dirname(importer)
+        while True:
+            holder = posixpath.join(directory, "node_modules")
+            if holder not in self._holders:
+                self._holders[holder] = (self.repo / holder).is_dir()
+            if self._holders[holder]:
+                for candidate in (name, name + ".js", name + ".json", name + ".node"):
+                    if (self.repo / holder / candidate).exists():
+                        return posixpath.join(holder, candidate)
+            if not directory:
+                return ""
+            directory = posixpath.dirname(directory)
 
     def _reached(self, found: str, specifier: str, importer: str) -> tuple[str, str]:
         """The answer for a specifier that reached the file `found` (see `_pick`): its module, or, for a file of the other
@@ -927,7 +1179,7 @@ class ModuleMap:
         """Whether the repo-relative path is a directory of the repo that is not one of a package's (a path through
         node_modules and the like names a package)."""
         if place not in self._directories:
-            ok = not place.startswith("..") and not any(part in IMPLICIT_EXCLUDES for part in place.split("/"))
+            ok = not above_root(place) and not any(part in IMPLICIT_EXCLUDES for part in place.split("/"))
             self._directories[place] = ok and (self.repo / place).is_dir() and _inside_dir(self.repo, place)
         return self._directories[place]
 
@@ -960,6 +1212,10 @@ class ModuleMap:
         `modules`), or one the other language's index reads. A file the walk skips (node_modules, build output,
         a .d.ts) is no source file, whatever is on disk."""
         return rel in self.modules or rel in self._has_others()
+
+    def other_sources(self) -> list[str]:
+        """The source files of the other language (the .ts files beside a JavaScript repo) that the walk finds, repo-relative."""
+        return sorted(self._has_others())
 
     def _has_others(self) -> set[str]:
         if self._others is None:  # one walk, once, and only when an import reaches no file of this language

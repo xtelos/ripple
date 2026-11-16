@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "valid JavaScript the tree-sitter grammar does not read (a file that did not parse that says require).",
+  "refuse": {
+    "main.js:s1": "did not parse"
+  }
+}

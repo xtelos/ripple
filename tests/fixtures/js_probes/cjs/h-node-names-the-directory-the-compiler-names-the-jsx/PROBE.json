@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "require('./lib/a') is lib/a/index.js to node (no .jsx is tried) and lib/a.jsx to the compiler.",
+  "refuse": {
+    "main.js:s1": "Node"
+  }
+}

@@ -4,8 +4,9 @@ same facts indexer.py writes for Python (facts.py), so the resolver can build th
 JavaScript is read with the tsx grammar (JSX is legal in a .js file, and the grammar parses plain JavaScript) by the same code,
 as its own language with its own graph (profile.JAVASCRIPT). What only TypeScript means is refused in a .js file: `f < a > (b)`
 is two comparisons there, not a call with type arguments. Flow annotations are read as the TypeScript annotations they look like,
-at the same trust. Only ES modules are followed: CommonJS (`require`, `module.exports`) is not modelled, so a call through one
-stays unresolved, and a JavaScript file's calls into TypeScript, and the reverse, are not followed either (ts_modules.py).
+at the same trust. ES modules are followed, and CommonJS (`require`, `module.exports`, `exports.x`) where a file's exports are
+provably closed (CommonJsReader, FileBuilder.cjs and link_commonjs below: a call through open exports is unresolved, never an
+edge); a JavaScript file's calls into TypeScript, and the reverse, are not followed (ts_modules.py).
 
 Like the Python front end this is purely syntactic, one file at a time, and it never decides what a
 call points at. It needs the repo in view for one thing only, which file an import names
@@ -50,14 +51,15 @@ symbol the name resolves to, so a question about that symbol can list where it i
 arguments are read, as calls of that same scope.
 
 Not supported (the call is unresolved or the code is skipped, never guessed): what a decorator does, class fields that
-hold an arrow function, class expressions, object literal methods, enums, namespaces, `require` and `module.exports`, and a tsconfig
-`extends` that names a package.
+hold an arrow function, class expressions, object literal methods, enums, namespaces, `require` and `module.exports` in a
+TypeScript file (in a JavaScript one, see above), and a tsconfig `extends` that names a package.
 """
 
 from __future__ import annotations
 
 import re
 from contextlib import contextmanager
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from .facts import (
@@ -68,6 +70,7 @@ from .facts import (
     COMPUTED_OTHER,
     COMPUTED_SUBSCRIPT,
     LOOP_VARIABLE,
+    REBOUND,
     UNANNOTATED,
     VARIADIC,
     Binding,
@@ -404,6 +407,1131 @@ _GAP = r"(?:\s|/\*[\s\S]*?\*/|//[^\n]*)"  # white space and comments, which may 
 ACCESSOR_NAME = re.compile(rf"\b(?:get|set){_GAP}+#?([A-Za-z_$][\w$]*){_GAP}*[(<]")
 
 
+# ---- CommonJS: what a file does to its exports, and which `require` calls it makes -----------------------------------------
+#
+# Nothing here decides what a call reaches. The reader (CommonJsReader) reads one tree and says, in plain data, what it can prove
+# about the file: the statements that set its exports, every way the text could change them or rebind `require`, `module` and
+# `exports` (which opens them), and each `require(...)`. FileBuilder turns that into bindings, and link_commonjs (below
+# collect_scopes) joins the files: another file that writes through its own require of this one, a require cycle, `require.cache`
+# and the like open exports too. Where anything is in doubt the exports are open, and a call through them is unresolved.
+
+# Every name whose references are classified one by one (CommonJsReader._watched): the module wrapper's (`require`, `module`,
+# `exports`, `arguments`), and the ones that reach code or the loader from outside a file's own text. A reference is either a
+# form listed as harmless (an "ok" outcome with the form's name) or it opens something ("open": this file's exports, "reflect":
+# every module's), never a third thing: an unlisted form opens.
+WATCHED = {"require", "module", "exports", "arguments", "eval", "Function", "process", "global", "globalThis"}
+WATCHED_BYTES = {name.encode() for name in WATCHED}
+OK, OPEN, REFLECT = "ok", "open", "reflect"
+# The leaves of a tree that name nothing: a name that is a key, a label, a type, the text of a string or a comment is no reference.
+# Any other named leaf whose text is a name being watched is a reference (CommonJsReader._unlisted opens on a kind not known).
+NOT_A_NAME = (
+    "property_identifier",
+    "private_property_identifier",
+    "statement_identifier",
+    "type_identifier",
+    "string_fragment",
+    "escape_sequence",
+    "comment",
+    "html_comment",
+    "regex_pattern",
+    "regex_flags",
+    "jsx_text",
+    "hash_bang_line",
+    "number",
+    "this",
+    "super",
+    "null",
+    "true",
+    "false",
+)
+REFERENCE_TYPES = ("identifier", "shorthand_property_identifier", "shorthand_property_identifier_pattern", "undefined")
+# `process.NAME` reads that reach no loader (a value, a stream, a clock or a callback queue)
+PROCESS_OK = (
+    "env", "argv", "argv0", "execArgv", "execPath", "platform", "arch", "version", "versions", "pid", "ppid", "title", "cwd", "exit",
+    "exitCode", "nextTick", "hrtime", "uptime", "memoryUsage", "cpuUsage", "stdout", "stderr", "stdin", "emitWarning", "on", "once", "off",
+)  # fmt: skip
+# `global.NAME` and `globalThis.NAME` reads that are no way to `process`, `Function`, `eval` or `require`
+GLOBAL_OK = (
+    "console", "setTimeout", "setInterval", "setImmediate", "clearTimeout", "clearInterval", "clearImmediate", "queueMicrotask",
+    "structuredClone", "Buffer", "URL", "URLSearchParams", "TextEncoder", "TextDecoder", "performance", "fetch", "AbortController",
+)  # fmt: skip
+# the builtin modules that run code from a string, or reach into the running process and its module cache
+REFLECTIVE_BUILTINS = ("module", "vm", "inspector", "inspector/promises", "repl", "process")
+PROCESS_EMITTER = ("on", "once", "off")  # the members of PROCESS_OK that return `process`
+REBINDS_THIS = (
+    "function_declaration",
+    "generator_function_declaration",
+    "function_expression",
+    "function",
+    "generator_function",
+    "method_definition",
+    "public_field_definition",
+    "class_static_block",
+)
+REBINDS_ARGUMENTS = REBINDS_THIS[:6]
+COMPARISONS = ("===", "!==")  # the only comparisons that call no hook on an object: `==` and `!=` coerce it (toString, valueOf, Symbol.toPrimitive)
+MODULE_READS = ("id", "filename", "loaded", "path")
+MAIN_READS = ("filename", "path", "id", "loaded")
+DECLARING_PARENTS = (
+    "array_pattern",
+    "object_pattern",
+    "rest_pattern",
+    "assignment_pattern",
+    "object_assignment_pattern",
+    "pair_pattern",
+    "import_specifier",
+    "namespace_import",
+    "import_clause",
+    "update_expression",
+)
+NAMED_DECLARATIONS = (
+    "function_declaration",
+    "generator_function_declaration",
+    "function_expression",
+    "function",
+    "generator_function",
+    "class_declaration",
+    "class",
+    "abstract_class_declaration",
+)
+MEMBERS = ("member_expression", "subscript_expression")
+# The members Object.prototype and Function.prototype give every value, of which these are the ones that change the object they
+# are called on (`exports.__defineGetter__("f", g)` is a write) or hand it back (`exports.valueOf().f = g` is one too). That list
+# is closed by the language: the rest return a string, a boolean or a new function, or call the function with a `this` that is
+# an argument, and an argument is a use of its own.
+MUTATING_MEMBERS = ("__defineGetter__", "__defineSetter__", "__proto__", "valueOf")
+# what a test framework calls to replace a module for the whole run (`jest.mock("./a")`, `vi.mock`, mock-require's `mock`)
+MOCK_CALLS = ("mock", "doMock", "setMock", "mockRequire", "unstable_mockModule")
+
+# ---- the lexical net ----------------------------------------------------------------------------------------------------
+#
+# Every token of a JavaScript file that reads as a name below, after its escapes are decoded (`'\x63onstructor'`, `` `constructor` ``,
+# `c\u006fnstructor`), has to be classified (CommonJsReader._net): it stands in a position that is listed as harmless, or the file
+# reflects (it may change any module's exports). The named positions are the allow-list; a name arriving by a node kind nobody
+# thought of (a shorthand pattern, a template, a reflective call's string argument) is a token in a position that no list names.
+# Kinds of name: WRAPPER ones (the module wrapper's, and what reaches code from a string or from outside the file; their
+# identifiers are judged by the handlers of CommonJsReader._watched, their other positions here), PROTOTYPE ones (they hand out the
+# prototype every exports object inherits from, or a function's constructor, which is Function) and LOADER ones (they hand out the
+# loader, the stack of callers, or a hook on every call).
+NET_WRAPPER = frozenset({"require", "module", "exports", "arguments", "eval", "Function", "process", "global", "globalThis"})
+NET_PROTOTYPE = frozenset({"constructor", "__proto__", "prototype", "getPrototypeOf"})
+NET_LOADER = frozenset(
+    {"mainModule", "getBuiltinModule", "binding", "dlopen", "caller", "callee", "Reflect", "Proxy", "prepareStackTrace", "getThis", "getFunction"}
+)  # fmt: skip
+NET_HARMLESS_PROPERTY = frozenset({"cache"})  # `require.cache` is judged at `require`: no other `.cache` leads anywhere
+NET_BUILTIN_STRINGS = frozenset({"module", "vm", "inspector", "inspector/promises", "repl", "process", "node:module", "node:vm", "node:inspector", "node:inspector/promises", "node:repl", "node:process"})  # fmt: skip
+NET = NET_WRAPPER | NET_PROTOTYPE | NET_LOADER | NET_HARMLESS_PROPERTY
+NET_BYTES = {name.encode() for name in NET | NET_BUILTIN_STRINGS}
+# the global classes whose `.prototype` is not the one every object inherits from (an alias of Object, `const O = Object`, is a name no list reads)
+NOT_OBJECT_GLOBALS = frozenset(
+    {"Function", "Array", "String", "Number", "Boolean", "Error", "TypeError", "RangeError", "SyntaxError", "RegExp", "Date", "Map", "Set", "WeakMap", "WeakSet", "Promise", "Symbol", "Buffer", "Uint8Array", "ArrayBuffer", "EventEmitter"}
+)  # fmt: skip
+_ESCAPES = {"n": "\n", "t": "\t", "b": "\b", "f": "\f", "v": "\v", "r": "\r", "0": "\0"}
+_ESCAPE = re.compile(r"\\(u\{[0-9A-Fa-f]+\}|u[0-9A-Fa-f]{4}|x[0-9A-Fa-f]{2}|[0-7]{1,3}|\r\n|[\s\S])")
+
+
+def unescaped(raw: str) -> str:
+    """The text with its escape sequences decoded (`\\x63` and `\\u0063` are `c`, a backslash before a line break is nothing)."""
+
+    def one(match) -> str:
+        body = match.group(1)
+        try:
+            if body[0] == "u":
+                return chr(int(body[2:-1] if body[1] == "{" else body[1:], 16))
+            if body[0] == "x":
+                return chr(int(body[1:], 16))
+            if body[0] in "01234567":
+                return chr(int(body, 8)) if body != "0" else "\0"
+        except (ValueError, OverflowError):
+            return "\ufffd"
+        if body in ("\n", "\r\n", "\r", "\u2028", "\u2029"):
+            return ""
+        return _ESCAPES.get(body, body)
+
+    return _ESCAPE.sub(one, raw) if "\\" in raw else raw
+
+
+def decoded(node) -> str | None:
+    """The name a leaf or a literal spells, escapes decoded: an identifier or property name, a string, a template with no
+    substitution. None for any other node (a template that holds an expression is not a literal)."""
+    t = node.type
+    if t in ("string", "template_string"):
+        if any(c.type == "template_substitution" for c in node.children):
+            return None
+        return unescaped("".join(text(c) for c in node.children if c.type in ("string_fragment", "escape_sequence")))
+    if node.child_count == 0 and t in ("identifier", "property_identifier", "shorthand_property_identifier", "shorthand_property_identifier_pattern", "undefined"):
+        return unescaped(text(node))
+    return None
+
+
+def walk(root):
+    stack = [root]
+    while stack:
+        node = stack.pop()
+        yield node
+        stack.extend(reversed(node.children))
+
+
+def same(a, b) -> bool:
+    return a is not None and b is not None and a.id == b.id
+
+
+def operator_of(node) -> str:
+    op = field_of(node, "operator")
+    return text(op) if op is not None else ""
+
+
+def declares(node) -> bool:
+    """Whether the identifier is a declaration, a parameter or the target of an assignment where it stands (so it names a
+    variable and reads nothing)."""
+    if node.type == "shorthand_property_identifier_pattern":
+        return True
+    parent = node.parent
+    if parent is None:
+        return False
+    t = parent.type
+    if t == "variable_declarator":
+        return same(field_of(parent, "name"), node)
+    if t in ("required_parameter", "optional_parameter"):
+        return same(field_of(parent, "pattern"), node)
+    if t in NAMED_DECLARATIONS:
+        return same(field_of(parent, "name"), node)
+    if t == "arrow_function":
+        return same(field_of(parent, "parameter"), node)
+    if t == "catch_clause":
+        return same(field_of(parent, "parameter"), node)
+    if t in ("assignment_expression", "augmented_assignment_expression"):
+        return same(field_of(parent, "left"), node)
+    if t == "for_in_statement":
+        return same(field_of(parent, "left"), node)
+    if t in ("assignment_pattern", "object_assignment_pattern"):
+        return same(field_of(parent, "left"), node)  # the right side is a default value that is read
+    return t in DECLARING_PARENTS
+
+
+def binds(node) -> bool:
+    """Whether the identifier is a binding of a name in the scope it stands in: `declares`, but not the name of a named function
+    or class expression, which is bound only inside it."""
+    parent = node.parent
+    if parent is not None and parent.type in ("function_expression", "function", "generator_function", "class") and same(field_of(parent, "name"), node):
+        return False
+    return declares(node)
+
+
+def literal_of(node) -> str | None:
+    """The text of a string, or a template with no substitution, that has no escape sequence (`"./l\\u0069b"` is a name no text
+    match reads), else None."""
+    if node is None or node.type not in ("string", "template_string") or any(c.type == "escape_sequence" for c in node.children):
+        return None
+    return string_value(node)
+
+
+def key_name(node) -> str:
+    """The name an object literal key spells (a plain name, a string; a number as written), escapes decoded."""
+    name = decoded(node) if node.type in ("property_identifier", "string", "template_string") else None
+    return text(node) if name is None else name
+
+
+def written(node) -> bool:
+    """Whether the expression is assigned, updated, deleted or destructured into where it stands."""
+    while node.parent is not None and node.parent.type in ("parenthesized_expression", "non_null_expression"):
+        node = node.parent
+    parent = node.parent
+    if parent is None:
+        return False
+    t = parent.type
+    if t in ("assignment_expression", "augmented_assignment_expression"):
+        return same(field_of(parent, "left"), node)
+    if t == "for_in_statement":
+        return same(field_of(parent, "left"), node)
+    if t == "unary_expression":
+        return operator_of(parent) == "delete"
+    return t in ("update_expression", "array_pattern", "object_pattern", "rest_pattern", "pair_pattern", "assignment_pattern", "object_assignment_pattern")
+
+
+def chain_top(node):
+    """The member or subscript expression that has `node` as its object (`x.a` for the `x` of `x.a.b[c]`), else `node` itself.
+
+    A write to it changes a property of `node`'s own object. A write further out (`x.a.b = v`) changes the value that x.a holds, not
+    `node`'s object: and an exports object stored in a property is already a use of its require (or of the name it is bound to) that
+    opens it, so such a write reaches no exports object this analysis would call closed."""
+    parent = node.parent
+    return parent if parent is not None and parent.type in MEMBERS and same(field_of(parent, "object"), node) else node
+
+
+def mutates(member) -> bool:
+    """Whether the member expression names a method every object has that changes the object (`x.__defineGetter__`)."""
+    return member_key(member) in MUTATING_MEMBERS
+
+
+def member_key(member) -> str | None:
+    """The name a member or subscript expression reads (`x.a`, `x["a"]`), None when it is computed."""
+    if member.type == "member_expression":
+        prop = field_of(member, "property")
+        if prop is None:
+            return None
+        return decoded(prop) if prop.type == "property_identifier" else text(prop)
+    index = field_of(member, "index")
+    return decoded(index) if index is not None and index.type in ("string", "template_string") else None
+
+
+def wrapped(node):
+    """The node and the parentheses (or non-null assertions) around it, outermost."""
+    while node.parent is not None and node.parent.type in ("parenthesized_expression", "non_null_expression", "satisfies_expression"):
+        node = node.parent
+    return node
+
+
+def chain_writes(node) -> str:
+    """Why the chain of member reads that starts at `node` (`x.a.b[c]`) changes something the value of `node` holds, "" when it
+    does not: a write at its end or along it, a member that changes the object it is called on, or a computed name called as a
+    method (which may be one). A write anywhere on the chain counts: the member may be another exports object, or a class."""
+    current = wrapped(node)
+    while True:
+        parent = current.parent
+        if parent is None or parent.type not in MEMBERS or not same(field_of(parent, "object"), current):
+            break
+        if mutates(parent):
+            return f"{short(parent)} changes the object it is called on or hands it back"
+        after = wrapped(parent).parent
+        if parent.type == "subscript_expression" and member_key(parent) is None and after is not None and after.type == "call_expression" and same(field_of(after, "function"), wrapped(parent)):
+            return f"{short(parent)} calls a method by a name computed at run time"
+        current = wrapped(parent)
+    return f"{short(current)} is written" if written(current) else ""
+
+
+def compared(node) -> bool:
+    parent = node.parent
+    return parent is not None and parent.type == "binary_expression" and operator_of(parent) in COMPARISONS
+
+
+def typeof_operand(node) -> bool:
+    parent = node.parent
+    return parent is not None and parent.type == "unary_expression" and operator_of(parent) == "typeof"
+
+
+def ancestors(node):
+    cursor = node.parent
+    while cursor is not None:
+        yield cursor
+        cursor = cursor.parent
+
+
+def has_directive(statements) -> bool:
+    """Whether the statements (a program's, or a function body's) open with a "use strict" directive."""
+    for child in statements:
+        if child.type in ("comment", "hash_bang_line", "{", "}"):
+            continue
+        kids = [c for c in child.named_children if c.type != "comment"]
+        if child.type != "expression_statement" or len(kids) != 1 or kids[0].type != "string":
+            return False
+        if kids[0].text in (b"'use strict'", b'"use strict"'):
+            return True
+    return False
+
+
+def in_plain_function(node, kinds=REBINDS_ARGUMENTS) -> bool:
+    cursor = node.parent
+    while cursor is not None:
+        if cursor.type in kinds:
+            return True
+        cursor = cursor.parent
+    return False
+
+
+def top_level_this(node) -> bool:
+    """Whether a `this` is the module's: not inside a function that has a `this` of its own (an arrow function has none) or a
+    class member (its computed key is read outside it, so a `this` there is the module's)."""
+    child, cursor = node, node.parent
+    while cursor is not None:
+        if cursor.type in REBINDS_THIS and not same(field_of(cursor, "name"), child):
+            return False
+        child, cursor = cursor, cursor.parent
+    return True
+
+
+def uses_this(node) -> bool:
+    """Whether a function (or the node of any code) has a `this` of the function's own: any `this` in it that no function or
+    class member inside it takes for its own. `super.x = v` sets x on `this`, and a direct `eval` or a `with` may name it: each counts."""
+    stack = [(child, False) for child in node.children]
+    while stack:
+        current, inside = stack.pop()
+        if current.type in ("this", "super", "with_statement") and not inside:
+            return True
+        if current.type == "identifier" and not inside and current.text == b"eval":
+            return True
+        rebinds = current.type in REBINDS_THIS
+        for child in current.children:
+            stack.append((child, inside or (rebinds and not same(field_of(current, "name"), child))))
+    return False
+
+
+@dataclass
+class Site:
+    """One `require(...)` call. spec is the literal it names, None when it is computed. form says where its result goes."""
+
+    spec: str | None
+    line: int
+    form: str = "other"  # effect, decl, destructure, member, reexport, other
+    name: str = ""  # decl: the variable
+    pairs: list = field(default_factory=list)  # destructure: (the key it reads or None when not a plain key, the name it binds)
+    safe: bool = True  # whether the result can be written through (an alias of the exports object)
+    why: str = ""
+
+
+class CommonJsReader:
+    """What one file does as CommonJS (it only means anything when Node runs the file as CommonJS: see FileBuilder.cjs)."""
+
+    def __init__(self, root):
+        self.esm_syntax = False  # an import, an export or import.meta: no CommonJS file has one, so Node reads the file as an ES module
+        self.top_level_await = False  # an `await` outside a function: Node reads it as an ES module, unless `await` is a name there
+        self.rebound: dict[str, int] = {}  # `require`, `module` or `exports` declared or assigned in the file -> its line
+        self.reflective = ""  # why the file may change the exports of any module (`require.cache`, eval...), else ""
+        self.open_why = ""  # why this file's own exports are open, else ""
+        self.sites: dict[int, Site] = {}
+        # ("whole", value, alias, line, position) and ("prop", name, value, via, line, position), in statement order
+        self.events: list[tuple] = []
+        self.functions: dict[str, bool] = {}  # a function declared at the top level -> whether its body uses `this`
+        # a name -> ("declaration" | "value", position) of the one function it is at the top level of the file: a function
+        # declaration, or a const, let or var that holds a function expression or an arrow function
+        self.defs: dict[str, tuple[str, int]] = {}
+        self.counts: dict[str, int] = {}  # a name -> how many times the file declares, assigns or binds it, anywhere
+        self.imports: list[tuple] = []  # (specifier or None, line) of each `import(...)`
+        self.mocks: list[tuple] = []  # (specifier or None when computed, line) of each `jest.mock("./a")` and the like
+        # What every reference to a name that is watched (see WATCHED and `tracked`) came to, by the node of the reference:
+        # (OK, the harmless form it is) or (OPEN | REFLECT, why). A reference with no entry here was not looked at.
+        self.refs: dict[int, tuple[str, str]] = {}
+        self.tracked: set[str] = set()  # the names that hold the exports object a require gave (`const a = require("./a")`, `const b = a`)
+        self._aliases: list[tuple[str, list]] = []  # (name, the sites whose value it holds) found and not yet read
+        self._allowed: set[int] = set()
+        self._reexports: set[int] = set()
+        self.strict = False  # the file opens with a "use strict" directive (or is an ES module): no function in it is called with the global object as `this`
+        self._this_nodes: list = []  # every `this` that is no top-level one and stands in no class body
+        # what the net (see NET) made of every token that reads as a name it watches, by the node: (OK, the harmless position) or (REFLECT, why)
+        self.net: dict[int, tuple[str, str]] = {}
+        self.top_ctors: set[str] = set()  # names declared at the top level of the file as a function or a class (once, when `counts` says 1)
+        self.packages: set[str] = set()  # names bound once to what a require of a bare specifier (a package or a builtin) gave
+        self._collect_functions(root)
+        self._statements(root)
+        for node in walk(root):
+            self._node(node)
+        self._uses_of_names(root)
+        self._shape()
+        self._strictness(root)
+        self._net(root)
+
+    # -- the file's own exports
+
+    def _open(self, why: str) -> None:
+        self.open_why = self.open_why or why
+
+    def _reflect(self, why: str) -> None:
+        self.reflective = self.reflective or why
+
+    def _target(self, node):
+        """What a target of an assignment is: ("module.exports", [ids]), ("exports", [ids]), ("prop", name, via, [ids]) or None."""
+        node = inner(node)
+        if node.type == "identifier" and text(node) == "exports":
+            return ("exports", [node.id])
+        if node.type not in MEMBERS or field_of(node, "object") is None:
+            return None
+        obj = inner(field_of(node, "object"))
+        name = member_key(node)
+        if node.type == "member_expression" and field_of(node, "property") is not None and field_of(node, "property").type != "property_identifier":
+            name = None
+        if obj.type == "identifier" and text(obj) == "module" and node.type == "member_expression" and name == "exports":
+            return ("module.exports", [obj.id])
+        if name is None:
+            return None
+        if obj.type == "identifier" and text(obj) == "exports":
+            return ("prop", name, "exports", [obj.id])
+        if obj.type == "member_expression":
+            base, prop = inner(field_of(obj, "object")), field_of(obj, "property")
+            if base.type == "identifier" and text(base) == "module" and prop is not None and text(prop) == "exports":
+                return ("prop", name, "module", [base.id])
+        return None
+
+    def _statements(self, root) -> None:
+        """The top-level statements that set the exports: the only places a write to them is a known one."""
+        for statement in named(root):
+            if statement.type != "expression_statement":
+                continue
+            kids = named(statement)
+            expression = inner(kids[0]) if kids else None
+            if expression is None or expression.type != "assignment_expression":
+                continue
+            targets, current = [], expression
+            while current.type == "assignment_expression":
+                targets.append(self._target(field_of(current, "left")) if field_of(current, "left") is not None else None)
+                current = inner(field_of(current, "right"))
+            kinds = [t[0] if t else None for t in targets]
+            line = line_of(statement)
+            ids = [i for t in targets if t for i in t[-1]]
+            if kinds == ["prop"]:
+                self.events.append(("prop", targets[0][1], self._describe(current), targets[0][2], line, statement.start_byte))
+            elif kinds in (["module.exports"], ["exports", "module.exports"], ["module.exports", "exports"]):
+                self.events.append(("whole", self._describe(current), kinds != ["module.exports"], line, statement.start_byte))
+                if current.type == "call_expression":
+                    self._reexports.add(current.id)
+            else:
+                continue
+            self._allowed.update(ids)
+
+    def _describe(self, node) -> tuple:
+        """What a value written in an assignment to the exports is, as plain data: ("ident", name), ("function", uses this),
+        ("require", spec), ("object", members, why not a closed one) or ("other", what)."""
+        node = inner(node)
+        t = node.type
+        if t == "identifier":
+            return ("ident", text(node))
+        if t in FUNCTION_VALUES:
+            return ("function", uses_this(node))
+        if t == "class":
+            return ("class",)
+        if t in ("number", "true", "false", "null") or (t == "string") or (t == "template_string" and decoded(node) is not None):
+            return ("primitive",)
+        if t == "unary_expression" and operator_of(node) in ("-", "+") and field_of(node, "argument") is not None and field_of(node, "argument").type == "number":
+            return ("primitive",)
+        if t == "call_expression":
+            func = inner(field_of(node, "function")) if field_of(node, "function") is not None else None
+            args = field_of(node, "arguments")
+            kids = named(args) if args is not None else []
+            if func is not None and func.type == "identifier" and text(func) == "require" and len(kids) == 1 and kids[0].type == "string":
+                return ("require", string_value(kids[0]))
+            return ("other", "the result of a call")
+        if t == "object":
+            return ("object", *self._members(node))
+        return ("other", t.replace("_", " "))
+
+    def _members(self, node) -> tuple[list, str]:
+        """The members of an object literal as (name, value) pairs, and why it is not a closed set of plain keys ("" when it is)."""
+        members: list = []
+        why = ""
+        for child in named(node):
+            if child.type == "pair":
+                key, value = field_of(child, "key"), field_of(child, "value")
+                if key is None or value is None or key.type == "computed_property_name":
+                    why = why or "it has a computed key"
+                    continue
+                name = key_name(key)
+                if name == "__proto__":
+                    why = why or "it has a `__proto__` key"
+                members.append((name, self._member_value(value)))
+            elif child.type == "shorthand_property_identifier":
+                members.append((unescaped(text(child)), ("ident", text(child))))
+            elif child.type == "method_definition":
+                name_node = field_of(child, "name")
+                if name_node is None or name_node.type == "computed_property_name":
+                    why = why or "it has a computed key"
+                    continue
+                name = key_name(name_node)
+                accessor = any(c.type in ("get", "set") for c in child.children)
+                members.append((name, ("accessor",) if accessor else ("function", uses_this(child))))
+            else:
+                why = why or ("it spreads another object into it" if child.type == "spread_element" else f"it holds {child.type.replace('_', ' ')}")
+        return members, why
+
+    def _member_value(self, value) -> tuple:
+        described = self._describe(value)
+        if described[0] == "object":
+            return ("other", "an object literal")
+        if described[0] == "require":
+            return ("other", "another file's exports")
+        return described
+
+    # -- every reference to a name that is watched, and every call the file has
+    #
+    # A reference to `require`, `module`, `exports`, `process`, `global`, `globalThis`, `Function`, `eval` or `arguments`, and to a
+    # name that holds what a require gave, is looked at by what stands around it. It comes to (OK, a harmless form) or to
+    # (OPEN | REFLECT, why), and is written to self.refs. Nothing is let through for being unrecognised: a form that is not in the
+    # lists below opens. The invariant test (tests/test_js_commonjs_invariants.py) walks every reference of every probe and
+    # fails on one that has no outcome, or one that came to an unlisted kind of node.
+
+    def _record(self, node, outcome: tuple[str, str]) -> None:
+        self.refs[node.id] = outcome
+        if outcome[0] == OPEN:
+            self._open(outcome[1])
+        elif outcome[0] == REFLECT:
+            self._reflect(outcome[1])
+
+    def _builtin(self, spec: str | None, how: str) -> None:
+        if spec is not None and spec.removeprefix("node:") in REFLECTIVE_BUILTINS:
+            self._reflect(f"the `{spec}` builtin is {how}, which runs code from a string or gives access to every module's exports")
+
+    def _node(self, node) -> None:
+        t = node.type
+        if t == "import_statement":
+            self.esm_syntax = True
+            source = field_of(node, "source")
+            self._builtin(string_value(source) if source is not None else None, "imported")
+        elif t == "export_statement":
+            self.esm_syntax = True
+        elif t == "meta_property":
+            if text(node).startswith("import"):  # `new.target` is a meta property too, and is plain CommonJS
+                self.esm_syntax = True
+        elif t == "with_statement":
+            self._reflect("a `with` statement makes every name written in the file mean what its object says, so no binding of it is known")
+        elif t == "await_expression":
+            if not in_plain_function(node, REBINDS_THIS + ("arrow_function",)):
+                self.top_level_await = True
+        elif t == "this":
+            if top_level_this(node):
+                self._open("`this` at the top of the module is `module.exports`")
+            elif not any(a.type == "class_body" for a in ancestors(node)):
+                self._this_nodes.append(node)  # judged once the file's strictness is known (_strictness)
+        elif t in REFERENCE_TYPES:
+            self._reference(node)
+        elif t == "type_identifier":  # the name of a class declaration is one (class expressions bind theirs only inside)
+            if node.parent is not None and node.parent.type in ("class_declaration", "abstract_class_declaration") and same(field_of(node.parent, "name"), node):
+                self.counts[text(node)] = self.counts.get(text(node), 0) + 1
+        elif t == "call_expression":
+            self._call(node)
+        elif t in MEMBERS:
+            if member_key(node) == "constructor":
+                self._record(node, self._constructor(node))
+        elif node.child_count == 0 and node.is_named and t not in NOT_A_NAME and node.text in WATCHED_BYTES:
+            self._record(node, (REFLECT, f"an unlisted kind of node ({t}) holds the name `{text(node)}`"))
+
+    def _reference(self, node) -> None:
+        raw = node.text
+        if b"\\" in raw:  # spelled with a unicode escape: no text match finds what it names
+            self._reflect("an identifier is spelled with a unicode escape, so it may name `process`, `eval`, `require` or any binding")
+        name = raw.decode("utf-8", "replace")
+        if binds(node):
+            self.counts[name] = self.counts.get(name, 0) + 1
+        if raw in WATCHED_BYTES:
+            self._record(node, self._watched(node, name))
+
+    def _watched(self, node, name: str) -> tuple[str, str]:
+        if node.id in self._allowed:
+            return OK, "a statement at the top of the file that sets the exports"
+        parent = node.parent
+        if declares(node):
+            self.rebound.setdefault(name, line_of(node))
+            if name in ("module", "exports"):
+                return OPEN, f"`{name}` is declared or assigned in this file"
+            return OK, "a declaration of the name, which is then no longer the one it was"
+        if name == "eval":
+            return REFLECT, "`eval` can run code that changes any module's exports"
+        if name == "Function":
+            if parent is not None and parent.type == "binary_expression" and operator_of(parent) == "instanceof" and same(field_of(parent, "right"), node):
+                return OK, "the right side of instanceof"
+            if typeof_operand(node):
+                return OK, "typeof"
+            if parent is not None and parent.type == "member_expression" and same(field_of(parent, "object"), node) and member_key(parent) == "prototype" and not written(parent):
+                return OK, "Function.prototype read"
+            return REFLECT, "`Function` builds code from a string that may change any module's exports"
+        if name == "arguments":
+            if in_plain_function(node):
+                return OK, "the arguments of a function"
+            return REFLECT, "`arguments` outside a function of its own is the module wrapper's argument list (`arguments[1]` is `require`, `arguments[2]` is `module`): through it any module's exports can be written"
+        if name == "process":
+            return self._process(node, parent)
+        if name in ("global", "globalThis"):
+            return self._global(node, parent)
+        if name == "require":
+            return self._require_value(node, parent)
+        if name == "module":
+            return self._module(node, parent)
+        return self._exports_use(node, node)
+
+    def _process(self, node, parent) -> tuple[str, str]:
+        if typeof_operand(node):
+            return OK, "typeof"
+        if parent is not None and parent.type == "member_expression" and same(field_of(parent, "object"), node) and member_key(parent) in PROCESS_OK:
+            key = member_key(parent)
+            return self._process_event(parent, key) if key in PROCESS_EMITTER else (OK, f"process.{key}")
+        return REFLECT, "`process` is used other than to read a value from it (`process.mainModule`, `process.getBuiltinModule` and the like reach the loader)"
+
+    def _process_event(self, member, key: str) -> tuple[str, str]:
+        """`process.on(...)`, `once` and `off` return `process` itself, and call a listener with `this` = process: allowed only as a statement of
+        their own, with no listener that has a `this` of its own."""
+        top = wrapped(member)
+        call = top.parent
+        if call is None or call.type != "call_expression" or not same(field_of(call, "function"), top):
+            return REFLECT, f"`process.{key}` is used other than called: it hands out the emitter, which is `process`"
+        after = wrapped(call).parent
+        if after is None or after.type != "expression_statement":
+            return REFLECT, f"the result of `process.{key}(...)` is `process` itself (`.mainModule`, `.getBuiltinModule` and the rest reach the loader), and it is used"
+        args = field_of(call, "arguments")
+        for listener in named(args)[1:] if args is not None else []:
+            value = inner(listener)
+            ok = value.type == "arrow_function" or (value.type in FUNCTION_VALUES and not uses_this(value)) or (value.type == "identifier" and self.functions.get(text(value)) is False)
+            if not ok:
+                return REFLECT, f"a listener of `process.{key}` is called with `this` = process, and this one is not a function written here with no `this`"
+        return OK, f"process.{key}(...) as a statement of its own"
+
+    def _global(self, node, parent) -> tuple[str, str]:
+        name = text(node)
+        if typeof_operand(node):
+            return OK, "typeof"
+        if parent is not None and parent.type == "member_expression" and same(field_of(parent, "object"), node):
+            key = member_key(parent)
+            if key in GLOBAL_OK:
+                return OK, f"{name}.{key}"
+            if written(parent):
+                return OK, "a property of the global object is set"
+        return REFLECT, f"`{name}` is read for something that may be `process`, `Function`, `eval` or `require`"
+
+    def _constructor(self, node) -> tuple[str, str]:
+        """`x.constructor` is Function for a function, and `Function("code")` runs code that may change any module's exports."""
+        top = wrapped(node)
+        parent = top.parent
+        if written(top):
+            return OK, "a `constructor` property is set (`C.prototype.constructor = C`), not read"
+        if parent is not None and parent.type in MEMBERS and same(field_of(parent, "object"), top) and member_key(parent) in ("name", "prototype") and not written(parent):
+            return OK, "the name or the prototype of a constructor is read"
+        if compared(top) or typeof_operand(top):
+            return OK, "compared"
+        if parent is not None and parent.type == "binary_expression" and operator_of(parent) == "instanceof":
+            return OK, "compared"
+        if parent is not None and parent.type == "arguments" and parent.parent is not None and parent.parent.type == "call_expression":
+            callee = field_of(parent.parent, "function")
+            if callee is not None and callee.type == "member_expression" and member_key(callee) == "captureStackTrace":
+                holder = field_of(callee, "object")
+                if holder is not None and holder.type == "identifier" and text(holder) == "Error":
+                    return OK, "Error.captureStackTrace(this, this.constructor)"
+        return REFLECT, "`.constructor` of a function is Function, which builds code from a string"
+
+    def _require_value(self, node, parent) -> tuple[str, str]:
+        if parent is not None and parent.type == "call_expression" and same(field_of(parent, "function"), node):
+            return OK, "a call of require"
+        if typeof_operand(node):
+            return OK, "typeof"
+        if parent is not None and parent.type == "member_expression" and same(field_of(parent, "object"), node):
+            name = member_key(parent) or ""
+            after = parent.parent
+            if name == "resolve" and after is not None and after.type == "call_expression" and same(field_of(after, "function"), parent):
+                return OK, "require.resolve(...) returns a path and loads nothing"
+            if name == "main":
+                if compared(parent) or (after is not None and after.type == "member_expression" and same(field_of(after, "object"), parent) and member_key(after) in MAIN_READS and not written(after)):
+                    return OK, "require.main compared, or its filename read"
+            return REFLECT, f"`require.{name}` gives access to the module system"
+        return REFLECT, "`require` is used as a value (handed to a function, stored or called under another name)"
+
+    def _module(self, node, parent) -> tuple[str, str]:
+        if parent is not None and parent.type == "member_expression" and same(field_of(parent, "object"), node):
+            name = member_key(parent) or ""
+            if name == "exports":
+                return self._exports_use(node, parent)
+            after = parent.parent
+            if name in MODULE_READS and not written(parent):
+                return OK, f"module.{name} is read"
+            if name == "parent" and after is not None and ((after.type == "unary_expression" and operator_of(after) == "!") or compared(parent)):
+                return OK, "module.parent is tested"
+            return REFLECT, f"`module.{name}` reaches the module object, whose `exports`, `children`, `parent` and `require` belong to other modules"
+        if typeof_operand(node) or compared(node):
+            return OK, "typeof or compared"
+        return REFLECT, "`module` is used as a value (it holds exports, parent, children)"
+
+    def _exports_use(self, node, expression) -> tuple[str, str]:
+        """A use of the exports object that is not one of the statements that set it: reading a property is fine, anything else
+        (a write, handing it on, a computed key) is not known."""
+        parent = expression.parent
+        if parent is not None and parent.type in MEMBERS and same(field_of(parent, "object"), expression):
+            top = chain_top(expression)
+            if written(top) or mutates(top):
+                return OPEN, "`exports` is written outside the statements at the top of the file that set it (in a function, a branch, a loop or a nested write)"
+            if parent.type == "subscript_expression":
+                return OPEN, "`exports` is read with a computed key"
+            return OK, "a property of the exports is read"
+        if typeof_operand(node):
+            return OK, "typeof"
+        return OPEN, "`exports` is used as a value (passed to a call, assigned or returned), so what it holds is not known"
+
+    # -- require
+
+    def _call(self, node) -> None:
+        func = field_of(node, "function")
+        if func is None:
+            return
+        func = inner(func)
+        args = field_of(node, "arguments")
+        kids = named(args) if args is not None else []
+        first = literal_of(kids[0]) if len(kids) == 1 else None
+        if func.type == "import":
+            spec = literal_of(kids[0]) if len(kids) == 1 else None
+            self._builtin(spec, "imported")
+            self.imports.append((spec, line_of(node)))
+            return
+        callee = text(field_of(func, "property")) if func.type == "member_expression" and field_of(func, "property") is not None else text(func) if func.type == "identifier" else ""
+        if callee in MOCK_CALLS:
+            self.mocks.append((literal_of(kids[0]) if kids else None, line_of(node)))
+        if func.type != "identifier" or text(func) != "require":
+            return
+        self._builtin(first, "required")
+        if first is None:
+            # `require(name)` may be `require("mod" + "ule")`, and `require("./" + name)` may run a file ripple does not read (a
+            # hidden one, a .txt, one in node_modules) whatever the text before the computed part: a computed specifier reflects
+            self._reflect("a require whose specifier is computed may load the `module`, `vm` or `process` builtin, or any file, including one ripple does not read")
+        self.sites[node.id] = self._site(node, first)
+
+    def _site(self, call, spec: str | None) -> Site:
+        site = Site(spec, line_of(call))
+        node = wrapped(call)
+        parent = node.parent
+        t = parent.type if parent is not None else ""
+        if t == "expression_statement":
+            site.form = "effect"
+        elif t == "variable_declarator" and same(field_of(parent, "value"), node):
+            target = field_of(parent, "name")
+            if target is not None and target.type == "identifier":
+                site.form, site.name = "decl", text(target)
+            elif target is not None and target.type == "object_pattern":
+                site.form = "destructure"
+                site.pairs = self._pairs(target)
+        elif t in MEMBERS and same(field_of(parent, "object"), node):
+            site.form = "member"
+        elif t == "assignment_expression" and call.id in self._reexports:
+            site.form = "reexport"
+        outcome = self._judge(call, [site])
+        self.refs[call.id] = outcome
+        if outcome[0] == OPEN:
+            site.safe, site.why = False, outcome[1]
+        return site
+
+    def _pairs(self, pattern) -> list:
+        """(the key a destructured name reads, the name it binds) for each part of an object pattern: (None, None) for a part that
+        is not a plain key bound to a plain name, and for one with a default (which function runs then depends on the member)."""
+        pairs = []
+        for child in named(pattern):
+            if child.type == "shorthand_property_identifier_pattern":
+                pairs.append((unescaped(text(child)), text(child)))
+            elif child.type == "pair_pattern":
+                key, value = field_of(child, "key"), field_of(child, "value")
+                if key is not None and value is not None and key.type in ("property_identifier", "string") and value.type == "identifier":
+                    pairs.append((key_name(key), text(value)))
+                else:
+                    pairs.append((None, None))
+            else:
+                pairs.append((None, None))
+        return pairs
+
+    def _judge(self, expr, sites: list) -> tuple[str, str]:
+        """What the place the exports object a require gave stands in (`expr`: the call, or a name that holds it) comes to. The
+        harmless forms, each one a place that neither keeps the object nor changes it:
+          a statement of its own; called or constructed (`a()`, `new a()`); `typeof a`, `!a`, `void a`, `a === b`; the test of an
+          if, a while or a ternary; a member read or called (`a.f`, `a.f()`), where nothing on the chain is written and no
+          method that changes or returns its receiver is called (see chain_writes); bound by a const, let or var to a name (that
+          name then holds the object and its own uses are judged the same); destructured by an object pattern (the members are not
+          the object). Anything else (an argument, an element, a property, a return, a default, a spread, an assignment, a
+          condition's value, an await) may keep the object or write through it later, so it opens."""
+        node = wrapped(expr)
+        parent = node.parent
+        if parent is None:
+            return OPEN, "it stands nowhere that is known"
+        t = parent.type
+        if t == "expression_statement":
+            return OK, "a statement of its own"
+        if t == "call_expression" and same(field_of(parent, "function"), node):
+            return OK, "called"
+        if t == "new_expression" and same(field_of(parent, "constructor"), node):
+            return OK, "constructed"
+        if t == "unary_expression" and operator_of(parent) in ("typeof", "!", "void"):
+            return OK, f"{operator_of(parent)} of it"
+        if t == "binary_expression" and operator_of(parent) in COMPARISONS:
+            return OK, "compared"
+        if t in ("if_statement", "while_statement", "do_statement", "ternary_expression") and same(field_of(parent, "condition"), node):
+            return OK, "tested"
+        if t in MEMBERS and same(field_of(parent, "object"), node):
+            why = chain_writes(expr)
+            return (OPEN, why) if why else (OK, "a member of it is read or called")
+        if t == "variable_declarator" and same(field_of(parent, "value"), node):
+            target = field_of(parent, "name")
+            if target is not None and target.type == "identifier":
+                self._aliases.append((text(target), sites))
+                return OK, "bound to a name"
+            if target is not None and target.type == "object_pattern":
+                return OK, "its members are destructured"
+            return OPEN, "its result is destructured as an array"
+        if t == "assignment_expression" and same(field_of(parent, "right"), node) and expr.id in self._reexports:
+            return OK, "it is the whole export (a re-export)"
+        return OPEN, f"it is used as a value ({t.replace('_', ' ')})" if t else "it is used as a value"
+
+    def _uses_of_names(self, root) -> None:
+        """A name a require is bound to (`const a = require('./a')`) holds the exports object itself, and so does a name another
+        holds (`const b = a`). Every reference to either is judged (see _judge), by the name wherever it is written in the file
+        (a shadowing variable of the same name makes it more careful, never less). A reference that is not one of the harmless
+        forms opens the exports of every file the name was given by a require."""
+        known: dict[str, list[Site]] = {}
+        opened: dict[str, str] = {}
+        done: set[str] = set()
+        while self._aliases:
+            batch, self._aliases = self._aliases, []
+            fresh: set[str] = set()
+            for name, sites in batch:
+                have = known.setdefault(name, [])
+                have.extend(s for s in sites if not any(s is h for h in have))
+                if name not in done:
+                    done.add(name)
+                    fresh.add(name)
+            if not fresh:
+                continue
+            wanted = {name.encode() for name in fresh}
+            for node in walk(root):
+                if node.child_count or not node.is_named or node.type in NOT_A_NAME or node.text not in wanted:
+                    continue
+                name = text(node)
+                outcome = self._reference_to_value(node, name, known[name])
+                self.refs[node.id] = outcome
+                if outcome[0] == OPEN:
+                    opened.setdefault(name, f"{outcome[1]} (`{name}`, line {line_of(node)})")
+        self.tracked = set(known)
+        for name, why in opened.items():
+            for site in known[name]:
+                if site.safe:
+                    site.safe, site.why = False, why
+
+    def _reference_to_value(self, node, name: str, sites: list) -> tuple[str, str]:
+        if node.type not in REFERENCE_TYPES:
+            return OPEN, f"an unlisted kind of node ({node.type}) holds the name"
+        if declares(node):
+            return OK, "a declaration of the name, which reads nothing"
+        if node.type == "shorthand_property_identifier":
+            return OPEN, "it is held as a property of an object literal"
+        return self._judge(node, sites)
+
+    def _shape(self) -> None:
+        """Settle what the statements that set the exports make of them, and every function the exports hold that has a `this`."""
+        whole = [e for e in self.events if e[0] == "whole"]
+        if len(whole) > 1:
+            self._open("`module.exports` is assigned more than once")
+        if whole:
+            at = self.events.index(whole[0])
+            for event in self.events[:at]:
+                if event[0] == "prop":
+                    self._open(f"`exports.{event[1]}` is written before `module.exports` is assigned, so it goes to the old object that module.exports replaces")
+            if not whole[0][2]:
+                for event in self.events[at + 1 :]:
+                    if event[0] == "prop" and event[3] == "exports":
+                        self._open(f"`exports.{event[1]}` is written after `module.exports` was assigned, so it goes to the old object that module.exports replaced")
+        names = [e[1] for e in self.events if e[0] == "prop"]
+        for name in dict.fromkeys(names):
+            if names.count(name) > 1 or name == "__proto__":
+                self._open(f"`exports.{name}` is written more than once" if names.count(name) > 1 else "a `__proto__` property is written")
+        # Called through the exports (`a.boot()`), a function runs with `this` = the exports object, and so does a getter on a read
+        # and a toString on a comparison: whatever an exported value runs can write the exports. So the exports are closed only when
+        # every own property holds a function written in this file whose body has no `this`, or a primitive.
+        values = [e[2] for e in self.events if e[0] == "prop"]
+        if whole:
+            kind = whole[0][1]
+            values += [v for _, v in kind[1]] if kind[0] == "object" else []
+        if not whole or whole[0][1][0] == "object":
+            for value in values:
+                why = self._value_opens(value)
+                if why:
+                    self._open(why)
+                    break
+
+    def _value_opens(self, value: tuple) -> str:
+        """Why the exports are open when one of their properties holds `value` (see _describe), "" when it is a function declared in this
+        file with no `this` of its own, or a primitive."""
+        kind = value[0]
+        if kind == "primitive":
+            return ""
+        if kind == "function":
+            return "an exported function uses `this`, which is the exports object when it is called as a member of it" if value[1] else ""
+        if kind == "ident":
+            name = value[1]
+            if name in self.functions and name in self.defs:
+                if self.counts.get(name, 0) > 1:
+                    return f"`{name}` is declared, assigned or bound more than once in the file, so which function the exports hold is not known, and it may use `this` (the exports object when called as a member of it)"
+                return "an exported function uses `this`, which is the exports object when it is called as a member of it" if self.functions[name] else ""
+            return f"the exports hold `{name}`, which is no function declared at the top of this file (a class, a value another file or a call made, a name bound by assignment): called as a member of the exports it runs with `this` = the exports, and may write them"
+        if kind == "accessor":
+            return "the exports hold a getter or setter, which runs on a read or a write with `this` = the exports"
+        if kind == "class":
+            return "the exports hold a class, whose members run with `this` and may be taken off it and called as members of the exports"
+        return f"the exports hold {value[1] if len(value) > 1 and isinstance(value[1], str) else kind}, which is no function written in this file or a primitive: it may run with `this` = the exports and write them"
+
+    def _collect_functions(self, root) -> None:
+        """The functions declared at the top level, by name, and whether the body of each has a `this` of its own."""
+        for statement in named(root):
+            node = field_of(statement, "declaration") if statement.type == "export_statement" else statement
+            if node is None:
+                continue
+            if node.type in FUNCTION_DECLARATIONS and field_of(node, "name") is not None:
+                name = text(field_of(node, "name"))
+                self.functions[name] = self.functions.get(name, False) or uses_this(node)
+                self.defs.setdefault(name, ("declaration", node.start_byte))
+                self.top_ctors.add(name)
+            elif node.type in ("class_declaration", "abstract_class_declaration") and field_of(node, "name") is not None:
+                self.top_ctors.add(text(field_of(node, "name")))
+            elif node.type in ("lexical_declaration", "variable_declaration"):
+                for declarator in named(node):
+                    target, value = field_of(declarator, "name"), field_of(declarator, "value")
+                    if target is not None and target.type == "identifier" and value is not None and inner(value).type in FUNCTION_VALUES:
+                        name = text(target)
+                        self.functions[name] = self.functions.get(name, False) or uses_this(inner(value))
+                        self.defs.setdefault(name, ("value", declarator.end_byte))  # the name holds the function from here on
+                        self.top_ctors.add(name)
+
+    # -- strictness, and the lexical net
+
+    def _strictness(self, root) -> None:
+        """A `this` in a function of a file that is not strict is the global object when the function is called with no receiver (a
+        UMD wrapper's `(function () { return this; })()`), and the global object holds `process`: so any such `this` reflects, unless
+        the file or the function opens with a "use strict" directive, or the `this` stands in a class body (always strict)."""
+        self.strict = self.esm_syntax or has_directive(root.children)
+        if self.strict:
+            return
+        for node in self._this_nodes:
+            if not any(a.type in FUNCTION_NODES and (field_of(a, "body") is not None and field_of(a, "body").type == "statement_block" and has_directive(field_of(a, "body").children)) for a in ancestors(node)):
+                self._reflect(
+                    f"`this` (line {line_of(node)}) is used in a function of a file that is not strict: called with no receiver, the function has the global "
+                    "object as `this`, which holds `process` and the loader"
+                )
+                return
+
+    def _net(self, root) -> None:
+        """Classify every token that reads as a name of NET (see there): into self.net, and a reflect for each one in no position listed as harmless."""
+        for site in self.sites.values():
+            if site.spec is not None and not site.spec.startswith((".", "/")):
+                if site.form == "decl" and site.name:
+                    self.packages.add(site.name)
+                elif site.form == "destructure":
+                    self.packages.update(local for _, local in site.pairs if local)
+        for node in walk(root):
+            t = node.type
+            if t in ("string", "template_string"):
+                if node.text.strip(b"`'\"") not in NET_BYTES and b"\\" not in node.text:
+                    continue
+            elif node.child_count or t not in ("identifier", "property_identifier", "shorthand_property_identifier", "shorthand_property_identifier_pattern", "undefined"):
+                continue
+            elif node.text not in NET_BYTES and b"\\" not in node.text:
+                continue
+            name = decoded(node)
+            if name is None or not (name in NET or (t in ("string", "template_string") and name in NET_BUILTIN_STRINGS)):
+                continue
+            outcome = self._net_position(node, name)
+            self.net[node.id] = outcome
+            if outcome[0] == REFLECT:
+                self._reflect(f"{outcome[1]} (line {line_of(node)})")
+
+    def _net_position(self, node, name: str) -> tuple[str, str]:
+        t, parent = node.type, node.parent
+        is_string = t in ("string", "template_string")
+        defines = parent is not None and (
+            (parent.type == "pair" and same(field_of(parent, "key"), node))
+            or (parent.type in ("method_definition", "public_field_definition") and same(field_of(parent, "name"), node))
+            or (parent.type == "jsx_attribute" and same(parent.children[0], node))
+        )
+        if defines and name != "__proto__":
+            return OK, "a key that is defined here, not a name that is read"
+        if node.id in self.refs:
+            return self.refs[node.id]
+        if name in ("__proto__", "getPrototypeOf", "arguments", "caller", "callee") or name in NET_LOADER:
+            return REFLECT, f"`{name}` is named (as a property, a key, a string or an identifier): it reaches the prototype every object inherits from, the stack of callers, the module wrapper's arguments or the loader"
+        holder = parent if parent is not None and ((parent.type == "member_expression" and same(field_of(parent, "property"), node)) or (parent.type == "subscript_expression" and same(field_of(parent, "index"), node))) else None
+        if name == "constructor":
+            if holder is not None and holder.id in self.refs:
+                return self.refs[holder.id]
+            return REFLECT, "`constructor` is named other than as `x.constructor` (destructured out of a value, a string handed to a call, an identifier): the constructor of a function is Function, which builds code from a string"
+        if name == "prototype":
+            if holder is not None:
+                return self._prototype(holder)
+            return REFLECT, "`prototype` is named other than as `x.prototype`: it may be the Object.prototype every exports object inherits from"
+        if name == "cache":
+            return OK, "a name `cache`: `require.cache` is judged at `require`, and no other `.cache` leads to a module"
+        call = parent.parent if parent is not None and parent.type == "arguments" else None
+        if is_string and call is not None and call.type == "call_expression":
+            callee = field_of(call, "function")
+            callee = inner(callee) if callee is not None else None
+            if callee is not None and len(named(parent)) == 1 and (
+                (callee.type == "identifier" and text(callee) == "require")
+                or callee.type == "import"
+                or (callee.type == "member_expression" and member_key(callee) == "resolve" and inner(field_of(callee, "object")).type == "identifier" and text(inner(field_of(callee, "object"))) == "require")
+            ):
+                return OK, "a module specifier: what it names is judged where it is required (`_builtin`)"
+        if name in NET_WRAPPER:
+            if holder is not None or (parent is not None and parent.type == "pair_pattern" and same(field_of(parent, "key"), node)):
+                return OK, f"a property named `{name}` of some object: the ones that matter (`process`, `global`, `module`, `require`) are reached only by the names judged where they are written"
+            if not is_string:
+                return REFLECT, f"an identifier spelled `{name}` that no handler of CommonJsReader judged"
+            return REFLECT, f"a string spelled `{name}`: it may be handed to a call that reads a property by name or loads a module"
+        if is_string and name in NET_BUILTIN_STRINGS:
+            if call is not None:
+                return REFLECT, f"the builtin module name `{name}` is handed to a call (`process.getBuiltinModule('{name}')`, a loader)"
+            return OK, f"the builtin module name `{name}` as a value: it loads nothing by itself"
+        return REFLECT, f"a token spelled `{name}` in a position no list names"
+
+    def _prototype(self, member) -> tuple[str, str]:
+        """`X.prototype`: harmless when X is a function or class declared once at the top of this file, a global class that is no Object, or a
+        class of a package (its prototype is not the one every object inherits), or when it is only read for a method of it
+        (`Object.prototype.hasOwnProperty.call(x, k)`). Anything else may be Object.prototype, and a write to it is a method every exports object has."""
+        owner = inner(field_of(member, "object")) if field_of(member, "object") is not None else None
+        if owner is not None and self._not_object(owner):
+            return OK, "the prototype of a function or class declared in this file, or of a class that is not Object"
+        top = wrapped(member)
+        after = top.parent
+        if after is not None and after.type == "member_expression" and same(field_of(after, "object"), top) and member_key(after) not in (None, *MUTATING_MEMBERS) and not chain_writes(top):
+            return OK, "a member of a prototype is read (`Object.prototype.hasOwnProperty`), not the prototype handed on or written"
+        return REFLECT, "`.prototype` of a value that may be Object (`Object.prototype`, an alias of it, a parameter) is read, handed on or written: a method put there is one every exports object has, and runs with `this` = the exports"
+
+    def _not_object(self, owner) -> bool:
+        """Whether the expression is a class that is not Object: see _prototype."""
+        if owner.type == "identifier":
+            name, count = text(owner), self.counts.get(text(owner), 0)
+            return (name in self.top_ctors and count == 1) or (name in NOT_OBJECT_GLOBALS and count == 0) or (name in self.packages and count == 1)
+        root = owner
+        while root.type == "member_expression" and field_of(root, "object") is not None and field_of(root, "property") is not None and field_of(root, "property").type == "property_identifier":
+            root = inner(field_of(root, "object"))
+        if root is owner:
+            return False
+        if root.type == "identifier":
+            return text(root) in self.packages and self.counts.get(text(root), 0) == 1
+        site = self.sites.get(root.id) if root.type == "call_expression" else None
+        return site is not None and site.spec is not None and not site.spec.startswith((".", "/"))
+
+
+@dataclass
+class Pending:
+    """The binding of a name that a require of a repo file gave, until link_commonjs knows what that file exports."""
+
+    binding: Binding
+    scope: Scope
+    key: str  # the name as the scope holds it
+    target: str  # the module required
+    spec: str
+    member: str | None  # None when the name is the whole exports object, else the member read by destructuring
+    line: int
+
+
+@dataclass
+class CjsModel:
+    """What one CommonJS file exports, as far as its own text says (link_commonjs adds what the other files do to it).
+
+    kind "object": the exports object, whose `members` are bindings of this module (name -> Binding); "function": the whole export is
+    the function or class `symbol`; "reexport": it is another module's (`module.exports = require('./y')`), `reexport` being
+    ("repo", module id) or ("package", specifier); "unknown": it is something else, `why`."""
+
+    open_why: str = ""
+    kind: str = "object"
+    members: dict = field(default_factory=dict)
+    symbol: str = ""
+    reexport: tuple = ()
+    why: str = ""
+    whole: bool = False  # `module.exports` is assigned, which replaces the object other files may already hold
+    props_after_whole: bool = False
+
+
+NOT_RESOLVED = "has not been settled"
+BOUND_MORE_THAN_ONCE = (
+    "the receiver is a name that the file binds more than once (a parameter, a catch parameter, a block-level function, an assignment, a "
+    "destructuring assignment, a loop head or a repeated declaration of it), so which value a call through it reaches is not known"
+)
+HOISTED_TWICE = (
+    "the receiver is a function whose name the file binds more than once, and in sloppy code a function declared in a block is assigned to "
+    "that name when the block runs (Annex B), so which function it is when called is not known"
+)
+ASSIGNED_REQUIRE = "the receiver is assigned the result of a require, which ripple follows only where a const, let or var declares the name once"
+OWN_EXPORTS = "the callee is a member of this file's own exports object (`exports` or `module.exports`), which ripple does not read members of"
+ES_IMPORT_OF_CJS = (
+    "the receiver is imported with `import` from a file that is CommonJS, whose default export is module.exports and whose named "
+    "exports node finds by scanning the file: ripple follows neither"
+)
+
+
 class FileBuilder:
     """Reads one parsed file and writes the Scope records of its module and everything inside."""
 
@@ -431,11 +1559,33 @@ class FileBuilder:
         self.call_nodes: dict[int, RawCall] = {}  # tree-sitter id of a call expression -> the call recorded for it
         self.jsx_nodes: dict[int, JsxElement] = {}  # tree-sitter id of a component element -> its fact
         self.props: dict[str, tuple[dict, str | None]] = {}  # scope id -> ({local name: prop key}, name of the props object)
+        # CommonJS (see CommonJsReader): the reader reads every JavaScript file, for what it says about the whole repo; the file is
+        # CommonJS only where Node runs it as such, and only then is anything of it modelled
+        self.reader = CommonJsReader(root) if self.js else None
+        self.suspect = bool(self.js and root.has_error and any(word in root.text for word in (b"require", b"exports", b"module")))
+        self.cjs: CommonJsReader | None = None
+        self.cjs_why = ""  # why a JavaScript file is not read as CommonJS ("" when it is)
+        # a file that is provably an ES module (an import, an export or import.meta, a .mjs, a .js in a package of type module) has
+        # no `require`; every other JavaScript file may run as CommonJS, so each require it makes is a place exports may be written
+        self.esm = False
+        if self.reader is not None:
+            self.cjs_why = self._cjs_problem(root)
+            self.cjs = None if self.cjs_why else self.reader
+            self.esm = self.reader.esm_syntax or self.modules.node_format(file) == "esm"
+        self.pending: list[Pending] = []  # the bindings of requires of repo files, which link_commonjs settles
+        self.requires: set[str] = set()  # the modules this file requires by a literal (anywhere in it) that name a file of the repo
+        self.uses: list[tuple] = []  # (target module or None, whether the result is only read, why not) per require
+        self.es_refs: list[tuple] = []  # (target module, form, how to settle it) per ES import of a repo file
+        self.model: CjsModel | None = None
         for node in named(root):
             self.visit(node)
         for exported, local in self.exports:
             if local in self.module.names:
                 self.module.exports[exported] = self.module.names[local]
+        if self.cjs is not None:
+            self.model = self._cjs_model()
+        if self.reader is not None:
+            self._record_sites()
 
     @property
     def scope(self) -> Scope:
@@ -685,6 +1835,8 @@ class FileBuilder:
                 chain = None
             return [TypeRef("call", ".".join(self._ref(chain)), here)] if chain else [unknown_ref(ASSIGNED_COMPUTED_CALL)]
         if value.type == "call_expression":
+            if self.cjs is not None and value.id in self.cjs.sites and not self.cjs.rebound.get("require"):
+                return [unknown_ref(ASSIGNED_REQUIRE)]  # a require is a module load: it is no call to code outside the repo
             chain = dotted(field_of(value, "function"))
             if chain and self.rebinds_this and chain[0] == "this":
                 chain = None
@@ -717,10 +1869,11 @@ class FileBuilder:
         """Bind an imported name in the module: a member of target, or the whole module when member is None."""
         if target is None:
             self.module.bind(local, Binding("var", evidence=[self._bad_import(spec)]))
-        elif member is None:
-            self.module.bind(local, Binding("import", target))
-        else:
-            self.module.bind(local, Binding("from", target, member))
+            return
+        binding = Binding("import", target) if member is None else Binding("from", target, member)
+        self.module.bind(local, binding)
+        if self.js and not target.startswith(PACKAGE):
+            self.es_refs.append((target, "namespace" if member is None else "default" if member == "default" else "named", "binding", binding))
 
     def visit_import_statement(self, node) -> None:
         source = field_of(node, "source")
@@ -792,13 +1945,17 @@ class FileBuilder:
                         self.module.exports[exported] = Binding("var", evidence=[self._bad_import(spec)])
                     else:
                         self.module.exports[exported] = Binding("from", target, text(name))
+                        self._es_ref(target, "default" if text(name) == "default" else "named", "export", (self.module.exports, exported))
             elif namespace is not None:  # export * as ns from "m"
                 ns = next((c for c in named(namespace) if c.type == "identifier"), None)
                 if ns is not None:
                     bound = Binding("var", evidence=[self._bad_import(spec)]) if target is None else Binding("import", target)
                     self.module.exports[text(ns)] = bound
+                    if target is not None:
+                        self._es_ref(target, "namespace", "export", (self.module.exports, text(ns)))
             elif target is not None:  # export * from "m"
                 self.module.star_imports.append(target)
+                self._es_ref(target, "star", "star", self.module)
             else:
                 # a star onto a file ripple does not read into this graph (the other language's, say, or a declaration file
                 # or a path that names no file): which names it provides is not known, so no name this module does not
@@ -834,6 +1991,260 @@ class FileBuilder:
             return names
         self.visit(node)
         return []
+
+    # ---- CommonJS -------------------------------------------------------------------------
+
+    def _cjs_problem(self, root) -> str:
+        """Why Node does not run this file as CommonJS (so its `require` and `module.exports` mean nothing here), "" when it does."""
+        if root.has_error:
+            return "it did not parse cleanly, so what it does to module.exports is not known"
+        if self.reader.esm_syntax:
+            return "it uses import or export syntax (or import.meta), so Node reads it as an ES module"
+        if self.reader.top_level_await:
+            return "it has a top-level await, which makes Node read it as an ES module (unless await is a name in it): which is not known"
+        kind = self.modules.node_format(self.file)
+        if kind in ("cjs", "detect"):
+            return ""
+        if kind == "?":
+            return "the package.json that governs it cannot be read, so whether Node runs it as CommonJS is not known"
+        return "Node does not run it as CommonJS (it is a .mjs, a .jsx, or in a package whose type is module)"
+
+    def _require_target(self, spec: str) -> tuple[str, str]:
+        """("repo", module id) of a CommonJS file, ("package", spec), or ("unknown", why) for `require(spec)` written in this file.
+        ("other", why) is one that names no file whose exports ripple could follow (none, a JSON file, an ES module)."""
+        kind, value = self.modules.resolve_require(spec, self.file)
+        if kind == "package":
+            return "package", spec
+        if kind == "executes":
+            return "executes", value
+        if kind in ("unresolved", "missing"):
+            return ("unknown" if kind == "unresolved" else "other"), value
+        rel = self.modules.rel_of(value) or value
+        format_ = self.modules.node_format(rel)
+        if format_ in ("cjs", "detect"):
+            return "repo", value
+        if format_ == "?":
+            return "other", f"`{spec}` names {rel}, in a package whose package.json cannot be read, so whether it is CommonJS is not known"
+        return "other", f"`{spec}` names {rel}, an ES module (a .mjs, or in a package whose type is module): node 24 loads it with require(), and what a name from it runs is not followed"
+
+    def _record_sites(self) -> None:
+        """Every require of the file (the reader found them all, read or not) as a use of the file it names, for link_commonjs."""
+        # every file that may run as CommonJS, modelled or not: its requires are the places another file's exports are written
+        if not self.esm:
+            own = not self.reader.rebound.get("require")  # else `require` may be anything, and so may what each call of it names
+            for site in self.reader.sites.values():
+                target = None
+                if site.spec is not None and own:
+                    outcome, value = self._require_target(site.spec)
+                    if outcome == "repo":
+                        target = value
+                        self.requires.add(value)
+                    elif outcome == "executes":
+                        self.uses.append((None, False, value, site.line))
+                        continue
+                    elif outcome == "package" or outcome == "other":
+                        continue
+                self.uses.append((target, site.safe, site.why, site.line))
+        for spec, line in self.reader.mocks:
+            if spec is None:
+                self.uses.append((None, False, "a test framework's mock call has a specifier ripple cannot read, so it may replace any module", line))
+                continue
+            kind, value = self.modules.resolve_require(spec, self.file)
+            if kind == "repo":
+                self.uses.append((value, False, "a test framework's mock call may replace what it exports", line))
+            elif kind in ("unresolved", "executes"):
+                self.uses.append((None, False, "a test framework's mock call names a file ripple cannot name", line))
+        for spec, line in self.reader.imports:
+            kind, value = self.modules.resolve(spec, self.file) if spec is not None else ("unresolved", "")
+            if kind == "repo":
+                self.uses.append((value, False, "an `import()` of it hands out its module.exports", line))
+            elif kind == "unresolved":
+                self.uses.append((None, False, "an `import()` of a file ripple cannot name hands out its module.exports", line))
+
+    def _bind_required(self, name: str, outcome: str, detail: str, spec: str, member: str | None, line: int) -> None:
+        """Bind the name a require gave: a package at once, a repo file when link_commonjs knows its exports, else unknown."""
+        key = self._name(name)
+        if outcome == "package":
+            binding = Binding("import", PACKAGE + spec) if member is None else Binding("from", PACKAGE + spec, member)
+        elif outcome == "repo" and key not in self.scope.names:
+            binding = Binding("var", evidence=[unknown_ref(f"the receiver is required from `{spec}`, which {NOT_RESOLVED}")])
+            self.pending.append(Pending(binding, self.scope, key, detail, spec, member, line))
+        elif outcome == "repo":
+            binding = Binding("var", evidence=[unknown_ref(f"the receiver is a name bound more than once, one of them a require of `{spec}`")])
+        else:
+            binding = Binding("var", evidence=[unknown_ref(f"the receiver is required from `{spec}`, which is not known: {detail}")])
+        self.scope.bind(key, binding)
+
+    def _require_declarator(self, target, value) -> bool:
+        """`const x = require("lit")` and `const { a, b: c } = require("lit")` in a file Node runs as CommonJS: a name bound to what
+        the file exports. A require is a module load, so it is no call and writes none. True when the declarator was read here."""
+        site = self.cjs.sites.get(inner(value).id)
+        if site is None or site.form not in ("decl", "destructure"):
+            return False
+        rebound = self.cjs.rebound.get("require")
+        if rebound or site.spec is None:
+            self.visit(value)  # a call of whatever `require` is (or of Node's, with a computed path): as it always was
+            why = (
+                f"the receiver is required with a `require` that is declared in this file (line {rebound}), so it is not Node's require"
+                if rebound
+                else "the receiver is required with a computed specifier, which names a file ripple cannot see"
+            )
+            for name in self._pattern_names(target):
+                self._bind(name, [unknown_ref(why)])
+            return True
+        outcome, detail = self._require_target(site.spec)
+        if site.form == "decl":
+            if self.cjs.counts.get(site.name, 0) != 1:
+                self._bind(site.name, [unknown_ref(BOUND_MORE_THAN_ONCE)])
+            else:
+                self._bind_required(site.name, outcome, detail, site.spec, None, site.line)
+            return True
+        keys = {local: key for key, local in site.pairs if key is not None}
+        for name in self._pattern_names(target):
+            if name in keys and self.cjs.counts.get(name, 0) != 1:
+                self._bind(name, [unknown_ref(BOUND_MORE_THAN_ONCE)])
+            elif name in keys:
+                self._bind_required(name, outcome, detail, site.spec, keys[name], site.line)
+            else:
+                self._bind(name, [unknown_ref(DESTRUCTURED)])
+        return True
+
+    def _inline_require(self, node, func) -> bool:
+        """A call of `require("lit")` itself (a module load: no call, no edge, no outside call), and `require("lit").f(...)`, a call
+        through the exports of the file. True when the call was read here."""
+        site = self.cjs.sites.get(node.id)
+        if site is not None:
+            return site.spec is not None and not self.cjs.rebound.get("require")
+        parts, current = [], func
+        while True:
+            current = inner(current)
+            if current.type == "member_expression":
+                prop = field_of(current, "property")
+                if prop is None or prop.type != "property_identifier":
+                    return False
+                parts.append(text(prop))
+                current = field_of(current, "object")
+            elif current.type == "call_expression":
+                break
+            else:
+                return False
+        root = self.cjs.sites.get(current.id)
+        if root is None or root.spec is None or self.cjs.rebound.get("require"):
+            return False
+        outcome, detail = self._require_target(root.spec)
+        key = self._fresh("require")
+        self._bind_required(key, outcome, detail, root.spec, None, root.line)
+        call = RawCall([key, *reversed(parts)], short(func), line_of(node))
+        self.scope.calls.append(call)
+        self.call_nodes[node.id] = call
+        args = field_of(node, "arguments")
+        if args is not None:
+            self.generic(args)
+        return True
+
+    def _cjs_model(self) -> CjsModel:
+        """What this file exports by its own text (see CjsModel); the other files are link_commonjs's."""
+        reader = self.cjs
+        model = CjsModel(open_why=reader.open_why)
+        events = reader.events
+        whole = next((e for e in events if e[0] == "whole"), None)
+        props = [e for e in events if e[0] == "prop"]
+        if whole is None:
+            for event in props:
+                model.members[event[1]] = self._export_binding(event[2], event[5])
+            return model
+        model.whole = True
+        after = [e for e in events[events.index(whole) + 1 :] if e[0] == "prop"]
+        model.props_after_whole = bool(after)
+        value = whole[1]
+        if value[0] == "object":
+            members, why = value[1], value[2]
+            if why:
+                model.open_why = model.open_why or f"the object assigned to `module.exports` is not a closed set of plain keys: {why}"
+            names = [name for name, _ in members]
+            for name, member in members:
+                model.members[name] = (
+                    Binding("var", evidence=[unknown_ref("the receiver is a key written twice in the object, so which value it holds depends on the order")])
+                    if names.count(name) > 1
+                    else self._export_binding(member, whole[4])
+                )
+            for event in after:
+                model.members[event[1]] = self._export_binding(event[2], event[5])
+        elif value[0] == "ident":
+            symbol, why = self._symbol(value[1], whole[4])
+            if symbol is None:
+                model.kind, model.why = "unknown", why
+            else:
+                model.kind, model.symbol = "function", symbol
+        elif value[0] == "require":
+            outcome, detail = ("other", "`require` is declared in this file, so it is not Node's") if reader.rebound.get("require") else self._require_target(value[1])
+            if outcome == "repo":
+                model.kind, model.reexport = "reexport", ("repo", detail)
+            elif outcome == "package":
+                model.kind, model.reexport = "reexport", ("package", value[1])
+            else:
+                model.kind, model.why = "unknown", f"a require that is not followed ({detail})"
+            if after:
+                model.open_why = model.open_why or "a property is written to the exports object of another file that this one re-exports"
+        elif value[0] == "function":
+            model.kind, model.why = "unknown", "an anonymous function or class, which ripple gives no symbol"
+        else:
+            model.kind, model.why = "unknown", value[1]
+        return model
+
+    def _es_ref(self, target: str, form: str, how: str, ref) -> None:
+        """An ES import of a file of the repo, for link_commonjs: when the file is CommonJS, ES's default import is its module.exports
+        and its named ones are what node finds by scanning it, so no name from it is followed."""
+        if self.js and not target.startswith(PACKAGE):
+            self.es_refs.append((target, form, how, ref))
+
+    def _own_exports(self, head: str) -> bool:
+        """Whether `head` names this CommonJS file's own `exports` or `module` (not a variable of that name that a function declares)."""
+        return self.cjs is not None and head in ("exports", "module") and not self._local(head) and head not in self.cjs.rebound
+
+    def _symbol(self, name: str, position: int) -> tuple[str | None, str]:
+        """(the symbol of the one function the file's export of `name` means when the statement at `position` runs, ""), or (None, why
+        it is not known to be one). A name means one function for the whole run only when the file binds it once, and that one is
+        a function declaration (or a const, let or var holding a function that is assigned before the export statement) at the top
+        level of the file. A class is never followed: a static member or a method of one can be replaced from any file (through
+        `this` in a static method or block, an instance's `.constructor`, or the prototype), so no member edge is drawn."""
+        binding = self.module.names.get(name)
+        if binding is not None and self.cjs.counts.get(name, 0) > 1:
+            return None, f"`{name}` is declared, assigned or bound more than once in the file (a function in a block, a repeated declaration, a parameter of that name), so which function it is when called is not known"
+        if binding is None or name in self.module.rebound or binding.kind != "def":
+            return None, "a name that is not one function or class declared in this file"
+        scope = self.scopes.get(binding.target)
+        if scope is None or scope.kind not in ("function", "class"):
+            return None, "a name that is not one function or class declared in this file"
+        if scope.kind == "class":
+            return None, "a class: ripple draws no member edge through a class a CommonJS file exports, since a static member or a method of it can be replaced from any file"
+        where = self.cjs.defs.get(name)
+        if where is None:
+            return None, f"`{name}` is not a function declaration or a function-valued variable at the top level of the file"
+        if where[0] == "value" and where[1] > position:
+            return None, f"`{name}` holds its function only after the export statement runs (it is assigned after it)"
+        return binding.target, ""
+
+    def _export_binding(self, value: tuple, position: int) -> Binding:
+        """The binding of one member of the exports, written by the statement at `position`: what the name it is written as means in
+        this file, when the file says one thing."""
+        kind = value[0]
+        if kind == "ident":
+            binding = self.module.names.get(value[1])
+            if binding is None:
+                return Binding("var", evidence=[unknown_ref(f"the receiver is an export of `{value[1]}`, which is not declared in this file")])
+            if value[1] in self.module.rebound:
+                return Binding("var", evidence=[unknown_ref(REBOUND)])
+            if binding.kind == "def":
+                symbol, why = self._symbol(value[1], position)
+                if symbol is None:
+                    return Binding("var", evidence=[unknown_ref(f"the receiver is an export that ripple cannot follow to one function: {why}")])
+            return binding
+        if kind == "function":
+            return Binding("var", evidence=[unknown_ref("the receiver is an export written as an anonymous function, which ripple gives no symbol")])
+        if kind == "accessor":
+            return Binding("var", evidence=[unknown_ref("the receiver is a getter or setter of the exports, whose result is what a call reaches")])
+        return Binding("var", evidence=[unknown_ref(f"the receiver is an export written as {value[1] if len(value) > 1 else kind}, which ripple does not follow")])
 
     # ---- functions ------------------------------------------------------------------------
 
@@ -978,6 +2389,10 @@ class FileBuilder:
             self._anonymous(node)
         else:
             self._function(node, text(name))
+            if self.cjs is not None and not self.cjs.strict and self.cjs.counts.get(text(name), 0) > 1:
+                # Annex B: in sloppy code a function declared in a block is also assigned to the name of the function (or var) around
+                # it when the block runs, so which function a call of that name reaches depends on whether the block has run
+                self._bind(text(name), [unknown_ref(HOISTED_TWICE)])
 
     visit_generator_function_declaration = visit_function_declaration
 
@@ -1245,6 +2660,8 @@ class FileBuilder:
         target, type_node, value = field_of(node, "name"), field_of(node, "type"), field_of(node, "value")
         if target is None:
             return
+        if self.cjs is not None and value is not None and type_node is None and self._require_declarator(target, value):
+            return
         if target.type == "identifier":
             name = text(target)
             if value is not None and inner(value).type in FUNCTION_VALUES:
@@ -1509,6 +2926,8 @@ class FileBuilder:
         func = inner(func)
         if self._test_call(node, func, args):
             return
+        if self.cjs is not None and self._inline_require(node, func):
+            return
         here = self.scope
         line = line_of(node)
         call = None
@@ -1531,6 +2950,8 @@ class FileBuilder:
             chain = dotted(func)
             if chain and self.rebinds_this and chain[0] == "this":
                 call = RawCall(None, short(func), line, special="computed", why=THIS_REBOUND)
+            elif chain and self._own_exports(chain[0]):
+                call = RawCall(None, short(func), line, special="computed", why=OWN_EXPORTS)
             elif chain:
                 call = RawCall(self._ref(chain), ".".join(chain)[:80], line)
             else:
@@ -2014,6 +3435,155 @@ def _accessor_names(source: bytes) -> set[str]:
     return set(ACCESSOR_NAME.findall(source.decode("utf-8", "replace")))
 
 
+def link_commonjs(builders: dict[str, FileBuilder], unknown_files: list[str], modules: ModuleMap, linked: list[str] | None = None) -> None:
+    """Join the CommonJS files of a repo: decide which exports are closed, give them to the names that require them, and keep ES
+    imports from following them.
+
+    A file's exports are open (a call through them is unresolved) when its own text opens them (CommonJsReader), or when anything
+    else can change them: another file writes through its require of it (or hands the exports object on, or imports it with
+    `import`), a file can reach any module's exports (`require.cache`, eval, the `module` builtin, a require whose target is not known
+    and whose result is written), a file that could not be read, or the file replaces `module.exports` and is in a require cycle (a
+    file in the cycle may hold the object it replaced). A file that is `module.exports = require('./y')` is y's object: they stand
+    or fall together."""
+    models = {b.module.id: b.model for b in builders.values() if b.model is not None}
+    everywhere = ""
+    unsafe: dict[str, str] = {}
+    for rel, builder in builders.items():
+        if builder.reader is not None and builder.reader.reflective and not everywhere:
+            everywhere = f"{rel}: {builder.reader.reflective}"
+        if builder.suspect and not everywhere:
+            everywhere = f"{rel} did not parse cleanly and mentions require, exports or module, so what it does to any module's exports is not known"
+        for target, safe, why, line in builder.uses:
+            if safe:
+                continue
+            if target is None and not everywhere:
+                everywhere = f"{rel}:{line}: a require or import() that may name any file has its result used so that the exports it holds can be written ({why})"
+            elif target in models:
+                unsafe.setdefault(target, f"another file ({rel}, line {line}) may write to it or hand it on: {why}")
+        for target, form, _, _ in builder.es_refs:
+            if target in models and form in ("default", "namespace"):
+                unsafe.setdefault(target, f"another file ({rel}) imports it with `import` ({form}), which gives that file its module.exports")
+    if not everywhere and unknown_files:
+        everywhere = f"{unknown_files[0]} could not be read, so what it does to any module's exports is not known"
+    if not everywhere and linked:
+        everywhere = f"{linked[0]} is a symbolic link, and Node keeps one module per real path, so two of the paths ripple reads may be one exports object"
+    others = modules.other_sources() if models and not everywhere else []
+    if others:
+        everywhere = f"the repo also has TypeScript files ({others[0]} and {len(others) - 1} more), which ripple reads as a graph of their own, so what they do to a CommonJS file's exports is not known"
+    # require cycles: a file that requires, through others, a file that requires it
+    reaches: dict[str, set[str]] = {builder.module.id: set(builder.requires) for builder in builders.values()}
+    reached: dict[str, set[str]] = {}
+
+    def reachable(start: str) -> set[str]:
+        """Every module the file `start` requires, through any number of requires."""
+        if start not in reached:
+            seen, stack = set(), list(reaches.get(start, ()))
+            while stack:
+                current = stack.pop()
+                if current not in seen:
+                    seen.add(current)
+                    stack.extend(reaches.get(current, ()))
+            reached[start] = seen
+        return reached[start]
+
+    def in_cycle(start: str) -> bool:
+        return start in reachable(start)
+
+    reason: dict[str, str] = {}
+    for module, model in models.items():
+        found = model.open_why or everywhere or unsafe.get(module, "")
+        if not found and model.whole and in_cycle(module):
+            found = "it replaces module.exports and is in a require cycle, so a file of the cycle may hold the object it replaced"
+        if found:
+            reason[module] = found
+    # a re-export shares its exports object with the file it names: a reason for either is a reason for both
+    group: dict[str, str] = {m: m for m in models}
+
+    def root_of(module: str) -> str:
+        while group[module] != module:
+            group[module] = group[group[module]]
+            module = group[module]
+        return module
+
+    for module, model in models.items():
+        if model.kind == "reexport" and model.reexport[0] == "repo" and model.reexport[1] in models:
+            group[root_of(module)] = root_of(model.reexport[1])
+    shared: dict[str, str] = {}
+    for module, why in reason.items():
+        shared.setdefault(root_of(module), f"{why} (in {module})")
+    for module, model in models.items():
+        if model.kind == "reexport" and model.reexport[0] == "repo" and model.reexport[1] in models and root_of(module) in shared:
+            reason.setdefault(module, shared[root_of(module)])
+            reason.setdefault(model.reexport[1], shared[root_of(module)])
+
+    by_module = {b.module.id: b for b in builders.values()}
+
+    def what(module: str, seen: tuple = ()) -> tuple[str, str]:
+        """("object", the module whose exports hold the members), ("function", symbol), ("package", specifier) or ("unknown", why)."""
+        if module not in models:
+            builder = by_module.get(module)
+            return "unknown", f"file is not CommonJS ({builder.cjs_why})" if builder is not None and builder.cjs_why else "file is not read as CommonJS"
+        if module in reason:
+            return "unknown", f"exports are open: {reason[module]}"
+        model = models[module]
+        if model.kind == "object":
+            return "object", module
+        if model.kind == "function":
+            return "function", model.symbol
+        if model.kind == "reexport":
+            if model.reexport[0] == "package":
+                return "package", model.reexport[1]
+            if model.reexport[1] in seen or model.reexport[1] == module:
+                return "unknown", "export is its own: a require that names itself"
+            return what(model.reexport[1], (*seen, module))
+        return "unknown", f"export is not a function or class that file declares, an object it writes keys of, or another file's exports ({model.why})"
+
+    for module, model in models.items():
+        if module not in reason and model.kind == "object":
+            builder = by_module[module]
+            builder.module.exports.update(model.members)
+            builder.module.commonjs = False
+    for builder in builders.values():
+        for p in builder.pending:
+            if p.key in p.scope.rebound:
+                outcome, detail = "unknown", "name is bound more than once, one of them a require of it"
+            elif p.target == builder.module.id or builder.module.id in reachable(p.target):
+                outcome, detail = "unknown", "file and this one require each other (a cycle): a call that runs while it is still loading finds its exports not set yet, or set to what is replaced later"
+            else:
+                outcome, detail = what(p.target)
+            _settle(p, outcome, detail)
+    guarded = {m for m in models if m not in reason and models[m].kind == "object"}
+    for builder in builders.values():
+        for target, _, how, ref in builder.es_refs:
+            if target not in guarded:
+                continue
+            if how == "binding":
+                ref.kind, ref.target, ref.name, ref.evidence = "var", "", "", [unknown_ref(ES_IMPORT_OF_CJS)]
+            elif how == "export":
+                ref[0][ref[1]] = Binding("var", evidence=[unknown_ref(ES_IMPORT_OF_CJS)])
+            else:
+                if target in ref.star_imports:
+                    ref.star_imports.remove(target)
+                ref.unread_stars.append("the file is CommonJS, whose names an `export *` takes from a scan node makes of it")
+
+
+def _settle(p: Pending, outcome: str, detail: str) -> None:
+    """Give the binding a require made what the file it names exports (see link_commonjs)."""
+    binding = p.binding
+    if outcome == "object":
+        binding.kind, binding.target, binding.name, binding.evidence = ("import", detail, "", []) if p.member is None else ("from", detail, p.member, [])
+    elif outcome == "package":
+        binding.kind, binding.target, binding.name, binding.evidence = (
+            ("import", PACKAGE + detail, "", []) if p.member is None else ("from", PACKAGE + detail, p.member, [])
+        )
+    elif outcome == "function" and p.member is None:
+        binding.kind, binding.target, binding.name, binding.evidence = "def", detail, "", []
+    elif outcome == "function":
+        binding.evidence = [unknown_ref(f"the receiver is a property of the function that `{p.spec}` exports as a whole, which ripple does not follow")]
+    else:
+        binding.evidence = [unknown_ref(f"the receiver is required from `{p.spec}`, whose {detail}")]
+
+
 def collect_scopes(
     repo: Path, files: list[Path], profile: LanguageProfile = TYPESCRIPT
 ) -> tuple[dict[str, Scope], list[str], dict[str, str]]:
@@ -2035,6 +3605,8 @@ def collect_scopes(
             readable.append(path)
         except OSError:
             errors.append(path.relative_to(repo).as_posix())
+    unknown_files = [rel for rel in errors if rel.endswith(JS_SUFFIXES)]  # JavaScript files whose text ripple does not have
+    builders: dict[str, FileBuilder] = {}
     scopes: dict[str, Scope] = {}
     read: dict[str, str] = {}
     # A file another file's module id clashes with (a.ts and a/index.ts) is indexed under an id of its own and
@@ -2053,11 +3625,19 @@ def collect_scopes(
             # Most often RecursionError (nested deeper than even build_graph's raised limit allows) or an
             # OSError (the file went away since the walk). Nothing it had half-written is kept.
             errors.append(rel)
+            if rel.endswith(JS_SUFFIXES):
+                unknown_files.append(rel)
             continue
         if tree.root_node.has_error:
             errors.append(rel)
         scopes.update(builder.scopes)
         read[rel] = modules.modules[rel]
+        if builder.reader is not None:
+            builders[rel] = builder
+    if builders:
+        # a JavaScript file that is a symbolic link is the same module as the file it points to (Node keys its cache by real path)
+        linked = [path.relative_to(repo).as_posix() for path in readable if path.name.endswith(JS_SUFFIXES) and path.is_symlink()]
+        link_commonjs(builders, unknown_files, modules, linked)
     return scopes, sorted(set(errors)), read
 
 

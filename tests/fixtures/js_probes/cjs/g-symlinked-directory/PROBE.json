@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "lib2 is lib, and the walk does not enter it.",
+  "refuse": {
+    "main.js:s1": "open"
+  }
+}

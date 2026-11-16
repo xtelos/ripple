@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "\\u0061 is the name a: no text match finds it.",
+  "refuse": {
+    "main.js:s1": "escape"
+  }
+}

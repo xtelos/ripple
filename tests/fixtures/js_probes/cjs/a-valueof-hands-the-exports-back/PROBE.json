@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "Object.prototype.valueOf returns its receiver: the exports.",
+  "refuse": {
+    "main.js:s1": "another file"
+  }
+}

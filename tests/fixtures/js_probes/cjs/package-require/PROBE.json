@@ -1,0 +1,8 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a package and a node builtin: outside the repo, so never an edge (and never a call that reaches a repo function).",
+  "refuse": {}
+}

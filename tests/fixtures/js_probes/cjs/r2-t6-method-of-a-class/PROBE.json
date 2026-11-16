@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "t6: a class method taken off the prototype.",
+  "refuse": {
+    "main.js:s1": "open"
+  }
+}

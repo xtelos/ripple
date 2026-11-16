@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the exports passed to Object.assign from another file.",
+  "refuse": {
+    "main.js:s1": "another file"
+  }
+}

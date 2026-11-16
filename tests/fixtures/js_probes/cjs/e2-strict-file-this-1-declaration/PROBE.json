@@ -1,0 +1,10 @@
+{
+  "edge": [
+    "main.js:s1"
+  ],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the file is strict: a function called bare has undefined as this, so no loader is reached.",
+  "refuse": {}
+}

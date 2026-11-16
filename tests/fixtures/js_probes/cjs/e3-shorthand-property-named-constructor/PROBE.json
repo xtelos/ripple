@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a variable named constructor held by a shorthand: node patches nothing, the name is spelled in a node kind of its own.",
+  "refuse": {
+    "main.js:s1": "constructor"
+  }
+}

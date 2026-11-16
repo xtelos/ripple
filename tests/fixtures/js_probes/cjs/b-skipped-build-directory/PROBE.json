@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the walk skips dist at the root.",
+  "refuse": {
+    "main.js:s1": "does not read"
+  }
+}

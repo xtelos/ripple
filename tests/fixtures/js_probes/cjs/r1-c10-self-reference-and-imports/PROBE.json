@@ -1,0 +1,8 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c10: a package name that is the repo's own, and a #import no package.json defines.",
+  "refuse": {}
+}

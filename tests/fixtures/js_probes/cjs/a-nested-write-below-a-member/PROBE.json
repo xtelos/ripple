@@ -1,0 +1,8 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a write below a member is refused as a write through the binding (the member may hold another exports object): no edge, not wrong.",
+  "refuse": {}
+}

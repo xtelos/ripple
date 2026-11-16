@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c19: { a } holds the exports object, which a write through o reaches.",
+  "refuse": {
+    "main.js:s1": "another file"
+  }
+}

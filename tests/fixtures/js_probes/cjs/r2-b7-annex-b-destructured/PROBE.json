@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "b7: the regression against main.",
+  "refuse": {
+    "main.js:s1": "more than once"
+  }
+}

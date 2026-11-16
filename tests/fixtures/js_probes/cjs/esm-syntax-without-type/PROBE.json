@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "no package.json type: node 24 reads the syntax and runs it as ES.",
+  "refuse": {
+    "main.js:s1": "ES module"
+  }
+}

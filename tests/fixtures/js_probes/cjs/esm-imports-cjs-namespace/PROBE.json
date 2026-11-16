@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.mjs"
+  ],
+  "notes": "import * as a from a CommonJS file.",
+  "refuse": {
+    "main.mjs:s1": "CommonJS"
+  }
+}

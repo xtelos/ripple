@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a directory whose package.json main is a file in a hidden directory: node runs it, ripple does not read it.",
+  "refuse": {
+    "main.js:s1": "does not read"
+  }
+}

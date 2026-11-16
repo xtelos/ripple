@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "d1b: once() returns process.",
+  "refuse": {
+    "main.js:s1": "process"
+  }
+}

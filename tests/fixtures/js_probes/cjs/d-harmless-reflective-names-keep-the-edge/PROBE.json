@@ -1,0 +1,10 @@
+{
+  "edge": [
+    "main.js:s1"
+  ],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "process.env, process.argv, process.nextTick, typeof global, module.exports, require.resolve and instanceof Function reach no loader.",
+  "refuse": {}
+}

@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "await is a name in a CommonJS file: it is no top-level await.",
+  "refuse": {
+    "main.js:s1": "another file"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c14: a function declared in a block is assigned to the same name when the block runs: node calls B.",
+  "refuse": {
+    "main.js:s1": "more than once"
+  }
+}

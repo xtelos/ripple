@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "d3: a sloppy function called bare has this = globalThis.",
+  "refuse": {
+    "main.js:s1": "this"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "even a require that runs only if the function is called reflects: nothing says it does not run.",
+  "refuse": {
+    "main.js:s1": "computed"
+  }
+}

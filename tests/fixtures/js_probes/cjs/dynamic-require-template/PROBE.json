@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "require of a template with a substitution.",
+  "refuse": {
+    "main.js:s1": "computed"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a computed key that spells helper replaces it.",
+  "refuse": {
+    "main.js:s1": "open"
+  }
+}

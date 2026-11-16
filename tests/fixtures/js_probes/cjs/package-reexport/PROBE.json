@@ -1,0 +1,8 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "module.exports = require('pkg').",
+  "refuse": {}
+}

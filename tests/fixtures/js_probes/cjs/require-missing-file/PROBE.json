@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "no such file: node throws, and ripple says nothing is named.",
+  "refuse": {
+    "main.js:s1": "no file"
+  }
+}

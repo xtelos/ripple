@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "eval sees exports.",
+  "refuse": {
+    "main.js:s1": "eval"
+  }
+}

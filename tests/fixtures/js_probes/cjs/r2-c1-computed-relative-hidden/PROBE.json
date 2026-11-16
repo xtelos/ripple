@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c1: require('./' + name) runs a file in a hidden directory.",
+  "refuse": {
+    "main.js:s1": "computed"
+  }
+}

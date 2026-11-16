@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "harmless in node: another object, whose methods have their own this.",
+  "refuse": {
+    "main.js:s1": "object"
+  }
+}

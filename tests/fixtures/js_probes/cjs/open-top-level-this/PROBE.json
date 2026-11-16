@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "`this` at the top of a CommonJS module is module.exports.",
+  "refuse": {
+    "main.js:s1": "this"
+  }
+}

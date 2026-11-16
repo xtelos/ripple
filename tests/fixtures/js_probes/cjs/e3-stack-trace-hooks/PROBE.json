@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a CallSite of a sloppy function gives its function (and so its arguments, the wrapper's require) and its this.",
+  "refuse": {
+    "main.js:s1": "prepareStackTrace"
+  }
+}

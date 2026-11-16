@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a JSON file is data.",
+  "refuse": {
+    "main.js:s1": "JSON"
+  }
+}

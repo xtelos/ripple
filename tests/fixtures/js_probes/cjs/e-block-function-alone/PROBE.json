@@ -1,0 +1,8 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the only declaration is in a block: whether it runs is not known, so no edge (never wrong).",
+  "refuse": {}
+}

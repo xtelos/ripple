@@ -1,0 +1,11 @@
+{
+  "edge": [],
+  "entries": [
+    "patch.mjs",
+    "main.cjs"
+  ],
+  "notes": "await import() hands out the same module.exports.",
+  "refuse": {
+    "main.cjs:s1": "open"
+  }
+}

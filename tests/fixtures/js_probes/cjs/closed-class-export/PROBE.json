@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "module.exports = a class: no member edge through a class a CommonJS file exports.",
+  "refuse": {
+    "main.js:s2": "class"
+  }
+}

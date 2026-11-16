@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "arguments[0] of the module wrapper is exports.",
+  "refuse": {
+    "main.js:s1": "arguments"
+  }
+}

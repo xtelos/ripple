@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "createRequire gives another require over the same cache.",
+  "refuse": {
+    "main.js:s1": "module"
+  }
+}

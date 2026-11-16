@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c is b is a: a write through the end of a chain of re-exports (kills the group union of re-exports).",
+  "refuse": {
+    "main.js:s1": "another file"
+  }
+}

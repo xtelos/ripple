@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c15: a parameter named require in another function.",
+  "refuse": {
+    "main.js:s1": "may name any file"
+  }
+}

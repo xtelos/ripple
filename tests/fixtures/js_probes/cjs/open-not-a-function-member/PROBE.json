@@ -1,0 +1,8 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "value is a number: the call throws, so no edge.",
+  "refuse": {}
+}

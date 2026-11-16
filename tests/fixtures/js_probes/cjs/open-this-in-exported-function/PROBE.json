@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "an exported function called as a.boot() has `this` = the exports.",
+  "refuse": {
+    "main.js:s1": "this"
+  }
+}

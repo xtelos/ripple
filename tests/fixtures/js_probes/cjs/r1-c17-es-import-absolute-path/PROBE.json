@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "m.mjs"
+  ],
+  "notes": "c17 on the ES import path: an absolute path was a package there too.",
+  "refuse": {
+    "m.mjs:s1": "absolute"
+  }
+}

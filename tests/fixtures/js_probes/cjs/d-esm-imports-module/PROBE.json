@@ -1,0 +1,11 @@
+{
+  "edge": [],
+  "entries": [
+    "patch.mjs",
+    "main.cjs"
+  ],
+  "notes": "an ES module imports the module builtin (kills the import check).",
+  "refuse": {
+    "main.cjs:s1": "module"
+  }
+}

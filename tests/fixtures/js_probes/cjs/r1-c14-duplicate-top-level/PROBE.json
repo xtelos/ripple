@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c14: two declarations of one name are legal in a CommonJS file, and the second wins.",
+  "refuse": {
+    "main.js:s1": "more than once"
+  }
+}

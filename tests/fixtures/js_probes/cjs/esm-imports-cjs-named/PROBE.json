@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.mjs"
+  ],
+  "notes": "a named import of a CommonJS file: found by node's scan of the file. Not followed.",
+  "refuse": {
+    "main.mjs:s1": "CommonJS"
+  }
+}

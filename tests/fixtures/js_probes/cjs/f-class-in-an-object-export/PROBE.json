@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a class held as a member of the exports.",
+  "refuse": {
+    "main.js:s1": "class"
+  }
+}

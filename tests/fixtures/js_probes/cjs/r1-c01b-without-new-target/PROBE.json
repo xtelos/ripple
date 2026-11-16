@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c1b: the same file without new.target.",
+  "refuse": {
+    "main.js:s1": "another file"
+  }
+}

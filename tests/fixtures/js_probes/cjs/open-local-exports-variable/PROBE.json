@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "`var exports` redeclares the wrapper's parameter.",
+  "refuse": {
+    "main.js:s1": "declared"
+  }
+}

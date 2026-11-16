@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "t3: a function borrowed from another file.",
+  "refuse": {
+    "main.js:s1": "open"
+  }
+}

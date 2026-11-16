@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a[key] = ... through the binding.",
+  "refuse": {
+    "main.js:s1": "another file"
+  }
+}

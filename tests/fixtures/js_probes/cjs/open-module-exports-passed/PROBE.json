@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "module.exports handed to a function that writes it.",
+  "refuse": {
+    "main.js:s1": "open"
+  }
+}

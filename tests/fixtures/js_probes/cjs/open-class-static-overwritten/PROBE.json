@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a property write replaces a static member of the exported class.",
+  "refuse": {
+    "main.js:s1": "class"
+  }
+}

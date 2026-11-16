@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a var in a block is the name for the whole file, but whether the block runs is not known.",
+  "refuse": {
+    "main.js:s1": "no function declared"
+  }
+}

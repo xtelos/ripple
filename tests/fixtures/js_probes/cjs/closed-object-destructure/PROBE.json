@@ -1,0 +1,11 @@
+{
+  "edge": [
+    "main.js:s1",
+    "main.js:s2"
+  ],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "const { helper } and { helper: renamed } bind members of the closed exports.",
+  "refuse": {}
+}

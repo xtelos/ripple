@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "b is a's exports object: a write through b changes a.",
+  "refuse": {
+    "main.js:s1": "another file"
+  }
+}

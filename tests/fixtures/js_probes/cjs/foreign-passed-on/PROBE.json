@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the exports binding handed to a function.",
+  "refuse": {
+    "main.js:s1": "another file"
+  }
+}

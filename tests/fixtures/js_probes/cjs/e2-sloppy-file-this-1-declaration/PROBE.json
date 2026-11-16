@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the same in a file with no directive: the global object, which holds process. node reaches helper here (nothing uses it), and ripple still refuses.",
+  "refuse": {
+    "main.js:s1": "this"
+  }
+}

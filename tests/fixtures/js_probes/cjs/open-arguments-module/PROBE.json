@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "arguments[2] is the module.",
+  "refuse": {
+    "main.js:s1": "arguments"
+  }
+}

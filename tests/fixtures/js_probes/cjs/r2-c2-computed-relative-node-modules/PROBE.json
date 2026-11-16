@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "c2: a template that names a package in node_modules.",
+  "refuse": {
+    "main.js:s1": "computed"
+  }
+}

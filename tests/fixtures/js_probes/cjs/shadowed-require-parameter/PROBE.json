@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a parameter named require is not node's: s1 reaches the fake, s2 (the real one) is outside the function.",
+  "refuse": {
+    "main.js:s1": "require"
+  }
+}

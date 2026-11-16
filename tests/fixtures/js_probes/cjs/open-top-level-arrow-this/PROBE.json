@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "an arrow function's `this` is the module's.",
+  "refuse": {
+    "main.js:s1": "this"
+  }
+}

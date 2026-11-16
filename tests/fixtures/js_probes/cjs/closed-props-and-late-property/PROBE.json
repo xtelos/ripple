@@ -1,0 +1,11 @@
+{
+  "edge": [
+    "main.js:s1",
+    "main.js:s2"
+  ],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "module.exports = {...} then module.exports.late = late: a property of the new object.",
+  "refuse": {}
+}

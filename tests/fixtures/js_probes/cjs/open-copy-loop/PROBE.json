@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "export * by hand: exports[k] = more[k].",
+  "refuse": {
+    "main.js:s1": "open"
+  }
+}

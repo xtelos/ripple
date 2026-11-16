@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "Object.assign over the exports: helper is the assigned function.",
+  "refuse": {
+    "main.js:s1": "open"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a relative path into (or through) a directory the walk skips names a file node runs and ripple does not read.",
+  "refuse": {
+    "main.js:s1": "does not read"
+  }
+}

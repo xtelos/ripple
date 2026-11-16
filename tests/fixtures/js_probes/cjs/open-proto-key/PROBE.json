@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "helper comes from the prototype.",
+  "refuse": {
+    "main.js:s1": "open"
+  }
+}

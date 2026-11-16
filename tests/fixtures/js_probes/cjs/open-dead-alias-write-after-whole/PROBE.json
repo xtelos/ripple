@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "exports stopped being module.exports at the assignment: the later write goes to the old object, and helper stays.",
+  "refuse": {
+    "main.js:s1": "old object"
+  }
+}

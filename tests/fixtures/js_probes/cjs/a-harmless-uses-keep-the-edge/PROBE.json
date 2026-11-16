@@ -1,0 +1,10 @@
+{
+  "edge": [
+    "main.js:s1"
+  ],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "calling a member or the value, typeof, comparing, testing, and a member read into a name that is only called: none of these writes.",
+  "refuse": {}
+}

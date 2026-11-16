@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "b9: the block function is assigned to the top-level name when the block runs (sloppy mode): not a require, the same hole.",
+  "refuse": {
+    "main.js:s1": "more than one way"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "two assignments of one name.",
+  "refuse": {
+    "main.js:s1": "assigned"
+  }
+}

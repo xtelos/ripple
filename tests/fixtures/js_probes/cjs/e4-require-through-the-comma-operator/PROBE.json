@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "the file that runs is a .txt, which ripple does not read.",
+  "refuse": {
+    "main.js:s1": "require"
+  }
+}

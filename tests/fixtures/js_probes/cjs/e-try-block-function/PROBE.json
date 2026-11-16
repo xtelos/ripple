@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a function in a try block.",
+  "refuse": {
+    "main.js:s1": "more than once"
+  }
+}

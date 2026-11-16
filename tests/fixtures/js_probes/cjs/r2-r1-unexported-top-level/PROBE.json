@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "r1: a member the exports do not define.",
+  "refuse": {
+    "main.js:s1": "not exported"
+  }
+}

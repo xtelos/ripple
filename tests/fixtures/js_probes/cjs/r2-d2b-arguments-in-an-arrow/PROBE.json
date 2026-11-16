@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "d2b: an arrow function has no arguments of its own.",
+  "refuse": {
+    "main.js:s1": "arguments"
+  }
+}

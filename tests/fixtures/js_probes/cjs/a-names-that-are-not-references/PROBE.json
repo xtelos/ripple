@@ -1,0 +1,10 @@
+{
+  "edge": [
+    "main.js:s1"
+  ],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a key, a property, a string and a method named like the binding are no use of it.",
+  "refuse": {}
+}

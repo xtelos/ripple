@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a directory with a package.json: main picks the file, which ripple does not read.",
+  "refuse": {
+    "main.js:s1": "package.json"
+  }
+}

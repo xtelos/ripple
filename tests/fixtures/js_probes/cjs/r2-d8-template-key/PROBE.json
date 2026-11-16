@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "d8: a template with no substitution.",
+  "refuse": {
+    "main.js:s1": "constructor"
+  }
+}

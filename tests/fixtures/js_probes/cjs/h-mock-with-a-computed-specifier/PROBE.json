@@ -1,0 +1,10 @@
+{
+  "edge": [],
+  "entries": [
+    "main.js"
+  ],
+  "notes": "a test framework replaces the module the call names: here a no-op stand-in, so node still reaches helper.",
+  "refuse": {
+    "main.js:s1": "mock"
+  }
+}
