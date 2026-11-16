@@ -1,0 +1,15 @@
+{
+ "invokes": [
+  ["p/Use.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Use.<init>:()V", 1],
+  ["p/Use.java", 8, "invokeinterface", "other.lib.SequencedCollection", "size", "()I", "p.Use.f:(Lother/lib/SequencedCollection;Lother/lib/Callable;)I", 1],
+  ["p/Use.java", 9, "invokeinterface", "other.lib.Callable", "call", "()I", "p.Use.f:(Lother/lib/SequencedCollection;Lother/lib/Callable;)I", 9],
+  ["p/Use.java", 13, "invokeinterface", "java.util.List", "size", "()I", "p.Use.g:(Ljava/util/List;)I", 1],
+  ["p/Use.java", 18, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Other.<init>:()V", 1]
+ ],
+ "classes": {
+  "other.lib.Callable": {"supers": ["java.lang.Object"], "methods": [["call", "()I", 1]], "bridges": [], "compiler": []},
+  "other.lib.SequencedCollection": {"supers": ["java.lang.Object"], "methods": [["size", "()I", 1]], "bridges": [], "compiler": []},
+  "p.Other": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["call", "()I", 0], ["size", "()I", 0]], "bridges": [], "compiler": []},
+  "p.Use": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Lother/lib/SequencedCollection;Lother/lib/Callable;)I", 0], ["g", "(Ljava/util/List;)I", 0]], "bridges": [], "compiler": []}
+ }
+}

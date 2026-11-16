@@ -1,0 +1,14 @@
+{
+ "invokes": [
+  ["p/Shapes.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Shapes.<init>:()V", 1],
+  ["p/Shapes.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Shapes$Queue.<init>:()V", 1],
+  ["p/Use.java", 8, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Use.<init>:()V", 1],
+  ["p/Use.java", 10, "invokevirtual", "p.Shapes$Queue", "add", "(Ljava/lang/Object;)V", "p.Use.f:(Lp/Shapes$Queue;Ljava/util/List;)I", 3],
+  ["p/Use.java", 11, "invokeinterface", "java.util.List", "size", "()I", "p.Use.f:(Lp/Shapes$Queue;Ljava/util/List;)I", 7]
+ ],
+ "classes": {
+  "p.Shapes": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1]], "bridges": [], "compiler": []},
+  "p.Shapes$Queue": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["add", "(Ljava/lang/Object;)V", 1]], "bridges": [], "compiler": []},
+  "p.Use": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Lp/Shapes$Queue;Ljava/util/List;)I", 0]], "bridges": [], "compiler": []}
+ }
+}

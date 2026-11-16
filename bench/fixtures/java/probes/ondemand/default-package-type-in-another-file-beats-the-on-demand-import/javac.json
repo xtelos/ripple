@@ -1,0 +1,17 @@
+{
+ "invokes": [
+  ["Use.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "Use.<init>:()V", 1],
+  ["Use.java", 7, "invokevirtual", "Writer", "write", "(LItem;)V", "Use.f:(LWriter;LItem;)V", 2],
+  ["Use.java", 11, "invokevirtual", "Names", "record", "(LItem;)V", "Use.g:(LNames;LItem;)Z", 2],
+  ["Use.java", 12, "invokevirtual", "Names", "add", "(Ljava/lang/Object;)Z", "Use.g:(LNames;LItem;)Z", 8],
+  ["Writer.java", 1, "invokespecial", "java.lang.Object", "<init>", "()V", "Writer.<init>:()V", 1],
+  ["Writer.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "Item.<init>:()V", 1],
+  ["Writer.java", 7, "invokespecial", "java.util.ArrayList", "<init>", "()V", "Names.<init>:()V", 1]
+ ],
+ "classes": {
+  "Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "Names": {"supers": ["java.io.Serializable", "java.lang.Cloneable", "java.lang.Iterable", "java.lang.Object", "java.util.AbstractCollection", "java.util.AbstractList", "java.util.ArrayList", "java.util.Collection", "java.util.List", "java.util.RandomAccess", "java.util.SequencedCollection"], "methods": [["<init>", "()V", 0], ["record", "(LItem;)V", 0]], "bridges": [], "compiler": []},
+  "Use": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(LWriter;LItem;)V", 0], ["g", "(LNames;LItem;)Z", 0]], "bridges": [], "compiler": []},
+  "Writer": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["write", "(LItem;)V", 1]], "bridges": [], "compiler": []}
+ }
+}

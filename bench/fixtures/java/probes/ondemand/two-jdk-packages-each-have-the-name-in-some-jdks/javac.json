@@ -1,0 +1,10 @@
+{
+ "invokes": [
+  ["p/Use.java", 10, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Use.<init>:()V", 1],
+  ["p/Use.java", 12, "invokestatic", "java.lang.IO", "println", "(Ljava/lang/Object;)V", "p.Use.f:(Ljava/io/PrintStream;)V", 2],
+  ["p/Use.java", 13, "invokevirtual", "java.io.PrintStream", "println", "(Ljava/lang/String;)V", "p.Use.f:(Ljava/io/PrintStream;)V", 8]
+ ],
+ "classes": {
+  "p.Use": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Ljava/io/PrintStream;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

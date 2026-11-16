@@ -1,0 +1,42 @@
+{
+ "invokes": [
+  ["p/Shadow.java", 4, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Optional.<init>:()V", 1],
+  ["p/Use.java", 7, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Item.<init>:()V", 1],
+  ["p/Use.java", 10, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Writer.<init>:()V", 1],
+  ["p/Use.java", 14, "invokespecial", "java.lang.Object", "<init>", "()V", "p.A.<init>:()V", 1],
+  ["p/Use.java", 16, "invokevirtual", "p.Writer", "write", "(Lp/Item;)V", "p.A.f:(Lp/Writer;Lp/Item;)V", 2],
+  ["p/Use.java", 21, "invokespecial", "java.lang.Object", "<init>", "()V", "p.B.<init>:()V", 1],
+  ["p/Use.java", 22, "invokespecial", "java.lang.Object", "<init>", "()V", "p.B$Queue.<init>:()V", 1],
+  ["p/Use.java", 27, "invokevirtual", "p.B$Queue", "add", "(Lp/Item;)V", "p.B.f:(Lp/B$Queue;Lp/Item;)V", 2],
+  ["p/Use.java", 31, "invokespecial", "java.lang.Object", "<init>", "()V", "p.C.<init>:()V", 1],
+  ["p/Use.java", 33, "invokevirtual", "java.lang.Object", "toString", "()Ljava/lang/String;", "p.C.f:(Ljava/lang/Object;)V", 1],
+  ["p/Use.java", 37, "invokespecial", "java.lang.Object", "<init>", "()V", "p.D.<init>:()V", 1],
+  ["p/Use.java", 39, "invokespecial", "java.lang.Object", "<init>", "()V", "p.D$1List.<init>:(Lp/D;)V", 1],
+  ["p/Use.java", 42, "invokespecial", "p.D$1List", "<init>", "(Lp/D;)V", "p.D.f:(Lp/Item;)V", 5],
+  ["p/Use.java", 43, "invokevirtual", "p.D$1List", "add", "(Lp/Item;)V", "p.D.f:(Lp/Item;)V", 11],
+  ["p/Use.java", 48, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Base.<init>:()V", 1],
+  ["p/Use.java", 49, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Base$Map.<init>:()V", 1],
+  ["p/Use.java", 54, "invokespecial", "p.Base", "<init>", "()V", "p.E.<init>:()V", 1],
+  ["p/Use.java", 56, "invokevirtual", "p.Base$Map", "put", "(Lp/Item;)V", "p.E.f:(Lp/Base$Map;Lp/Item;)V", 2],
+  ["p/Use.java", 61, "invokespecial", "java.lang.Object", "<init>", "()V", "p.F.<init>:()V", 1],
+  ["p/Use.java", 63, "invokevirtual", "q.Deque", "push", "(Ljava/lang/Object;)V", "p.F.f:(Lq/Deque;Lp/Item;Lp/Optional;)V", 2],
+  ["p/Use.java", 64, "invokevirtual", "p.Optional", "get", "(Lp/Item;)V", "p.F.f:(Lq/Deque;Lp/Item;Lp/Optional;)V", 7],
+  ["q/Deque.java", 3, "invokespecial", "java.lang.Object", "<init>", "()V", "q.Deque.<init>:()V", 1]
+ ],
+ "classes": {
+  "p.A": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["f", "(Lp/Writer;Lp/Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.B": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["f", "(Lp/B$Queue;Lp/Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.B$Queue": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["add", "(Lp/Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.Base": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Base$Map": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["put", "(Lp/Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.C": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["f", "(Ljava/lang/Object;)V", 0]], "bridges": [], "compiler": []},
+  "p.D": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["f", "(Lp/Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.D$1List": {"supers": ["java.lang.Object"], "methods": [["<init>", "(Lp/D;)V", 0], ["add", "(Lp/Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.E": {"supers": ["java.lang.Object", "p.Base"], "methods": [["<init>", "()V", 0], ["f", "(Lp/Base$Map;Lp/Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.F": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["f", "(Lq/Deque;Lp/Item;Lp/Optional;)V", 0]], "bridges": [], "compiler": []},
+  "p.Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Optional": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["get", "(Lp/Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.Writer": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["write", "(Lp/Item;)V", 0]], "bridges": [], "compiler": []},
+  "q.Deque": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["push", "(Ljava/lang/Object;)V", 1]], "bridges": [], "compiler": []}
+ }
+}

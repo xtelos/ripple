@@ -5,8 +5,15 @@ to code outside the repo, and one wrong edge is worse than a hundred of those. W
 makes it safe (the repo compiles, so a call has a target and the declared types are the real ones):
 
   names      A type name is a type variable, then a type of an enclosing class (or one it inherits), a local class,
-             a type of the file, a single-type import, a type of the same package, an on-demand import of a repo
-             package or type, then java.lang. Two on-demand repo matches, or a name nothing supplies, is unresolved.
+             a type of the file, a single-type import, a type of the same package, then the on-demand imports (a repo
+             package or type) and java.lang, which are one level (_on_demand_type: a repo match wins; a name that only a package outside the repo might supply is `?.Name`, a
+             type of a package that is not known, and the JDK table is not read for it; java.lang keeps the reading it always
+             had; a single static import of the name, a static on-demand import of a repo type with such a member type, an
+             `import module`, or a .java file ripple did not read whole may supply the name first, and then it is unresolved).
+             Two on-demand repo matches, or a name nothing supplies, is unresolved. A name that no read source declares is a
+             type from outside the repo (a single import, a full name, a static import's owner, a superclass) only when no
+             .java file ripple did not read whole may declare it (unread_type, asked by package and name, library()):
+             otherwise it is unresolved, whatever the route that named it.
              A variable hides a type of the same name (JLS 6.4.2), so `x.m()` with a local or field `x` is a call on it,
              and so does a field a static import supplies (a single import, or an on-demand one of a type outside the
              repo, which may supply any name: then the name is not decided). In `T.f` a field f of T is named before a
@@ -160,6 +167,9 @@ TYPE_ASKS = ("type_identifier", "scoped_type_identifier", "generic_type", "annot
 STATEMENT_ENDS = ("statement", "declaration", "declarator")
 OBJECT_EXTERNAL = ("ext", OBJECT)
 
+UNREAD_TYPE = "a .java file that was not read whole may declare "  # (what a name that only an unread file declares is refused with)
+UNREAD_PACKAGE = "a .java file of package "  # (the same, for a package an on-demand import names)
+UNREAD_REASONS = (UNREAD_TYPE, UNREAD_PACKAGE)
 IMPLICIT_RECORD_ACCESSOR = "implicit record accessor"
 IMPLICIT_ENUM_MEMBER = "implicit enum member"
 OBJECT_MEMBER = "java.lang.Object member"
@@ -227,8 +237,8 @@ class JavaResolver:
 
     def jdk_row(self, name: str) -> java_jdk.JdkType | None:
         """The table's row for a type from outside the repo by canonical name; None when nothing about it is known: it is
-        not in the table (a library's, another JDK module's, a name spelled through a subtype, or one only an on-demand
-        import names), or the repo patches the JDK's own packages."""
+        not in the table (a library's, another JDK module's, a name spelled through a subtype, or one whose package an
+        on-demand import left unknown: `?.Name`), or the repo patches the JDK's own packages."""
         if name.startswith("?.") or self.jdk_patched():
             return None
         return java_jdk.jdk_type(name)
@@ -407,24 +417,114 @@ class JavaResolver:
         if name in fi.single:
             qualified = fi.single[name]
             found = self.repo_type_by_qualified(qualified)
-            return ("repo", found) if found else ("ext", qualified)
+            return ("repo", found) if found else self.library(qualified)
         same = self.d.by_pkg.get(fi.pkg, {})
         if name in same:
             return ("repo", same[name])
-        found, external_on_demand = [], False
+        return self._on_demand_type(name, ctx)
+
+    def _may_be_unseen(self, package: str, name: str) -> bool:
+        """Whether a .java file of the repo that was not read whole may declare a type `name` in the package: a file the parser
+        met an error in, one in a directory that is not its package's, and one the walk leaves out (package-info.java, build
+        output). See Declarations.unseen_names."""
+        return package in self.d.unseen_packages or name in self.d.unseen_names.get(package, ())
+
+    def unread_type(self, qualified: str) -> str:
+        """THE question every verdict that takes a type for a library type asks: why a .java file of the repo that ripple did not
+        read whole may declare the type `qualified` (a name with its package, `q.gen.Maker`, or `?.Maker` and `?.q.gen.Maker`
+        where an on-demand import left the package open), or "" when none may. It is asked by the qualified name, as the unread
+        file would have to declare it (package and name), at every split of the name into a package and a top-level type: a
+        member type (`q.gen.Maker.Builder`) is a member of a top-level type the file declares. A file whose package is not
+        known may declare any type. The names java.lang supplies (`java.lang.Thread`, `Thread` imported on demand) keep the
+        reading they always had and are never asked: a repo does not declare one."""
+        if qualified.startswith("?."):
+            name = qualified[2:]
+            if name.split(".", 1)[0] in self.java_lang:
+                return ""
+        else:
+            name = qualified
+            if name.startswith("java.lang.") and name[len("java.lang.") :][:1].isupper():
+                return ""
+        if self.d.unseen_anywhere:
+            return f"{UNREAD_TYPE}{qualified}, as a .java file whose package ripple could not tell may be declaring it"
+        parts = name.split(".")
+        for i, part in enumerate(parts):
+            package = ".".join(parts[:i])
+            if self._may_be_unseen(package, part):
+                return f"{UNREAD_TYPE}{qualified}: {part} in package {package or '(default)'}"
+        return ""
+
+    def library(self, qualified: str) -> tuple:
+        """The type `qualified` as a type from outside the repo (no source ripple read declares it): ("ext", qualified), unless a
+        .java file that was not read whole may declare it (unread_type), and then ("unres", why). Every place that decides a name
+        is a library type, and every verdict that rests on it (a call on it, a constructor, a static member, a supertype, a field
+        type, a caught or thrown type), goes through here, so that none of them takes a type that only an unread file declares
+        for one a library supplies (tests/test_java_unread_types.py lists the routes and fails on one that does not)."""
+        why = self.unread_type(qualified)
+        return ("unres", why) if why else ("ext", qualified)
+
+    def _outranks_on_demand(self, name: str, ctx: JavaType) -> str:
+        """Why `name` may be a type that comes before every on-demand import (JLS 6.4.1), or "": a single static import of the name
+        (it may be a member type), or a type of the file's own package that ripple did not read (a file of the package that was
+        not read whole, or one that failed with no package known). A package is not closed: a jar or generated code can add a type
+        to it, and by JLS 6.4.1 that type shadows every on-demand import. Ripple can see only what is in the repo's own sources."""
+        fi = ctx.finfo
+        if name in fi.static_single:
+            return f"{name} may be a type that a single static import of {', '.join(dict.fromkeys(fi.static_single[name]))} supplies"
+        if self.d.unseen_anywhere or self._may_be_unseen(ctx.pkg, name):
+            return f"a .java file that was not read whole may declare {name} in package {ctx.pkg or '(default)'}, and a type of the package comes before an import"
+        return ""
+
+    def _on_demand_type(self, name: str, ctx: JavaType) -> tuple:
+        """What a simple name is when nothing nearer supplies it: the types the file's on-demand imports bring, and java.lang, which
+        every file imports on demand without a declaration (JLS 7.3).
+
+        A JDK type that an on-demand import supplies gives NO fact that depends on the JDK's reading being the right one. The
+        table (java_jdk.py) says a type has no method `foo`, no member type `Entry`, is final, has no constructor, is not below
+        another type: each is an absence, and each holds only if the name means that JDK type. A name that `import java.util.*;`
+        might supply is not that type when a type of the same name comes first: a type of the file's package from a jar or from
+        generated code (a package is not closed, so ripple cannot see it), or one of an imported package, or another on-demand
+        import that a library supplies. So such a name is `?.Name`, a type outside the repo of a package that is not known (it
+        is not a repo type: every repo source, every package and type that the repo declares, was asked first), and it supplies
+        nothing but that: a call on it is external only where no repo type may be an instance of it, and a class that extends it
+        may declare, inherit and be anything. (A package that no source outside the repo can add to would allow more: a named
+        module, module-info.java. That is not read, so nothing is proven closed and the answer is always `?.Name`.)
+
+        What the repo's own sources supply is exact: a repo type an on-demand import brings is the name. A name that java.lang
+        supplies keeps the reading it always had (`java.lang.Name` where every JDK has the type or nothing else could supply it,
+        `?.Name` otherwise), which has the same exposure to a type of the package that no source shows: an assumption of long
+        standing that the README's Limits state, and none of the guards below applies to it."""
+        fi = ctx.finfo
+        guarded = name not in self.java_lang
+        if guarded:
+            outranks = self._outranks_on_demand(name, ctx)
+            if outranks:
+                return ("unres", outranks)
+        found, external_on_demand, may_be_repo = [], False, ""
         for star in fi.ondemand:
             if star in self.d.by_pkg and name in self.d.by_pkg[star]:
                 found.append(self.d.by_pkg[star][name])
                 continue
             owner = self.repo_type_by_qualified(star)
             if owner is None:
-                external_on_demand = True
+                external_on_demand = True  # (a package that only a file ripple did not read declares is unknown too, never a repo package)
+                if self._may_be_unseen(star, name):
+                    may_be_repo = f"{UNREAD_PACKAGE}{star} that was not read whole may declare {name}, which the on-demand import of it would supply"
             elif name in owner.members:
                 found.append(owner.members[name])
         if len(found) == 1:
             return ("repo", found[0])
         if len(found) > 1:
             return ("unres", f"two on-demand imports provide {name}")
+        if guarded:
+            for owner_name in fi.static_ondemand:  # `import static a.B.*;` imports B's static member types as well
+                owner = self.repo_type_by_qualified(owner_name)
+                if owner is not None and (self._member_type(name, owner) is not None or self._member_type_blocker(owner, name)):
+                    may_be_repo = may_be_repo or f"{name} may be a static member type that the import of {owner_name}.* supplies"
+            if fi.unread_import:
+                may_be_repo = may_be_repo or f"an import declaration of {ctx.file} could not be read, and may supply {name}"
+            if may_be_repo:
+                return ("unres", may_be_repo)
         if name in self.java_lang:
             if external_on_demand and not self._in_every_jdk("java.lang." + name):
                 # `Module`, `StackWalker`, `Record` and the like: the implicit import lists them for every JDK, but a JDK built
@@ -485,7 +585,7 @@ class JavaResolver:
                 current = found
             return ("repo", current)
         if first[0] == "ext" and len(parts) > 1:
-            return ("ext", first[1] + "." + ".".join(parts[1:]))
+            return self.library(first[1] + "." + ".".join(parts[1:]))
         if first[0] in ("ext", "tvar"):
             return first
         if len(parts) > 1:  # package-qualified
@@ -493,7 +593,7 @@ class JavaResolver:
             if qualified is not None:
                 return ("repo", qualified)
             if parts[0][:1].islower():
-                return ("ext", base)
+                return self.library(base)
         return first
 
     def from_written(self, written: str, ctx: JavaType, m=None) -> tuple:
@@ -765,6 +865,8 @@ class JavaResolver:
         r = self.resolve_type(name, t, m)
         if r[0] in ("repo", "ext"):
             return ("type", r[1])
+        if r[0] == "unres" and r[1].startswith(UNREAD_REASONS):  # a type only an unread file declares: not a package, nor a library type
+            return ("unknown", r[1])
         if name in t.finfo.static_single:
             return ("unknown", "the receiver is a static-imported field")
         return ("pkg", name)
@@ -1050,7 +1152,7 @@ class JavaResolver:
                 return ("unres", f"no method {name} of {rt.fqn} takes {n} arguments")
             # A method no repo class above rt declares is outside the repo, unless a subtype of rt declares it: the
             # receiver may be one, and a call of the inherited method runs the subtype's.
-            if not receiver_exact and self.subs_declare(rt, name):
+            if not receiver_exact and self.subs_declare(rt, name, n):
                 return ("unres", f"'{name}' is not declared on {rt.fqn}, but a subtype of it declares {name}")
             if name in OBJECT_MEMBERS and not any(name in a.methods for a in order):
                 return ("ext", OBJECT_MEMBER)
@@ -1107,9 +1209,15 @@ class JavaResolver:
                         out.append((inherited.id, "override"))
         return ("edge", out)
 
-    def subs_declare(self, rt: JavaType, name: str) -> bool:
-        """Whether a repo subtype of rt declares an instance method named `name`."""
-        return any(not mm.static and not mm.private for s in self.all_subs(rt) for mm in s.methods.get(name, ()))
+    def subs_declare(self, rt: JavaType, name: str, n: int) -> bool:
+        """Whether a repo subtype of rt declares an instance method named `name`: one ripple read, or a file it did not read
+        (unseen_method: the subtype may be there)."""
+        # An enum, a record and a final class have no subtype in a file ripple did not read (the constants' bodies are in the file
+        # of the enum), but only where the file was read whole: the parser recovers from an error by losing a constant's body, a
+        # modifier or a header, and a file read in part (Declarations.partial_files) is not evidence that its type has none.
+        closed = rt.kind in ("enum", "record") or "final" in rt.mods
+        unseen = not (closed and rt.file not in self.d.partial_files) and self.unseen_method(name, n)
+        return unseen or any(not mm.static and not mm.private for s in self.all_subs(rt) for mm in s.methods.get(name, ()))
 
     # ---- overrides ---------------------------------------------------------------------------------------------
 
@@ -1279,6 +1387,9 @@ class JavaResolver:
             return ("ext", "array member")
         if kind == "pkg":
             if r[1].split(".", 1)[0] in self.jdk_roots and "." in r[1]:
+                why = self.unread_type(r[1])
+                if why:
+                    return ("unres", f"'{name}' on {r[1]}: {why}")
                 return ("ext", "static call on external class (JDK)")
             return ("unres", f"name '{r[1]}' is not visible")
         return ("unres", r[1])
@@ -1289,10 +1400,26 @@ class JavaResolver:
         repo_super = [x for x in self.supers_of(c) if isinstance(x, JavaType) and x.kind != "interface"]
         if repo_super:
             return self.select(repo_super[0], name, args, t, m, True, via_super=True)
+        if self.unresolved_superclass(c):  # it may be a repo class (a type only an unread file declares), and `super.m()` runs its m
+            return ("unres", f"super: the superclass of {c.fqn} could not be resolved")
         outside = [x for x in self.supers_of(c) if not isinstance(x, JavaType)]
         if any(is_class for _, is_class in c.supers if is_class) or outside or name in OBJECT_MEMBERS:
             return ("ext", "super into external base")
         return ("unres", "super")
+
+    def unresolved_superclass(self, c: JavaType) -> bool:
+        """Whether the superclass of c (or a supertype that may be it: an anonymous class's, written without saying which) is a type
+        that only a .java file ripple did not read may declare: `class Sub extends Maker`, where Maker is not a library type but an
+        unread file's. What `super.m()` and `super(...)` run is then repo code. (A superclass that did not resolve for another
+        reason keeps the reading it always had here.)"""
+        ctx = c.ctx_method if isinstance(c.ctx_method, JavaMethod) else None
+        return any(
+            not isinstance(sup, JavaType)
+            and sup[0] == "unres"
+            and is_class is not False
+            and self.resolve_type(written, c, ctx, header=True)[1].startswith(UNREAD_REASONS)
+            for (written, is_class), sup in zip(c.supers, self.supers_of(c))
+        )
 
     def _may_be_instance(self, c: JavaType, ext_name: str) -> bool:
         """Whether an instance of the repo type c may also be of the external type: one of c's supertypes outside the
@@ -1356,12 +1483,15 @@ class JavaResolver:
         if known is None:
             # the class that declares the method, or a subtype of it that inherits it: `class Task extends RunBase
             # implements Runnable {}` runs RunBase.run for `Runnable.run()`
-            known = self._ext_asked[key] = any(
-                not mm.static
-                and not mm.private
-                and mm.arity_ok(n)
-                and (ext_name == OBJECT or any(self._may_be_instance(x, ext_name) for x in (mm.owner, *self.all_subs(mm.owner))))
-                for mm in self.by_name.get(name, ())
+            known = self._ext_asked[key] = (
+                any(
+                    not mm.static
+                    and not mm.private
+                    and mm.arity_ok(n)
+                    and (ext_name == OBJECT or any(self._may_be_instance(x, ext_name) for x in (mm.owner, *self.all_subs(mm.owner))))
+                    for mm in self.by_name.get(name, ())
+                )
+                or self.unseen_method(name, n)  # a file ripple did not read may declare a subtype of it that declares the method
             ) and not self.no_repo_instance(ext_name)
         return known
 
@@ -1395,7 +1525,7 @@ class JavaResolver:
                 return self.select(c, name, args, t, m, False)
             implicit = self.implicit_member(c, name, len(args))
             if implicit:  # a member every such class has, so the search ends here and not at an outer class's
-                if self.subs_declare(c, name):
+                if self.subs_declare(c, name, len(args)):
                     return ("unres", f"'{name}' is not declared on {c.fqn}, but a subtype of it declares {name}")
                 return ("ext", implicit)
             external = [e for e in self.ancestors(c)[1] if e != OBJECT_EXTERNAL and self.may_declare(e, name, len(args))]
@@ -1409,7 +1539,7 @@ class JavaResolver:
                     return ("unres", f"'{name}' may be inherited from external base {first[1]} {self.label(first[1])} of {c.fqn}, or be the enclosing class's or an import's")
                 if any(e[0] == "unres" for e in external):
                     return ("unres", f"'{name}': a supertype of {c.fqn} could not be resolved")
-                if self.subs_declare(c, name):
+                if self.subs_declare(c, name, len(args)):
                     return ("unres", f"'{name}' is inherited from an external supertype of {c.fqn}, but a subtype of it declares {name}")
                 return ("ext", "inherited from an external supertype")
             c = c.outer
@@ -1421,18 +1551,24 @@ class JavaResolver:
             rt = self.repo_type_by_qualified(owners[0])
             if rt is not None:
                 return self.select(rt, name, args, t, m, True, static_only=True)
+            unread = self.unread_type(owners[0])
+            if unread:
+                return ("unres", f"'{name}' is imported from {owners[0]}: {unread}")
             return ("ext", f"static import {self.label(owners[0])}")
-        found, external_on_demand = [], False
+        found, external_on_demand, unread = [], False, ""
         for o in fi.static_ondemand:
             rt = self.repo_type_by_qualified(o)
             if rt is None:
                 external_on_demand = True
+                unread = unread or self.unread_type(o)
             elif self.declares(rt, name, static_only=True):
                 found.append(rt)
         if len(found) == 1 and not external_on_demand:
             return self.select(found[0], name, args, t, m, True, static_only=True)
         if found:
             return ("unres", f"'{name}' may come from several static on-demand imports")
+        if unread:
+            return ("unres", f"'{name}' may come from a static on-demand import of a type an unread file declares: {unread}")
         if external_on_demand:
             return ("ext", "static on-demand import (external)")
         return ("unres", f"name '{name}' is not defined anywhere ripple can see")
@@ -1456,12 +1592,29 @@ class JavaResolver:
         name_node = n.child_by_field_name("name")
         name = text(name_node)
         if result[0] == "unres" and not self.lombok:
-            # No repo source declares this name with this many arguments: it cannot run repo code.
+            # No repo source declares this name with this many arguments: it cannot run repo code (unless a .java file ripple did
+            # not read declares it: see unseen_method).
             k = len(arguments_of(n))
-            if not any(mm.arity_ok(k) for mm in self.by_name.get(name, ())) and not result[1].startswith((f"'{name}' is not declared on", "no method")):
+            if (
+                not any(mm.arity_ok(k) for mm in self.by_name.get(name, ()))
+                and not result[1].startswith((f"'{name}' is not declared on", "no method"))
+                and not self.unseen_method(name, k)
+            ):
                 result = ("ext", NO_REPO_METHOD)
         obj = n.child_by_field_name("object")
         self.record(result, caller, name_node, f"{_collapse(text(obj), 60)}.{name}" if obj is not None else name, t)
+
+    def unseen_method(self, name: str, n: int) -> bool:
+        """Whether a .java file of the repo that was not read whole (or not at all) may declare a method `name` that takes n
+        arguments: then the absence of the name among the methods ripple read says nothing, whatever type the call goes through.
+        This is the one test every conclusion "no repo code runs here" from the absence of a METHOD makes: a call with no repo
+        method of the name (call), a value of a type from outside the repo that a repo type may be (ext_may_be_repo), a method
+        inherited from outside the repo that a subtype may declare (subs_declare). It asks the name and its arity, never how the
+        call came to be unresolved. (The conclusion "this type is a library type" is another test, unread_type, asked by qualified
+        name: a constructor, a static member, a superclass and a static import have no method name to ask.)"""
+        if self.d.unseen_unreadable:
+            return True
+        return any(k is None or n == k or (varargs and n >= k - 1) for k, varargs in self.d.unseen_methods.get(name, ()))
 
     def _ctor_accessible(self, c: JavaMethod, rt: JavaType, t: JavaType, protected_ok: bool) -> bool:
         """Whether code in t may call constructor c of rt (JLS 6.6.2.2): a private one only inside its top-level class,
@@ -1531,9 +1684,11 @@ class JavaResolver:
             if made is not None:
                 self.record(("edge", made), caller, tn, shown, t)
             return
-        if r[0] == "ext":
-            if made is not None:
+        if r[0] == "ext" or (r[0] == "unres" and r[1].startswith(UNREAD_REASONS)):
+            if made is not None:  # (the anonymous class is made whatever the type it extends is, and a type only an unread file declares too)
                 return self.record(("edge", made), caller, tn, shown, t)
+            if r[0] == "unres":
+                return self.record(("unres", f"new: {r[1]}"), caller, tn, shown, t)
             return self.record(("ext", f"new of external class {self.label(r[1])}"), caller, tn, shown, t)
         self.record(("unres", f"new: {r[1]}"), caller, tn, shown, t)
 
@@ -1547,6 +1702,8 @@ class JavaResolver:
         repo_super = [x for x in self.supers_of(t) if isinstance(x, JavaType) and x.kind != "interface"]
         if repo_super:
             return self.constructor(repo_super[0], args, n, "super", t, m, caller, protected_ok=True)
+        if self.unresolved_superclass(t):  # a superclass that may be a repo class: only an unread file may declare it
+            return self.record(("unres", f"super(...): the superclass of {t.fqn} could not be resolved"), caller, n, "super", t)
         if any(is_class for _, is_class in t.supers if is_class) or t.kind == "enum":
             return self.record(("ext", "super(...) into external base"), caller, n, "super", t)
         self.record(("ext", "super(...) into java.lang.Object"), caller, n, "super", t)

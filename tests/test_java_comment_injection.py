@@ -155,3 +155,59 @@ def test_the_variants_are_many_and_really_write_comments():
             )
     assert files >= 200 and sizes["block"] >= 5 * len(ROOTS) and sizes["line"] >= 3 * len(ROOTS)
     assert comments >= 20000, comments
+
+
+# An on-demand import is `import java . util . * ;` to the lexer, and a comment may stand between any two of those tokens (and
+# between `import` and `static`). The probes under bench/fixtures/java/probes/ondemand are roots above; this puts every kind of
+# on-demand import in one place and requires that the name each supplies is read the same with a comment at every boundary.
+ON_DEMAND_SOURCES = {
+    "p/A.java": b"""package p;
+import java.io.*;
+import java.util.*;
+import java.util.Map.*;
+import static p.S.*;
+import static p.S.Gadget;
+import q.*;
+
+abstract class Mine extends Writer { void note(Item i) {} }
+abstract class Many extends ProcessHandle { void note(Item i) {} }
+class Item {}
+class Use {
+    void f(Mine m, Many y, Item i, List<String> l, Entry<String, String> e, Gadget g, Thing t) {
+        m.note(i);
+        y.note(i);
+        l.size();
+        e.getKey();
+        g.toString();
+        t.go();
+    }
+}
+""",
+    "p/S.java": b"package p;\nclass S { static class Gadget {} }\n",
+    "q/Thing.java": b"package q;\npublic class Thing { public void go() {} }\n",
+}
+
+
+def test_comments_written_into_on_demand_imports_change_nothing(tmp_path_factory):
+    original = graph_of("on-demand", ON_DEMAND_SOURCES, tmp_path_factory.mktemp("original"), {})
+    callees = {(callee, kind) for _, callee, _, _, kind in original["edges"]}
+    assert ("q.Thing.go()", "call") in callees, "the on-demand names are not read"
+    assert not [c for c, _ in callees if c.startswith("p.Mine.")], "a name a JDK package might supply is not the JDK's type"
+    problems = []
+    for description, changed, added in variants("on-demand", ON_DEMAND_SOURCES):
+        variant = graph_of("on-demand", changed, tmp_path_factory.mktemp("variant"), added)
+        problems += [f"{description}: {line}" for line in differences(original, variant)]
+        if problems:
+            break
+    assert problems == []
+
+
+def test_a_comment_can_be_written_inside_an_on_demand_import_and_the_probes_have_them():
+    source = ON_DEMAND_SOURCES["p/A.java"]
+    every, _ = boundaries(source)
+    star = source.index(b"import java.util.*;")
+    for piece in (b"import", b"import java", b"import java.", b"import java.util", b"import java.util."):
+        assert star + len(piece) in every, piece  # between `import` and `java`, `java` and `.`, ..., `.` and `*`
+    assert source.index(b"import static") + len(b"import") in every  # and between `import` and `static`
+    roots = [r for r in ROOTS if any(b".*;" in p.read_bytes() for p in r.rglob("*.java"))]
+    assert len(roots) >= 10, [str(r) for r in roots]

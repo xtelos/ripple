@@ -1,0 +1,39 @@
+{
+ "invokes": [
+  ["p/Use.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Item.<init>:()V", 1],
+  ["p/Use.java", 9, "invokespecial", "java.io.Writer", "<init>", "()V", "p.Ledger.<init>:()V", 1],
+  ["p/Use.java", 19, "invokespecial", "java.util.ArrayList", "<init>", "()V", "p.Names.<init>:()V", 1],
+  ["p/Use.java", 19, "invokevirtual", "p.Names", "add", "(Ljava/lang/String;)Z", "p.Names.add:(Ljava/lang/Object;)Z", 5],
+  ["p/Use.java", 27, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Use.<init>:()V", 1],
+  ["p/Use.java", 29, "invokevirtual", "p.Ledger", "record", "(Lp/Item;)V", "p.Use.ledger:(Lp/Ledger;Lp/Item;)V", 2],
+  ["p/Use.java", 30, "invokevirtual", "p.Ledger", "write", "(I)V", "p.Use.ledger:(Lp/Ledger;Lp/Item;)V", 8],
+  ["p/Use.java", 31, "invokevirtual", "p.Ledger", "flush", "()V", "p.Use.ledger:(Lp/Ledger;Lp/Item;)V", 12],
+  ["p/Use.java", 35, "invokevirtual", "p.Names", "record", "(Lp/Item;)V", "p.Use.names:(Lp/Names;Lp/Item;)V", 2],
+  ["p/Use.java", 36, "invokevirtual", "p.Names", "add", "(Ljava/lang/String;)Z", "p.Use.names:(Lp/Names;Lp/Item;)V", 8],
+  ["p/Use.java", 37, "invokevirtual", "p.Names", "size", "()I", "p.Use.names:(Lp/Names;Lp/Item;)V", 13],
+  ["p/Use.java", 41, "invokeinterface", "java.util.Set", "add", "(Ljava/lang/Object;)Z", "p.Use.set:(Ljava/util/Set;)Z", 3],
+  ["p/Use.java", 45, "invokeinterface", "java.util.Queue", "add", "(Ljava/lang/Object;)Z", "p.Use.queue:(Ljava/util/Queue;)Z", 3],
+  ["p/Use.java", 49, "invokestatic", "java.util.Collections", "sort", "(Ljava/util/List;)V", "p.Use.collections:(Ljava/util/List;)I", 1],
+  ["p/Use.java", 50, "invokeinterface", "java.util.List", "size", "()I", "p.Use.collections:(Ljava/util/List;)I", 5],
+  ["p/Use.java", 50, "invokestatic", "java.util.Collections", "max", "(Ljava/util/Collection;)Ljava/lang/Object;", "p.Use.collections:(Ljava/util/List;)I", 11],
+  ["p/Use.java", 50, "invokestatic", "java.util.Objects", "hash", "([Ljava/lang/Object;)I", "p.Use.collections:(Ljava/util/List;)I", 29],
+  ["p/Use.java", 50, "invokevirtual", "java.lang.String", "length", "()I", "p.Use.collections:(Ljava/util/List;)I", 17],
+  ["p/Use.java", 54, "invokespecial", "java.lang.StringBuilder", "<init>", "()V", "p.Use.entries:(Ljava/util/Map;)Ljava/lang/String;", 4],
+  ["p/Use.java", 55, "invokeinterface", "java.util.Iterator", "hasNext", "()Z", "p.Use.entries:(Ljava/util/Map;)Ljava/lang/String;", 21],
+  ["p/Use.java", 55, "invokeinterface", "java.util.Iterator", "next", "()Ljava/lang/Object;", "p.Use.entries:(Ljava/util/Map;)Ljava/lang/String;", 30],
+  ["p/Use.java", 55, "invokeinterface", "java.util.Map", "entrySet", "()Ljava/util/Set;", "p.Use.entries:(Ljava/util/Map;)Ljava/lang/String;", 9],
+  ["p/Use.java", 55, "invokeinterface", "java.util.Set", "iterator", "()Ljava/util/Iterator;", "p.Use.entries:(Ljava/util/Map;)Ljava/lang/String;", 14],
+  ["p/Use.java", 56, "invokeinterface", "java.util.Map$Entry", "getKey", "()Ljava/lang/Object;", "p.Use.entries:(Ljava/util/Map;)Ljava/lang/String;", 43],
+  ["p/Use.java", 56, "invokeinterface", "java.util.Map$Entry", "getValue", "()Ljava/lang/Object;", "p.Use.entries:(Ljava/util/Map;)Ljava/lang/String;", 56],
+  ["p/Use.java", 56, "invokevirtual", "java.lang.StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", "p.Use.entries:(Ljava/util/Map;)Ljava/lang/String;", 51],
+  ["p/Use.java", 56, "invokevirtual", "java.lang.StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", "p.Use.entries:(Ljava/util/Map;)Ljava/lang/String;", 64],
+  ["p/Use.java", 58, "invokevirtual", "java.lang.StringBuilder", "toString", "()Ljava/lang/String;", "p.Use.entries:(Ljava/util/Map;)Ljava/lang/String;", 72],
+  ["p/Use.java", 62, "invokespecial", "p.Names", "<init>", "()V", "p.Use.fresh:()Lp/Names;", 4]
+ ],
+ "classes": {
+  "p.Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Ledger": {"supers": ["java.io.Closeable", "java.io.Flushable", "java.io.Writer", "java.lang.Appendable", "java.lang.AutoCloseable", "java.lang.Object"], "methods": [["<init>", "()V", 0], ["close", "()V", 1], ["flush", "()V", 1], ["record", "(Lp/Item;)V", 0], ["write", "([CII)V", 1]], "bridges": [], "compiler": []},
+  "p.Names": {"supers": ["java.io.Serializable", "java.lang.Cloneable", "java.lang.Iterable", "java.lang.Object", "java.util.AbstractCollection", "java.util.AbstractList", "java.util.ArrayList", "java.util.Collection", "java.util.List", "java.util.RandomAccess", "java.util.SequencedCollection"], "methods": [["<init>", "()V", 0], ["add", "(Ljava/lang/String;)Z", 1], ["record", "(Lp/Item;)V", 0]], "bridges": [["add", "(Ljava/lang/Object;)Z", "(Ljava/lang/String;)Z"]], "compiler": []},
+  "p.Use": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["collections", "(Ljava/util/List;)I", 0], ["entries", "(Ljava/util/Map;)Ljava/lang/String;", 0], ["fresh", "()Lp/Names;", 0], ["ledger", "(Lp/Ledger;Lp/Item;)V", 0], ["names", "(Lp/Names;Lp/Item;)V", 0], ["queue", "(Ljava/util/Queue;)Z", 0], ["set", "(Ljava/util/Set;)Z", 0]], "bridges": [], "compiler": []}
+ }
+}
