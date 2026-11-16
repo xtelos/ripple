@@ -326,10 +326,12 @@ def test_a_jsconfig_edit_is_in_both_languages_fingerprints_when_there_is_one(mak
     assert fingerprint(repo, TYPESCRIPT) != ts_before and fingerprint(repo, JAVASCRIPT) != js_before
 
 
-def test_an_import_into_a_directory_the_walk_skips_is_a_package_not_a_file_of_the_other_language(make_repo):
-    """`../dist/x.js` is no source file to either index (the root dist is skipped), so it is as it was: outside the repo."""
+def test_an_import_into_a_directory_the_walk_skips_is_no_file_of_the_other_language_and_only_a_package_is_a_package(make_repo):
+    """`../dist/x.js` is no source file to either index (the root dist is skipped), but it is source of the repo, so it is not a
+    package: it is unresolved (see test_js_unprovable_answers). A file of a package in node_modules is outside the repo as it was."""
     modules, _ = mapper(make_repo, ["src/main.ts", "dist/x.js", "node_modules/p/y.js", "src/x.js"], TYPESCRIPT)
-    assert modules.resolve("../dist/x.js", "src/main.ts") == ("package", "../dist/x.js")
+    kind, why = modules.resolve("../dist/x.js", "src/main.ts")
+    assert kind == "unresolved" and "dist/x.js, a source file of this repo that ripple does not read" in why
     assert modules.resolve("../node_modules/p/y.js", "src/main.ts") == ("package", "../node_modules/p/y.js")
     assert modules.resolve("./x.js", "src/main.ts")[0] == "unresolved"  # a JavaScript file the other index reads
 
