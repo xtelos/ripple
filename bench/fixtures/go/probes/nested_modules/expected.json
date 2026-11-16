@@ -8,5 +8,7 @@
  "calls": [
   {"file": "a.go", "line": 6, "col": 2, "end": "6:9", "kind": "E", "callee": "example.com/nested_modules:Helper", "at": "a.go", "variants": "all"},
   {"file": "inner/inner.go", "line": 6, "col": 2, "end": "6:9", "kind": "E", "callee": "example.com/nested_modules/inner:Helper", "at": "inner/inner.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

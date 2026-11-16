@@ -17,5 +17,7 @@
   {"file": "a.go", "line": 17, "col": 9, "end": "17:13", "kind": "E", "callee": "example.com/closures_and_defers:T.M", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 19, "col": 19, "end": "19:23", "kind": "E", "callee": "example.com/closures_and_defers:T.M", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 20, "col": 2, "end": "20:5", "kind": "D", "callee": "-", "at": "", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

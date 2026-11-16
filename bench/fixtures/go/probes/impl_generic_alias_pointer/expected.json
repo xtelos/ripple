@@ -1,0 +1,13 @@
+{
+ "digest": "ece6eed30daf3c66ed509c53c544096fcc57d80bfa67eb963098c28f1d791e16",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 17, "col": 2, "end": "17:6", "kind": "I", "callee": "example.com/impl_generic_alias_pointer:I.M", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 17, "col": 2, "end": "17:6", "interface": "example.com/impl_generic_alias_pointer:I", "method": "M", "candidates": [{"id": "example.com/impl_generic_alias_pointer:Box.M", "at": "a.go"}], "packages": ["example.com/impl_generic_alias_pointer"], "variants": "all"}
+ ]
+}

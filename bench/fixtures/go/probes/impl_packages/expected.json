@@ -1,0 +1,22 @@
+{
+ "digest": "9caf9175edf0b018d2179194bbab5c9e22b28b9709bbea7545e1057a119c7569",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "b/b.go": "all",
+  "cmd/main.go": "all",
+  "internal/d/d.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 20, "col": 2, "end": "20:34", "kind": "I", "callee": "example.com/impl_packages:Doer.Do", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 20, "col": 7, "end": "20:26", "kind": "E", "callee": "context:Background", "at": "", "variants": "all"},
+  {"file": "b/b.go", "line": 14, "col": 2, "end": "14:22", "kind": "I", "callee": "example.com/impl_packages:Doer.Do", "at": "a.go", "variants": "all"},
+  {"file": "cmd/main.go", "line": 16, "col": 2, "end": "16:30", "kind": "I", "callee": "example.com/impl_packages:Doer.Do", "at": "a.go", "variants": "all"},
+  {"file": "cmd/main.go", "line": 16, "col": 7, "end": "16:20", "kind": "E", "callee": "context:TODO", "at": "", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 20, "col": 2, "end": "20:34", "interface": "example.com/impl_packages:Doer", "method": "Do", "candidates": [{"id": "example.com/impl_packages/b:Remote.Do", "at": "b/b.go"}, {"id": "example.com/impl_packages/cmd:Main.Do", "at": "cmd/main.go"}, {"id": "example.com/impl_packages/internal/d:Hidden.Do", "at": "internal/d/d.go"}, {"id": "example.com/impl_packages:Local.Do", "at": "a.go"}], "packages": ["example.com/impl_packages", "example.com/impl_packages/b", "example.com/impl_packages/cmd", "example.com/impl_packages/internal/d"], "variants": "all"},
+  {"file": "b/b.go", "line": 14, "col": 2, "end": "14:22", "interface": "example.com/impl_packages:Doer", "method": "Do", "candidates": [{"id": "example.com/impl_packages/b:Remote.Do", "at": "b/b.go"}, {"id": "example.com/impl_packages:Local.Do", "at": "a.go"}], "packages": ["example.com/impl_packages", "example.com/impl_packages/b"], "variants": "all"},
+  {"file": "cmd/main.go", "line": 16, "col": 2, "end": "16:30", "interface": "example.com/impl_packages:Doer", "method": "Do", "candidates": [{"id": "example.com/impl_packages/cmd:Main.Do", "at": "cmd/main.go"}, {"id": "example.com/impl_packages/internal/d:Hidden.Do", "at": "internal/d/d.go"}, {"id": "example.com/impl_packages:Local.Do", "at": "a.go"}], "packages": ["example.com/impl_packages", "example.com/impl_packages/cmd", "example.com/impl_packages/internal/d"], "variants": "all"}
+ ]
+}

@@ -17,5 +17,7 @@
   {"file": "main.go", "line": 26, "col": 74, "end": "26:84", "kind": "E", "callee": "example.com/stdlib_func_fields:printHelp", "at": "main.go", "variants": "all"},
   {"file": "main.go", "line": 27, "col": 6, "end": "27:31", "kind": "D", "callee": "-", "at": "", "variants": "all"},
   {"file": "main.go", "line": 29, "col": 2, "end": "29:10", "kind": "E", "callee": "sync:WaitGroup.Wait", "at": "", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

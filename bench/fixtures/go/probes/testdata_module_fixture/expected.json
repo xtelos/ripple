@@ -6,5 +6,7 @@
  },
  "calls": [
   {"file": "lib/lib.go", "line": 6, "col": 2, "end": "6:9", "kind": "E", "callee": "example.com/testdata_module_fixture/lib:Helper", "at": "lib/lib.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

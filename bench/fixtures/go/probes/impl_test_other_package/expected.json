@@ -1,0 +1,29 @@
+{
+ "digest": "ac6eb6f9e16ae73897dcfbaa203a4a4117f89ea6afb32fa6a331b422b2ddadab",
+ "variants": ["darwin-arm64/prod", "darwin-arm64/test", "linux-amd64/prod", "linux-amd64/test", "linux-arm64/prod", "linux-arm64/test", "windows-amd64/prod", "windows-amd64/test"],
+ "built": {
+  "a.go": "all",
+  "a_test.go": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"],
+  "b/b.go": "all",
+  "b/b_test.go": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"],
+  "c/c.go": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+  "cmd/m/main.go": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+  "cmd/n/main.go": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+  "ext_test.go": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]
+ },
+ "calls": [
+  {"file": "a.go", "line": 15, "col": 2, "end": "15:8", "kind": "I", "callee": "example.com/impl_test_other_package:Runner.Run", "at": "a.go", "variants": "all"},
+  {"file": "a_test.go", "line": 11, "col": 2, "end": "11:8", "kind": "I", "callee": "example.com/impl_test_other_package:Runner.Run", "at": "a.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "b/b_test.go", "line": 14, "col": 2, "end": "14:8", "kind": "I", "callee": "example.com/impl_test_other_package/b:Runner.Run", "at": "b/b_test.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "cmd/n/main.go", "line": 11, "col": 2, "end": "11:8", "kind": "I", "callee": "example.com/impl_test_other_package:Runner.Run", "at": "a.go", "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"]},
+  {"file": "ext_test.go", "line": 16, "col": 2, "end": "16:8", "kind": "I", "callee": "example.com/impl_test_other_package:Runner.Run", "at": "a.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 15, "col": 2, "end": "15:8", "interface": "example.com/impl_test_other_package:Runner", "method": "Run", "candidates": [{"id": "example.com/impl_test_other_package/b:Prod.Run", "at": "b/b.go"}, {"id": "example.com/impl_test_other_package/c:Loner.Run", "at": "c/c.go"}, {"id": "example.com/impl_test_other_package/cmd/n:N.Run", "at": "cmd/n/main.go"}, {"id": "example.com/impl_test_other_package:Real.Run", "at": "a.go"}], "packages": ["example.com/impl_test_other_package", "example.com/impl_test_other_package/b", "example.com/impl_test_other_package/c", "example.com/impl_test_other_package/cmd/n"], "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"]},
+  {"file": "a.go", "line": 15, "col": 2, "end": "15:8", "interface": "example.com/impl_test_other_package:Runner", "method": "Run", "candidates": [{"id": "example.com/impl_test_other_package/b:Prod.Run", "at": "b/b.go"}, {"id": "example.com/impl_test_other_package:InA.Run", "at": "a_test.go"}, {"id": "example.com/impl_test_other_package:Real.Run", "at": "a.go"}, {"id": "example.com/impl_test_other_package_test:Ext.Run", "at": "ext_test.go"}], "packages": ["example.com/impl_test_other_package", "example.com/impl_test_other_package/b", "example.com/impl_test_other_package_test"], "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "a_test.go", "line": 11, "col": 2, "end": "11:8", "interface": "example.com/impl_test_other_package:Runner", "method": "Run", "candidates": [{"id": "example.com/impl_test_other_package/b:Prod.Run", "at": "b/b.go"}, {"id": "example.com/impl_test_other_package:InA.Run", "at": "a_test.go"}, {"id": "example.com/impl_test_other_package:Real.Run", "at": "a.go"}, {"id": "example.com/impl_test_other_package_test:Ext.Run", "at": "ext_test.go"}], "packages": ["example.com/impl_test_other_package", "example.com/impl_test_other_package/b", "example.com/impl_test_other_package_test"], "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "b/b_test.go", "line": 14, "col": 2, "end": "14:8", "interface": "example.com/impl_test_other_package/b:Runner", "method": "Run", "candidates": [{"id": "example.com/impl_test_other_package/b:Fake.Run", "at": "b/b_test.go"}, {"id": "example.com/impl_test_other_package/b:Prod.Run", "at": "b/b.go"}], "packages": ["example.com/impl_test_other_package/b"], "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "cmd/n/main.go", "line": 11, "col": 2, "end": "11:8", "interface": "example.com/impl_test_other_package:Runner", "method": "Run", "candidates": [{"id": "example.com/impl_test_other_package/cmd/n:N.Run", "at": "cmd/n/main.go"}, {"id": "example.com/impl_test_other_package:Real.Run", "at": "a.go"}], "packages": ["example.com/impl_test_other_package", "example.com/impl_test_other_package/cmd/n"], "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"]},
+  {"file": "ext_test.go", "line": 16, "col": 2, "end": "16:8", "interface": "example.com/impl_test_other_package:Runner", "method": "Run", "candidates": [{"id": "example.com/impl_test_other_package/b:Prod.Run", "at": "b/b.go"}, {"id": "example.com/impl_test_other_package:InA.Run", "at": "a_test.go"}, {"id": "example.com/impl_test_other_package:Real.Run", "at": "a.go"}, {"id": "example.com/impl_test_other_package_test:Ext.Run", "at": "ext_test.go"}], "packages": ["example.com/impl_test_other_package", "example.com/impl_test_other_package/b", "example.com/impl_test_other_package_test"], "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]}
+ ]
+}

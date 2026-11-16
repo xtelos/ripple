@@ -1,0 +1,19 @@
+{
+ "digest": "beb6d91c65a49370373c416c24a98ef85980326ce48bc1702706d63fe5c84d52",
+ "variants": ["darwin-arm64/prod", "darwin-arm64/test", "linux-amd64/prod", "linux-amd64/test", "linux-arm64/prod", "linux-arm64/test", "windows-amd64/prod", "windows-amd64/test"],
+ "built": {
+  "a/a.go": "all",
+  "a/a_test.go": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"],
+  "a/plain_test.go": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"],
+  "b/b.go": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+  "c/c.go": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"]
+ },
+ "calls": [
+  {"file": "a/a_test.go", "line": 9, "col": 2, "end": "9:8", "kind": "I", "callee": "example.com/impl_test_constrained/a:Runner.Run", "at": "a/a.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "a/plain_test.go", "line": 13, "col": 2, "end": "13:8", "kind": "I", "callee": "example.com/impl_test_constrained/a:Runner.Run", "at": "a/a.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]}
+ ],
+ "implementers": [
+  {"file": "a/a_test.go", "line": 9, "col": 2, "end": "9:8", "interface": "example.com/impl_test_constrained/a:Runner", "method": "Run", "candidates": [{"id": "example.com/impl_test_constrained/a:Real.Run", "at": "a/a.go"}, {"id": "example.com/impl_test_constrained/c:Linked.Run", "at": "c/c.go"}], "packages": ["example.com/impl_test_constrained/a", "example.com/impl_test_constrained/c"], "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "a/plain_test.go", "line": 13, "col": 2, "end": "13:8", "interface": "example.com/impl_test_constrained/a:Runner", "method": "Run", "candidates": [{"id": "example.com/impl_test_constrained/a:Real.Run", "at": "a/a.go"}, {"id": "example.com/impl_test_constrained/c:Linked.Run", "at": "c/c.go"}], "packages": ["example.com/impl_test_constrained/a", "example.com/impl_test_constrained/c"], "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]}
+ ]
+}

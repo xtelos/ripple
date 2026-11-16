@@ -7,8 +7,9 @@
     ripple check [TEST ...] [--repo DIR] [--test-command CMD] [--lang L]
     ripple serve [--repo DIR] [--test-command CMD] [--lang L]
 
---kinds (default all) picks the edges a question follows: calls, renders and renderer, comma separated. renders is
-a function that writes <Child /> (TypeScript JSX), renderer the component React runs Child inside, proven or left out.
+--kinds (default all) picks the edges a question follows: calls, renders, renderer and implements, comma separated. renders is
+a function that writes <Child /> (TypeScript JSX), renderer the component React runs Child inside, proven or left out;
+implements is a Go call through an interface that may dispatch to a repo method, listed apart and never as a caller.
 --lang (default auto, or RIPPLE_LANG) picks the language the repo is read as, one named in registry.py; auto looks
 at its files and reads a repo that has several as all of them. Exit status: 0 done, 1 not found or the tests failed, 2 refused
 (no such repo, nothing to read, a missing parser, a command that is not allowed), 3 answered, but part of
@@ -113,7 +114,8 @@ def format_index(repo: str, result: RepoGraph, reasons: bool = False) -> str:
     lines = [
         f"{repo}: {stats['files']} files, {kinds}",
         f"{stats['edges'] - jsx} resolved calls, " + (f"{jsx} JSX edges, " if jsx else "")
-        + f"{stats['unresolved_calls']} unresolved calls, {stats['external_calls']} calls to code outside the repo",
+        + f"{stats['unresolved_calls']} unresolved calls, {stats['external_calls']} calls to code outside the repo"
+        + (f", {stats['implements_edges']} interface implementer edges (possible, not calls)" if stats.get("implements_edges") else ""),
         "(loaded from cache)" if result.cached else "(indexed)",
     ]
     named = any(language.name != default_language().profile.name for language in result.languages)
@@ -188,6 +190,39 @@ def format_decorations(result: dict) -> list[str]:
     return lines
 
 
+def format_interface_calls(result: dict) -> list[str]:
+    """The Go calls through an interface that MAY reach the symbol (callers, impact) and what a function's interface calls
+    may dispatch to (callees). They are possible, never calls, and their list is never complete."""
+    lines = []
+    if result.get("may_be_called_through_interface"):
+        lines.append(
+            f"may be called through an interface ({len(result['may_be_called_through_interface'])}), possible callers only, "
+            "the list is never complete; the calls stay in the unresolved list:"
+        )
+        lines += [f"  {e['symbol']}  {e['location']}  through {e['interface']} at {', '.join(e['call_sites'])}" for e in result["may_be_called_through_interface"]]
+    if result.get("may_be_called_omitted"):
+        lines.append(MORE.format(n=result["may_be_called_omitted"], what="interface callers"))
+    if result.get("may_be_reached_through_interface"):
+        lines.append(
+            f"may be reached through an interface ({len(result['may_be_reached_through_interface'])}), not callers; possible only, "
+            "the list is never complete, and the reach is not followed past these:"
+        )
+        lines += [
+            f"  {e['caller']}  through {e['interface']} at {', '.join(e['call_sites'])}  may reach {e['may_reach']}"
+            for e in result["may_be_reached_through_interface"]
+        ]
+    if result.get("may_be_reached_omitted"):
+        lines.append(MORE.format(n=result["may_be_reached_omitted"], what="interface callers"))
+    if result.get("may_dispatch_to"):
+        lines.append(
+            f"its interface calls may dispatch to ({len(result['may_dispatch_to'])}), possible callees only, the list is never complete:"
+        )
+        lines += [f"  {e['symbol']}  {e['location']}  through {e['interface']} at {', '.join(e['call_sites'])}" for e in result["may_dispatch_to"]]
+    if result.get("may_dispatch_omitted"):
+        lines.append(MORE.format(n=result["may_dispatch_omitted"], what="possible callees"))
+    return lines
+
+
 def format_missed(m: dict) -> str:
     inside = "  (inside a class ripple does not read)" if "reason" in m else ""
     return f"  {m['call']}  in {m['caller']}  {m['location']}{inside}"
@@ -215,6 +250,7 @@ def format_impact(result: dict) -> str:
         for m in result["possible_missed_callers"]:
             lines.append(format_missed(m))
     lines += format_decorations(result)
+    lines += format_interface_calls(result)
     return "\n".join(lines)
 
 
@@ -238,7 +274,7 @@ def format_answer(command: str, result: dict) -> str:
                 f"  {e['symbol']}  {e['location']}  called at {', '.join(e['call_sites'])}  via {e['via_wrapper']}"
                 for e in result["through_wrapper"]
             ]
-        return "\n".join(lines + format_decorations(result))
+        return "\n".join(lines + format_decorations(result) + format_interface_calls(result))
     if command == "callees":
         lines = format_symbols(f"callees of {result['symbol']}", result["callees"])
         lines.append(f"unresolved ({len(result['unresolved'])}):")
@@ -249,7 +285,7 @@ def format_answer(command: str, result: dict) -> str:
                 f"  {d['decorator'] or 'a name ripple could not resolve'}  {d['applied_at']}  written {d['written']}"
                 for d in result["applies_decorators"]
             ]
-        return "\n".join(lines)
+        return "\n".join(lines + format_interface_calls(result))
     if result["path"] is None:
         return "\n".join([f"no call chain from {result['from']} to {result['to']}"] + format_decorations(result))
     hops = [
@@ -273,8 +309,9 @@ def add_kinds(parser: argparse.ArgumentParser) -> None:
         type=kinds_argument,
         default=None,
         metavar="KINDS",
-        help="the edges to follow, comma separated: calls, renders, renderer, or all (default). renders: a function that "
-        "writes <Child /> (changing Child can break it); renderer: the component React runs Child inside, when proven",
+        help="the edges to follow, comma separated: calls, renders, renderer, implements, or all (default). renders: a function that "
+        "writes <Child /> (changing Child can break it); renderer: the component React runs Child inside, when proven; "
+        "implements: a Go call through an interface that may reach a repo method (listed apart, never as callers)",
     )
 
 

@@ -1,0 +1,43 @@
+{
+ "digest": "7188d376a6fb7231151e146142403fd138908a2949f1dbed6680c890d189db73",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 104, "col": 2, "end": "104:11", "kind": "I", "callee": "example.com/impl_type_constructors:IA.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 105, "col": 2, "end": "105:11", "kind": "I", "callee": "example.com/impl_type_constructors:IB.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 106, "col": 2, "end": "106:11", "kind": "I", "callee": "example.com/impl_type_constructors:IC.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 107, "col": 2, "end": "107:11", "kind": "I", "callee": "example.com/impl_type_constructors:ID.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 108, "col": 2, "end": "108:11", "kind": "I", "callee": "example.com/impl_type_constructors:IE.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 109, "col": 2, "end": "109:11", "kind": "I", "callee": "example.com/impl_type_constructors:IF.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 110, "col": 2, "end": "110:11", "kind": "I", "callee": "example.com/impl_type_constructors:IG.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 111, "col": 2, "end": "111:11", "kind": "I", "callee": "example.com/impl_type_constructors:IH.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 112, "col": 2, "end": "112:11", "kind": "I", "callee": "example.com/impl_type_constructors:II.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 113, "col": 2, "end": "113:11", "kind": "I", "callee": "example.com/impl_type_constructors:IK.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 114, "col": 2, "end": "114:11", "kind": "I", "callee": "example.com/impl_type_constructors:IL.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 115, "col": 2, "end": "115:11", "kind": "I", "callee": "example.com/impl_type_constructors:IM.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 116, "col": 2, "end": "116:11", "kind": "I", "callee": "example.com/impl_type_constructors:IN.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 117, "col": 2, "end": "117:11", "kind": "I", "callee": "example.com/impl_type_constructors:IP.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 118, "col": 2, "end": "118:11", "kind": "I", "callee": "example.com/impl_type_constructors:IQ.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 119, "col": 2, "end": "119:7", "kind": "I", "callee": "example.com/impl_type_constructors:FR.R", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 104, "col": 2, "end": "104:11", "interface": "example.com/impl_type_constructors:IA", "method": "M", "candidates": [{"id": "example.com/impl_type_constructors:TA.M", "at": "a.go"}], "packages": ["example.com/impl_type_constructors"], "variants": "all"},
+  {"file": "a.go", "line": 105, "col": 2, "end": "105:11", "interface": "example.com/impl_type_constructors:IB", "method": "M", "candidates": [{"id": "example.com/impl_type_constructors:TB.M", "at": "a.go"}], "packages": ["example.com/impl_type_constructors"], "variants": "all"},
+  {"file": "a.go", "line": 106, "col": 2, "end": "106:11", "interface": "example.com/impl_type_constructors:IC", "method": "M", "candidates": [{"id": "example.com/impl_type_constructors:TC.M", "at": "a.go"}], "packages": ["example.com/impl_type_constructors"], "variants": "all"},
+  {"file": "a.go", "line": 107, "col": 2, "end": "107:11", "interface": "example.com/impl_type_constructors:ID", "method": "M", "candidates": [{"id": "example.com/impl_type_constructors:TD.M", "at": "a.go"}], "packages": ["example.com/impl_type_constructors"], "variants": "all"},
+  {"file": "a.go", "line": 108, "col": 2, "end": "108:11", "interface": "example.com/impl_type_constructors:IE", "method": "M", "candidates": [{"id": "example.com/impl_type_constructors:TE.M", "at": "a.go"}], "packages": ["example.com/impl_type_constructors"], "variants": "all"},
+  {"file": "a.go", "line": 109, "col": 2, "end": "109:11", "interface": "example.com/impl_type_constructors:IF", "method": "M", "candidates": [{"id": "example.com/impl_type_constructors:TF.M", "at": "a.go"}], "packages": ["example.com/impl_type_constructors"], "variants": "all"},
+  {"file": "a.go", "line": 110, "col": 2, "end": "110:11", "interface": "example.com/impl_type_constructors:IG", "method": "M", "candidates": [{"id": "example.com/impl_type_constructors:TG.M", "at": "a.go"}], "packages": ["example.com/impl_type_constructors"], "variants": "all"},
+  {"file": "a.go", "line": 111, "col": 2, "end": "111:11", "interface": "example.com/impl_type_constructors:IH", "method": "M", "candidates": [{"id": "example.com/impl_type_constructors:TH.M", "at": "a.go"}], "packages": ["example.com/impl_type_constructors"], "variants": "all"},
+  {"file": "a.go", "line": 112, "col": 2, "end": "112:11", "interface": "example.com/impl_type_constructors:II", "method": "M", "candidates": [{"id": "example.com/impl_type_constructors:TI.M", "at": "a.go"}], "packages": ["example.com/impl_type_constructors"], "variants": "all"},
+  {"file": "a.go", "line": 113, "col": 2, "end": "113:11", "interface": "example.com/impl_type_constructors:IK", "method": "M", "candidates": [{"id": "example.com/impl_type_constructors:TK.M", "at": "a.go"}], "packages": ["example.com/impl_type_constructors"], "variants": "all"},
+  {"file": "a.go", "line": 114, "col": 2, "end": "114:11", "interface": "example.com/impl_type_constructors:IL", "method": "M", "candidates": [{"id": "example.com/impl_type_constructors:TL.M", "at": "a.go"}], "packages": ["example.com/impl_type_constructors"], "variants": "all"},
+  {"file": "a.go", "line": 115, "col": 2, "end": "115:11", "interface": "example.com/impl_type_constructors:IM", "method": "M", "candidates": [{"id": "example.com/impl_type_constructors:TM.M", "at": "a.go"}], "packages": ["example.com/impl_type_constructors"], "variants": "all"},
+  {"file": "a.go", "line": 116, "col": 2, "end": "116:11", "interface": "example.com/impl_type_constructors:IN", "method": "M", "candidates": [{"id": "example.com/impl_type_constructors:TN.M", "at": "a.go"}], "packages": ["example.com/impl_type_constructors"], "variants": "all"},
+  {"file": "a.go", "line": 117, "col": 2, "end": "117:11", "interface": "example.com/impl_type_constructors:IP", "method": "M", "candidates": [{"id": "example.com/impl_type_constructors:TP.M", "at": "a.go"}], "packages": ["example.com/impl_type_constructors"], "variants": "all"},
+  {"file": "a.go", "line": 118, "col": 2, "end": "118:11", "interface": "example.com/impl_type_constructors:IQ", "method": "M", "candidates": [{"id": "example.com/impl_type_constructors:TQ.M", "at": "a.go"}], "packages": ["example.com/impl_type_constructors"], "variants": "all"},
+  {"file": "a.go", "line": 119, "col": 2, "end": "119:7", "interface": "example.com/impl_type_constructors:FR", "method": "R", "candidates": [{"id": "example.com/impl_type_constructors:TFR.R", "at": "a.go"}], "packages": ["example.com/impl_type_constructors"], "variants": "all"}
+ ]
+}

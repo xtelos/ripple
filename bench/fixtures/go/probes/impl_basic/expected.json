@@ -1,0 +1,24 @@
+{
+ "digest": "dc34e09a057df5cc6dd82fd68e167a1c90b53695f50103a9f96ddad0fa17330f",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 87, "col": 2, "end": "87:11", "kind": "I", "callee": "example.com/impl_basic:Store.Get", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 88, "col": 2, "end": "88:16", "kind": "I", "callee": "example.com/impl_basic:Store.Put", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 89, "col": 2, "end": "89:11", "kind": "I", "callee": "example.com/impl_basic:Logger.Log", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 90, "col": 2, "end": "90:17", "kind": "I", "callee": "example.com/impl_basic:Store.Get", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 91, "col": 2, "end": "91:20", "kind": "I", "callee": "example.com/impl_basic:Store.Put", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 91, "col": 2, "end": "91:6", "kind": "E", "callee": "example.com/impl_basic:New", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 93, "col": 2, "end": "93:15", "kind": "I", "callee": "example.com/impl_basic:Store.Get", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 87, "col": 2, "end": "87:11", "interface": "example.com/impl_basic:Store", "method": "Get", "candidates": [{"id": "example.com/impl_basic:Disk.Get", "at": "a.go"}, {"id": "example.com/impl_basic:Mem.Get", "at": "a.go"}, {"id": "example.com/impl_basic:Named.Get", "at": "a.go"}], "packages": ["example.com/impl_basic"], "variants": "all"},
+  {"file": "a.go", "line": 88, "col": 2, "end": "88:16", "interface": "example.com/impl_basic:Store", "method": "Put", "candidates": [{"id": "example.com/impl_basic:Disk.Put", "at": "a.go"}, {"id": "example.com/impl_basic:Mem.Put", "at": "a.go"}, {"id": "example.com/impl_basic:Named.Put", "at": "a.go"}], "packages": ["example.com/impl_basic"], "variants": "all"},
+  {"file": "a.go", "line": 89, "col": 2, "end": "89:11", "interface": "example.com/impl_basic:Logger", "method": "Log", "candidates": [{"id": "example.com/impl_basic:Spelled.Log", "at": "a.go"}, {"id": "example.com/impl_basic:Std.Log", "at": "a.go"}], "packages": ["example.com/impl_basic"], "variants": "all"},
+  {"file": "a.go", "line": 90, "col": 2, "end": "90:17", "interface": "example.com/impl_basic:Store", "method": "Get", "candidates": [{"id": "example.com/impl_basic:Disk.Get", "at": "a.go"}, {"id": "example.com/impl_basic:Mem.Get", "at": "a.go"}, {"id": "example.com/impl_basic:Named.Get", "at": "a.go"}], "packages": ["example.com/impl_basic"], "variants": "all"},
+  {"file": "a.go", "line": 91, "col": 2, "end": "91:20", "interface": "example.com/impl_basic:Store", "method": "Put", "candidates": [{"id": "example.com/impl_basic:Disk.Put", "at": "a.go"}, {"id": "example.com/impl_basic:Mem.Put", "at": "a.go"}, {"id": "example.com/impl_basic:Named.Put", "at": "a.go"}], "packages": ["example.com/impl_basic"], "variants": "all"},
+  {"file": "a.go", "line": 93, "col": 2, "end": "93:15", "interface": "example.com/impl_basic:Store", "method": "Get", "candidates": [{"id": "example.com/impl_basic:Disk.Get", "at": "a.go"}, {"id": "example.com/impl_basic:Mem.Get", "at": "a.go"}, {"id": "example.com/impl_basic:Named.Get", "at": "a.go"}], "packages": ["example.com/impl_basic"], "variants": "all"}
+ ]
+}

@@ -1,0 +1,15 @@
+{
+ "digest": "256246cccaeea3524c2ec1cc28258be0a1204cd2d6b0ce19cf39d78015b3ba0e",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "m.go": ["linux-amd64/prod", "linux-arm64/prod"],
+  "use.go": ["darwin-arm64/prod", "windows-amd64/prod"]
+ },
+ "calls": [
+  {"file": "use.go", "line": 6, "col": 2, "end": "6:6", "kind": "I", "callee": "example.com/impl_header_bom:I.M", "at": "a.go", "variants": ["darwin-arm64/prod", "windows-amd64/prod"]}
+ ],
+ "implementers": [
+  {"file": "use.go", "line": 6, "col": 2, "end": "6:6", "interface": "example.com/impl_header_bom:I", "method": "M", "candidates": [], "packages": ["example.com/impl_header_bom"], "variants": ["darwin-arm64/prod", "windows-amd64/prod"]}
+ ]
+}

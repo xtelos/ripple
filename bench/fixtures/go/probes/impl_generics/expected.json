@@ -1,0 +1,18 @@
+{
+ "digest": "05f1348fb51c6e9bc030efa7d497f9d37469958befcc76967382cf98d5facabd",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 27, "col": 2, "end": "27:8", "kind": "I", "callee": "example.com/impl_generics:IntGetter.Get", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 31, "col": 2, "end": "31:8", "kind": "I", "callee": "example.com/impl_generics:Getter.Get", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 35, "col": 2, "end": "35:8", "kind": "I", "callee": "example.com/impl_generics:IntGetter.Get", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 39, "col": 2, "end": "39:8", "kind": "I", "callee": "example.com/impl_generics:Getter.Get", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 27, "col": 2, "end": "27:8", "interface": "example.com/impl_generics:IntGetter", "method": "Get", "candidates": [{"id": "example.com/impl_generics:Box.Get", "at": "a.go"}, {"id": "example.com/impl_generics:Plain.Get", "at": "a.go"}], "packages": ["example.com/impl_generics"], "variants": "all"},
+  {"file": "a.go", "line": 31, "col": 2, "end": "31:8", "interface": "example.com/impl_generics:Getter", "method": "Get", "candidates": [{"id": "example.com/impl_generics:Box.Get", "at": "a.go"}, {"id": "example.com/impl_generics:Plain.Get", "at": "a.go"}], "packages": ["example.com/impl_generics"], "variants": "all"},
+  {"file": "a.go", "line": 39, "col": 2, "end": "39:8", "interface": "example.com/impl_generics:Getter", "method": "Get", "candidates": [], "packages": ["example.com/impl_generics"], "variants": "all"}
+ ]
+}

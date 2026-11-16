@@ -11,5 +11,7 @@
   {"file": "a.go", "line": 13, "col": 2, "end": "13:11", "kind": "D", "callee": "-", "at": "", "variants": "all"},
   {"file": "a.go", "line": 14, "col": 2, "end": "14:24", "kind": "E", "callee": "github.com/spf13/pflag:FlagSet.Bool", "at": "", "variants": "all"},
   {"file": "a.go", "line": 15, "col": 2, "end": "15:14", "kind": "E", "callee": "github.com/spf13/pflag:FlagSet.Parse", "at": "", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

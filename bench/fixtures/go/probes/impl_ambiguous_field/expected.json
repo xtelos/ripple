@@ -1,0 +1,18 @@
+{
+ "digest": "854cedb607a5efb6b2e7144fe83d92699c905f164129c111ce3345ee80626922",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "use.go": ["linux-amd64/prod", "linux-arm64/prod"],
+  "x_linux.go": ["linux-amd64/prod", "linux-arm64/prod"],
+  "x_other.go": ["darwin-arm64/prod", "windows-amd64/prod"]
+ },
+ "calls": [
+  {"file": "use.go", "line": 6, "col": 2, "end": "6:6", "kind": "I", "callee": "example.com/impl_ambiguous_field:I.M", "at": "a.go", "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "use.go", "line": 7, "col": 2, "end": "7:6", "kind": "I", "callee": "example.com/impl_ambiguous_field:I.N", "at": "a.go", "variants": ["linux-amd64/prod", "linux-arm64/prod"]}
+ ],
+ "implementers": [
+  {"file": "use.go", "line": 6, "col": 2, "end": "6:6", "interface": "example.com/impl_ambiguous_field:I", "method": "M", "candidates": [], "packages": ["example.com/impl_ambiguous_field"], "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "use.go", "line": 7, "col": 2, "end": "7:6", "interface": "example.com/impl_ambiguous_field:I", "method": "N", "candidates": [], "packages": ["example.com/impl_ambiguous_field"], "variants": ["linux-amd64/prod", "linux-arm64/prod"]}
+ ]
+}

@@ -8,5 +8,7 @@
  "calls": [
   {"file": "use.go", "line": 5, "col": 2, "end": "5:6", "kind": "E", "callee": "example.com/parse_error_generic_alias:Box.M", "at": "a.go", "variants": "all"},
   {"file": "use.go", "line": 7, "col": 2, "end": "7:6", "kind": "E", "callee": "example.com/parse_error_generic_alias:Box.M", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

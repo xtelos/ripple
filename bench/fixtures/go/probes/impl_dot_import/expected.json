@@ -1,0 +1,17 @@
+{
+ "digest": "c83db8ab17a2d85e718972746c54f868471ffb3d2ecd3db72d36786487b9c9aa",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "b.go": "all",
+  "d/d.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 15, "col": 2, "end": "15:16", "kind": "I", "callee": "example.com/impl_dot_import:Handler.Handle", "at": "a.go", "variants": "all"},
+  {"file": "b.go", "line": 12, "col": 2, "end": "12:17", "kind": "I", "callee": "example.com/impl_dot_import:Qualified.Serve", "at": "b.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 15, "col": 2, "end": "15:16", "interface": "example.com/impl_dot_import:Handler", "method": "Handle", "candidates": [{"id": "example.com/impl_dot_import:Dot.Handle", "at": "a.go"}], "packages": ["example.com/impl_dot_import", "example.com/impl_dot_import/d"], "variants": "all"},
+  {"file": "b.go", "line": 12, "col": 2, "end": "12:17", "interface": "example.com/impl_dot_import:Qualified", "method": "Serve", "candidates": [{"id": "example.com/impl_dot_import:Named.Serve", "at": "b.go"}], "packages": ["example.com/impl_dot_import", "example.com/impl_dot_import/d"], "variants": "all"}
+ ]
+}

@@ -1,0 +1,15 @@
+{
+ "digest": "860f8c620961aae490e0c12752fb7f21d6a615c15640cb1500ec18402f7ea546",
+ "variants": ["darwin-arm64/prod", "darwin-arm64/test", "linux-amd64/prod", "linux-amd64/test", "linux-arm64/prod", "linux-arm64/test", "windows-amd64/prod", "windows-amd64/test"],
+ "built": {
+  "a.go": "all",
+  "a_test.go": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"],
+  "m.go": ["linux-amd64/prod", "linux-amd64/test", "linux-arm64/prod", "linux-arm64/test"]
+ },
+ "calls": [
+  {"file": "a.go", "line": 10, "col": 2, "end": "10:6", "kind": "E", "callee": "example.com/plus_build_bom_call:E.M", "at": "a.go", "variants": ["darwin-arm64/prod", "darwin-arm64/test", "windows-amd64/prod", "windows-amd64/test"]},
+  {"file": "a.go", "line": 10, "col": 2, "end": "10:6", "kind": "E", "callee": "example.com/plus_build_bom_call:T.M", "at": "m.go", "variants": ["linux-amd64/prod", "linux-amd64/test", "linux-arm64/prod", "linux-arm64/test"]}
+ ],
+ "implementers": [
+ ]
+}

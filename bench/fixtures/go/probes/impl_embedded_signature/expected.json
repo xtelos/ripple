@@ -1,0 +1,17 @@
+{
+ "digest": "432d12265938c395a6c2e33988792d6cc1a10788db47f6615530ee187a3ec97b",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 24, "col": 2, "end": "24:6", "kind": "I", "callee": "example.com/impl_embedded_signature:WantsString.Z", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:6", "kind": "I", "callee": "example.com/impl_embedded_signature:WantsInt.Z", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 26, "col": 2, "end": "26:7", "kind": "I", "callee": "example.com/impl_embedded_signature:WantsInt.M", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 24, "col": 2, "end": "24:6", "interface": "example.com/impl_embedded_signature:WantsString", "method": "Z", "candidates": [], "packages": ["example.com/impl_embedded_signature"], "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:6", "interface": "example.com/impl_embedded_signature:WantsInt", "method": "Z", "candidates": [{"id": "example.com/impl_embedded_signature:T.Z", "at": "a.go"}], "packages": ["example.com/impl_embedded_signature"], "variants": "all"},
+  {"file": "a.go", "line": 26, "col": 2, "end": "26:7", "interface": "example.com/impl_embedded_signature:WantsInt", "method": "M", "candidates": [], "packages": ["example.com/impl_embedded_signature"], "variants": "all"}
+ ]
+}

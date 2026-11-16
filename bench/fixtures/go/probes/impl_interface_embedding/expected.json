@@ -1,0 +1,26 @@
+{
+ "digest": "b9788e904d104de03d8898669c6848b184adb34864ad771b5d082f8f50605370",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 72, "col": 44, "end": "72:52", "kind": "I", "callee": "example.com/impl_interface_embedding:Labelled.Label", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 75, "col": 2, "end": "75:10", "kind": "I", "callee": "example.com/impl_interface_embedding:Reader.Read", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 76, "col": 2, "end": "76:14", "kind": "I", "callee": "example.com/impl_interface_embedding:Writer.Write", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 77, "col": 2, "end": "77:9", "kind": "I", "callee": "example.com/impl_interface_embedding:Diamond.Read", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 78, "col": 2, "end": "78:9", "kind": "I", "callee": "example.com/impl_interface_embedding:Reader.Read", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 79, "col": 2, "end": "79:10", "kind": "I", "callee": "example.com/impl_interface_embedding:Reader.Read", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 80, "col": 2, "end": "80:10", "kind": "I", "callee": "example.com/impl_interface_embedding:Shown.Extra", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 81, "col": 2, "end": "81:9", "kind": "I", "callee": "example.com/impl_interface_embedding:Failure.Code", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 75, "col": 2, "end": "75:10", "interface": "example.com/impl_interface_embedding:ReadWriter", "method": "Read", "candidates": [{"id": "example.com/impl_interface_embedding:File.Read", "at": "a.go"}], "packages": ["example.com/impl_interface_embedding"], "variants": "all"},
+  {"file": "a.go", "line": 76, "col": 2, "end": "76:14", "interface": "example.com/impl_interface_embedding:ReadWriter", "method": "Write", "candidates": [{"id": "example.com/impl_interface_embedding:File.Write", "at": "a.go"}], "packages": ["example.com/impl_interface_embedding"], "variants": "all"},
+  {"file": "a.go", "line": 77, "col": 2, "end": "77:9", "interface": "example.com/impl_interface_embedding:Diamond", "method": "Read", "candidates": [{"id": "example.com/impl_interface_embedding:File.Read", "at": "a.go"}, {"id": "example.com/impl_interface_embedding:Half.Read", "at": "a.go"}], "packages": ["example.com/impl_interface_embedding"], "variants": "all"},
+  {"file": "a.go", "line": 78, "col": 2, "end": "78:9", "interface": "example.com/impl_interface_embedding:Named", "method": "Read", "candidates": [{"id": "example.com/impl_interface_embedding:File.Read", "at": "a.go"}, {"id": "example.com/impl_interface_embedding:Half.Read", "at": "a.go"}], "packages": ["example.com/impl_interface_embedding"], "variants": "all"},
+  {"file": "a.go", "line": 79, "col": 2, "end": "79:10", "interface": "example.com/impl_interface_embedding:Reader", "method": "Read", "candidates": [{"id": "example.com/impl_interface_embedding:File.Read", "at": "a.go"}, {"id": "example.com/impl_interface_embedding:Half.Read", "at": "a.go"}], "packages": ["example.com/impl_interface_embedding"], "variants": "all"},
+  {"file": "a.go", "line": 80, "col": 2, "end": "80:10", "interface": "example.com/impl_interface_embedding:Shown", "method": "Extra", "candidates": [{"id": "example.com/impl_interface_embedding:Thing.Extra", "at": "a.go"}], "packages": ["example.com/impl_interface_embedding"], "variants": "all"},
+  {"file": "a.go", "line": 81, "col": 2, "end": "81:9", "interface": "example.com/impl_interface_embedding:Failure", "method": "Code", "candidates": [{"id": "example.com/impl_interface_embedding:Oops.Code", "at": "a.go"}], "packages": ["example.com/impl_interface_embedding"], "variants": "all"}
+ ]
+}

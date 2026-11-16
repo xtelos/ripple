@@ -1,0 +1,15 @@
+{
+ "digest": "c298fe72cca32d3000a02bd16303c2b537f2d7b1f703e22af3b75301259676ed",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "b/b.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 8, "col": 2, "end": "8:6", "kind": "I", "callee": "example.com/impl_replace_version:I.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 9, "col": 2, "end": "9:6", "kind": "E", "callee": "example.com/other:F", "at": "", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 8, "col": 2, "end": "8:6", "interface": "example.com/impl_replace_version:I", "method": "M", "candidates": [], "packages": ["example.com/impl_replace_version"], "variants": "all"}
+ ]
+}

@@ -29,5 +29,7 @@
   {"file": "a.go", "line": 74, "col": 2, "end": "74:31", "kind": "D", "callee": "-", "at": "", "variants": "all"},
   {"file": "a.go", "line": 74, "col": 21, "end": "74:27", "kind": "E", "callee": "example.com/shadow_short_decl:U.Run", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 75, "col": 2, "end": "75:8", "kind": "E", "callee": "example.com/shadow_short_decl:T.Run", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

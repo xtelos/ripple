@@ -15,5 +15,7 @@
   {"file": "c/x_darwin.go", "line": 5, "col": 9, "end": "5:17", "kind": "E", "callee": "example.com/variant_var_imports/pa:New", "at": "pa/pa.go", "variants": ["darwin-arm64/prod"]},
   {"file": "c/x_linux.go", "line": 5, "col": 9, "end": "5:17", "kind": "E", "callee": "example.com/variant_var_imports/pa:New", "at": "pa/pa.go", "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
   {"file": "c/x_windows.go", "line": 5, "col": 9, "end": "5:17", "kind": "E", "callee": "example.com/variant_var_imports/pb:New", "at": "pb/pb.go", "variants": ["windows-amd64/prod"]}
+ ],
+ "implementers": [
  ]
 }

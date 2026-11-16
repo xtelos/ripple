@@ -54,7 +54,13 @@ separated) to follow some, and an entry that has a JSX edge says which kinds in 
 was left out (TypeScript, JavaScript, Go, Rust or Java without a parser that loads, or ids two languages
 define): the answer covers only the rest, and the warning says what and why. In Go, a call
 through an interface, and a call into a package outside the repo other than the standard
-library, are unresolved rather than followed or called external: read their reasons. In Rust,
+library, are unresolved rather than followed or called external: read their reasons. A call through
+a repo interface also gets "implements" edges to the repo methods of the repo types that provably
+have every method of the interface: they are never callers. callers lists them under
+may_be_called_through_interface, impact under may_be_reached_through_interface and callees under
+may_dispatch_to, each worded as "may", with a note that the list is never complete (a type from outside
+the repo can satisfy the interface) and that the call itself stays unresolved; kinds=implements asks for
+only these, kinds=calls leaves them out. In Rust,
 every method call x.m() is unresolved for now, and so is a call under a #[cfg], under an
 attribute macro or beside a macro that may define names: read their reasons. In Java, a
 call a supertype from outside the repo could answer, an overload the written argument
@@ -95,7 +101,9 @@ def build_server(repo: str, test_command: str | None = None, timeout: float = 30
             "are listed apart, under through_wrapper. Where a TypeScript symbol is written as a decorator, those places are listed under decorations (not calls; what a decorator does is not modelled). symbol: a Python dotted path, a TypeScript path:member id "
             "(src/util/math:clamp), a Class.method suffix, or a bare name. kinds: which edges to list, comma "
             "separated, from calls, renders (a function that writes <Symbol /> in JSX) and renderer (the component "
-            "React runs the symbol inside, when proven); default all. An entry with a JSX edge has edge_kinds."
+            "React runs the symbol inside, when proven) and implements (a Go call through an interface that may dispatch to "
+            "the symbol: listed apart, under may_be_called_through_interface, and never among callers); default all. An entry "
+            "with a JSX edge has edge_kinds."
         ),
     )
     def callers(symbol: str, kinds: str = "all") -> dict:
@@ -106,7 +114,8 @@ def build_server(repo: str, test_command: str | None = None, timeout: float = 30
         description=(
             "List what a function or method calls: resolved callees with call sites, plus the calls "
             "ripple could not resolve statically and why. kinds is as for callers; a TypeScript component's "
-            "children are renders edges, and the elements whose renderer is not proven are listed as unresolved."
+            "children are renders edges, and the elements whose renderer is not proven are listed as unresolved. What a Go "
+            "function's interface calls may dispatch to is listed apart, under may_dispatch_to (possible, never complete)."
         ),
     )
     def callees(symbol: str, kinds: str = "all") -> dict:
@@ -121,7 +130,9 @@ def build_server(repo: str, test_command: str | None = None, timeout: float = 30
             "At most limit callers and limit tests are listed; truncated and omitted_callers / omitted_tests say how many more were found (decorator sites are cut too: decorations_omitted, and truncated counts them). Also lists unresolved call "
             "sites with the same name, which static analysis cannot rule out, and where a TypeScript symbol is written as a decorator (decorations, not calls), including where a caller it found is itself a decorator (decorations_of_callers: the reach continues past those sites). Follows every edge kind by default: a "
             "TypeScript component that writes <Symbol /> is affected too (it can break when the symbol changes), and a "
-            "caller reached through one carries edge_kinds; pass kinds (calls, renders, renderer) to follow fewer."
+            "caller reached through one carries edge_kinds; pass kinds (calls, renders, renderer, implements) to follow fewer. "
+            "A Go call through an interface that may dispatch to the symbol or to a caller found is listed apart, under "
+            "may_be_reached_through_interface: possible callers, never complete, not counted in affected and not followed further."
         ),
     )
     def impact(symbol: str, depth: int = 5, limit: int = queries.MAX_LISTED, kinds: str = "all") -> dict:

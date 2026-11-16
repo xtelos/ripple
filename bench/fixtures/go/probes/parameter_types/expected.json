@@ -12,5 +12,7 @@
   {"file": "a.go", "line": 14, "col": 2, "end": "14:9", "kind": "E", "callee": "example.com/parameter_types:T.M", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 15, "col": 2, "end": "15:11", "kind": "E", "callee": "example.com/parameter_types:T.M", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 16, "col": 2, "end": "16:7", "kind": "D", "callee": "-", "at": "", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

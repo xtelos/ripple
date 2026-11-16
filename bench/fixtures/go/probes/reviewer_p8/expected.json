@@ -6,5 +6,7 @@
  },
  "calls": [
   {"file": "lib/lib.go", "line": 4, "col": 14, "end": "4:21", "kind": "E", "callee": "example.com/p8/lib:Helper", "at": "lib/lib.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

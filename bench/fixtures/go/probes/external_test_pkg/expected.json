@@ -13,5 +13,7 @@
   {"file": "lib/lib_test.go", "line": 18, "col": 2, "end": "18:6", "kind": "E", "callee": "example.com/external_test_pkg/lib:T.M", "at": "lib/lib.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
   {"file": "lib/lib_test.go", "line": 19, "col": 2, "end": "19:8", "kind": "E", "callee": "example.com/external_test_pkg/lib_test:local.Own", "at": "lib/lib_test.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
   {"file": "lib/lib_test.go", "line": 20, "col": 2, "end": "20:15", "kind": "D", "callee": "-", "at": "", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]}
+ ],
+ "implementers": [
  ]
 }

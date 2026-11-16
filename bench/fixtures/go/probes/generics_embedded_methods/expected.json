@@ -9,5 +9,7 @@
   {"file": "a.go", "line": 16, "col": 6, "end": "16:12", "kind": "E", "callee": "example.com/generics_embedded_methods:Inner.Get", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 18, "col": 2, "end": "18:11", "kind": "E", "callee": "example.com/generics_embedded_methods:Outer.Set", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 19, "col": 6, "end": "19:12", "kind": "E", "callee": "example.com/generics_embedded_methods:Inner.Get", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

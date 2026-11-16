@@ -13,5 +13,7 @@
   {"file": "a.go", "line": 24, "col": 2, "end": "24:12", "kind": "E", "callee": "example.com/recursive_types:B.FromB", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 25, "col": 2, "end": "25:14", "kind": "E", "callee": "example.com/recursive_types:A.FromA", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 27, "col": 2, "end": "27:10", "kind": "E", "callee": "example.com/recursive_types:A.FromA", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

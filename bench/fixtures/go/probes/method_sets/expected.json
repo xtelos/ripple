@@ -18,5 +18,7 @@
   {"file": "a.go", "line": 25, "col": 2, "end": "25:9", "kind": "E", "callee": "example.com/method_sets:T.Val", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 26, "col": 2, "end": "26:12", "kind": "E", "callee": "example.com/method_sets:T.Ptr", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 27, "col": 2, "end": "27:12", "kind": "E", "callee": "example.com/method_sets:T.Val", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

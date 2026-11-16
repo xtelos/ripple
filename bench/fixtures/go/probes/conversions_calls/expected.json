@@ -14,5 +14,8 @@
   {"file": "a.go", "line": 32, "col": 2, "end": "32:9", "kind": "I", "callee": "example.com/conversions_calls:I.M", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 34, "col": 2, "end": "34:14", "kind": "D", "callee": "-", "at": "", "variants": "all"},
   {"file": "a.go", "line": 37, "col": 2, "end": "37:10", "kind": "E", "callee": "example.com/conversions_calls:Handler.Serve", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 32, "col": 2, "end": "32:9", "interface": "example.com/conversions_calls:I", "method": "M", "candidates": [{"id": "example.com/conversions_calls:T.M", "at": "a.go"}], "packages": ["example.com/conversions_calls"], "variants": "all"}
  ]
 }

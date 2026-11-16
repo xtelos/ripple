@@ -11,5 +11,7 @@
   {"file": "a.go", "line": 23, "col": 2, "end": "23:6", "kind": "E", "callee": "example.com/alias_chain:C.M", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 24, "col": 2, "end": "24:6", "kind": "E", "callee": "example.com/alias_chain:Base.N", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 25, "col": 2, "end": "25:8", "kind": "E", "callee": "example.com/alias_chain:C.M", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

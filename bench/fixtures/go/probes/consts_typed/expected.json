@@ -8,5 +8,7 @@
   {"file": "a.go", "line": 10, "col": 6, "end": "10:17", "kind": "E", "callee": "example.com/consts_typed:Color.String", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 12, "col": 6, "end": "12:15", "kind": "E", "callee": "example.com/consts_typed:Color.String", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 14, "col": 6, "end": "14:15", "kind": "E", "callee": "example.com/consts_typed:Color.String", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

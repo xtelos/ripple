@@ -1,0 +1,15 @@
+{
+ "digest": "617e6a029ff15ad9604af9d775dba9155438a6b9a096e184374b2b76d734bcb0",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 75, "col": 2, "end": "75:9", "kind": "I", "callee": "example.com/impl_embedding:Session.Open", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 76, "col": 2, "end": "76:10", "kind": "I", "callee": "example.com/impl_embedding:Session.Close", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 75, "col": 2, "end": "75:9", "interface": "example.com/impl_embedding:Session", "method": "Open", "candidates": [{"id": "example.com/impl_embedding:Part.Open", "at": "a.go"}], "packages": ["example.com/impl_embedding"], "variants": "all"},
+  {"file": "a.go", "line": 76, "col": 2, "end": "76:10", "interface": "example.com/impl_embedding:Session", "method": "Close", "candidates": [{"id": "example.com/impl_embedding:Deep.Close", "at": "a.go"}, {"id": "example.com/impl_embedding:PtrWhole.Close", "at": "a.go"}, {"id": "example.com/impl_embedding:Unambiguous.Close", "at": "a.go"}, {"id": "example.com/impl_embedding:ViaInterface.Close", "at": "a.go"}, {"id": "example.com/impl_embedding:Whole.Close", "at": "a.go"}], "packages": ["example.com/impl_embedding"], "variants": "all"}
+ ]
+}

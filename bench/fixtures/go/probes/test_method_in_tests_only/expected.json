@@ -9,5 +9,7 @@
  "calls": [
   {"file": "b_test.go", "line": 7, "col": 2, "end": "7:10", "kind": "E", "callee": "example.com/test_method_in_tests_only:Conn.Close", "at": "a_test.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
   {"file": "b_test.go", "line": 9, "col": 2, "end": "9:10", "kind": "E", "callee": "example.com/test_method_in_tests_only:Base.Close", "at": "f.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]}
+ ],
+ "implementers": [
  ]
 }

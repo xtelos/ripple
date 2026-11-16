@@ -7,5 +7,7 @@
  "calls": [
   {"file": "a.go", "line": 17, "col": 2, "end": "17:12", "kind": "E", "callee": "example.com/unsafe_pointers:T.M", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 19, "col": 2, "end": "19:6", "kind": "E", "callee": "example.com/unsafe_pointers:T.M", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

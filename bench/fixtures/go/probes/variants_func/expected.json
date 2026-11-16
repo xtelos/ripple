@@ -15,5 +15,7 @@
   {"file": "a.go", "line": 9, "col": 2, "end": "9:11", "kind": "E", "callee": "example.com/variants_func:initOnly", "at": "p_windows.go", "variants": ["windows-amd64/prod"]},
   {"file": "p_unix.go", "line": 9, "col": 15, "end": "9:24", "kind": "E", "callee": "example.com/variants_func:initOnly", "at": "p_unix.go", "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod"]},
   {"file": "p_windows.go", "line": 7, "col": 15, "end": "7:24", "kind": "E", "callee": "example.com/variants_func:initOnly", "at": "p_windows.go", "variants": ["windows-amd64/prod"]}
+ ],
+ "implementers": [
  ]
 }

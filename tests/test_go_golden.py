@@ -37,13 +37,13 @@ def graph():
 
 def test_every_edge_the_truth_lists_is_found_and_no_other_edge_is_made(graph):
     want = {(full(a), full(b)) for a, b in TRUTH["edges"]}
-    got = {(e.caller, e.callee) for e in graph.edges}
+    got = {(e.caller, e.callee) for e in graph.edges if e.kind != "implements"}  # an implements edge is a possible call, never one
     assert want - got == set(), "missed"
     assert got - want == set(), "wrong"
 
 
 def test_the_edges_the_truth_allows_to_be_missed_are_missed(graph):
-    got = {(e.caller, e.callee) for e in graph.edges}
+    got = {(e.caller, e.callee) for e in graph.edges if e.kind != "implements"}
     for pair, why in TRUTH["allowed_missing"].items():
         a, b = (full(x) for x in pair.split(" -> "))
         assert (a, b) not in got, why
@@ -69,13 +69,13 @@ def test_the_unparsable_file_is_listed_and_its_function_is_still_a_symbol(graph)
 
 
 def test_no_non_edge_is_an_edge(graph):
-    got = {(e.caller, e.callee) for e in graph.edges}
+    got = {(e.caller, e.callee) for e in graph.edges if e.kind != "implements"}
     for a, b, why in TRUTH["non_edges"]:
         assert (full(a), full(b)) not in got, why
 
 
 def test_every_edge_end_is_a_symbol_and_every_edge_site_is_inside_its_caller(graph):
-    for e in graph.edges:
+    for e in graph.edges:  # an implements edge too: its callee is a symbol and its site is inside its caller
         assert e.callee in graph.symbols, e
         caller = graph.symbols[e.caller]
         if caller.kind != "module":
@@ -117,7 +117,7 @@ def multimod():
 
 
 def test_an_import_of_another_repo_module_is_the_repo_copy_only_with_a_replace_or_a_go_work(multimod):
-    got = {(e.caller, e.callee) for e in multimod.edges}
+    got = {(e.caller, e.callee) for e in multimod.edges if e.kind != "implements"}
     assert got == {
         ("ex.com/tool:main", "ex.com/lib/util:Do"),  # replace ex.com/lib => ../lib
         ("ex.com/wsapp:main", "ex.com/lib/util:Do"),  # go.work lists lib and wsapp

@@ -20,5 +20,7 @@
   {"file": "b.go", "line": 11, "col": 2, "end": "11:11", "kind": "D", "callee": "-", "at": "", "variants": "all"},
   {"file": "b.go", "line": 12, "col": 2, "end": "12:11", "kind": "E", "callee": "example.com/init_and_var_init:T.Run", "at": "a.go", "variants": "all"},
   {"file": "b.go", "line": 13, "col": 2, "end": "13:12", "kind": "E", "callee": "example.com/init_and_var_init:T.Run", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

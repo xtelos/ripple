@@ -10,5 +10,7 @@
   {"file": "main.go", "line": 8, "col": 2, "end": "8:6", "kind": "E", "callee": "example.com/rlib/util:T.M", "at": "rlib/util/util.go", "variants": "all"},
   {"file": "main.go", "line": 9, "col": 2, "end": "9:11", "kind": "E", "callee": "example.com/rlib/util:New", "at": "rlib/util/util.go", "variants": "all"},
   {"file": "main.go", "line": 9, "col": 2, "end": "9:15", "kind": "E", "callee": "example.com/rlib/util:T.M", "at": "rlib/util/util.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

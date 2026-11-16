@@ -14,7 +14,7 @@ import re
 from collections import deque
 
 from .jsx_facts import JSX_NO_RENDERER, JSX_TAG_UNRESOLVED
-from .model import DECORATOR_SCOPE, PARAMETERS, UNREAD_CLASS, Decoration, Edge, Graph, Symbol, Unresolved, without_parameters
+from .model import DECORATOR_SCOPE, IMPLEMENTS, PARAMETERS, UNREAD_CLASS, Decoration, Edge, Graph, Symbol, Unresolved, without_parameters
 from .profile import LanguageProfile
 from .pytest_collection import PytestCollection  # noqa: F401 (it was defined here)
 from .registry import folds_files, language_of, module_id, path_suffixes, stem, writes_colon_members
@@ -95,8 +95,11 @@ def _constructors_of(graph: Graph, symbol_id: str, constructor: str) -> list[str
 
 
 # The kinds of edge a question can be about. `calls` is every edge a call makes (a call, `new`, an override, a
-# callback, a decorator); `renders` and `renderer` are the two JSX edges (see ts_indexer.py and jsx.py).
-KINDS = ("calls", "renders", "renderer")
+# callback, a decorator); `renders` and `renderer` are the two JSX edges (see ts_indexer.py and jsx.py); `implements`
+# is a Go call through an interface that MAY dispatch to a repo method (model.IMPLEMENTS). It is never a call: the graph
+# keeps those edges out of every call index, so a question lists them apart, under their own key, and only when asked
+# for (all, the default, or implements named).
+KINDS = ("calls", "renders", "renderer", "implements")
 JSX_KINDS = ("renders", "renderer")
 
 
@@ -115,8 +118,8 @@ def parse_kinds(value: str | None) -> frozenset[str] | None:
 
 
 def edge_group(edge: Edge) -> str:
-    """The kind a question filters on: renders, renderer, else calls."""
-    return edge.kind if edge.kind in JSX_KINDS else "calls"
+    """The kind a question filters on: renders, renderer, implements, else calls."""
+    return edge.kind if edge.kind in JSX_KINDS or edge.kind == IMPLEMENTS else "calls"
 
 
 def _unresolved_group(u: Unresolved) -> str:
@@ -213,6 +216,82 @@ def _decorations_of_callers(graph: Graph, distance: dict[str, int], kinds, profi
     if len(sites) > limit:
         found["decorations_of_callers_omitted"] = len(sites) - limit
     return found
+
+
+IMPLEMENTERS_NOTE = (
+    "a call through an interface value may dispatch to this method: it belongs to a repo type that provably has every "
+    "method of the interface, so the call MAY reach it. These are possible callers, not callers, and the list is never "
+    "complete (a type from outside the repo can satisfy the interface, and ripple leaves out any type it cannot prove). "
+    "The call itself stays unresolved: see possible_missed_callers. The reach does not continue past these callers"
+)
+DISPATCH_NOTE = (
+    "each interface call of this function may dispatch to these repo methods: each belongs to a repo type that provably "
+    "has every method of the interface. They are possible callees, never calls, and the list is never complete (a type "
+    "from outside the repo can satisfy the interface). The calls themselves stay in unresolved"
+)
+
+
+def _sites_through(edges: list[tuple[Edge, str]]) -> dict[tuple[str, str], list[str]]:
+    """{(symbol, interface): the call sites} of implements edges, one entry for each caller (or callee) and interface."""
+    found: dict[tuple[str, str], set[str]] = {}
+    for edge, symbol in edges:
+        found.setdefault((symbol, edge.via), set()).add(f"{edge.file}:{edge.line}")
+    return {key: sorted(sites) for key, sites in sorted(found.items())}
+
+
+def _implementers_of_callee(graph: Graph, symbol_id: str, kinds, limit: int = MAX_LISTED) -> dict:
+    """The functions that make an interface call that may dispatch to the symbol (callers), apart from its callers.
+    Empty when there are none, so every answer about a symbol no interface call reaches has the keys it always had."""
+    if not _wanted("implements", kinds):
+        return {}
+    found = _sites_through([(e, e.caller) for e in graph.implementers_index.get(symbol_id, [])])
+    if not found:
+        return {}
+    listed = [
+        {**_describe(graph.symbols[caller]), "interface": interface, "call_sites": sites}
+        for (caller, interface), sites in found.items()
+    ]
+    result = {"may_be_called_through_interface": listed[:limit], "may_be_called_note": IMPLEMENTERS_NOTE}
+    if len(listed) > limit:
+        result["may_be_called_omitted"] = len(listed) - limit
+    return result
+
+
+def _implementers_of_callers(graph: Graph, distance: dict[str, int], targets: set[str], kinds, limit: int) -> dict:
+    """Impact: the interface calls that may dispatch to the symbol or to any caller impact found, each with the symbol it
+    may reach. The call sites are possible callers only: the reach is not followed past them (they are not in `affected`)."""
+    if not _wanted("implements", kinds):
+        return {}
+    reached = {**{t: 0 for t in targets}, **distance}
+    rows = []
+    for symbol_id in sorted(reached, key=lambda s: (reached[s], s)):
+        for (caller, interface), sites in _sites_through([(e, e.caller) for e in graph.implementers_index.get(symbol_id, [])]).items():
+            rows.append(
+                {"caller": caller, "interface": interface, "may_reach": symbol_id, "distance": reached[symbol_id], "call_sites": sites}
+            )
+    if not rows:
+        return {}
+    result = {"may_be_reached_through_interface": rows[:limit], "may_be_reached_note": IMPLEMENTERS_NOTE}
+    if len(rows) > limit:
+        result["may_be_reached_omitted"] = len(rows) - limit
+    return result
+
+
+def _dispatch_of_callee(graph: Graph, symbol_id: str, kinds, limit: int = MAX_LISTED) -> dict:
+    """What the interface calls the function makes may dispatch to (callees), apart from the calls it makes."""
+    if not _wanted("implements", kinds):
+        return {}
+    found = _sites_through([(e, e.callee) for e in graph.dispatch_index.get(symbol_id, [])])
+    if not found:
+        return {}
+    listed = [
+        {**_describe(graph.symbols[callee]), "interface": interface, "call_sites": sites}
+        for (callee, interface), sites in found.items()
+    ]
+    result = {"may_dispatch_to": listed[:limit], "may_dispatch_note": DISPATCH_NOTE}
+    if len(listed) > limit:
+        result["may_dispatch_omitted"] = len(listed) - limit
+    return result
 
 
 _MISSED_REASONS = (UNREAD_CLASS, DECORATOR_SCOPE)
@@ -616,6 +695,7 @@ def callers(graph: Graph, query: str, profile: LanguageProfile | None = None, ki
     result = {"symbol": found["symbol"], "count": len(listed), "callers": listed, "through_wrapper": reaching}
     result.update(_unread_class_calls(graph, found["symbol"], kinds))
     result.update(_decorations(graph, found["symbol"], _targets(graph, found["symbol"], profile), kinds))
+    result.update(_implementers_of_callee(graph, found["symbol"], kinds))
     return _noted(result, found)
 
 
@@ -653,6 +733,7 @@ def callees(graph: Graph, query: str, kinds=None) -> dict:
     ]
     if applied:  # not callees: the decorator is named only when its name resolved, and what it does is not modelled
         result["applies_decorators"] = applied
+    result.update(_dispatch_of_callee(graph, symbol_id, kinds))
     return _noted(result, found)
 
 
@@ -759,6 +840,9 @@ def impact(
     result.update(_decorations_of_callers(graph, distance, kinds, profile, limit))
     if result.get("decorations_omitted") or result.get("decorations_of_callers_omitted"):
         result["truncated"] = True  # a decoration site left out is a thing found and not listed, as a caller is
+    result.update(_implementers_of_callers(graph, distance, targets, kinds, limit))
+    if result.get("may_be_reached_omitted"):
+        result["truncated"] = True
     return _noted(result, found)
 
 

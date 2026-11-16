@@ -8,5 +8,7 @@
  "calls": [
   {"file": "d/broken.go", "line": 5, "col": 26, "end": "5:28", "kind": "E", "callee": "example.com/p5/d:g", "at": "d/broken.go", "variants": "all"},
   {"file": "d/use.go", "line": 11, "col": 2, "end": "11:6", "kind": "E", "callee": "example.com/p5/d:T.M", "at": "d/broken.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

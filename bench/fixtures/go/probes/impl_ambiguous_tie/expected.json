@@ -1,0 +1,19 @@
+{
+ "digest": "85fa1645e9cd87de474916441aadd89d4726c9e7644fae39c6bfe41b7d96fc85",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "b.go": "all",
+  "use.go": ["darwin-arm64/prod", "windows-amd64/prod"],
+  "x_linux.go": ["linux-amd64/prod", "linux-arm64/prod"]
+ },
+ "calls": [
+  {"file": "b.go", "line": 4, "col": 2, "end": "4:6", "kind": "E", "callee": "example.com/impl_ambiguous_tie:T.N", "at": "a.go", "variants": "all"},
+  {"file": "use.go", "line": 6, "col": 2, "end": "6:6", "kind": "I", "callee": "example.com/impl_ambiguous_tie:I.M", "at": "a.go", "variants": ["darwin-arm64/prod", "windows-amd64/prod"]},
+  {"file": "use.go", "line": 7, "col": 2, "end": "7:6", "kind": "I", "callee": "example.com/impl_ambiguous_tie:I.N", "at": "a.go", "variants": ["darwin-arm64/prod", "windows-amd64/prod"]}
+ ],
+ "implementers": [
+  {"file": "use.go", "line": 6, "col": 2, "end": "6:6", "interface": "example.com/impl_ambiguous_tie:I", "method": "M", "candidates": [{"id": "example.com/impl_ambiguous_tie:E.M", "at": "a.go"}], "packages": ["example.com/impl_ambiguous_tie"], "variants": ["darwin-arm64/prod", "windows-amd64/prod"]},
+  {"file": "use.go", "line": 7, "col": 2, "end": "7:6", "interface": "example.com/impl_ambiguous_tie:I", "method": "N", "candidates": [{"id": "example.com/impl_ambiguous_tie:T.N", "at": "a.go"}], "packages": ["example.com/impl_ambiguous_tie"], "variants": ["darwin-arm64/prod", "windows-amd64/prod"]}
+ ]
+}

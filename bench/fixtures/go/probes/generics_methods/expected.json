@@ -14,5 +14,7 @@
   {"file": "a.go", "line": 29, "col": 2, "end": "29:18", "kind": "E", "callee": "example.com/generics_methods:Num.Double", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 29, "col": 2, "end": "29:9", "kind": "E", "callee": "example.com/generics_methods:Box.Get", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 30, "col": 2, "end": "30:15", "kind": "E", "callee": "example.com/generics_methods:Box.Put", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

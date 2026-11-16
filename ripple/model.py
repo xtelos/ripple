@@ -73,6 +73,9 @@ class Symbol:
         return member.rsplit("::", 1)[-1] if "::" in member and writes_colon_members(self.file) else member.rsplit(".", 1)[-1]
 
 
+IMPLEMENTS = "implements"
+
+
 @dataclass(frozen=True)
 class Edge:
     """A call from one symbol to another that ripple could prove statically.
@@ -84,6 +87,12 @@ class Edge:
     "annotation" (a call written inside an annotation, made by the scope that
     holds the annotated def or class) or "wrapped" (a decorator's wrapper
     calling the function the decorator was given).
+
+    An "implements" edge (Go) is not a call and not a proven target: the caller makes a call through an interface value
+    (that call stays in Graph.unresolved), and the callee is a repo method of a repo type that provably satisfies the
+    whole interface, so the call may dispatch to it. via is the interface's id. The list of these for one call is never
+    complete (a type from outside the repo can satisfy a repo interface), so an "implements" edge is never followed as a
+    call: Graph keeps it out of callers_index, callees_index and via_index, and out of the "edges" statistic.
 
     via is set on the edges that belong to one decoration: a call by the name of a decorated
     function (it reaches the wrapper), and each "wrapped" edge of that function's decorator
@@ -176,7 +185,14 @@ class Graph:
         self.callees_index: dict[str, list[Edge]] = defaultdict(list)
         # decorated function -> the call sites of its name, which reach it through its wrapper
         self.via_index: dict[str, list[Edge]] = defaultdict(list)
+        # "implements" edges (see Edge) are not calls: they are indexed apart and no call index holds one
+        self.implementers_index: dict[str, list[Edge]] = defaultdict(list)  # callee: the calls that may dispatch to it
+        self.dispatch_index: dict[str, list[Edge]] = defaultdict(list)  # caller: what its interface calls may dispatch to
         for edge in self.edges:
+            if edge.kind == IMPLEMENTS:
+                self.implementers_index[edge.callee].append(edge)
+                self.dispatch_index[edge.caller].append(edge)
+                continue
             self.callers_index[edge.callee].append(edge)
             self.callees_index[edge.caller].append(edge)
             if edge.via and edge.kind != "wrapped":
@@ -187,10 +203,11 @@ class Graph:
         for s in self.symbols.values():
             kinds[s.kind] += 1
         files = self.modules or {s.file for s in self.symbols.values() if s.kind == "module"}
+        implements = sum(len(edges) for edges in self.implementers_index.values())
         found = {
             "files": len(files),
             "symbols": dict(sorted(kinds.items())),
-            "edges": len(self.edges),
+            "edges": len(self.edges) - implements,
             "unresolved_calls": len(self.unresolved),
             "external_calls": self.external_calls,
             "external_reasons": dict(self.external_reasons),
@@ -199,6 +216,8 @@ class Graph:
         }
         if self.unread:  # only a graph that has some says so, so a Python graph's statistics are as they were
             found["unread"] = len(self.unread)
+        if implements:  # likewise: only a Go graph with interface implementers has the key
+            found["implements_edges"] = implements
         return found
 
     def module_collisions(self) -> dict[str, list[str]]:

@@ -74,12 +74,13 @@ from __future__ import annotations
 import functools
 import itertools
 import re
+import unicodedata
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .go_modules import MISSING, OWN, PUBLISHED, REPLACE, WORK, Modules, is_ignored_dir
-from .model import Edge, Graph, Symbol, Unresolved
+from .go_modules import MISSING, OWN, PUBLISHED, REPLACE, WORK, GoMod, Modules, is_ignored_dir
+from .model import IMPLEMENTS, Edge, Graph, Symbol, Unresolved
 from .profile import GO, GO_BUILTIN_FUNCTIONS, GO_BUILTIN_TYPES, GO_BUILTIN_VALUES, LanguageProfile
 
 INSTALL_HINT = "pip install 'ripple-code[go]'"
@@ -192,9 +193,6 @@ UNIVERSE_MEMBERS = {"error": ("i", frozenset({"Error"}), NO_NAMES)}  # the one u
 RECEIVER_LIMIT = 8  # how many embedding levels a method is looked for through
 
 GENERATED = re.compile(rb"^// Code generated .* DO NOT EDIT\.$", re.M)
-PACKAGE_CLAUSE = re.compile(rb"^[ \t]*package\b", re.M)
-BUILD_LINE = re.compile(rb"^//go:build (.*)$", re.M)
-PLUS_BUILD_LINE = re.compile(rb"^// \+build (.*)$", re.M)
 KNOWN_OS = frozenset(
     "aix android darwin dragonfly freebsd hurd illumos ios js linux nacl netbsd openbsd plan9 solaris wasip1 windows zos".split()
 )
@@ -360,9 +358,11 @@ class FileInfo:
     package: Package
     constrained: bool = False  # built on some builds only: a //go:build line, a GOOS or GOARCH file name, or a _test.go file
     tests_only: bool = False  # constrained by being a _test.go file and nothing else: built exactly when every other _test.go file is
+    constraint: str = ""  # the `//go:build` expression its header states ("" none): the platforms it is built on follow from it and its name
     imports: dict[str, Import] = field(default_factory=dict)  # the names a file's imports bind (alias, or a repo package's name)
     guesses: dict[str, list[Import]] = field(default_factory=dict)  # outside packages, by the name their path suggests
     dots: list[Import] = field(default_factory=list)
+    blanks: list[Import] = field(default_factory=list)  # `import _ "p"`: binds no name, and still links the package
 
 
 @dataclass
@@ -442,70 +442,271 @@ class Source:
     constrained: bool
     tests_only: bool
     incomplete: bool  # its top level did not parse cleanly: a declaration may be missing from what ripple read
+    constraint: str = ""
 
 
-def before_package(head: bytes) -> bytes:
-    """The start of a file up to its package clause, which is where build constraints may be (`package/**/x` is a clause too)."""
-    found = PACKAGE_CLAUSE.search(head)
-    return head[: found.start()] if found else head
+# ---- which files a build has: go/build's own rules (shouldBuild, parseFileHeader, goodOSArchFile) -------------------------------
+
+# The GOOS/GOARCH pairs a constrained file is tried on, the common ones first (a package that builds on one of them is enough).
+PLATFORM_ORDER: list[tuple[str, str]] = []  # filled below, once KNOWN_OS and KNOWN_ARCH are there
+UNIX_OS = frozenset("aix android darwin dragonfly freebsd hurd illumos ios linux netbsd openbsd solaris".split())
+BOM = b"\xef\xbb\xbf"
+# What Go's unicode.IsSpace reads as white space, and so bytes.TrimSpace and strings.Fields: not Python's str.isspace (which
+# has \x1c-\x1f too).
+SPACE_RUNES = (0x85, 0xA0, 0x1680, *range(0x2000, 0x200B), 0x2028, 0x2029, 0x202F, 0x205F, 0x3000)
+SPACE_SEQUENCES = tuple(chr(c).encode("utf-8") for c in SPACE_RUNES)
+GO_SPACE = re.compile("[ \\t\\n\\v\\f\\r" + "".join(chr(c) for c in SPACE_RUNES) + "]+")
+ASCII_SPACE = b" \t\n\v\f\r"
+
+
+PLATFORM_ORDER[:] = [("linux", "amd64"), ("windows", "amd64"), ("darwin", "arm64"), ("linux", "arm64")] + [
+    (goos, goarch) for goos in sorted(KNOWN_OS) for goarch in sorted(KNOWN_ARCH) if (goos, goarch) not in {("linux", "amd64"), ("windows", "amd64"), ("darwin", "arm64"), ("linux", "arm64")}
+]
+
+
+def trim_space(data: bytes) -> bytes:
+    """bytes.TrimSpace: leading and trailing Unicode white space (a no-break space, U+0085, a vertical tab...) is cut."""
+    start, end = 0, len(data)
+    while start < end:
+        if data[start] in ASCII_SPACE:
+            start += 1
+            continue
+        for sequence in SPACE_SEQUENCES:
+            if data.startswith(sequence, start):
+                start += len(sequence)
+                break
+        else:
+            break
+    while end > start:
+        if data[end - 1] in ASCII_SPACE:
+            end -= 1
+            continue
+        for sequence in SPACE_SEQUENCES:
+            if data.endswith(sequence, start, end):
+                end -= len(sequence)
+                break
+        else:
+            break
+    return data[start:end]
+
+
+def is_go_build_comment(line: bytes) -> bool:
+    """go/build's isGoBuildComment: `//go:build` alone or followed by any white space (`//go:buildx` is not one)."""
+    if not line.startswith(b"//go:build"):
+        return False
+    rest = trim_space(line)[10:]
+    return not rest or len(trim_space(rest)) < len(rest)
+
+
+def split_plus_build(line: bytes) -> str | None:
+    """constraint.splitPlusBuild: the terms of an old-style `// +build` line (the space after `//` is optional), None when the
+    line is not one."""
+    if not line.startswith(b"//"):
+        return None
+    rest = trim_space(line[2:])
+    if not rest.startswith(b"+build"):
+        return None
+    rest = rest[6:]
+    trimmed = trim_space(rest)
+    if len(rest) == len(trimmed) and rest:
+        return None
+    return trimmed.decode("utf-8", "replace")
+
+
+def build_header(content: bytes) -> tuple[bytes | None, list[bytes], bool]:
+    """go/build's parseFileHeader: (the first `//go:build` line, the lines of the header that an old-style `// +build` line
+    may be in, whether there was more than one `//go:build` line, which go refuses). A leading byte order mark is skipped (as
+    the import reader does), and every line is trimmed of Unicode white space. A `//go:build` line is one of the leading lines
+    of the file, which are blank, line comments and block comments, before the first line of code. An old-style line counts only
+    above the last blank line of that stretch (`end`), so one that is not followed by a blank line (it is package
+    documentation) or that is after the package clause is no constraint."""
+    if content.startswith(BOM):
+        content = content[3:]
+    end, ended, in_block, go_build, multiple = 0, False, False, None, False
+    position, size = 0, len(content)
+    while position < size:
+        newline = content.find(b"\n", position)
+        stop = size if newline < 0 else newline
+        line = trim_space(content[position:stop])
+        position = size if newline < 0 else newline + 1
+        if not line and not ended:
+            end = position
+            continue
+        if not line.startswith(b"//"):
+            ended = True
+        if not in_block and is_go_build_comment(line):
+            multiple = multiple or go_build is not None
+            go_build = line if go_build is None else go_build
+        while line:
+            if in_block:
+                close = line.find(b"*/")
+                if close < 0:
+                    break
+                in_block, line = False, trim_space(line[close + 2 :])
+            elif line.startswith(b"//"):
+                break
+            elif line.startswith(b"/*"):
+                in_block, line = True, trim_space(line[2:])
+            else:
+                return go_build, [trim_space(c) for c in content[:end].split(b"\n")], multiple  # code: the header is over
+    return go_build, [trim_space(c) for c in content[:end].split(b"\n")], multiple
+
+
+def is_valid_tag(word: str) -> bool:
+    """constraint.isValidTag: letters, digits (Unicode categories L* and Nd, not what Python's \\w admits), `_` and `.`."""
+    return bool(word) and all(unicodedata.category(c)[0] == "L" or unicodedata.category(c) == "Nd" or c in "_." for c in word)
+
+
+def plus_build_expression(terms: str) -> str | None:
+    """An old-style line as a `//go:build` expression, as constraint.parsePlusBuildExpr reads it: spaces are or, commas are and,
+    `!` is not, and a term that is not a tag (or `!!x`, a lone `!`) is the tag `ignore`, which no build has; a line of no terms
+    is `ignore` too. None for a line of more than 100 operators, which go leaves out (it is not read as a constraint at all)."""
+    clauses, size = [], 0
+    for clause in [c for c in GO_SPACE.split(terms) if c]:
+        literals = []
+        for literal in clause.split(","):
+            if literal.startswith("!!") or literal == "!":
+                literals.append("ignore")
+            else:
+                negated = literal.startswith("!")
+                literal = literal.removeprefix("!")
+                literals.append(("!" if negated else "") + (literal if is_valid_tag(literal) else "ignore"))
+            if len(literals) > 1:
+                size += 1
+                if size > 100:
+                    return None
+        if clauses:
+            size += 1
+            if size > 100:
+                return None
+        clauses.append(" && ".join(literals))
+    return " || ".join(f"({c})" for c in clauses) or "ignore"
 
 
 def build_constraint(head: bytes) -> str:
-    found = BUILD_LINE.search(before_package(head))
-    return found.group(1).decode("utf-8", "replace").strip() if found else ""
+    """The build constraint a file's header states as one `//go:build` expression, "" when it has none. A `//go:build` line
+    decides alone, the old-style `// +build` lines (each must hold) otherwise."""
+    go_build, lines, _ = build_header(head)
+    if go_build is not None:
+        return trim_space(go_build[10:]).decode("utf-8", "replace") or "unreadable"
+    terms = [t for t in (split_plus_build(line) for line in lines if line.startswith(b"//") and b"+build" in line) if t is not None]
+    expressions = [e for e in (plus_build_expression(t) for t in terms) if e is not None]
+    return " && ".join(f"({e})" for e in expressions)
+
+
+class ConstraintError(Exception):
+    pass
+
+
+MAX_EXPRESSION = 1000
+
+
+def parse_expression(text: str):
+    """constraint.parseExpr: a `//go:build` expression as nested tuples ("tag", name), ("not", x), ("and", x, y), ("or", x, y);
+    ConstraintError for what go refuses (a `,`, a lone `&`, `!!`, a missing parenthesis, a character that is no tag). Only a space
+    or a tab separates tokens, and a tag is letters, digits, `_` and `.` in Go's Unicode sense."""
+    at, token, is_tag, size = 0, "", False, 0
+
+    def lex() -> None:
+        nonlocal at, token, is_tag
+        is_tag = False
+        while at < len(text) and text[at] in " \t":
+            at += 1
+        if at >= len(text):
+            token = ""
+            return
+        if text[at] in "()!":
+            token, at = text[at], at + 1
+            return
+        if text[at] in "&|":
+            if text[at : at + 2] != text[at] * 2:
+                raise ConstraintError("invalid syntax at " + text[at])
+            token, at = text[at : at + 2], at + 2
+            return
+        end = at
+        while end < len(text) and is_valid_tag(text[end]):
+            end += 1
+        if end == at:
+            raise ConstraintError("invalid syntax at " + text[at])
+        token, at, is_tag = text[at:end], end, True
+
+    def either():
+        value = both()
+        while token == "||":
+            value = ("or", value, both())
+        return value
+
+    def both():
+        value = unary()
+        while token == "&&":
+            value = ("and", value, unary())
+        return value
+
+    def unary():
+        nonlocal size
+        size += 1
+        if size > MAX_EXPRESSION:
+            raise ConstraintError("build expression too large")
+        lex()
+        if token == "!":
+            lex()
+            if token == "!":
+                raise ConstraintError("double negation not allowed")
+            return ("not", atom())
+        return atom()
+
+    def atom():
+        if token == "(":
+            value = either()
+            if token != ")":
+                raise ConstraintError("missing close paren")
+            lex()
+            return value
+        if not is_tag:
+            raise ConstraintError("unexpected token " + token if token else "unexpected end of expression")
+        name = token
+        lex()
+        return ("tag", name)
+
+    value = either()
+    if token != "":
+        raise ConstraintError("unexpected token " + token)
+    return value
+
+
+def evaluate(expression, holds) -> bool:
+    kind = expression[0]
+    if kind == "tag":
+        return holds(expression[1])
+    if kind == "not":
+        return not evaluate(expression[1], holds)
+    left, right = evaluate(expression[1], holds), evaluate(expression[2], holds)
+    return (left and right) if kind == "and" else (left or right)
+
+
+def expression_tags(expression) -> set[str]:
+    return {expression[1]} if expression[0] == "tag" else set().union(*(expression_tags(e) for e in expression[1:]))
 
 
 def satisfiable(expression: str) -> bool:
     """Whether a //go:build expression can be true when the tag `ignore` is false and every other tag may be either: a file
-    that says `ignore`, or `ignore && linux`, is a generator script no build includes. A line it cannot read is satisfiable."""
-    tokens = re.findall(r"&&|\|\||!|\(|\)|[\w.]+", expression)
-    tags = sorted({t for t in tokens if t[0] not in "&|!()"} - {"ignore"})
-    if not tokens or len(tags) > 10:
-        return True
-
-    def evaluate(values: dict[str, bool]) -> bool:
-        at = 0
-
-        def take() -> str:
-            nonlocal at
-            at += 1
-            return tokens[at - 1]
-
-        def either() -> bool:
-            value = both()
-            while at < len(tokens) and tokens[at] == "||":
-                take()
-                value = both() or value
-            return value
-
-        def both() -> bool:
-            value = unary()
-            while at < len(tokens) and tokens[at] == "&&":
-                take()
-                value = unary() and value
-            return value
-
-        def unary() -> bool:
-            token = take()
-            if token == "!":
-                return not unary()
-            if token == "(":
-                value = either()
-                take()
-                return value
-            return values.get(token, False)
-
-        return either()
-
+    that says `ignore`, or `ignore && linux`, is a generator script no build includes. A line go cannot parse is satisfiable (go
+    refuses the package, which says nothing of what the file would give)."""
     try:
-        return any(evaluate(dict(zip(tags, bits))) for bits in itertools.product((False, True), repeat=len(tags)))
-    except IndexError:
+        tree = parse_expression(expression)
+    except ConstraintError:
         return True
+    tags = sorted(expression_tags(tree) - {"ignore"})
+    if len(tags) > 10:
+        return True
+    return any(evaluate(tree, lambda tag, v=dict(zip(tags, bits)): v.get(tag, False)) for bits in itertools.product((False, True), repeat=len(tags)))
 
 
 def platform_file(name: str) -> bool:
-    """Whether a file name says a GOOS or GOARCH (`x_linux.go`, `x_linux_arm64_test.go`), as the go tool reads it."""
-    stem = name.removesuffix(".go")
+    """Whether a file name says a GOOS or GOARCH (`x_linux.go`, `x_linux_arm64_test.go`), as go/build's goodOSArchFile reads
+    it: the name is cut at its FIRST dot (so `x_linux.pb.go` is a linux file), the part before the first `_` is ignored, and
+    a trailing `_test` is dropped."""
+    stem = name.split(".", 1)[0]
     cut = stem.find("_")
     if cut < 0:
         return False
@@ -526,10 +727,65 @@ def is_tests_only(name: str, head: bytes) -> bool:
 def never_built(head: bytes) -> bool:
     """A file no build includes: `//go:build ignore` (also with other terms and'ed on) or the older `// +build ignore`."""
     constraint = build_constraint(head)
-    if constraint:
-        return not satisfiable(constraint)
-    legacy = PLUS_BUILD_LINE.findall(before_package(head))
-    return any(line.decode("utf-8", "replace").strip() == "ignore" for line in legacy)
+    return bool(constraint) and not satisfiable(constraint)
+
+
+def known_tag(tag: str) -> bool:
+    """A tag the build sets itself (a GOOS, a GOARCH, unix, cgo, the compiler, a release tag), as opposed to one `-tags` sets."""
+    return tag in KNOWN_OS or tag in KNOWN_ARCH or tag in ("unix", "cgo", "gc", "gccgo", "ignore") or re.fullmatch(r"go1\.\d+", tag) is not None
+
+
+def build_tag(tag: str, goos: str, goarch: str, tags: frozenset[str] = frozenset(), cgo: bool = False) -> bool:
+    """go/build's matchTag for GOOS/GOARCH, the compiler gc, the release tags go1.1 to go1.27, and the tags given."""
+    if (cgo and tag == "cgo") or tag in (goos, goarch, "gc"):
+        return True
+    if (goos == "android" and tag == "linux") or (goos == "illumos" and tag == "solaris") or (goos == "ios" and tag == "darwin"):
+        return True
+    if tag == "unix" and goos in UNIX_OS:
+        return True
+    return tag in tags or (re.fullmatch(r"go1\.([1-9]|1\d|2[0-7])", tag) is not None)
+
+
+def name_in_build(name: str, holds) -> bool:
+    """go/build's goodOSArchFile: whether the platform suffix of a file name (if it has one) holds."""
+    stem = name.split(".", 1)[0]
+    cut = stem.find("_")
+    if cut < 0:
+        return True
+    parts = stem[cut:].split("_")
+    if parts[-1] == "test":
+        parts = parts[:-1]
+    if len(parts) >= 2 and parts[-2] in KNOWN_OS and parts[-1] in KNOWN_ARCH:
+        return holds(parts[-1]) and holds(parts[-2])
+    if parts and (parts[-1] in KNOWN_OS or parts[-1] in KNOWN_ARCH):
+        return holds(parts[-1])
+    return True
+
+
+def file_in_build(name: str, content: bytes, goos: str, goarch: str, tags: frozenset[str] = frozenset(), cgo: bool = False) -> bool | None:
+    """Whether go/build puts this file in a build for GOOS/GOARCH (matchFile: the file name, then shouldBuild); None when go
+    refuses the file (two `//go:build` lines, an expression it cannot parse). This is the verdict is_constrained, never_built
+    and is_tests_only are the platform-free reading of, and tests/test_go_build_table.py holds it to `go list`."""
+    holds = lambda tag: build_tag(tag, goos, goarch, tags, cgo)  # noqa: E731
+    if not name_in_build(name, holds):
+        return False
+    go_build, lines, multiple = build_header(content)
+    if multiple:
+        return None
+    try:
+        if go_build is not None:
+            return evaluate(parse_expression(trim_space(go_build[10:]).decode("utf-8", "replace")), holds)
+        built = True
+        for line in lines:
+            if not line.startswith(b"//") or b"+build" not in line:
+                continue
+            terms = split_plus_build(line)
+            expression = plus_build_expression(terms) if terms is not None else None
+            if expression is not None and not evaluate(parse_expression(expression), holds):
+                built = False
+        return built
+    except ConstraintError:
+        return None
 
 
 def reads_as_source(path: Path, profile: LanguageProfile, repo: Path | None = None) -> bool:
@@ -543,7 +799,7 @@ def reads_as_source(path: Path, profile: LanguageProfile, repo: Path | None = No
         return False
     try:
         with open(path, "rb") as handle:
-            head = handle.read(8192)
+            head = handle.read(65536)
     except OSError:
         return True  # reading it fails later and is reported with the unparsable ones
     return not never_built(head)
@@ -650,7 +906,7 @@ class Program:
                 self.hide(rel, data)
             head = data[:8192]
             self.sources[rel] = Source(
-                rel, tree, text(named(clause)[0]), bool(GENERATED.search(head)), is_constrained(path.name, head), is_tests_only(path.name, head), incomplete
+                rel, tree, text(named(clause)[0]), bool(GENERATED.search(head)), is_constrained(path.name, data), is_tests_only(path.name, data), incomplete, build_constraint(data)
             )
 
     def hide(self, rel: str, data: bytes | None) -> None:
@@ -688,7 +944,7 @@ class Program:
                     used.add(ident)
                     self.packages[key] = Package(ident, source.clause, directory)
                     self.by_id[ident] = self.packages[key]
-                info = FileInfo(source.rel, self.packages[key], source.constrained, source.tests_only)
+                info = FileInfo(source.rel, self.packages[key], source.constrained, source.tests_only, source.constraint)
                 self.packages[key].files.append(info)
                 self.file_infos[source.rel] = info
                 if source.incomplete:
@@ -698,8 +954,18 @@ class Program:
                 if directory == rel.rpartition("/")[0]:
                     package.unreadable.append(rel)
         self.importable = {d for (d, external) in self.packages if not external}
+        self.agreed: dict[tuple, tuple[str, str]] = {}
 
     # -- imports ------------------------------------------------------------
+
+    def agreed_import(self, directory: str, path: str) -> tuple[str, str]:
+        """What an import written in a package of this directory names, for a call edge: the answer of the file's own module
+        when every module whose build has the file gives the same one, "missing" when two builds differ."""
+        module = self.modules.module_of(directory)
+        key = (module.dir if module else None, path)
+        if key not in self.agreed:
+            self.agreed[key] = self.modules.resolve_agreed(directory, path, self.importable)
+        return self.agreed[key]
 
     def read_imports(self, info: FileInfo, root) -> None:
         for declaration in named(root):
@@ -714,7 +980,7 @@ class Program:
                 if path == "C":
                     info.imports["C"] = Import("cgo", path)
                     continue
-                how, target = self.modules.resolve(info.package.dir, path, self.importable)
+                how, target = self.agreed_import(info.package.dir, path)
                 if how in (OWN, REPLACE, WORK):
                     imported = Import("repo", path, self.packages[(target, False)])
                 else:
@@ -722,6 +988,7 @@ class Program:
                 if alias is not None and alias.type == "dot":
                     info.dots.append(imported)
                 elif alias is not None and alias.type == "blank_identifier":
+                    info.blanks.append(imported)  # binds no name, but links the package
                     continue
                 elif alias is not None:
                     info.imports[text(alias)] = imported
@@ -873,6 +1140,52 @@ def import_signature(info: FileInfo, *nodes) -> frozenset:
     return frozenset(meant | {("dot", i.path) for i in info.dots})
 
 
+INTEGER_LITERALS = (
+    (re.compile(r"0[xX]_?([0-9a-fA-F]+(?:_[0-9a-fA-F]+)*)"), 16),
+    (re.compile(r"0[bB]_?([01]+(?:_[01]+)*)"), 2),
+    (re.compile(r"0[oO]?_?([0-7]+(?:_[0-7]+)*)"), 8),  # `0o17`, and the legacy `017` (0 and then octal digits)
+    (re.compile(r"(0|[1-9](?:_?[0-9]+)*)"), 10),
+)
+RUNE_ESCAPES = {"a": 7, "b": 8, "f": 12, "n": 10, "r": 13, "t": 9, "v": 11, "\\": 92, "'": 39}
+RUNE_NUMBERED = ((re.compile(r"x([0-9a-fA-F]{2})"), 16), (re.compile(r"u([0-9a-fA-F]{4})"), 16), (re.compile(r"U([0-9a-fA-F]{8})"), 16), (re.compile(r"([0-7]{3})"), 8))
+
+
+def array_length(node) -> int | None:
+    """The number an array length writes when it is a literal Go reads one way in every package: an integer literal
+    (decimal, `0x`, `0o`, `0b`, a leading 0 for octal, underscores between digits) or a rune literal. None for a
+    constant expression, a named constant, a float or anything else: they may mean another number in another package."""
+    if node is None:
+        return None
+    if node.type == "int_literal":
+        literal = text(node)
+        for pattern, base in INTEGER_LITERALS:
+            found = pattern.fullmatch(literal)
+            if found:
+                return int(found.group(1).replace("_", ""), base)
+        return None
+    if node.type == "rune_literal":
+        literal = text(node)
+        if len(literal) < 3 or literal[0] != "'" or literal[-1] != "'":
+            return None
+        body = literal[1:-1]
+        if body[0] != "\\":
+            return ord(body) if len(body) == 1 and body != "'" else None
+        if body[1:] in RUNE_ESCAPES:
+            return RUNE_ESCAPES[body[1:]]
+        for pattern, base in RUNE_NUMBERED:
+            found = pattern.fullmatch(body[1:])
+            if found:
+                value = int(found.group(1), base)
+                return value if value < 0x110000 and not 0xD800 <= value < 0xE000 and (base == 16 or value < 256) else None
+        return None
+    return None
+
+
+def internal_path(path: str) -> bool:
+    """Whether an import path has an `internal` element: only code rooted at its parent can import it."""
+    return "internal" in path.split("/")
+
+
 def guess_name(path: str) -> str:
     """The name an import of an outside package most likely binds, from its path by the Go naming conventions
     (`go-humanize` is `humanize`, `yaml.v3` is `yaml`, `/v5` takes the element before). A wrong guess cannot steal a
@@ -945,6 +1258,18 @@ class Resolver:
         self.method_names: set[str] = {m for p in program.packages.values() for t in p.types.values() for m in t.methods}
         self.result_cache: dict[int, list] = {}
         self.typing: set[tuple[int, str]] = set()
+        # interface implementers (see Resolver.implements): the `implements` edges, kept apart from the call edges
+        self.implement_edges: list[Edge] = []
+        self.implement_seen: set[Edge] = set()
+        self.implement_sites: list[tuple[str, int, int, str, str, tuple[str, ...]]] = []
+        self.shapes: dict[int, dict | None] = {}  # interface TypeInfo -> its method set, when ripple knows it completely
+        self.provided_cache: dict[tuple, tuple] = {}
+        self.satisfiers: dict[tuple, list[TypeInfo]] = {}
+        self.concrete: list[TypeInfo] | None = None
+        self.links: dict[tuple, set[Package] | bool] = {}
+        self.units: list[set[Package]] | None = None
+        self.expressions: dict[str, object] = {}
+        self.unit_imports: dict[tuple, Package | None] = {}
         self.var_types: dict[tuple[int, str], object] = {}
         self.caller = ""
 
@@ -1205,11 +1530,14 @@ class Resolver:
     # -- method lookup through embedded types ------------------------------------
 
     def underlying(self, type_info: TypeInfo):
-        """The struct or interface TypeInfo whose fields or methods a type has: itself, or what `type T U` names."""
+        """The struct or interface TypeInfo whose fields or methods a type has: itself, or what `type T U` names. A
+        defined type whose underlying type is a pointer (`type P *S`) has none: its method set is empty, the pointee's
+        methods and the ones S promotes are not P's (only a field selector looks through the pointer), so a pointer is
+        not followed here."""
         seen = set()
         while type_info is not None and type_info.kind == "named" and id(type_info) not in seen:
             seen.add(id(type_info))
-            target = self.deref(self.type_of(type_info.target, type_info.file, type_info.tparams))
+            target = self.type_of(type_info.target, type_info.file, type_info.tparams)
             if target is None or target[0] != "named":
                 return None if target is None else ("other", target)
             type_info = target[1]
@@ -1399,6 +1727,473 @@ class Resolver:
         if type_info.kind == "undeclared" or (type_info.damaged and not type_info.ambiguous):
             return UNREADABLE_TYPE
         return BUILD_VARIANT_TYPE if type_info.ambiguous else self.unread(type_info.package)
+
+    # -- interface implementers ----------------------------------------------
+    #
+    # A call through an interface value has no proven target. What can be proven is narrower: a repo type whose method
+    # set (that of *T, the largest: a T or a *T is what the interface can hold) has, under the name of every method of the
+    # interface, a method with the same signature, so the call MAY dispatch to that type's method. Every part of the claim
+    # is refused unless the source proves it by the spec: the interface and every interface it embeds are declared once
+    # and read completely, with no type parameters and no embedded type from outside the repo; every parameter and result
+    # type of every method has one canonical type on both sides (a type of the repo by its id, an outside type only by an
+    # import path the file writes, the universe's types, composites of those; never a function type, a generic type, an
+    # unsettled alias or a name a dot import may bind); the type is declared once, is not generic, and is built in every
+    # build the call is (no build constraint, or both in test files) and some build has the type's package together with
+    # the call (linkable: a program or test binary links both, or, for a call in a library, both can be imported from outside
+    # and a module of the repo builds against both); each method is found by the depth rule with no
+    # embedded type from outside the repo that could provide it first or tie, is declared once in every build, and an
+    # unexported name is the interface's own package's. The list is never complete (a type from outside the repo can
+    # satisfy the interface), and the call stays unresolved.
+
+    def every_build(self, file: FileInfo) -> bool:
+        """Whether a declaration in this file is there in every build that has the call being resolved: a file with no
+        build constraint is, unless it imports "C" (CGO_ENABLED=0 leaves it out). A _test.go file is only for a call in a
+        _test.go file of the SAME directory: the test files of a package are compiled into its own test binary (and its
+        external test package's) and into no other package's, which sees the package without them."""
+        if "C" in file.imports:
+            return False
+        if not file.constrained:
+            return True
+        return file.tests_only and self.file is not None and self.file.tests_only and file.package.dir == self.file.package.dir
+
+    def imported_by(self, package: Package, with_tests: bool, main: GoMod) -> set[Package]:
+        """The repo packages the files of a package that EVERY build of it has import, each import path read as a build whose
+        main module is `main` reads it (the module that governs: its replaces decide, never the replaces of the module the
+        importing file is in; see go_modules.py). For the package a test binary is built for, its plain _test.go files too:
+        they are in that binary and in no other build. A file whose presence depends on the build (a build constraint, a
+        platform file name, a file that imports "C", which CGO_ENABLED=0 leaves out) adds its imports to the builds that
+        have it and not to the others, so none of them is counted: a package only such a file imports is not certain to be
+        linked."""
+        found: set[Package] = set()
+        modules = self.program.modules
+        for info in package.files:
+            if "C" in info.imports or (info.constrained and not (with_tests and info.tests_only)):
+                continue
+            imports = (*info.imports.values(), *info.dots, *info.blanks, *(i for each in info.guesses.values() for i in each))
+            for path in {i.path for i in imports if i.kind != "cgo"}:
+                key = (main.dir, path)
+                if key not in self.unit_imports:
+                    how, target = modules.resolve_in(main, path, self.program.importable)
+                    self.unit_imports[key] = self.program.packages[(target, False)] if how in (OWN, REPLACE, WORK) else None
+                if self.unit_imports[key] is not None:
+                    found.add(self.unit_imports[key])
+        return found
+
+    def closure(self, roots: list[Package], tests: bool, main: GoMod | None) -> set[Package]:
+        """The packages a program or test binary built from these roots links: the roots (with their plain _test.go files
+        when it is a test binary) and what they import, transitively, every import path read as the build's main module
+        (the module of the roots) reads it. A package main is nobody's import, so no program or test binary of another
+        package links one."""
+        seen, stack = set(roots), [(r, tests) for r in roots]
+        while stack and main is not None:
+            package, is_root = stack.pop()
+            for imported in self.imported_by(package, is_root, main):
+                if imported not in seen:
+                    seen.add(imported)
+                    stack.append((imported, False))
+        return seen
+
+    def main_module(self, directory: str) -> GoMod | None:
+        """The main module of a program or test binary rooted in this directory: the module the directory is in (a build
+        is run in a module, or in a go.work workspace whose members resolve alike)."""
+        return self.program.modules.module_of(directory)
+
+    def test_binary(self, directory: str) -> set[Package]:
+        """The packages the test binary of a directory links: its package with the _test.go files, its external test
+        package, and what those import (never another package's _test.go files)."""
+        key = ("test", directory)
+        if key not in self.links:
+            self.links[key] = self.closure([p for p in self.program.packages.values() if p.dir == directory], True, self.main_module(directory))
+        return self.links[key]
+
+    def build_units(self) -> list[set[Package]]:
+        """Every build the repo itself has, each as the set of packages it links under ITS OWN main module: one program for
+        each package main, and one test binary for each directory with a plain _test.go file (no constraint, so the binary
+        exists on every platform). The main module of a unit decides what its imports name, so a package a dependency's
+        replace directive would reach is in the unit only if the unit's module reaches it too."""
+        if self.units is None:
+            self.units = []
+            test_directories = set()
+            for (directory, external), package in self.program.packages.items():
+                if not external and package.name == "main":
+                    self.units.append(self.closure([package], False, self.main_module(directory)))
+                if any(f.tests_only for f in package.files):
+                    test_directories.add(directory)
+            self.units += [self.test_binary(d) for d in sorted(test_directories)]
+        return self.units
+
+    def with_call_package(self, call: Package) -> set[Package]:
+        """Every package that some build of the repo links together with the call's package. A library package has no single
+        main module: each unit is held to its own, and one unit's module is enough, because every unit is a real build."""
+        key = ("with", id(call))
+        if key not in self.links:
+            found = {call}
+            for unit in self.build_units():
+                if call in unit:
+                    found |= unit
+            self.links[key] = found
+        return self.links[key]
+
+    def module_pair(self, one: Package, other: Package) -> bool:
+        """Whether some module of the repo builds against both packages' modules (the same module, or one that replaces
+        or joins by go.work both): the go.mod and go.work reading of go_modules.py, the one an import across modules uses.
+        A program outside the repo that imports both has its own go.mod, whose replaces ripple cannot see, so the repo's own
+        modules are the only builds that show the two checkouts together; a replace in one module that the other does not
+        repeat shows them together in that module's build alone, which is a build the repo has."""
+        modules = self.program.modules
+        first, second = modules.module_of(one.dir), modules.module_of(other.dir)
+        if first is second:
+            return True
+        if first is None or second is None:
+            return False
+        key = ("modules", first.dir, second.dir)
+        if key not in self.links:
+            self.links[key] = any(modules.builds_against(m, first) and modules.builds_against(m, second) for m in modules.mods.values())
+        return self.links[key]
+
+    def present_at(self, info: FileInfo, platform: tuple[str, str], tags: frozenset[str] = frozenset()) -> bool:
+        """Whether a file is in a build for GOOS/GOARCH with these tags set (no cgo): its name and its header state it. A header
+        ripple cannot parse says nothing, so the file is not shown to be there."""
+        holds = lambda tag: build_tag(tag, *platform, tags)  # noqa: E731
+        if not name_in_build(info.rel.rpartition("/")[2], holds):
+            return False
+        if not info.constraint:
+            return True
+        if info.constraint not in self.expressions:
+            try:
+                self.expressions[info.constraint] = parse_expression(info.constraint)
+            except ConstraintError:
+                self.expressions[info.constraint] = None
+        tree = self.expressions[info.constraint]
+        return tree is not None and evaluate(tree, holds)
+
+    def package_builds_at(self, package: Package, platform: tuple[str, str], tags: frozenset[str]) -> bool:
+        """Whether a package and every repo package its files there import have a non-test file in a build for the platform that
+        does not import "C", and no import of them is unresolved: the package can be built there, as far as ripple can show."""
+        key = ("builds", id(package), platform, tags)
+        if key in self.links:
+            return bool(self.links[key])
+        self.links[key] = True  # a cycle is no go: assume the package builds while it is being asked
+        present = [f for f in package.files if not f.rel.endswith("_test.go") and self.present_at(f, platform, tags)]
+        ok = any("C" not in f.imports for f in present)  # a file ripple could not read adds no evidence against it
+        for info in present if ok else []:
+            for imported in (*info.imports.values(), *info.dots, *info.blanks, *(i for each in info.guesses.values() for i in each)):
+                if imported.kind == "missing" or (imported.kind == "repo" and imported.package is not None and not self.package_builds_at(imported.package, platform, tags)):
+                    ok = False
+        self.links[key] = ok
+        return ok
+
+    def builds_with_the_call(self, package: Package) -> bool:
+        """Whether a package builds in some build that has the call's own file. The file's name and header say which builds those
+        are: GOOS/GOARCH pairs, and for a file that needs a custom tag (`cluster_proxy`) the builds that set the tags its header
+        names, every other custom tag unset. The oracle cannot judge this: it stops at the package error on the platform where
+        the package does not build, so a unit test holds it (tests/test_go_platform_package.py)."""
+        key = ("with the call", id(package), self.file.rel)
+        if key not in self.links:
+            tree = None
+            try:
+                tree = parse_expression(self.file.constraint) if self.file.constraint else None
+            except ConstraintError:
+                self.links[key] = False
+                return False
+            custom = sorted(t for t in (expression_tags(tree) if tree else set()) if not known_tag(t))
+            sets = [frozenset(c) for n in range(len(custom) + 1) for c in itertools.combinations(custom, n)] if len(custom) <= 4 else []
+            self.links[key] = any(
+                self.present_at(self.file, platform, tags) and self.package_builds_at(package, platform, tags) for tags in sets for platform in PLATFORM_ORDER
+            )
+        return bool(self.links[key])
+
+    def linkable(self, type_info: TypeInfo) -> bool:
+        """Whether some build that has the call also has the type, for the package the type is declared in. The builds
+        of a call:
+          - in a _test.go file (constrained or not): the test binary of its directory, and no other;
+          - in any other file of a package main: that program, and the test binary of its directory (nobody imports a
+            main package, so no other build has the call);
+          - in any other file: every program and test binary of the repo that links its package, and a program of another
+            repository that imports it. A type is a candidate when some program or test binary of the repo links both
+            packages (one of a package main is in its program and its test binary only), or the other repository's
+            program can: neither package is a main package or has an `internal` element in its path (so both can be
+            imported from outside), and one module of the repo builds against both modules (the same module, or a replace
+            or a go.work joins them: a module that is neither is built from its published version, which may differ from
+            the checkout, so no build is shown to have its types and this call).
+        A call in a constrained file (a platform file name or a build constraint, not only a _test.go file) is only in the builds
+        that have the file, so the type's package has to build in one of them: see builds_with_the_call.
+        The packages of a unit are the ones every build of it links (see imported_by), so a package only a constrained
+        file or a cgo file imports is not counted: leaving a candidate out is never wrong."""
+        call, home = self.file.package, type_info.package
+        if home is not call and self.file.constrained and not self.file.tests_only and not self.builds_with_the_call(home):
+            return False  # the call is only in the builds of its file's platform: the type's package must build there too
+        if self.file.rel.endswith("_test.go"):
+            return home in self.test_binary(call.dir)
+        if home is call or home in self.with_call_package(call):
+            return True
+        if call.name == "main" or home.name == "main" or internal_path(call.id) or internal_path(home.id):
+            return False
+        return self.module_pair(call, home)
+
+    def type_import(self, info: FileInfo, name: str) -> Import | None:
+        """The import a qualifier of a type names, only when the path is certain: an alias the file writes, a repo package's
+        own name, or the one standard library import the name is guessed from (a path the standard library table knows)."""
+        if name in info.imports:
+            return info.imports[name]
+        guessed = info.guesses.get(name, [])
+        return guessed[0] if len(guessed) == 1 and stdlib_funcs(guessed[0].path) is not None else None
+
+    def canonical(self, node, info: FileInfo, tparams=frozenset(), depth: int = 0) -> str | None:
+        """One text for the type a type expression writes, so that two expressions have the same text only when the spec
+        makes them identical types; None when ripple cannot say (see the comment above)."""
+        if node is None or depth > 12:
+            return None
+        kind = node.type
+        again = lambda n: self.canonical(n, info, tparams, depth + 1)  # noqa: E731
+        if kind == "parenthesized_type":
+            inner = named(node)
+            return again(inner[0]) if len(inner) == 1 else None
+        if kind in ("pointer_type", "slice_type"):
+            inner = again(named(node)[0]) if named(node) else None
+            return None if inner is None else ("*" if kind == "pointer_type" else "[]") + inner
+        if kind == "array_type":
+            length, element = array_length(field_of(node, "length")), again(field_of(node, "element"))
+            if element is None or length is None:
+                return None  # a constant expression may mean another number in another package
+            return f"[{length}]{element}"
+        if kind == "map_type":
+            key, value = again(field_of(node, "key")), again(field_of(node, "value"))
+            return None if key is None or value is None else f"map[{key}]{value}"
+        if kind == "channel_type":
+            # The tree nests one channel_type for each `chan`, but which of them an arrow belongs to is Go's rule, not the
+            # tree's (`chan<- chan int` and `chan <-chan int` are one type, `chan (<-chan int)` another): read the tokens.
+            tokens, last = [], node
+            while True:
+                tokens += [c.type for c in last.children if not c.is_named]
+                inner = field_of(last, "value")
+                if inner is None or inner.type != "channel_type":
+                    break
+                last = inner
+            element = again(field_of(last, "value"))
+            directions, at = [], 0
+            while at < len(tokens):
+                if tokens[at] == "chan":
+                    send = tokens[at + 1 : at + 2] == ["<-"]
+                    directions.append("chan<-" if send else "chan")
+                    at += 2 if send else 1
+                elif tokens[at : at + 2] == ["<-", "chan"]:
+                    directions.append("<-chan")
+                    at += 2
+                else:
+                    return None
+            for direction in reversed(directions):
+                element = None if element is None else f"{direction} {element}"
+            return element
+        if kind == "interface_type":
+            return "any" if not named(node) else None  # `interface{}` is `any`; any other literal is not followed
+        if kind == "type_identifier":
+            return self.canonical_name(text(node), info, tparams, depth)
+        if kind == "qualified_type":
+            entry = self.type_import(info, text(field_of(node, "package")))
+            name = text(field_of(node, "name"))
+            if entry is None or info.package.unreadable:
+                return None
+            if entry.kind == "repo":
+                return self.canonical_declared(entry.package.types.get(name), depth)
+            if entry.kind in ("outside", "published"):
+                return f"{entry.path}.{name}"  # the same import path and name is the same type, aliased in its package or not
+        return None
+
+    def canonical_name(self, name: str, info: FileInfo, tparams, depth: int) -> str | None:
+        if name in tparams or info.package.unreadable:
+            return None
+        declared = info.package.types.get(name)
+        if declared is not None and declared.declarations:
+            return self.canonical_declared(declared, depth)
+        if name in UNIVERSE_TYPES or name in UNIVERSE_INTERFACES:
+            if name == "comparable":
+                return None
+            return {"byte": "uint8", "rune": "int32"}.get(name, name)  # the universe's two aliases
+        return None  # a name a dot import may bind, a type of a file ripple did not read, or no type
+
+    def canonical_declared(self, declared: TypeInfo | None, depth: int) -> str | None:
+        """The canonical text of a repo type: its id, or the text of what a settled alias names."""
+        if declared is None or declared.declarations != 1 or declared.damaged or declared.tparams or declared.kind == "undeclared":
+            return None
+        if declared.package.unreadable:
+            return None
+        if declared.kind == "alias":
+            return self.canonical(declared.target, declared.file, declared.tparams, depth + 1)
+        return declared.id
+
+    def signature(self, node, info: FileInfo, tparams):
+        """(parameter types, result types) of a method declaration or an interface method element, as canonical texts
+        (a variadic parameter is `...T`), None when any one is not canonical. Names do not count."""
+        found = []
+        for part in (field_of(node, "parameters"), field_of(node, "result")):
+            if part is None:
+                found.append(())
+                continue
+            if part.type != "parameter_list":
+                found.append((self.canonical(part, info, tparams),))
+                continue
+            types = []
+            for p in named(part):
+                if p.type not in ("parameter_declaration", "variadic_parameter_declaration"):
+                    return None
+                one = self.canonical(field_of(p, "type"), info, tparams)
+                if one is not None and p.type == "variadic_parameter_declaration":
+                    one = "..." + one
+                types += [one] * max(1, len(fields_of(p, "name")))
+            found.append(tuple(types))
+        return None if any(t is None for part in found for t in part) else tuple(found)
+
+    def interface_shape(self, iface: TypeInfo, seen: frozenset = frozenset()):
+        """{method name: (signature, declaring package)} of an interface ripple knows completely, None otherwise: it is
+        declared once and read whole, has no type parameters, and every embedded element is exactly one repo interface
+        known the same way (a union, a `~T`, a type that is not an interface, an interface from outside the repo, a generic
+        instance: all unknown, so the method set may have more than ripple sees)."""
+        key = id(iface)
+        if key in seen:
+            return None
+        if not seen and key in self.shapes:
+            return self.shapes[key]
+        found = self._interface_shape(iface, seen | {key})
+        if not seen:
+            self.shapes[key] = found
+        return found
+
+    def _interface_shape(self, iface: TypeInfo, seen: frozenset):
+        if iface.kind != "interface" or iface.declarations != 1 or iface.damaged or iface.tparams or iface.package.unreadable or iface.file.dots:
+            return None
+        body = field_of(iface.node, "type")
+        if body is None or body.type != "interface_type":
+            return None
+        shape = {}
+
+        def add(name, method) -> bool:
+            if name in shape and not self.same_method(name, shape[name], method):
+                return False  # one name with two meanings: not a legal interface, or one ripple reads wrongly
+            shape.setdefault(name, method)
+            return True
+
+        for element in named(body):
+            if element.type == "method_elem":
+                signature = self.signature(element, iface.file, iface.tparams)
+                if signature is None or not add(text(field_of(element, "name")), (signature, iface.package)):
+                    return None
+            elif element.type == "type_elem":
+                parts = [c for c in element.children if c.type != "comment"]
+                if len(parts) != 1 or parts[0].type not in ("type_identifier", "qualified_type"):
+                    return None
+                ty = self.type_of(parts[0], iface.file, iface.tparams)
+                inner = self.underlying(ty[1]) if ty and ty[0] == "named" else None
+                if not isinstance(inner, TypeInfo):
+                    return None
+                more = self.interface_shape(inner, seen)
+                if more is None:
+                    return None
+                if not all(add(name, method) for name, method in more.items()):
+                    return None
+            else:
+                return None
+        return shape
+
+    @staticmethod
+    def same_method(name: str, ours, theirs) -> bool:
+        """The signature is the same, and an unexported name is of the same package (two packages' `m` are two methods)."""
+        return ours[0] == theirs[0] and (name[:1].isupper() or ours[1] is theirs[1])
+
+    def provided(self, type_info: TypeInfo, name: str):
+        """What a type's method set has under `name`, by the depth rule, as far as every build has it: ("method", [decl])
+        for one method declared once, ("iface", interface) for one the type's embedded interface gives it, else
+        ("none",). Answers are kept per build context (what is built wherever the call is depends on the call's file)."""
+        context = (self.file.tests_only, id(self.file.package), id(type_info), name)
+        if context not in self.provided_cache:
+            found = self.walk([type_info], name, set())
+            answer = ("none",)
+            if found[0] == "method" and len(found[1]) == 1:
+                decl = found[1][0]
+                if not (decl.node.has_error or decl.file.package.unreadable or decl.tparams or not self.every_build(decl.file)):
+                    answer = ("method", [decl])
+            elif found[0] == "iface":
+                answer = found
+            self.provided_cache[context] = answer
+        return self.provided_cache[context]
+
+    def satisfies(self, type_info: TypeInfo, shape: dict) -> bool:
+        if not self.every_build(type_info.file):
+            return False
+        for name, wanted in shape.items():
+            found = self.provided(type_info, name)
+            if found[0] == "method":
+                decl = found[1][0]
+                got = (self.signature(decl.node, decl.file, decl.tparams), decl.file.package)
+                if got[0] is None or not self.same_method(name, wanted, got):
+                    return False
+            elif found[0] == "iface":
+                inner = self.interface_shape(found[1])
+                if inner is None or name not in inner or not self.same_method(name, wanted, inner[name]):
+                    return False
+            else:
+                return False
+        return True
+
+    def concrete_types(self) -> list[TypeInfo]:
+        """The types that can have a method set of their own: declared once, read whole, not generic, not an interface."""
+        if self.concrete is None:
+            found = []
+            for package in sorted(self.program.packages.values(), key=lambda p: p.id):
+                for name in sorted(package.types):
+                    ty = package.types[name]
+                    if ty.kind not in ("struct", "named") or ty.declarations != 1 or ty.damaged or ty.tparams or package.unreadable:
+                        continue
+                    inner = self.underlying(ty)
+                    if isinstance(inner, TypeInfo) and inner.kind == "interface":
+                        continue
+                    found.append(ty)
+            self.concrete = found
+        return self.concrete
+
+    def satisfying(self, iface: TypeInfo) -> list[TypeInfo]:
+        """The repo types whose method sets provably have every method of the interface (see the comment above)."""
+        shape = self.interface_shape(iface)
+        if not shape:
+            return []
+        declaring = Counter(name for ty in self.concrete_types() for name in ty.methods)
+        rarest = min(shape, key=lambda name: (declaring[name], name))
+        found = []
+        for ty in self.concrete_types():
+            inner = self.underlying(ty)
+            promotes = bool(inner.embedded) if isinstance(inner, TypeInfo) else inner is None or inner[1][0] == "ext"
+            if (rarest in ty.methods or promotes) and self.satisfies(ty, shape):
+                found.append(ty)
+        return found
+
+    def implementers(self, iface: TypeInfo, member: str) -> list[FuncDecl]:
+        """The repo methods a call of `member` on a value held as `iface` may dispatch to: the method each satisfying type
+        has under that name, when it is declared (a method a type's embedded interface gives has no source here)."""
+        key = (self.file.tests_only, id(self.file.package), id(iface))
+        if key not in self.satisfiers:
+            self.satisfiers[key] = self.satisfying(iface)
+        out: dict[str, FuncDecl] = {}
+        for ty in self.satisfiers[key]:
+            if not self.linkable(ty):
+                continue
+            found = self.provided(ty, member)
+            if found[0] == "method":
+                out[found[1][0].id] = found[1][0]
+        return [out[i] for i in sorted(out)]
+
+    def implements(self, node, iface: TypeInfo, member: str) -> None:
+        """Record the `implements` edges of an interface call at `node`: each is a repo method the call may dispatch to."""
+        if self.quiet:
+            return
+        found = self.implementers(iface, member)
+        # (file, end line, end column, interface id, method, the ids the call may dispatch to): kept for the probe tests, which
+        # hold each site to the compiler's answer at its own position, as they do Resolver.call_sites
+        self.implement_sites.append((self.file.rel, node.end_point[0] + 1, node.end_point[1], iface.id, member, tuple(d.id for d in found)))
+        for decl in found:
+            edge = Edge(self.caller, decl.id, self.file.rel, line_of(node), IMPLEMENTS, iface.id)
+            if edge not in self.implement_seen:
+                self.implement_seen.add(edge)
+                self.implement_edges.append(edge)
 
     # -- statements ---------------------------------------------------------
 
@@ -1946,6 +2741,7 @@ class Resolver:
             return self.first(found[1][1], want_tuple) if found[1] and found[1][0] == "func" else None
         if kind == "iface":
             self.unresolved(node, written, f"a method call on the interface {found[1].id}: which type's method runs is decided at run time")
+            self.implements(node, found[1], member)
             declared, _ = self.interface_methods(found[1])
             owner_type = declared.get(member)
             if owner_type is not None:
@@ -2036,7 +2832,7 @@ def index_files(repo: Path, files: list[Path], skipped: list[str], profile: Lang
     """The Go front end (registry.py): the graph of the files read with tree-sitter-go."""
     program, resolver = analyse(repo, files, profile)
     graph = Graph(
-        edges=resolver.edges,
+        edges=resolver.edges + resolver.implement_edges,
         unresolved=resolver.unresolved_calls,
         external_calls=sum(resolver.external_reasons.values()),
         parse_errors=sorted(set(program.parse_errors)),

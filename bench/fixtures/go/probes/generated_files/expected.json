@@ -8,5 +8,7 @@
  "calls": [
   {"file": "a.go", "line": 4, "col": 2, "end": "4:6", "kind": "E", "callee": "example.com/generated_files:Gen", "at": "gen.go", "variants": "all"},
   {"file": "a.go", "line": 6, "col": 2, "end": "6:6", "kind": "E", "callee": "example.com/generated_files:T.M", "at": "gen.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

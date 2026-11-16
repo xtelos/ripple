@@ -1,0 +1,15 @@
+{
+ "digest": "ef7c3e3a3301b0a5cb6d94c999eddfd8b0931f038afe29a804242afa803c3e61",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 24, "col": 2, "end": "24:9", "kind": "I", "callee": "example.com/impl_signature_literals:Lit.F", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:9", "kind": "I", "callee": "example.com/impl_signature_literals:Empty.G", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 24, "col": 2, "end": "24:9", "interface": "example.com/impl_signature_literals:Lit", "method": "F", "candidates": [{"id": "example.com/impl_signature_literals:Same.F", "at": "a.go"}], "packages": ["example.com/impl_signature_literals"], "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:9", "interface": "example.com/impl_signature_literals:Empty", "method": "G", "candidates": [{"id": "example.com/impl_signature_literals:Spelled.G", "at": "a.go"}], "packages": ["example.com/impl_signature_literals"], "variants": "all"}
+ ]
+}

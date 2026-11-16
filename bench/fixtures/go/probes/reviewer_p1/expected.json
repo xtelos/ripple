@@ -41,5 +41,7 @@
   {"file": "a/shadow.go", "line": 96, "col": 2, "end": "96:8", "kind": "E", "callee": "example.com/p1/a:T.Run", "at": "a/shadow.go", "variants": "all"},
   {"file": "a/shadow.go", "line": 104, "col": 3, "end": "104:9", "kind": "E", "callee": "example.com/p1/a:U.Run", "at": "a/shadow.go", "variants": "all"},
   {"file": "a/shadow.go", "line": 106, "col": 2, "end": "106:8", "kind": "E", "callee": "example.com/p1/a:T.Run", "at": "a/shadow.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

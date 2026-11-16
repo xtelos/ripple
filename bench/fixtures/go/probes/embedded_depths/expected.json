@@ -15,5 +15,7 @@
   {"file": "a.go", "line": 43, "col": 2, "end": "43:8", "kind": "E", "callee": "example.com/embedded_depths:L2.Mid", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 44, "col": 2, "end": "44:12", "kind": "E", "callee": "example.com/embedded_depths:L1.Same", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 45, "col": 2, "end": "45:12", "kind": "E", "callee": "example.com/embedded_depths:X1.Same", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

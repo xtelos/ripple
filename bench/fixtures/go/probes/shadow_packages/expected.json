@@ -13,5 +13,7 @@
   {"file": "a.go", "line": 30, "col": 2, "end": "30:10", "kind": "E", "callee": "example.com/shadow_packages/lib:Run", "at": "lib/lib.go", "variants": "all"},
   {"file": "a.go", "line": 32, "col": 2, "end": "32:14", "kind": "E", "callee": "example.com/shadow_packages:Local.Run", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 36, "col": 2, "end": "36:14", "kind": "E", "callee": "fmt:Println", "at": "", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

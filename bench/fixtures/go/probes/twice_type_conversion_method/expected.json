@@ -8,5 +8,7 @@
  },
  "calls": [
   {"file": "common.go", "line": 6, "col": 2, "end": "6:16", "kind": "E", "callee": "example.com/twice_type_conversion_method:Num.Double", "at": "common.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

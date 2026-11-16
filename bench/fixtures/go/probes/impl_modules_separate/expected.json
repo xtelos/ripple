@@ -1,0 +1,15 @@
+{
+ "digest": "476cee130efc6ef2baf4b303bf31a21410cb72bf14c4793655013633e54c6339",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "b/b.go": "all",
+  "c/c.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 14, "col": 2, "end": "14:10", "kind": "I", "callee": "example.com/impl_modules_separate:I.Close", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 14, "col": 2, "end": "14:10", "interface": "example.com/impl_modules_separate:I", "method": "Close", "candidates": [{"id": "example.com/impl_modules_separate:Own.Close", "at": "a.go"}, {"id": "example.com/other2:C.Close", "at": "c/c.go"}], "packages": ["example.com/impl_modules_separate", "example.com/other2"], "variants": "all"}
+ ]
+}

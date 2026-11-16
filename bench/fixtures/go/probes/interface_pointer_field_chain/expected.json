@@ -1,0 +1,16 @@
+{
+ "digest": "3a7b24f4001373684fc2562f017c2df8420229f24bb8f40727e0d5507f8dd2a6",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 22, "col": 2, "end": "22:8", "kind": "E", "callee": "example.com/interface_pointer_field_chain:Inner.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 23, "col": 2, "end": "23:8", "kind": "E", "callee": "example.com/interface_pointer_field_chain:Inner.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 24, "col": 2, "end": "24:10", "kind": "E", "callee": "strings:Builder.Len", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:9", "kind": "E", "callee": "example.com/interface_pointer_field_chain:Inner2.N", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 27, "col": 2, "end": "27:8", "kind": "E", "callee": "example.com/interface_pointer_field_chain:Inner.M", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+ ]
+}

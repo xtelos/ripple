@@ -18,5 +18,7 @@
   {"file": "a.go", "line": 31, "col": 32, "end": "31:35", "kind": "E", "callee": "example.com/func_fields:mk", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 32, "col": 2, "end": "32:11", "kind": "D", "callee": "-", "at": "", "variants": "all"},
   {"file": "a.go", "line": 34, "col": 3, "end": "34:5", "kind": "D", "callee": "-", "at": "", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

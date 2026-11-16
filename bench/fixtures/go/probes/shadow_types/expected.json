@@ -10,5 +10,7 @@
   {"file": "a.go", "line": 24, "col": 2, "end": "24:6", "kind": "E", "callee": "example.com/shadow_types:T.N", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 34, "col": 2, "end": "34:6", "kind": "E", "callee": "example.com/shadow_types:A.M", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 37, "col": 2, "end": "37:6", "kind": "E", "callee": "example.com/shadow_types:B.M", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

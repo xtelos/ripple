@@ -14,16 +14,22 @@
 // and calleefile are "-"). A conversion or a builtin is not a call. A method declared on an alias receiver
 // (`func (A) M()` with `type A = B`) is named A.M, which is how ripple names it. variant is "prod" for a package as
 // `go build` compiles it and "test" for one as `go test` does (internal and external test packages, and what is rebuilt
-// for them). F lists every file a variant compiles, which is the only way to know a file is built on this platform.
+// for them). With -implementers an I call is followed by an M row (the repo methods it may dispatch to) and a P row (the repo
+// packages of the universe the call was compiled in), both described in implementers.go. F lists every file a variant compiles,
+// which is the only way to know a file is built on this platform.
 // A package that does not type-check is an error: a probe is legal Go.
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"go/ast"
 	"go/types"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -97,9 +103,55 @@ func receiverOf(d *ast.FuncDecl) string {
 	return ""
 }
 
+func realPath(path string) string {
+	if abs, err := filepath.Abs(path); err == nil {
+		path = abs
+	}
+	if real, err := filepath.EvalSymlinks(path); err == nil {
+		path = real
+	}
+	return path
+}
+
+// otherModules is a pattern for the packages of each module of the repo (other than the one in ownDir) that the go tool
+// builds this module against: `go list -m all` lists the build list, with a replace or a workspace member at its local
+// directory.
+func otherModules(cfg *packages.Config, repo, ownDir string) []string {
+	repoDir := ownDir
+	if repo != "" {
+		repoDir = realPath(repo)
+	}
+	command := exec.Command("go", "list", "-m", "-json", "all")
+	command.Dir = cfg.Dir
+	command.Env = append(os.Environ(), "GOFLAGS=")
+	out, err := command.Output()
+	if err != nil {
+		return nil
+	}
+	decoder := json.NewDecoder(bytes.NewReader(out))
+	var found []string
+	for decoder.More() {
+		var m struct{ Path, Dir string }
+		if decoder.Decode(&m) != nil {
+			break
+		}
+		if m.Dir == "" {
+			continue
+		}
+		dir := realPath(m.Dir)
+		if dir == ownDir || !strings.HasPrefix(dir+"/", repoDir+"/") {
+			continue
+		}
+		found = append(found, m.Path+"/...")
+	}
+	return found
+}
+
 func main() {
 	dir := flag.String("dir", ".", "directory")
 	tags := flag.String("tags", "", "build tags")
+	wantImplementers := flag.Bool("implementers", false, "also write M rows: the repo methods each interface call can dispatch to (implementers.go)")
+	repo := flag.String("repo", "", "the directory whose types are candidate implementers (default -dir)")
 	flag.Parse()
 	patterns := flag.Args()
 	if len(patterns) == 0 {
@@ -113,6 +165,19 @@ func main() {
 	}
 	if *tags != "" {
 		cfg.BuildFlags = []string{"-tags=" + *tags}
+	}
+	ownDir := *dir
+	if abs, err := filepath.Abs(ownDir); err == nil {
+		ownDir = abs
+	}
+	if real, err := filepath.EvalSymlinks(ownDir); err == nil {
+		ownDir = real
+	}
+	if *wantImplementers {
+		// The packages of every other module of the repo that this module builds against (the go tool's own build list: a
+		// replace, a go.work) are loaded with it, so that a library call here and a type there are in one run. They are
+		// read for their interface calls as implementers only.
+		patterns = append(patterns, otherModules(cfg, *repo, ownDir)...)
 	}
 	pkgs, err := packages.Load(cfg, patterns...)
 	if err != nil {
@@ -129,6 +194,17 @@ func main() {
 	if bad > 0 {
 		os.Exit(2)
 	}
+	repoDir := *repo
+	if repoDir == "" {
+		repoDir = *dir
+	}
+	if abs, err := filepath.Abs(repoDir); err == nil {
+		repoDir = abs
+	}
+	if real, err := filepath.EvalSymlinks(repoDir); err == nil {
+		repoDir = real
+	}
+	universe := newUniverses(repoDir, pkgs)
 	seen := map[string]bool{}
 	var out []string
 	add := func(line string) {
@@ -137,10 +213,42 @@ func main() {
 			out = append(out, line)
 		}
 	}
+	// With -implementers the packages of the repo that this module only imports (another module of a go.work or a replace)
+	// are read for their interface calls too, as implementers only: the call is in a build that has the types of the
+	// module that imports it, which this module's own packages are. They give no C or F row.
+	roots := map[*packages.Package]bool{}
+	scanned := append([]*packages.Package{}, pkgs...)
 	for _, p := range pkgs {
+		// a package of this module (the other modules' packages were loaded for the implementers, and give no C or F row)
+		roots[p] = len(p.CompiledGoFiles) == 0 || strings.HasPrefix(p.CompiledGoFiles[0], ownDir+"/") || !universe.inRepo(p.CompiledGoFiles[0])
+	}
+	if *wantImplementers {
+		visited := map[*packages.Package]bool{}
+		for _, p := range pkgs {
+			visited[p] = true
+		}
+		var visit func(p *packages.Package)
+		visit = func(p *packages.Package) {
+			for _, q := range p.Imports {
+				if visited[q] {
+					continue
+				}
+				visited[q] = true
+				if !roots[q] && len(q.CompiledGoFiles) > 0 && universe.inRepo(q.CompiledGoFiles[0]) {
+					scanned = append(scanned, q)
+				}
+				visit(q)
+			}
+		}
+		for _, p := range pkgs {
+			visit(p)
+		}
+	}
+	for _, p := range scanned {
 		if p.TypesInfo == nil {
 			continue
 		}
+		only := !roots[p]
 		variant := "prod"
 		if strings.Contains(p.ID, " [") {
 			variant = "test"
@@ -151,7 +259,9 @@ func main() {
 			if strings.Contains(filename, "/go-build/") || strings.HasSuffix(filename, "_testmain.go") {
 				continue
 			}
-			add(fmt.Sprintf("F\t%s\t%s", variant, filename))
+			if !only {
+				add(fmt.Sprintf("F\t%s\t%s", variant, filename))
+			}
 			for _, decl := range file.Decls {
 				caller := pkgID
 				if d, ok := decl.(*ast.FuncDecl); ok {
@@ -177,7 +287,9 @@ func main() {
 					}
 					fn, isFunc := typeutil.Callee(p.TypesInfo, call).(*types.Func)
 					if !isFunc {
-						add(fmt.Sprintf("C\t%s\tD\t%s\t-\t-\t%s", variant, caller, where))
+						if !only {
+							add(fmt.Sprintf("C\t%s\tD\t%s\t-\t-\t%s", variant, caller, where))
+						}
 						return true
 					}
 					id, iface := funcID(fn)
@@ -192,7 +304,15 @@ func main() {
 					case declared != "":
 						kind = "E"
 					}
-					add(fmt.Sprintf("C\t%s\t%s\t%s\t%s\t%s\t%s", variant, kind, caller, id, declared, where))
+					if !only {
+						add(fmt.Sprintf("C\t%s\t%s\t%s\t%s\t%s\t%s", variant, kind, caller, id, declared, where))
+					}
+					if iface && *wantImplementers {
+						if row := universe.implementers(p, call, variant, where); row != "" {
+							add(row)
+							add(universe.present(variant, universe.keyOf(p)))
+						}
+					}
 					return true
 				})
 			}

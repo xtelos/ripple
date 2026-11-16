@@ -14,5 +14,7 @@
   {"file": "a.go", "line": 29, "col": 2, "end": "29:13", "kind": "E", "callee": "example.com/struct_fields_typed:Leaf.M", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 30, "col": 2, "end": "30:25", "kind": "E", "callee": "example.com/struct_fields_typed:Leaf.M", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 32, "col": 2, "end": "32:8", "kind": "E", "callee": "example.com/struct_fields_typed:Leaf.P", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

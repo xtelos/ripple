@@ -1,0 +1,15 @@
+{
+ "digest": "9a0b3fc8f9b4829dec0ad80dc9f3e7bab161c9d156e7aee09c5f3966e1f6221e",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "cmd/p/main.go": "all",
+  "x/pkg/p.go": "all"
+ },
+ "calls": [
+  {"file": "cmd/p/main.go", "line": 8, "col": 2, "end": "8:8", "kind": "E", "callee": "example.com/y/pkg:F", "at": "x/pkg/p.go", "variants": "all"},
+  {"file": "cmd/p/main.go", "line": 10, "col": 2, "end": "10:6", "kind": "I", "callee": "example.com/impl_module_dir_path/cmd/p:I.M", "at": "cmd/p/main.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "cmd/p/main.go", "line": 10, "col": 2, "end": "10:6", "interface": "example.com/impl_module_dir_path/cmd/p:I", "method": "M", "candidates": [{"id": "example.com/y/pkg:T.M", "at": "x/pkg/p.go"}], "packages": ["example.com/impl_module_dir_path/cmd/p", "example.com/y/pkg"], "variants": "all"}
+ ]
+}

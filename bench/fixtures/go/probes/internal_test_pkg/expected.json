@@ -13,5 +13,7 @@
   {"file": "a_test.go", "line": 17, "col": 2, "end": "17:9", "kind": "E", "callee": "example.com/internal_test_pkg:helper", "at": "a_test.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
   {"file": "a_test.go", "line": 18, "col": 2, "end": "18:11", "kind": "E", "callee": "testing:common.Helper", "at": "", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
   {"file": "a_test.go", "line": 19, "col": 2, "end": "19:11", "kind": "E", "callee": "testing:common.Log", "at": "", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]}
+ ],
+ "implementers": [
  ]
 }

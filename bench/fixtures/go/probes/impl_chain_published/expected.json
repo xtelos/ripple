@@ -1,0 +1,17 @@
+{
+ "digest": "c8c69f3f60c98e0bade07b1b86a96d5b4dd632d74baa85545f4b77c429ecb4d5",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a/a.go": "all",
+  "b/b.go": "all",
+  "cmd/p/main.go": "all"
+ },
+ "calls": [
+  {"file": "a/a.go", "line": 5, "col": 12, "end": "5:16", "kind": "E", "callee": "example.com/other:F", "at": "b/b.go", "variants": "all"},
+  {"file": "cmd/p/main.go", "line": 8, "col": 2, "end": "8:6", "kind": "E", "callee": "example.com/a:G", "at": "a/a.go", "variants": "all"},
+  {"file": "cmd/p/main.go", "line": 10, "col": 2, "end": "10:6", "kind": "I", "callee": "example.com/impl_chain_published/cmd/p:I.M", "at": "cmd/p/main.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "cmd/p/main.go", "line": 10, "col": 2, "end": "10:6", "interface": "example.com/impl_chain_published/cmd/p:I", "method": "M", "candidates": [], "packages": ["example.com/a", "example.com/impl_chain_published/cmd/p"], "variants": "all"}
+ ]
+}

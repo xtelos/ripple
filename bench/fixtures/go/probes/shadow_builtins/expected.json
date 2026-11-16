@@ -12,5 +12,9 @@
   {"file": "a.go", "line": 25, "col": 2, "end": "25:6", "kind": "D", "callee": "-", "at": "", "variants": "all"},
   {"file": "a.go", "line": 29, "col": 6, "end": "29:11", "kind": "D", "callee": "-", "at": "", "variants": "all"},
   {"file": "a.go", "line": 31, "col": 2, "end": "31:7", "kind": "D", "callee": "-", "at": "", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 19, "col": 2, "end": "19:9", "interface": "example.com/shadow_builtins:error", "method": "Code", "candidates": [{"id": "example.com/shadow_builtins:Num.Code", "at": "a.go"}], "packages": ["example.com/shadow_builtins"], "variants": "all"},
+  {"file": "a.go", "line": 20, "col": 6, "end": "20:14", "interface": "example.com/shadow_builtins:error", "method": "Error", "candidates": [{"id": "example.com/shadow_builtins:Num.Error", "at": "a.go"}], "packages": ["example.com/shadow_builtins"], "variants": "all"}
  ]
 }

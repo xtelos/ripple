@@ -105,6 +105,10 @@ def disagreements(name: str, root: Path = PROBES) -> list[str]:
                     wrong.append(f"{where} edge to {sorted(detail)}: on {variant} the compiler calls {sorted(got)}")
                     continue
                 declared_in = {at for k, c, at in got if at}
+                if symbol_files(resolver, detail) and not declared_in:
+                    # the two ids are equal when a checkout and a published version declare the same name: only where the
+                    # compiler's callee is declared tells them apart (a callee outside the probe has no `at`)
+                    wrong.append(f"{where} edge to {sorted(detail)} declared in {sorted(symbol_files(resolver, detail))}: on {variant} the compiler's callee is declared outside the probe")
                 if declared_in - symbol_files(resolver, detail):
                     wrong.append(
                         f"{where} edge to {sorted(detail)} declared in {sorted(symbol_files(resolver, detail))}: "
