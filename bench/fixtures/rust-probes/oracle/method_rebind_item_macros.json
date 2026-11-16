@@ -1,0 +1,137 @@
+{
+ "calls": [
+  {
+   "c0": 10,
+   "c1": 11,
+   "defs": [
+    [
+     "src/lib.rs",
+     11
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 27,
+   "text": "m"
+  },
+  {
+   "c0": 10,
+   "c1": 11,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "lost",
+   "line": 47,
+   "text": "m"
+  },
+  {
+   "c0": 10,
+   "c1": 11,
+   "defs": [
+    [
+     "src/lib.rs",
+     17
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 62,
+   "text": "m"
+  },
+  {
+   "c0": 10,
+   "c1": 11,
+   "defs": [
+    [
+     "src/lib.rs",
+     17
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 77,
+   "text": "m"
+  },
+  {
+   "c0": 10,
+   "c1": 11,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "lost",
+   "line": 98,
+   "text": "m"
+  },
+  {
+   "c0": 29,
+   "c1": 30,
+   "defs": [
+    [
+     "src/lib.rs",
+     26
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 108,
+   "text": "f"
+  },
+  {
+   "c0": 35,
+   "c1": 36,
+   "defs": [
+    [
+     "src/lib.rs",
+     46
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 109,
+   "text": "f"
+  },
+  {
+   "c0": 35,
+   "c1": 36,
+   "defs": [
+    [
+     "src/lib.rs",
+     61
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 110,
+   "text": "f"
+  },
+  {
+   "c0": 32,
+   "c1": 33,
+   "defs": [
+    [
+     "src/lib.rs",
+     76
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 111,
+   "text": "f"
+  },
+  {
+   "c0": 46,
+   "c1": 47,
+   "defs": [
+    [
+     "src/lib.rs",
+     95
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 112,
+   "text": "f"
+  }
+ ],
+ "complete": true,
+ "probe": "method_rebind_item_macros",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

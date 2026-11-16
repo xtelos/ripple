@@ -1,0 +1,310 @@
+{
+ "calls": [
+  {
+   "c0": 13,
+   "c1": 17,
+   "defs": [
+    [
+     "src/lib.rs",
+     36
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 40,
+   "text": "take"
+  },
+  {
+   "c0": 13,
+   "c1": 17,
+   "defs": [
+    [
+     "src/lib.rs",
+     26
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 43,
+   "text": "name"
+  },
+  {
+   "c0": 13,
+   "c1": 17,
+   "defs": [
+    [
+     "src/lib.rs",
+     29
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 46,
+   "text": "bump"
+  },
+  {
+   "c0": 13,
+   "c1": 17,
+   "defs": [
+    [
+     "src/lib.rs",
+     26
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 47,
+   "text": "name"
+  },
+  {
+   "c0": 13,
+   "c1": 23,
+   "defs": [
+    [
+     "src/lib.rs",
+     32
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 50,
+   "text": "take_value"
+  },
+  {
+   "c0": 13,
+   "c1": 17,
+   "defs": [
+    [
+     "src/lib.rs",
+     29
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 53,
+   "text": "bump"
+  },
+  {
+   "c0": 6,
+   "c1": 10,
+   "defs": [
+    [
+     "src/lib.rs",
+     26
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 59,
+   "text": "name"
+  },
+  {
+   "c0": 6,
+   "c1": 10,
+   "defs": [
+    [
+     "src/lib.rs",
+     29
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 63,
+   "text": "bump"
+  },
+  {
+   "c0": 6,
+   "c1": 10,
+   "defs": [
+    [
+     "src/lib.rs",
+     26
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 67,
+   "text": "name"
+  },
+  {
+   "c0": 6,
+   "c1": 16,
+   "defs": [
+    [
+     "src/lib.rs",
+     32
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 71,
+   "text": "take_value"
+  },
+  {
+   "c0": 6,
+   "c1": 10,
+   "defs": [
+    [
+     "src/lib.rs",
+     20
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 76,
+   "text": "take"
+  },
+  {
+   "c0": 6,
+   "c1": 10,
+   "defs": [
+    [
+     "src/lib.rs",
+     26
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 80,
+   "text": "name"
+  },
+  {
+   "c0": 6,
+   "c1": 16,
+   "defs": [
+    [
+     "src/lib.rs",
+     32
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 85,
+   "text": "take_value"
+  },
+  {
+   "c0": 6,
+   "c1": 10,
+   "defs": [
+    [
+     "src/lib.rs",
+     26
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 90,
+   "text": "name"
+  },
+  {
+   "c0": 6,
+   "c1": 16,
+   "defs": [
+    [
+     "src/lib.rs",
+     32
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 95,
+   "text": "take_value"
+  },
+  {
+   "c0": 8,
+   "c1": 12,
+   "defs": [
+    [
+     "src/lib.rs",
+     26
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 99,
+   "text": "name"
+  },
+  {
+   "c0": 6,
+   "c1": 10,
+   "defs": [
+    [
+     "src/lib.rs",
+     26
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 103,
+   "text": "name"
+  },
+  {
+   "c0": 13,
+   "c1": 22,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 103,
+   "text": "to_string"
+  },
+  {
+   "c0": 17,
+   "c1": 21,
+   "defs": [
+    [
+     "src/lib.rs",
+     26
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 107,
+   "text": "name"
+  },
+  {
+   "c0": 4,
+   "c1": 5,
+   "defs": [
+    [
+     "src/lib.rs",
+     107
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "local",
+   "line": 108,
+   "text": "f"
+  },
+  {
+   "c0": 21,
+   "c1": 25,
+   "defs": [
+    [
+     "src/lib.rs",
+     26
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 112,
+   "text": "name"
+  },
+  {
+   "c0": 17,
+   "c1": 21,
+   "defs": [
+    [
+     "src/lib.rs",
+     26
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 113,
+   "text": "name"
+  }
+ ],
+ "complete": true,
+ "probe": "method_first_step",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

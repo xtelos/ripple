@@ -1,0 +1,63 @@
+{
+ "calls": [
+  {
+   "c0": 58,
+   "c1": 70,
+   "defs": [
+    [
+     "src/lib.rs",
+     45
+    ]
+   ],
+   "file": "src/bin/show.rs",
+   "kind": "repo",
+   "line": 3,
+   "text": "without_test"
+  },
+  {
+   "c0": 22,
+   "c1": 26,
+   "defs": [
+    [
+     "src/lib.rs",
+     35
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 41,
+   "text": "make"
+  },
+  {
+   "c0": 7,
+   "c1": 11,
+   "defs": [
+    [
+     "src/lib.rs",
+     35
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 46,
+   "text": "make"
+  },
+  {
+   "c0": 15,
+   "c1": 27,
+   "defs": [
+    [
+     "src/lib.rs",
+     45
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 52,
+   "text": "without_test"
+  }
+ ],
+ "complete": true,
+ "probe": "method_cfg_shared_macro",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

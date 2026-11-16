@@ -1,0 +1,30 @@
+{
+ "calls": [
+  {
+   "c0": 11,
+   "c1": 17,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "lost",
+   "line": 15,
+   "text": "helper"
+  },
+  {
+   "c0": 6,
+   "c1": 8,
+   "defs": [
+    [
+     "src/lib.rs",
+     7
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 19,
+   "text": "go"
+  }
+ ],
+ "complete": true,
+ "probe": "method_unread_block_mod",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

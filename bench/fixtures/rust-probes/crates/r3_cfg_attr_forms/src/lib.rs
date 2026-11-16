@@ -2,7 +2,7 @@
 pub mod lib2 { pub fn helper() -> u32 { 10 } }
 pub mod user {
     use crate::lib2::*;
-    #[cfg_attr(feature = "x", inline)]
+    #[cfg_attr(feature = "x", cfg(any()))]
     fn helper() -> u32 { 20 }
     pub fn run() -> u32 { helper() }
 }

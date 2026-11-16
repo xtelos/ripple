@@ -731,6 +731,96 @@ standard macros (`println!`, `format!`, `vec!`, `assert_eq!`, ...), which are pa
 (`Some(x)`, `Pair(1, 2)`) runs no code and is neither an edge nor unresolved. `Type::f()` is an edge for an inherent
 function of a repo type, and for a function of a repo trait that has one impl for the type and no blanket impl; a trait
 from outside the repo is never one (the standard library may implement it for the type in ways ripple does not read).
+A method call `recv.m()` is an edge in one case only, the first step of rustc's method probe: the receiver is `self`, or a name
+bound once in the function by a parameter or a `let` that writes its type as a struct, enum or union of the repo (`S`, `&S`,
+`&mut S`, `Self`, through an alias or a renamed import too), the call is where that `let` is in effect (after it, in its block), and an
+inherent method `m` of that type takes the receiver in the form the receiver has: `self` for an `S`, `&self` for a `&S`, `&mut self`
+for a `&mut S`. rustc tries a type by value before it takes a reference and an inherent method before a trait's, so that method is found
+first, whatever traits are in scope and whatever other types the receiver derefs to. The type arguments written must select the one impl
+(`impl W<u8>` and `impl W<u16>` are told apart; a generic receiver `W<T>` selects only an impl for every `T`). A type name in that proof is
+resolved where it is written, never compared as text: arguments are compared only when each is built of primitive types (`u8`, `(u8, bool)`,
+`[u8; 4]`, `&u8`) and every primitive name, looked up in the scope of the impl and of the call, is the primitive (a struct, an enum, an
+alias, an import, a glob, a generic parameter or a macro that may make a name called `u8` there makes `W<u8>` another type; probe
+`method_type_names`, compiled and run, for a method call and for a path call `W::<u8>::m(w)`, which had the same defect). A prelude type
+(`Vec<u8>`, `Option<u8>`, `String`), a std path, `Self` and every other type are never compared: the scope may have replaced them. An impl ripple did not see
+is not a reason to refuse: rustc rejects a second inherent method of one name for a type (E0592) whatever its receiver form, and takes
+the inherent method before every trait's and every `Deref`'s at this step, so an impl a macro made cannot change which function the call
+finds (compiled cases in `bench/fixtures/rust-probes/crates/method_macros`, `method_rebind_*`). What can change it is source ripple did not
+read, which rebinds the receiver or the type name where no rule of a scope sees it (a textual `macro_rules! println` in an unread
+`#[macro_use]` module makes `println!(s);` bind `s`: probe `method_unread_macro_use`), so a crate (or one that can name the type) is
+refused wherever part of its source is unread: a `mod` that names no file, a file of the crate's source directory that no `mod` reaches,
+a `#[path]` or a `cfg_attr(.., path = ..)` ripple does not follow (the latter whether or not a default file exists), modules nested beyond
+what ripple follows, a `mod` written in a block, a file the parser could not read whole, `include!` (a build script's generated file too), and
+a macro invoked where an item may stand that may expand to `mod x;` or `include!(..)` (probes: both build at the module level; neither in an
+impl or a trait body, nor in the statements of a block, where a `mod` needs a `#[path]` and is a block module, nor in an expression): an attribute
+macro or a derive that is not a standard one or a trusted one on an item of a module, and an invocation of a macro that is not a standard one
+unless it is a `macro_rules!` of the repo that provably brings none. That proof is for two forms only: a bare name that a `macro_rules!` written
+earlier in the same module reaches (not itself under an attribute that may remove it), or a path from `crate`, `self` or `super` where no
+`#[macro_use] extern crate` and no glob from outside the repo may bring another macro of the name. The name is the repo's alone (no procedural
+macro, and a `use` that gives it is the macro's own path), the body and the invocation's tokens have no `mod`, `include` or `macro_rules` token,
+and every macro the body invokes is named so that one macro is meant: `std::`, `core::` or `alloc::` and a macro of a short written list
+(`println!`, `format!`, `concat!`, `stringify!`, `vec!`, ...), or the same bare where no `use` of the crate gives the name (`use std::include as concat;`
+makes `concat!` bring a file: probe `method_unread_alias_std`; `pub(crate) use declare as stringify;` is the same with a repo macro:
+`method_unread_alias_repo`) and no `#[macro_use] extern crate` may, or a bare macro of the repo whose `macro_rules!` is in textual scope at the
+invocation and is proven the same way (one defined in another module may be another macro there: `method_unread_nested_ext`). A path through
+`$crate`, `crate`, `self`, `super` or another crate inside a body is not followed. A macro invoked in a block, an impl or a
+trait body, or in expression position, costs nothing crate-wide: its reach is the block (rustc reports a `macro_rules!` that a macro made and
+that redefines a standard macro as ambiguous, E0659), and the receiver rules below see it. The receiver name and the type name are
+trusted only where a rule of the scope says nothing rebinds them, with no crate-wide refusal behind it (the tests run every probe with it off):
+a macro invoked as a statement in a block around the call (or in a pattern: `let bind!() = x;`, an arm, an `if let`, a `for`, a closure parameter), a
+name bound twice, and anything in a block around the call that may give the name another meaning: an item of the name in the value namespace (a
+fn, a const, a static, a unit or tuple struct, a foreign item), an import that gives the name (`use m::s;`, `use m::t as s;`, in a list), any
+glob import (it may give any name), a macro that may have made the name, or a statement of a kind with no rule (the allow-list is
+`BLOCK_DECLARES`, `BLOCK_IMPORTS`, `BLOCK_TYPE_ONLY` and `BLOCK_NO_NAMES`: a type, trait, impl, macro or `extern crate` item, a `let`, an expression
+statement and a comment cannot give a value name; probe `method_block_names`, each compiled and run), a glob or a
+macro that may have made the type's name, an attribute macro on the function, the impl or the module, and the standard macros' own names
+(`println!` and the rest are the standard ones only where no `macro_rules!` of the repo, no `use` and no `#[macro_use] extern crate` gives the name,
+and no block holds a `#[macro_use] mod`; a glob that gives one is ambiguous with the prelude's, E0659). And only when nothing
+the proof reads is conditional or hidden. Conditional compilation anywhere between the crate root and the thing read refuses the call (but for
+a cfg the call is under too, below): the read
+things are the method (with its parameters, generics and body's inner attributes), its impl (its generics, type and inner attributes, and every
+function, impl, trait, block, match arm, statement, array, tuple or call element, struct-expression field and inline or file module around it),
+the receiver type's generics and where clause, the receiver's own `let` or parameter (`#[cfg(..)] let s: &S`), and an argument of the call. An
+attribute is read as harmless only if it is on a written list (`INERT_ATTRS`: `allow`, `warn`, `deny`, `forbid`, `expect`, `doc`, `must_use`,
+`inline`, `cold`, `deprecated`, `track_caller`, `repr`, `non_exhaustive`, `automatically_derived`, `derive`, tool attributes such as `rustfmt::skip`, and
+plainly `path`, `macro_use`, `macro_export`); a `cfg_attr` is harmless if every attribute it adds is. Every other attribute (`cfg`, `test`, an
+attribute macro, a `cfg_attr` that adds one of those, `cfg_attr(.., path = ..)`) is conditional, in any position the grammar gives one (outer or
+inner; `ATTRIBUTE_PARENTS`; a position it does not parse is a file the crate refuses whole). A `cfg` on the call's own statement, block or
+function is no reason (an edge says "if this call exists, it calls that"). Probes `method_cfg_places` and `method_cfg_bindings` build every
+position. This is the same reading for path calls: an inherent function the impl, a function body, an arm or a module file removes with an inner
+`#![cfg(..)]` (`impl S { #![cfg(any())] fn m }`, which main drew an edge to, wrongly) or whose impl is inside any conditional node is
+no longer chosen over a trait's function that would stand in its place, unless the call is under that cfg too (next paragraph). Not private to another module, not in an impl with bounds (`impl<T: Bound> W<T>`,
+a where clause, `?Sized`), which a receiver may not meet. A method call is never an `override` edge and never counted as outside the repo.
+A cfg that governs both the call and the declaration does not make the declaration conditional for that call (method calls and path calls alike,
+`Index.shares_cfg`): an edge is drawn only if every conditional attribute on the path from the crate root to the declaration (the method, its
+impl, the type, and everything enclosing them: modules, a `mod x;` declaration's attributes for a file module, a file's own `#![cfg(..)]`, functions,
+blocks, arms) is also on the path from the crate root to the call, as the same attribute on the same syntactic ancestor in the same crate (an
+attribute is its crate, file and byte). The call then exists only if the declaration does, and the program is read as if those attributes were not
+there; a second definition under another cfg is still counted and refuses (`SEVERAL`), and one the tool does not see is a duplicate rustc rejects
+(E0592) wherever both exist. An attribute on the impl or the method when the call is outside it, on a generic parameter of the impl, on the
+receiver's own `let` or parameter (never an ancestor of the call), or in another crate's copy of a file is not shared; nor is an attribute that does
+more than make its host exist or not (`head_shared`: `cfg`, and a `cfg_attr` of those and inert attributes; `test`, `path`, `no_implicit_prelude` and
+attribute macros are not).
+Two rules satisfy a conditional attribute of the declaration's path: **the same attribute** on the call's path (above), and **the same predicate**
+(`cfg_covers`): another attribute on the call's path whose predicate is the identical tokens, so ripgrep's `#[cfg(test)] mod testutil;` holding the
+impl and its sibling `#[cfg(test)] mod tests` holding the calls is an edge (`SearcherTester::new` and its like: 69 of the path edges that the shared-attribute rule alone lost in ripgrep), under five conditions, each one a probe
+that refuses when it is broken. (1) One crate reads both: a file that is a module of the library and of the binary is two crates (`cfg(test)` is
+on in the binary's test build and off in the library it links), and so are an integration test, an example, a bench, a build script, a
+procedural macro crate and every other member of a workspace (a feature is a crate's own too). (2) Both are plain `#[cfg(..)]` or `#![cfg(..)]` written in place:
+never a `cfg_attr`, `cfg!`, a predicate a macro made, or an item an attribute macro rewrites (`#[stripcfg]` deletes the `cfg`s inside it). (3) The
+predicates are compared token by token: comments and white space between tokens are nothing, every literal is compared byte for byte (`"a b"`
+is not `"a  b"`, `r"x"` and `"\x61"` are not `"x"` and `"a"`), and the order matters (`all(a, b)` is not `all(b, a)`: no boolean reasoning; recall
+lost, never an edge drawn). (4) Every other conditional attribute on the declaration's path is matched, one by one, by identity or by this rule, and
+one that is not refuses; an attribute in the header of the impl or the method (a generic, a parameter, a where clause) is matched by identity only. (5)
+A second definition that could win is refused as before: two under one predicate are an error rustc rejects (E0592), one under `not(P)` or
+another predicate beside the one under `P` is `SEVERAL`, and a trait method found at an earlier probe step, a `use` or glob that gives the receiver
+another type, and a type under another predicate than the call's refuse.
+Probes `method_cfg_shared`, `method_cfg_shared_macro`, `method_cfg_crates` (one file that is a module of both the library and the binary),
+`method_cfg_predicate`, `method_cfg_predicate_crates` (a workspace: the targets of a package, another member, a procedural macro crate) and
+`method_cfg_predicate_macros` (compiled and run: `cargo test` has `cfg(test)` on, `cargo run --bin show` is the build without it, and a
+feature off is `--no-default-features`) and the E0592 programs in `bench/fixtures/rust-probes/shared_cfg_errors` answer each case.
+A macro in a pattern of a function (a `let`, an arm, an `if let`, a `for`, a parameter) may bind any name (a procedural macro binds `helper`
+for a call of `helper()`), so the function's receivers, and its single-name path calls, are unresolved.
 A block is a scope of its own wherever a body holds one: a function, a `const` or `static` initializer (also inside a function), the initializer
 of an associated const of an impl or a trait, an inline `const { .. }`, an array length or const generic argument written in an expression
 (a name the block declares or imports comes before a glob's, as rustc does; each position built). A call in an enum discriminant, or in an array
@@ -807,8 +897,14 @@ What cargo is given from outside what ripple reads is not seen, and is assumed t
 dependency a manifest above the analysed directory or named by a `package.workspace` that points outside it (a `[patch."file:///..."]` or a
 `[replace]` in it; for a registry or git dependency that manifest is rule (2)). A manifest in `.git`, `node_modules`, a `target` directory beside a Cargo.toml or
 `__pycache__` is not read for a `[patch]`, which only matters where a build reaches an indexed package by it.
-**Unresolved, with the reason:** every method call `recv.m()` (what it calls depends on the receiver's type, which is not
-followed yet: `impact` lists same-named ones under `possible_missed_callers`), a name two definitions share (cfg twins),
+**Unresolved, with the reason:** every method call `recv.m()` that is not that one case, each with a reason of its own that begins
+`a method call:` (`impact` lists same-named ones under `possible_missed_callers`): a receiver that is an expression (a call, a
+field, a literal, `self.field`), a local whose binding writes no type, a name bound twice in the function (a parameter and a `let`,
+a closure parameter, a match arm), a name a statement macro or a pattern macro may bind, an item, an import or a glob that may give that name in a block around the call, a binding under a `#[cfg]`, a generic
+or `impl Trait` or trait object receiver (what its bounds give is not followed), a receiver of a type from outside the repo, a method
+the form of the receiver does not match (an inherent `&self` method called on a value is found after a trait's by-value method of the
+same name, so it is not proven), a method no inherent impl defines (a trait method, one reached through a `Deref`, one a macro made), and
+every guard above. These are never counted as outside the repo, since a trait or a `Deref` of the repo may be what runs. Also unresolved: a name two definitions share (cfg twins),
 a name a pattern or closure binds, a call inside a macro other than the standard ones, a glob from outside the repo in a
 block, a generic parameter used as a path (`T::new()`), any path that goes through the `use` items of a crate of edition
 2015 (and every call written in one), a file that several crates share (`mod common;` in each integration test) that

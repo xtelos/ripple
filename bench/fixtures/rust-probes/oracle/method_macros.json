@@ -1,0 +1,58 @@
+{
+ "calls": [
+  {
+   "c0": 10,
+   "c1": 12,
+   "defs": [
+    [
+     "src/lib.rs",
+     10
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 31,
+   "text": "go"
+  },
+  {
+   "c0": 6,
+   "c1": 8,
+   "defs": [
+    [
+     "src/lib.rs",
+     10
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 36,
+   "text": "go"
+  },
+  {
+   "c0": 6,
+   "c1": 10,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "lost",
+   "line": 40,
+   "text": "made"
+  },
+  {
+   "c0": 21,
+   "c1": 23,
+   "defs": [
+    [
+     "src/lib.rs",
+     10
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 44,
+   "text": "go"
+  }
+ ],
+ "complete": true,
+ "probe": "method_macros",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

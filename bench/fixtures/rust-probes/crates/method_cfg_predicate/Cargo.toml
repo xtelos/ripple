@@ -1,0 +1,10 @@
+[package]
+name = "method_cfg_predicate"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+
+# `x` is on by default (the oracle reads the crate with it on); `--no-default-features` is the build where the declarations under `x` are gone
+[features]
+default = ["x"]
+x = []

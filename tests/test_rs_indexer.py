@@ -484,12 +484,15 @@ def test_a_call_in_a_const_or_static_initializer_belongs_to_the_module(make_repo
 # ---- method calls
 
 
-def test_every_method_call_is_unresolved_with_the_one_reason_even_when_the_method_is_in_the_repo(make_repo):
+def test_a_method_call_that_is_not_the_first_probe_step_is_unresolved_with_its_own_reason_even_when_the_method_is_in_the_repo(make_repo):
     src = "pub struct S;\nimpl S { pub fn go(&self) {} }\npub fn run(s: S, v: Vec<u8>) { s.go(); v.len(); S.go(); s.go().x.y(); }\n"
     g = graph_of(make_repo, {"src/lib.rs": src})
     assert edge_set(g) == set()
-    assert {u.reason for u in g.unresolved} == {rs.METHOD} and len(g.unresolved) == 5  # `s.go().x.y()` is two: y, and the go call under it
+    assert all(u.reason.startswith(rs.METHOD_PREFIX) for u in g.unresolved) and len(g.unresolved) == 5  # `s.go().x.y()` is two: y, and the go call under it
     assert {u.text.rsplit(".", 1)[-1] for u in g.unresolved} == {"go", "len", "y"}
+    by_text = {u.text: u.reason for u in g.unresolved}
+    assert by_text["s.go"] == rs.M_LATER.format("`&self`", "a value")  # found at the autoref step, after by-value trait methods
+    assert by_text["v.len"] == rs.M_EXT_TYPE and by_text["S.go"] == rs.M_NOT_LOCAL
 
 
 def test_a_path_call_at_the_head_of_a_method_chain_is_its_own_call(make_repo):

@@ -1,0 +1,91 @@
+{
+ "calls": [
+  {
+   "c0": 6,
+   "c1": 9,
+   "defs": [
+    [
+     "kit/src/lib.rs",
+     26
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 6,
+   "text": "get"
+  },
+  {
+   "c0": 6,
+   "c1": 10,
+   "defs": [
+    [
+     "kit/src/more.rs",
+     2
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 10,
+   "text": "more"
+  },
+  {
+   "c0": 6,
+   "c1": 14,
+   "defs": [
+    [
+     "kit/src/lib.rs",
+     20
+    ]
+   ],
+   "file": "app/src/lib.rs",
+   "kind": "repo",
+   "line": 15,
+   "text": "internal"
+  },
+  {
+   "c0": 21,
+   "c1": 24,
+   "defs": [
+    [
+     "kit/src/lib.rs",
+     26
+    ]
+   ],
+   "file": "app/src/main.rs",
+   "kind": "repo",
+   "line": 4,
+   "text": "get"
+  },
+  {
+   "c0": 13,
+   "c1": 21,
+   "defs": [
+    [
+     "kit/src/lib.rs",
+     29
+    ]
+   ],
+   "file": "kit/src/lib.rs",
+   "kind": "repo",
+   "line": 33,
+   "text": "internal"
+  },
+  {
+   "c0": 13,
+   "c1": 16,
+   "defs": [
+    [
+     "kit/src/lib.rs",
+     26
+    ]
+   ],
+   "file": "kit/src/more.rs",
+   "kind": "repo",
+   "line": 3,
+   "text": "get"
+  }
+ ],
+ "complete": true,
+ "probe": "method_workspace",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}

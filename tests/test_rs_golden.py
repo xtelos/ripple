@@ -114,11 +114,11 @@ def test_the_edges_are_exactly_the_calls_the_fixture_makes(graph):
 
 
 def test_every_unresolved_call_is_listed_with_its_reason(graph):
-    refused = {(u.caller, u.text, u.line): u.reason for u in graph.unresolved if u.reason != rs.METHOD}
+    refused = {(u.caller, u.text, u.line): u.reason for u in graph.unresolved if not u.reason.startswith(rs.METHOD_PREFIX)}
     assert set(refused) == set(REFUSED)
     for key, marker in REFUSED.items():
         assert marker in refused[key], (key, refused[key])
-    assert {(u.caller, u.text, u.line) for u in graph.unresolved if u.reason == rs.METHOD} == METHODS
+    assert {(u.caller, u.text, u.line) for u in graph.unresolved if u.reason.startswith(rs.METHOD_PREFIX)} == METHODS
 
 
 def test_calls_outside_the_repo_are_counted_by_reason(graph):

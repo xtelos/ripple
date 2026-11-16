@@ -75,6 +75,22 @@ PROVEN: dict[str, dict[tuple[str, int, str, int], str]] = {
     # `one` would be a false one and these answers make the differential suite say so. The probes that are not here
     # (trust_tokio_main and the other positives) run the published crates, whose body is what it says, and the oracle is
     # right as written.
+    # The impl under `#[cfg(test)]` is in the library's own unit tests only: every other crate of the workspace (an integration test, an example, a
+    # procedural macro crate, another member) is built with its own `cfg(test)` and links the library built without it, and its call finds the
+    # trait's default (`Tr::m`, line 8, and `Tr::make`, line 11), as the crates' assertions show; rust-analyzer gives the library's impl. The
+    # calls under the tool's own feature `f` find the library's impl or the trait's by the library's `f`, which `cargo test -p tool` has off
+    "method_cfg_predicate_crates": {
+        ("app/examples/ex.rs", 8, "m", 0): "repo:app/src/lib.rs:8",
+        ("app/examples/ex.rs", 11, "make", 0): "repo:app/src/lib.rs:11",
+        ("app/tests/it.rs", 6, "m", 0): "repo:app/src/lib.rs:8",
+        ("app/tests/it.rs", 9, "make", 0): "repo:app/src/lib.rs:11",
+        ("pm/src/lib.rs", 7, "m", 0): "repo:app/src/lib.rs:8",
+        ("pm/src/lib.rs", 10, "make", 0): "repo:app/src/lib.rs:11",
+        ("tool/src/lib.rs", 8, "m", 0): "repo:app/src/lib.rs:8",
+        ("tool/src/lib.rs", 11, "make", 0): "repo:app/src/lib.rs:11",
+        ("tool/src/lib.rs", 24, "m", 0): "shared",
+        ("tool/src/lib.rs", 27, "make", 0): "shared",
+    },
     "trust_path_dep_named_tokio": {("src/lib.rs", 5, "one", 0): "repo:src/lib.rs:3"},
     "trust_renamed_dep": {("src/lib.rs", 5, "one", 0): "repo:src/lib.rs:3"},
     "trust_workspace_path": {("member/src/lib.rs", 5, "one", 0): "repo:member/src/lib.rs:3"},
@@ -127,6 +143,15 @@ PROVEN: dict[str, dict[tuple[str, int, str, int], str]] = {
     # the spelling is not the standard library's unless `std` is proved to be the crate. `trust_derive_std_use` is the control: the real
     # `std::fmt::Debug` emits nothing, and the glob's `one` is the call's callee (no proof needed: rust-analyzer says the same)
     "trust_derive_std_shadow": {("src/lib.rs", 17, "one", 0): "lost"},
+    # rust-analyzer expands macro_rules! and most procedural macros but not an attribute macro on a statement's item, a derive's output
+    # or an item macro's `struct S` that a block now holds: it resolves each `s.m()` to the module's S::m, and the crate's assertions show
+    # the call runs Other::m (the attribute that appends `let s = &Other;`) or a method no file defines (the derive's and the macro's S)
+    "method_rebind_blocks": {
+        ("app/src/lib.rs", 72, "m", 0): "repo:app/src/lib.rs:15",
+        ("app/src/lib.rs", 79, "m", 0): "lost",
+        ("app/src/lib.rs", 86, "m", 0): "lost",
+        ("app/src/lib.rs", 94, "m", 0): "lost",
+    },
 }
 
 # probe -> the directory of the probe where its package is, and where cargo runs: a probe whose point is a file cargo reads from the
@@ -183,6 +208,12 @@ OVERRIDES: dict[str, dict[tuple[str, int, str, int], str]] = {
         ("src/local.rs", 1, "f", 0): "repo:src/main.rs:2",
         ("src/local.rs", 1, "f", 1): "repo:src/lib.rs:2",
     },
+    # a struct declared in a body that takes a module struct's name: `S::go` is one symbol for all three (the test shows which runs)
+    "method_local_types": {
+        ("src/lib.rs", 13, "go", 0): "repo:src/lib.rs:7",
+        ("src/lib.rs", 24, "go", 0): "repo:src/lib.rs:19",
+        ("src/lib.rs", 35, "go", 0): "repo:src/lib.rs:30",
+    },
     "r2_q3_private_const_cfg_raw": {
         ("src/lib.rs", 32, "helper", 0): "repo:src/lib.rs:32",
     },
@@ -195,6 +226,13 @@ OVERRIDES: dict[str, dict[tuple[str, int, str, int], str]] = {
         ("src/main.rs", 4, "local", 0): "repo:src/main.rs:2",
         ("src/main.rs", 7, "local", 0): "repo:src/main.rs:2",
         ("src/shared.rs", 1, "local", 0): "shared",
+    },
+    # x.rs is a module of the library and of the binary, and its `#[cfg(test)]` is on in each crate's own test build: rust-analyzer reads it
+    # as the library's and says `S::m`, while the binary's test (which links the library built without `cfg(test)`) runs `Tr::m`, as its
+    # assertion shows. The answer depends on the crate, so no one edge is right
+    "method_cfg_crates": {
+        ("src/x.rs", 13, "m", 0): "shared",
+        ("src/x.rs", 16, "make", 0): "shared",
     },
     "review_p2_workspace_twins": {
         ("app/src/lib.rs", 15, "g", 0): "repo:app/src/lib.rs:8",

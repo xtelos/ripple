@@ -1,0 +1,13 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2021"
+
+# on by default, so a workspace build has it on (the tool asks for the library without its defaults: `cargo test -p tool` is the build with it off)
+[features]
+default = ["f"]
+f = []
+
+[[example]]
+name = "ex"
+test = true

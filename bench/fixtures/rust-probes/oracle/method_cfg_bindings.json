@@ -1,0 +1,268 @@
+{
+ "calls": [
+  {
+   "c0": 8,
+   "c1": 10,
+   "defs": [],
+   "file": "src/lib.rs",
+   "kind": "external",
+   "line": 16,
+   "text": "Fn"
+  },
+  {
+   "c0": 6,
+   "c1": 7,
+   "defs": [
+    [
+     "src/lib.rs",
+     17
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 29,
+   "text": "m"
+  },
+  {
+   "c0": 6,
+   "c1": 7,
+   "defs": [
+    [
+     "src/lib.rs",
+     17
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 33,
+   "text": "m"
+  },
+  {
+   "c0": 6,
+   "c1": 7,
+   "defs": [
+    [
+     "src/lib.rs",
+     17
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 39,
+   "text": "m"
+  },
+  {
+   "c0": 6,
+   "c1": 7,
+   "defs": [
+    [
+     "src/lib.rs",
+     17
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 45,
+   "text": "m"
+  },
+  {
+   "c0": 6,
+   "c1": 7,
+   "defs": [
+    [
+     "src/lib.rs",
+     17
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 49,
+   "text": "m"
+  },
+  {
+   "c0": 6,
+   "c1": 7,
+   "defs": [
+    [
+     "src/lib.rs",
+     7
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 55,
+   "text": "m"
+  },
+  {
+   "c0": 6,
+   "c1": 7,
+   "defs": [
+    [
+     "src/lib.rs",
+     7
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 61,
+   "text": "m"
+  },
+  {
+   "c0": 6,
+   "c1": 7,
+   "defs": [
+    [
+     "src/lib.rs",
+     7
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 65,
+   "text": "m"
+  },
+  {
+   "c0": 6,
+   "c1": 7,
+   "defs": [
+    [
+     "src/lib.rs",
+     7
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 71,
+   "text": "m"
+  },
+  {
+   "c0": 19,
+   "c1": 26,
+   "defs": [
+    [
+     "src/lib.rs",
+     26
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 80,
+   "text": "let_off"
+  },
+  {
+   "c0": 19,
+   "c1": 28,
+   "defs": [
+    [
+     "src/lib.rs",
+     32
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 81,
+   "text": "param_off"
+  },
+  {
+   "c0": 19,
+   "c1": 30,
+   "defs": [
+    [
+     "src/lib.rs",
+     36
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 82,
+   "text": "let_feature"
+  },
+  {
+   "c0": 19,
+   "c1": 43,
+   "defs": [
+    [
+     "src/lib.rs",
+     42
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 83,
+   "text": "let_cfg_attr_makes_a_cfg"
+  },
+  {
+   "c0": 19,
+   "c1": 45,
+   "defs": [
+    [
+     "src/lib.rs",
+     48
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 84,
+   "text": "param_cfg_attr_makes_a_cfg"
+  },
+  {
+   "c0": 19,
+   "c1": 25,
+   "defs": [
+    [
+     "src/lib.rs",
+     52
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 85,
+   "text": "let_on"
+  },
+  {
+   "c0": 19,
+   "c1": 41,
+   "defs": [
+    [
+     "src/lib.rs",
+     58
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 86,
+   "text": "let_cfg_attr_of_a_lint"
+  },
+  {
+   "c0": 19,
+   "c1": 43,
+   "defs": [
+    [
+     "src/lib.rs",
+     64
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 87,
+   "text": "param_cfg_attr_of_a_lint"
+  },
+  {
+   "c0": 19,
+   "c1": 34,
+   "defs": [
+    [
+     "src/lib.rs",
+     68
+    ]
+   ],
+   "file": "src/lib.rs",
+   "kind": "repo",
+   "line": 88,
+   "text": "let_with_a_lint"
+  }
+ ],
+ "complete": true,
+ "probe": "method_cfg_bindings",
+ "source": "rust-analyzer 1.99.1 (58cf8f9 2026-10-13)"
+}
