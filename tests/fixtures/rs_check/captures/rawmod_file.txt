@@ -1,0 +1,36 @@
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"rawmod","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/rawmod-03b66140bc10243d"],"executable":"@TARGET@/debug/deps/rawmod-03b66140bc10243d","fresh":true}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (@TARGET@/debug/deps/rawmod-03b66140bc10243d)
+
+running 2 tests
+test r#type::tests::r#match ... FAILED
+test r#type::tests::t_fails ... FAILED
+
+failures:
+
+---- r#type::tests::r#match stdout ----
+
+thread 'r#type::tests::r#match' (3953025) panicked at src/type.rs:10:9:
+assertion `left == right` failed
+  left: 1
+ right: 2
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- r#type::tests::t_fails stdout ----
+
+thread 'r#type::tests::t_fails' (3953026) panicked at src/type.rs:5:9:
+assertion `left == right` failed
+  left: 1
+ right: 2
+
+
+failures:
+    r#type::tests::r#match
+    r#type::tests::t_fails
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p rawmod --lib`
+error: 1 target failed:
+    `-p rawmod --lib`

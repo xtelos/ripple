@@ -1,0 +1,11 @@
+   Compiling mixed v0.1.0 (@ROOT@)
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"mixed","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/mixed-86ad427e7f996341"],"executable":"@TARGET@/debug/deps/mixed-86ad427e7f996341","fresh":false}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.59s
+     Running unittests src/lib.rs (@TARGET@/debug/deps/mixed-86ad427e7f996341)
+net::tests::t_net: test
+tests::same: test
+tests::t_lib: test
+util::tests::t_util: test
+
+4 tests, 0 benchmarks

@@ -1,0 +1,9 @@
+   Compiling examples_ok v0.1.0 (@ROOT@)
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"examples_ok","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":false},"features":[],"filenames":["@TARGET@/debug/deps/libexamples_ok-cbb8b449b091abe5.rlib","@TARGET@/debug/deps/libexamples_ok-cbb8b449b091abe5.rmeta"],"executable":null,"fresh":false}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["example"],"crate_types":["bin"],"name":"demo","src_path":"@ROOT@/examples/demo.rs","edition":"2021","doc":false,"doctest":false,"test":false},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/examples/demo-c40f706dd371973c"],"executable":"@TARGET@/debug/examples/demo-c40f706dd371973c","fresh":false}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.24s
+     Running unittests examples/demo.rs (@TARGET@/debug/examples/demo-c40f706dd371973c)
+tests::ex_ok: test
+
+1 test, 0 benchmarks

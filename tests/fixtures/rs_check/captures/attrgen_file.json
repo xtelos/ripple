@@ -1,0 +1,38 @@
+{
+  "crate": "attrgen",
+  "cwd": ".",
+  "argv": [
+    "cargo",
+    "test",
+    "--color",
+    "never",
+    "--config",
+    "term.quiet=false",
+    "--config",
+    "term.verbose=false",
+    "--message-format",
+    "json",
+    "--no-fail-fast",
+    "-p",
+    "attrgen",
+    "--lib",
+    "--",
+    "--exact",
+    "util::tests::broken_a",
+    "util::tests::broken_b",
+    "util::tests::fine_a",
+    "util::tests::fine_b",
+    "util::tests::plain"
+  ],
+  "request": [
+    "attrgen/src/util.rs"
+  ],
+  "by_hand": false,
+  "exit_code": 101,
+  "timed_out": false,
+  "timeout": 600,
+  "env": {},
+  "listed": true,
+  "cargo_version": "cargo 1.99.1 (5f94df478 2026-08-27)",
+  "metadata": "{\"packages\":[{\"name\":\"attrgen_macros\",\"version\":\"0.1.0\",\"id\":\"path+file://@ROOT@/macros#attrgen_macros@0.1.0\",\"license\":null,\"license_file\":null,\"description\":null,\"source\":null,\"dependencies\":[],\"targets\":[{\"kind\":[\"proc-macro\"],\"crate_types\":[\"proc-macro\"],\"name\":\"attrgen_macros\",\"src_path\":\"@ROOT@/macros/src/lib.rs\",\"edition\":\"2021\",\"doc\":true,\"doctest\":true,\"test\":true}],\"features\":{},\"manifest_path\":\"@ROOT@/macros/Cargo.toml\",\"metadata\":null,\"publish\":null,\"authors\":[],\"categories\":[],\"keywords\":[],\"readme\":null,\"repository\":null,\"homepage\":null,\"documentation\":null,\"edition\":\"2021\",\"links\":null,\"default_run\":null,\"rust_version\":null},{\"name\":\"attrgen\",\"version\":\"0.1.0\",\"id\":\"path+file://@ROOT@/attrgen#0.1.0\",\"license\":null,\"license_file\":null,\"description\":null,\"source\":null,\"dependencies\":[{\"name\":\"attrgen_macros\",\"source\":null,\"req\":\"*\",\"kind\":null,\"rename\":null,\"optional\":false,\"uses_default_features\":true,\"features\":[],\"target\":null,\"registry\":null,\"path\":\"@ROOT@/macros\"}],\"targets\":[{\"kind\":[\"lib\"],\"crate_types\":[\"lib\"],\"name\":\"attrgen\",\"src_path\":\"@ROOT@/attrgen/src/lib.rs\",\"edition\":\"2021\",\"doc\":true,\"doctest\":true,\"test\":true}],\"features\":{},\"manifest_path\":\"@ROOT@/attrgen/Cargo.toml\",\"metadata\":null,\"publish\":null,\"authors\":[],\"categories\":[],\"keywords\":[],\"readme\":null,\"repository\":null,\"homepage\":null,\"documentation\":null,\"edition\":\"2021\",\"links\":null,\"default_run\":null,\"rust_version\":null}],\"workspace_members\":[\"path+file://@ROOT@/macros#attrgen_macros@0.1.0\",\"path+file://@ROOT@/attrgen#0.1.0\"],\"workspace_default_members\":[\"path+file://@ROOT@/macros#attrgen_macros@0.1.0\",\"path+file://@ROOT@/attrgen#0.1.0\"],\"resolve\":null,\"target_directory\":\"/tmp/ripple-rs-check-capture/target-attrgen_file\",\"build_directory\":\"/tmp/ripple-rs-check-capture/target-attrgen_file\",\"version\":1,\"workspace_root\":\"@ROOT@\",\"metadata\":null}\n"
+}

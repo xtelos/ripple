@@ -1,0 +1,10 @@
+   Compiling ignored v0.1.0 (@ROOT@)
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"ignored","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/ignored-9b23f05105842f74"],"executable":"@TARGET@/debug/deps/ignored-9b23f05105842f74","fresh":false}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.40s
+     Running unittests src/lib.rs (@TARGET@/debug/deps/ignored-9b23f05105842f74)
+tests::adds: test
+tests::slow: test
+tests::slower: test
+
+3 tests, 0 benchmarks

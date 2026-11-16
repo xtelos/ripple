@@ -1,0 +1,11 @@
+   Compiling mixed v0.1.0 (@ROOT@)
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"mixed","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":false},"features":[],"filenames":["@TARGET@/debug/deps/libmixed-f6d707ab16687108.rlib","@TARGET@/debug/deps/libmixed-f6d707ab16687108.rmeta"],"executable":null,"fresh":false}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["bin"],"crate_types":["bin"],"name":"mixed","src_path":"@ROOT@/src/main.rs","edition":"2021","doc":true,"doctest":false,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":false},"features":[],"filenames":["@TARGET@/debug/mixed"],"executable":"@TARGET@/debug/mixed","fresh":false}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["test"],"crate_types":["bin"],"name":"other","src_path":"@ROOT@/tests/other.rs","edition":"2021","doc":false,"doctest":false,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/other-37418e943e449c72"],"executable":"@TARGET@/debug/deps/other-37418e943e449c72","fresh":false}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.60s
+     Running tests/other.rs (@TARGET@/debug/deps/other-37418e943e449c72)
+common::t_common: test
+t_other: test
+
+2 tests, 0 benchmarks

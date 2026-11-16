@@ -1,0 +1,11 @@
+[package]
+name = "needs_feature"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+extra = []
+
+[[test]]
+name = "needs"
+required-features = ["extra"]

@@ -1,0 +1,12 @@
+   Compiling genmod v0.1.0 (@ROOT@)
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"genmod","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/genmod-5505b6ae18dfe090"],"executable":"@TARGET@/debug/deps/genmod-5505b6ae18dfe090","fresh":false}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running unittests src/lib.rs (@TARGET@/debug/deps/genmod-5505b6ae18dfe090)
+genmod::made::g: test
+genmod::made::ok: test
+here::g: test
+here::ok: test
+nomacro::tests::fine: test
+
+5 tests, 0 benchmarks

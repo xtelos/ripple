@@ -1,0 +1,27 @@
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"genmod","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/genmod-5505b6ae18dfe090"],"executable":"@TARGET@/debug/deps/genmod-5505b6ae18dfe090","fresh":true}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.00s
+     Running unittests src/lib.rs (@TARGET@/debug/deps/genmod-5505b6ae18dfe090)
+
+running 1 test
+test here::g ... FAILED
+
+failures:
+
+---- here::g stdout ----
+
+thread 'here::g' (331074) panicked at src/lib.rs:18:1:
+assertion `left == right` failed
+  left: 1
+ right: 2
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    here::g
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p genmod --lib`
+error: 1 target failed:
+    `-p genmod --lib`

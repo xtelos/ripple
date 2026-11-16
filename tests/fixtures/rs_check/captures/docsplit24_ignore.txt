@@ -1,0 +1,20 @@
+   Compiling docsplit24_ignore v0.1.0 (@ROOT@)
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"docsplit24_ignore","src_path":"@ROOT@/src/lib.rs","edition":"2024","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":false},"features":[],"filenames":["@TARGET@/debug/deps/libdocsplit24_ignore-1a5c399773f1001b.rlib","@TARGET@/debug/deps/libdocsplit24_ignore-1a5c399773f1001b.rmeta"],"executable":null,"fresh":false}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"docsplit24_ignore","src_path":"@ROOT@/src/lib.rs","edition":"2024","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/docsplit24_ignore-1e7f35cc4e9792aa"],"executable":"@TARGET@/debug/deps/docsplit24_ignore-1e7f35cc4e9792aa","fresh":false}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running unittests src/lib.rs (@TARGET@/debug/deps/docsplit24_ignore-1e7f35cc4e9792aa)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests docsplit24_ignore
+
+running 2 tests
+test src/lib.rs - f1 (line 6) ... ignored
+test src/lib.rs - f0 (line 1) ... ok
+
+test result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+all doctests ran in 0.22s; merged doctests compilation took 0.21s

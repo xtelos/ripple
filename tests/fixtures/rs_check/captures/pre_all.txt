@@ -1,0 +1,21 @@
+   Compiling pre v0.1.0 (@ROOT@)
+{"reason":"compiler-message","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"pre","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"message":{"rendered":"warning: unused import: `super::*`\n --> src/lib.rs:7:9\n  |\n7 |     use super::*;\n  |         ^^^^^^^^\n  |\n  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default\n\n","$message_type":"diagnostic","children":[{"children":[],"code":null,"level":"note","message":"`#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default","rendered":null,"spans":[]},{"children":[],"code":null,"level":"help","message":"remove the whole `use` item","rendered":null,"spans":[{"byte_end":71,"byte_start":58,"column_end":18,"column_start":5,"expansion":null,"file_name":"src/lib.rs","is_primary":true,"label":null,"line_end":7,"line_start":7,"suggested_replacement":"","suggestion_applicability":"MachineApplicable","text":[{"highlight_end":18,"highlight_start":5,"text":"    use super::*;"}]}]}],"level":"warning","message":"unused import: `super::*`","spans":[{"byte_end":70,"byte_start":62,"column_end":17,"column_start":9,"expansion":null,"file_name":"src/lib.rs","is_primary":true,"label":null,"line_end":7,"line_start":7,"suggested_replacement":null,"suggestion_applicability":null,"text":[{"highlight_end":17,"highlight_start":9,"text":"    use super::*;"}]}],"code":{"code":"unused_imports","explanation":null}}}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"pre","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":false},"features":[],"filenames":["@TARGET@/debug/deps/libpre-946100a1a7c4abd1.rlib","@TARGET@/debug/deps/libpre-946100a1a7c4abd1.rmeta"],"executable":null,"fresh":false}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["test"],"crate_types":["bin"],"name":"early","src_path":"@ROOT@/tests/early.rs","edition":"2021","doc":false,"doctest":false,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/early-5f92711fa269aef3"],"executable":"@TARGET@/debug/deps/early-5f92711fa269aef3","fresh":false}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"pre","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/pre-2795ef27d7f89611"],"executable":"@TARGET@/debug/deps/pre-2795ef27d7f89611","fresh":false}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.30s
+     Running unittests src/lib.rs (@TARGET@/debug/deps/pre-2795ef27d7f89611)
+
+running 1 test
+test tests::ok ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/early.rs (@TARGET@/debug/deps/early-5f92711fa269aef3)
+   Doc-tests pre
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

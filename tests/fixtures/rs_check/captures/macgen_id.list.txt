@@ -1,0 +1,11 @@
+   Compiling macgen v0.1.0 (@ROOT@)
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"macgen","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/macgen-73976e1922f02ec7"],"executable":"@TARGET@/debug/deps/macgen-73976e1922f02ec7","fresh":false}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.30s
+     Running unittests src/lib.rs (@TARGET@/debug/deps/macgen-73976e1922f02ec7)
+sub::tests::sub_generated_fails: test
+sub::tests::sub_plain: test
+util::tests::generated_fails: test
+util::tests::plain: test
+
+4 tests, 0 benchmarks
