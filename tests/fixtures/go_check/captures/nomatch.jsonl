@@ -1,0 +1,5 @@
+{"Time":"2026-11-15T21:18:16.704737994-05:00","Action":"start","Package":"example.com/nomatch"}
+{"Time":"2026-11-15T21:18:16.712230328-05:00","Action":"output","Package":"example.com/nomatch","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-11-15T21:18:16.71238817-05:00","Action":"output","Package":"example.com/nomatch","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:16.712672759-05:00","Action":"output","Package":"example.com/nomatch","Output":"ok  \texample.com/nomatch\t0.007s [no tests to run]\n"}
+{"Time":"2026-11-15T21:18:16.712698617-05:00","Action":"pass","Package":"example.com/nomatch","Elapsed":0.008}

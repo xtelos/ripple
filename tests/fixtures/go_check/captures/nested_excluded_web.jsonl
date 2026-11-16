@@ -1,0 +1,8 @@
+{"Time":"2026-11-15T21:18:41.499540218-05:00","Action":"start","Package":"example.com/nested_excluded/services/web"}
+{"Time":"2026-11-15T21:18:41.503460657-05:00","Action":"run","Package":"example.com/nested_excluded/services/web","Test":"TestWeb"}
+{"Time":"2026-11-15T21:18:41.503546962-05:00","Action":"output","Package":"example.com/nested_excluded/services/web","Test":"TestWeb","Output":"=== RUN   TestWeb\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:41.503791385-05:00","Action":"output","Package":"example.com/nested_excluded/services/web","Test":"TestWeb","Output":"--- PASS: TestWeb (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:41.503882006-05:00","Action":"pass","Package":"example.com/nested_excluded/services/web","Test":"TestWeb","Elapsed":0}
+{"Time":"2026-11-15T21:18:41.503948072-05:00","Action":"output","Package":"example.com/nested_excluded/services/web","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:41.50456017-05:00","Action":"output","Package":"example.com/nested_excluded/services/web","Output":"ok  \texample.com/nested_excluded/services/web\t0.004s\n"}
+{"Time":"2026-11-15T21:18:41.50459391-05:00","Action":"pass","Package":"example.com/nested_excluded/services/web","Elapsed":0.005}

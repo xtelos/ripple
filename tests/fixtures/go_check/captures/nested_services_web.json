@@ -1,0 +1,27 @@
+{
+  "module": "nestedmods",
+  "cwd": "services/web",
+  "argv": [
+    "go",
+    "test",
+    "-json",
+    "-count=1",
+    "-skip=",
+    "-list=",
+    "-c=false",
+    "-fuzz=",
+    "-run=",
+    "./..."
+  ],
+  "request": [
+    "services"
+  ],
+  "by_hand": false,
+  "env": {},
+  "exit_code": 0,
+  "stderr": "",
+  "go_version": "go version go1.27.4 linux/amd64",
+  "directories": {
+    "example.com/nestedmods/services/web": "services/web"
+  }
+}

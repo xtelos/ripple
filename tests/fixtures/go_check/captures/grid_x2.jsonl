@@ -1,0 +1,17 @@
+{"Time":"2026-11-15T21:18:30.544999079-05:00","Action":"start","Package":"example.com/grid"}
+{"Time":"2026-11-15T21:18:30.552787088-05:00","Action":"run","Package":"example.com/grid","Test":"TestGrid"}
+{"Time":"2026-11-15T21:18:30.553087452-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid","Output":"=== RUN   TestGrid\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:30.553155176-05:00","Action":"run","Package":"example.com/grid","Test":"TestGrid/x"}
+{"Time":"2026-11-15T21:18:30.553175639-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/x","Output":"=== RUN   TestGrid/x\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:30.553197713-05:00","Action":"run","Package":"example.com/grid","Test":"TestGrid/x/2"}
+{"Time":"2026-11-15T21:18:30.553220288-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/x/2","Output":"=== RUN   TestGrid/x/2\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:30.553242205-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/x/2","Output":"    calc_test.go:11: x/2 was not asked for\n","OutputType":"error"}
+{"Time":"2026-11-15T21:18:30.553279008-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/x/2","Output":"--- FAIL: TestGrid/x/2 (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:30.553302046-05:00","Action":"fail","Package":"example.com/grid","Test":"TestGrid/x/2","Elapsed":0}
+{"Time":"2026-11-15T21:18:30.553329864-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/x","Output":"--- FAIL: TestGrid/x (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:30.553358451-05:00","Action":"fail","Package":"example.com/grid","Test":"TestGrid/x","Elapsed":0}
+{"Time":"2026-11-15T21:18:30.553381498-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid","Output":"--- FAIL: TestGrid (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:30.553402146-05:00","Action":"fail","Package":"example.com/grid","Test":"TestGrid","Elapsed":0}
+{"Time":"2026-11-15T21:18:30.553419931-05:00","Action":"output","Package":"example.com/grid","Output":"FAIL\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:30.553766472-05:00","Action":"output","Package":"example.com/grid","Output":"FAIL\texample.com/grid\t0.006s\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:30.553813696-05:00","Action":"fail","Package":"example.com/grid","Elapsed":0.009}

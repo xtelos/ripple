@@ -1,0 +1,8 @@
+{"Time":"2026-11-15T21:18:24.757253702-05:00","Action":"start","Package":"example.com/multimod"}
+{"Time":"2026-11-15T21:18:24.761498617-05:00","Action":"run","Package":"example.com/multimod","Test":"TestRoot"}
+{"Time":"2026-11-15T21:18:24.761653679-05:00","Action":"output","Package":"example.com/multimod","Test":"TestRoot","Output":"=== RUN   TestRoot\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:24.761712875-05:00","Action":"output","Package":"example.com/multimod","Test":"TestRoot","Output":"--- PASS: TestRoot (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:24.761721729-05:00","Action":"pass","Package":"example.com/multimod","Test":"TestRoot","Elapsed":0}
+{"Time":"2026-11-15T21:18:24.761729817-05:00","Action":"output","Package":"example.com/multimod","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:24.762366621-05:00","Action":"output","Package":"example.com/multimod","Output":"ok  \texample.com/multimod\t0.005s\n"}
+{"Time":"2026-11-15T21:18:24.762492188-05:00","Action":"pass","Package":"example.com/multimod","Elapsed":0.005}

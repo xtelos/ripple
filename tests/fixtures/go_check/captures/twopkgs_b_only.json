@@ -1,0 +1,28 @@
+{
+  "module": "twopkgs",
+  "cwd": ".",
+  "argv": [
+    "go",
+    "test",
+    "-json",
+    "-count=1",
+    "-skip=",
+    "-list=",
+    "-c=false",
+    "-fuzz=",
+    "-run",
+    "^(TestSame)$",
+    "./b"
+  ],
+  "request": [
+    "b/b_test.go::TestSame"
+  ],
+  "by_hand": false,
+  "env": {},
+  "exit_code": 1,
+  "stderr": "",
+  "go_version": "go version go1.27.4 linux/amd64",
+  "directories": {
+    "example.com/twopkgs/b": "b"
+  }
+}

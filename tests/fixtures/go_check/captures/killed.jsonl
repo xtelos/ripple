@@ -1,0 +1,10 @@
+{"Time":"2026-11-15T21:18:24.096796148-05:00","Action":"start","Package":"example.com/killed"}
+{"Time":"2026-11-15T21:18:24.100881617-05:00","Action":"run","Package":"example.com/killed","Test":"TestBefore"}
+{"Time":"2026-11-15T21:18:24.100999431-05:00","Action":"output","Package":"example.com/killed","Test":"TestBefore","Output":"=== RUN   TestBefore\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:24.101028934-05:00","Action":"output","Package":"example.com/killed","Test":"TestBefore","Output":"--- PASS: TestBefore (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:24.10111784-05:00","Action":"pass","Package":"example.com/killed","Test":"TestBefore","Elapsed":0}
+{"Time":"2026-11-15T21:18:24.101141229-05:00","Action":"run","Package":"example.com/killed","Test":"TestKilled"}
+{"Time":"2026-11-15T21:18:24.101148434-05:00","Action":"output","Package":"example.com/killed","Test":"TestKilled","Output":"=== RUN   TestKilled\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:24.101823707-05:00","Action":"output","Package":"example.com/killed","Test":"TestKilled","Output":"signal: killed\n"}
+{"Time":"2026-11-15T21:18:24.101857746-05:00","Action":"output","Package":"example.com/killed","Output":"FAIL\texample.com/killed\t0.005s\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:24.101871496-05:00","Action":"fail","Package":"example.com/killed","Elapsed":0.005}

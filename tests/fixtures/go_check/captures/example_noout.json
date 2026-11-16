@@ -1,0 +1,28 @@
+{
+  "module": "example_noout",
+  "cwd": ".",
+  "argv": [
+    "go",
+    "test",
+    "-json",
+    "-count=1",
+    "-skip=",
+    "-list=",
+    "-c=false",
+    "-fuzz=",
+    "-run",
+    "^(ExampleAdd_unordered|ExampleAdd_withOutput|TestAdd)$",
+    "."
+  ],
+  "request": [
+    "calc_test.go"
+  ],
+  "by_hand": false,
+  "env": {},
+  "exit_code": 0,
+  "stderr": "",
+  "go_version": "go version go1.27.4 linux/amd64",
+  "directories": {
+    "example.com/example_noout": "."
+  }
+}

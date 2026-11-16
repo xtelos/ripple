@@ -46,7 +46,7 @@ Or from a terminal: `ripple index .`, then `ripple impact price_order`.
 | `callees(symbol)` | What this calls, plus the calls ripple could not resolve and why | yes |
 | `impact(symbol, depth=5, limit=100)` | Every transitive caller grouped by file, the tests that reach it listed separately as pytest node ids, and same-named call sites ripple could not rule out | yes |
 | `path(source, target)` | The shortest call chain from one symbol to another | yes |
-| `check(tests=None)` | Runs the test command (default `python -m pytest -q`, using the repo's `.venv` or `venv` if present, for a repo with Python files; a TypeScript-only repo, or `--lang typescript`, has no default), or just the given test paths (for Python, pytest node ids too), and returns pass/fail, the summary line and the first failures, never the full log | no, it runs code |
+| `check(tests=None)` | Runs the test command (default `python -m pytest -q`, using the repo's `.venv` or `venv` if present, for a repo with Python files; `go test -json` in every module for a Go repo, see [Go](#go); a TypeScript-only repo, or `--lang typescript`, has no default), or just the given test paths (for Python, pytest node ids too; for Go, `file_test.go::TestName[/subtest]`), and returns pass/fail, the summary line and the first failures, never the full log | no, it runs code |
 
 A symbol can be a full dotted path (`shop.pricing.price_order`), a suffix (`OrderService.place_order`)
 or a bare name (`price_order`); in TypeScript it is a path and a member (`src/util/math:clamp`, see
@@ -525,7 +525,76 @@ unread declarations, whatever the layout or comments around them: a name or meth
 it is built in every build (no constraint, no platform file name), because a second one would not compile, but a name or
 method declared only in constrained files, a promoted method, a missing member or a universe name (`len`) in that package
 (or in a package that imports it) is unresolved with a reason naming the file, and a call on an outside type is not counted
-external when the file's text declares a method of that name. `check` has no Go test runner yet: pass `--test-command`.
+external when the file's text declares a method of that name.
+
+**`check` for Go** runs `go test -json -count=1 -skip= -list= -c=false -fuzz= -run=` (`-count=1`: a verdict of a run made
+now, never a cached one; the rest is explained under GOFLAGS below, and `-skip` needs Go 1.20 or later) and reads the
+verdict from the event stream (`ripple/go_check.py`), never from the exit code alone or from the log text. With no
+arguments it runs `./...` in every module of the repo (a nested `go.mod` is its own run, since the parent's `./...`
+leaves it out; `vendor`, `testdata` and `.x`/`_x` directories are skipped as Go skips them). `go` must be on `PATH`
+(otherwise a refusal that names `--test-command`). The arguments:
+
+- a directory (`./dir/...` in the module that holds it, when that module has a package below the directory outside the nested
+  modules, and `./...` in every module below it: a directory of nested modules is only their runs, since `go test` fails on
+  a pattern that matches no package. That holder run is also planned when the directory has only `.go` files Go leaves out
+  of the build (a `//go:build ignore` generator next to the nested modules), where `go test` says `matched no packages` and
+  exits 1 with no event: that run is an empty run, not a failure, but only when a nested module below the directory ran
+  packages of its own. With nothing below it having run, the message stays a problem), a `_test.go` file (the tests it declares that `go test` runs: an Example with no
+  `// Output:` or `// Unordered output:` comment is compiled and never run, so it is left out, and refused by name), or
+  `file_test.go::TestName` and `file_test.go::TestName/sub/case` (a space in a subtest's name is written `_`, as Go names it);
+- the id `impact` lists for a test function: a Go repo has no collected tests, so `impact`'s `tests` is empty and a test
+  function is listed among the callers as `example.com/mod/pkg:TestName` (`.../pkg_test:TestName` in an external test
+  package) under its file. `check` takes that id too and finds the file that declares it.
+
+Ids become `go test -run '^(TestA|TestB)$' <package dirs>` (with the flags above), run in the module that holds the package, with the pattern built
+per package: a test name two packages share runs only in the package it was asked for in, and subtests are levels of
+the pattern (regexp-quoted), one pattern per parent with only the last level alternated (`TestGrid/x/1` and
+`TestGrid/y/2` are `^TestGrid$/^x$/^(1)$` and `^TestGrid$/^y$/^(2)$`, two runs, never `(x|y)/(1|2)`, which would also run
+`x/2` and `y/1`), so no run is broader or narrower than the ids. An id for a test the file does not declare is refused
+before anything runs. Nothing a caller supplies is read from outside the repo: paths and symbol ids are resolved and
+contained before any file is listed or read, and a `go.mod` or `_test.go` that links out is not read.
+
+What is never reported as passed (each has a stream captured from the real toolchain in `tests/fixtures/go_check/`, with
+the module that made it and the command): a build or vet failure, a package with no test files when nothing else ran, a
+`-run` pattern that matches nothing (Go exits 0 and says "no tests to run"), a panic or Go's own timeout, a test that
+started and never finished, a test binary that exits early or is killed (`syscall.Exit(0)` in a test exits 0 and the package
+never reports at all), a requested test or subtest with no result of its own (the parent passing does not count) and a
+requested test that was skipped. Whatever `go test` exits with, a failing event is a failure, and an exit status with no
+failing event is reported too. The result has the usual keys plus `problems` (why a run is not a clean pass),
+`counts` (top-level tests, subtests and packages apart) and `notes`; failures read `FAILED file_test.go::TestName: first
+message or panic line`, and a failed subtest is listed after its parent. A package that reports ok has to show that its
+tests ran to the end or that it had none: a test binary that ran them prints `PASS`, and one that exited 0 before `m.Run`,
+from a `TestMain` or an `init` that calls `os.Exit(0)`, prints only the ok line, a problem in every run shape (with other
+packages, as a directory argument or alone). A package with no test event needs Go's own word that there was nothing to run,
+`testing: warning: no tests to run` or the `[no tests to run]` suffix on its ok line (or `[no test files]`): benchmarks
+only, helpers only, output-less examples only and a build-excluded test file print it and pass (a note when other tests
+ran, "no tests ran" when none did), while a `TestMain` that prints `PASS` itself and exits 0 prints no such notice and is
+a problem. A directory argument none of whose packages ran a test (no test files, or all skipped) is "no test ran there".
+A benchmark has a run event and never a pass or fail one, so it is neither counted nor reported (a benchmark that fails is
+a failure). When a request splits into several runs (two subtests of one test with different parents), each package, test
+and subtest is counted and listed once, a test the runs disagree about is the worse of the two (a parent that passes in
+one run and fails in another is a failure), and a problem two runs share is said once. An argument over a file system's
+limits (a name over 255 bytes, a path over 4096, a NUL, a string that does not encode) is a refusal, not an exception.
+
+`GOFLAGS` reaches every `go test`, from the environment or from the go env file (`go env -w GOFLAGS=...`), in spellings
+ripple does not try to read (`-run`, `-test.run`, quoted, `--run`). So it does not read them: the flags that decide which
+tests run, or whether any does, are on the command line, which wins over GOFLAGS for every spelling. `-skip=` leaves no
+test out, `-list=` and `-c=false` stop `go test` from only listing or only compiling, `-fuzz=` from fuzzing in place of the
+tests, and `-run=` (a run with no pattern of its own, where an id gives its own `-run`) runs everything, examples with an
+output comment included. They change nothing in an ordinary run (the event streams are the same, checked live against a
+run without them). What stays yours is your build configuration: `-tags`, `-short`, `-vet`, `-shuffle`, `-failfast`,
+`-timeout`, `-race`, `-bench`, `-o`, `-json` and `-exec`, which can leave a test out (a `//go:build !foo` file under
+`-tags=foo`, a test that returns under `-short`) the way a `go test ./...` by hand would. They are named in a note when
+`go env GOFLAGS` (asked for within the run's timeout, and no note when it fails or hangs) says anything. `-exec` is your
+runner: one that never runs the test binary leaves a package with no events, which is not a pass. With `-bench`, Go prints
+no "no tests to run" notice, so a helpers-only package is reported as a problem there, the same as a `TestMain` that
+prints `PASS` (a false failure under an unusual GOFLAGS, never a false pass).
+`--test-command` still means exactly that command, read the generic way. `check` picks the Go runner from the profile
+(`--lang go`, or a repo whose first language by registry order is Go: a stray Python or TypeScript file makes `auto`
+pick that language's runner, so pass `--lang go` there). A second language's runner goes in `checker.RUNNERS`
+(profile name to a module with `normalize` and `run`); Go's profile is untouched, since its fields are hashed into the cache key.
+Every stream was captured with Go 1.27.4; no older Go was run, so its event shapes are unverified (a package that fails with no
+failing test and no build event is reported as such, never as a pass).
 
 `bench/fixtures/go/probes` holds 131 small legal Go modules, each with what the Go compiler's type checker says every call
 site calls on linux, windows and darwin (`bench/go_oracle/generate.py`, run by hand with Go installed), plus the cgo ones that

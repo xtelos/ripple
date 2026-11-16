@@ -1,0 +1,8 @@
+{"Time":"2026-11-15T21:18:33.748520805-05:00","Action":"start","Package":"example.com/nestedmods/services/api"}
+{"Time":"2026-11-15T21:18:33.752596378-05:00","Action":"run","Package":"example.com/nestedmods/services/api","Test":"TestAPI"}
+{"Time":"2026-11-15T21:18:33.752736523-05:00","Action":"output","Package":"example.com/nestedmods/services/api","Test":"TestAPI","Output":"=== RUN   TestAPI\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:33.75279931-05:00","Action":"output","Package":"example.com/nestedmods/services/api","Test":"TestAPI","Output":"--- PASS: TestAPI (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:33.752808166-05:00","Action":"pass","Package":"example.com/nestedmods/services/api","Test":"TestAPI","Elapsed":0}
+{"Time":"2026-11-15T21:18:33.752819856-05:00","Action":"output","Package":"example.com/nestedmods/services/api","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:33.753435326-05:00","Action":"output","Package":"example.com/nestedmods/services/api","Output":"ok  \texample.com/nestedmods/services/api\t0.004s\n"}
+{"Time":"2026-11-15T21:18:33.753482902-05:00","Action":"pass","Package":"example.com/nestedmods/services/api","Elapsed":0.005}

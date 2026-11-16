@@ -1,0 +1,5 @@
+{"Time":"2026-11-15T21:18:46.171029389-05:00","Action":"start","Package":"example.com/fail"}
+{"Time":"2026-11-15T21:18:46.174072544-05:00","Action":"output","Package":"example.com/fail","Output":"TestAdd\n"}
+{"Time":"2026-11-15T21:18:46.174206764-05:00","Action":"output","Package":"example.com/fail","Output":"TestBad\n"}
+{"Time":"2026-11-15T21:18:46.174347013-05:00","Action":"output","Package":"example.com/fail","Output":"ok  \texample.com/fail\t0.003s\n"}
+{"Time":"2026-11-15T21:18:46.17437471-05:00","Action":"pass","Package":"example.com/fail","Elapsed":0.003}

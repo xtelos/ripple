@@ -1,0 +1,27 @@
+{
+  "module": "fail",
+  "cwd": ".",
+  "argv": [
+    "go",
+    "test",
+    "-json",
+    "-count=1",
+    "-skip=",
+    "-list=",
+    "-c=false",
+    "-fuzz=",
+    "-run=",
+    "./..."
+  ],
+  "request": null,
+  "by_hand": false,
+  "env": {
+    "GOFLAGS": "-test.skip=Bad"
+  },
+  "exit_code": 1,
+  "stderr": "",
+  "go_version": "go version go1.27.4 linux/amd64",
+  "directories": {
+    "example.com/fail": "."
+  }
+}

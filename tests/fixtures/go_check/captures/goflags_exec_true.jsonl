@@ -1,0 +1,3 @@
+{"Time":"2026-11-15T21:18:42.364120206-05:00","Action":"start","Package":"example.com/fail"}
+{"Time":"2026-11-15T21:18:42.367062601-05:00","Action":"output","Package":"example.com/fail","Output":"ok  \texample.com/fail\t0.002s\n"}
+{"Time":"2026-11-15T21:18:42.367136089-05:00","Action":"pass","Package":"example.com/fail","Elapsed":0.003}
