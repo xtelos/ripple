@@ -68,5 +68,11 @@
   {"file": "b.go", "line": 18, "col": 2, "end": "18:10", "kind": "E", "callee": "example.com/a2:Cfg.Run", "at": "b.go", "variants": "all"},
   {"file": "b.go", "line": 19, "col": 2, "end": "19:13", "kind": "E", "callee": "example.com/a2:Box.Get", "at": "a.go", "variants": "all"},
   {"file": "b.go", "line": 19, "col": 2, "end": "19:17", "kind": "E", "callee": "example.com/a2:Thing.M", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 94, "col": 2, "end": "94:6", "interface": "example.com/a2:I", "method": "M", "candidates": [{"id": "example.com/a2:Other.M", "at": "a.go"}, {"id": "example.com/a2:Thing.M", "at": "a.go"}], "packages": ["example.com/a2", "example.com/a2/ctxpkg", "example.com/a2/errors", "example.com/a2/v2lib/v2"], "variants": "all"},
+  {"file": "a.go", "line": 96, "col": 2, "end": "96:6", "interface": "example.com/a2:J", "method": "M", "candidates": [], "packages": ["example.com/a2", "example.com/a2/ctxpkg", "example.com/a2/errors", "example.com/a2/v2lib/v2"], "variants": "all"},
+  {"file": "a.go", "line": 98, "col": 2, "end": "98:6", "interface": "example.com/a2:I", "method": "M", "candidates": [{"id": "example.com/a2:Other.M", "at": "a.go"}, {"id": "example.com/a2:Thing.M", "at": "a.go"}], "packages": ["example.com/a2", "example.com/a2/ctxpkg", "example.com/a2/errors", "example.com/a2/v2lib/v2"], "variants": "all"},
+  {"file": "a.go", "line": 99, "col": 2, "end": "99:15", "interface": "example.com/a2:I", "method": "M", "candidates": [{"id": "example.com/a2:Other.M", "at": "a.go"}, {"id": "example.com/a2:Thing.M", "at": "a.go"}], "packages": ["example.com/a2", "example.com/a2/ctxpkg", "example.com/a2/errors", "example.com/a2/v2lib/v2"], "variants": "all"}
  ]
 }

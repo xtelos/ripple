@@ -1,0 +1,7 @@
+module example.com/a
+
+go 1.22
+
+require example.com/other v1.3.0
+
+replace example.com/other => ../b

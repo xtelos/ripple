@@ -13,5 +13,9 @@
   {"file": "a.go", "line": 28, "col": 2, "end": "28:9", "kind": "E", "callee": "example.com/defined_types:F.Call", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 29, "col": 2, "end": "29:4", "kind": "D", "callee": "-", "at": "", "variants": "all"},
   {"file": "a.go", "line": 31, "col": 2, "end": "31:8", "kind": "E", "callee": "example.com/defined_types:B.Own", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:6", "interface": "example.com/defined_types:I", "method": "M", "candidates": [{"id": "example.com/defined_types:Base.M", "at": "a.go"}], "packages": ["example.com/defined_types"], "variants": "all"},
+  {"file": "a.go", "line": 26, "col": 2, "end": "26:6", "interface": "example.com/defined_types:J", "method": "M", "candidates": [{"id": "example.com/defined_types:Base.M", "at": "a.go"}], "packages": ["example.com/defined_types"], "variants": "all"}
  ]
 }

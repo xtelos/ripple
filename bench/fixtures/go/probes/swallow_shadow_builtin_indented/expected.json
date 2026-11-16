@@ -7,5 +7,7 @@
  },
  "calls": [
   {"file": "use.go", "line": 4, "col": 6, "end": "4:13", "kind": "E", "callee": "example.com/swallow_shadow_builtin_indented:len", "at": "broken.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

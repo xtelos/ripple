@@ -10,5 +10,7 @@
  "calls": [
   {"file": "d/use.go", "line": 4, "col": 2, "end": "4:6", "kind": "E", "callee": "example.com/parse_error_other_package/d:T.M", "at": "d/broken.go", "variants": "all"},
   {"file": "use/use.go", "line": 6, "col": 2, "end": "6:6", "kind": "E", "callee": "example.com/parse_error_other_package/d:T.M", "at": "d/broken.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

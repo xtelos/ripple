@@ -11,5 +11,7 @@
   {"file": "e.go", "line": 13, "col": 2, "end": "13:6", "kind": "E", "callee": "example.com/embedded_two_variants:A.M", "at": "a_darwin.go", "variants": ["darwin-arm64/prod"]},
   {"file": "e.go", "line": 13, "col": 2, "end": "13:6", "kind": "E", "callee": "example.com/embedded_two_variants:A.M", "at": "a_linux.go", "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
   {"file": "e.go", "line": 13, "col": 2, "end": "13:6", "kind": "E", "callee": "example.com/embedded_two_variants:B.M", "at": "b_windows.go", "variants": ["windows-amd64/prod"]}
+ ],
+ "implementers": [
  ]
 }

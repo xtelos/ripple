@@ -31,7 +31,15 @@ def test_a_go_mod_gives_its_module_path_and_only_its_local_replaces():
     """
     mod = read_gomod("services/app", text)
     assert (mod.path, mod.dir) == ("example.com/app", "services/app")
-    assert mod.replaces == {"example.com/lib": "services/lib", "example.com/a": "services/app/vendored/a"}  # the others are not repo directories
+    # the replace of a version is that version's alone; a replacement that is not a repo directory is None
+    assert mod.replaces == {
+        "example.com/lib": {"v1.0.0": "services/lib"},
+        "example.com/a": {"": "services/app/vendored/a"},
+        "example.com/b": {"v1.2.3": None},
+        "example.com/c": {"": None},
+        "example.com/out": {"": None},
+    }
+    assert mod.go == (1, 22) and mod.requires == {"example.com/lib": {"v1.0.0"}}
 
 
 def test_a_go_mod_with_no_module_line_is_not_a_module():
@@ -40,7 +48,7 @@ def test_a_go_mod_with_no_module_line_is_not_a_module():
 
 def test_a_go_work_lists_its_used_directories_and_its_local_replaces():
     uses, replaces = read_gowork("w", "go 1.22\nuse ./a\nuse (\n\t./b\n\t../w2\n)\nreplace x.com/m => ./m\n")
-    assert uses == {"w/a", "w/b", "w2"} and replaces == {"x.com/m": "w/m"}
+    assert uses == {"w/a", "w/b", "w2"} and replaces == {"x.com/m": {"": "w/m"}}
 
 
 def write(root: Path, files: dict) -> None:

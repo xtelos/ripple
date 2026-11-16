@@ -8,5 +8,7 @@
  "calls": [
   {"file": "app/main.go", "line": 6, "col": 2, "end": "6:10", "kind": "E", "callee": "example.com/gw/lib/util:Do", "at": "lib/util/util.go", "variants": "all"},
   {"file": "app/main.go", "line": 8, "col": 2, "end": "8:6", "kind": "E", "callee": "example.com/gw/lib/util:T.M", "at": "lib/util/util.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

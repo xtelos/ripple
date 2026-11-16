@@ -1,0 +1,15 @@
+{
+ "digest": "0c24df730cfef23a71910a492a29eeeecbdbd1919800080d1f41709e737cd87e",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 53, "col": 2, "end": "53:8", "kind": "I", "callee": "example.com/impl_embedding_outside:Sizer.Len", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 54, "col": 2, "end": "54:9", "kind": "I", "callee": "example.com/impl_embedding_outside:Sizer.Name", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 53, "col": 2, "end": "53:8", "interface": "example.com/impl_embedding_outside:Sizer", "method": "Len", "candidates": [{"id": "example.com/impl_embedding_outside:Near.Len", "at": "a.go"}, {"id": "example.com/impl_embedding_outside:Quiet.Len", "at": "a.go"}], "packages": ["example.com/impl_embedding_outside"], "variants": "all"},
+  {"file": "a.go", "line": 54, "col": 2, "end": "54:9", "interface": "example.com/impl_embedding_outside:Sizer", "method": "Name", "candidates": [{"id": "example.com/impl_embedding_outside:Named.Name", "at": "a.go"}, {"id": "example.com/impl_embedding_outside:Near.Name", "at": "a.go"}, {"id": "example.com/impl_embedding_outside:Quiet.Name", "at": "a.go"}], "packages": ["example.com/impl_embedding_outside"], "variants": "all"}
+ ]
+}

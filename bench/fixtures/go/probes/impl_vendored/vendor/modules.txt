@@ -1,0 +1,4 @@
+# example.com/other v1.0.0 => ./b
+## explicit; go 1.22
+example.com/other
+# example.com/other => ./b

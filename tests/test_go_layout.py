@@ -56,7 +56,7 @@ def snapshot(repo: Path, edited: dict[str, set[int]] | None = None) -> dict:
     return {
         "symbols": sorted((s.id, s.kind, s.file, at(s.file, s.line), at(s.file, s.end_line)) for s in graph.symbols.values() if s.file not in damaged),
         "edges": sorted(
-            (e.caller, e.callee, e.file, at(e.file, e.line)) for e in graph.edges if graph.symbols[e.callee].file not in damaged and e.file not in damaged
+            (e.caller, e.callee, e.file, at(e.file, e.line), e.kind, e.via) for e in graph.edges if graph.symbols[e.callee].file not in damaged and e.file not in damaged
         ),
         "unresolved": sorted(
             (u.caller, u.file, at(u.file, u.line), u.text, u.reason)
@@ -181,3 +181,92 @@ def test_a_comment_between_the_operands_of_an_expression_changes_nothing(tmp_pat
         answers.append(snapshot(repo))
     assert [e for e in answers[0]["edges"]] and answers[0]["edges"] == answers[1]["edges"]
     assert answers[0]["unresolved"] == answers[1]["unresolved"]
+
+
+IMPLEMENTS_PLAIN = """package m
+
+import "ex.com/m/sub"
+
+type Base interface{ B() }
+
+type Pair interface {
+\tBase\n\tsub.Extra
+\tSend(chan int)
+\tFill([3]int)
+\tRecv(<-chan int, chan<- int)
+\tKeys(map[string][]int, *int, ...int)
+\tParen((int))
+}
+
+type T struct{}
+
+func (T) B()                                 {}
+func (T) X() {}
+func (T) Send(chan int)                      {}
+func (T) Fill([3]int)                        {}
+func (T) Recv(<-chan int, chan<- int)        {}
+func (T) Keys(map[string][]int, *int, ...int) {}
+func (T) Paren(int)                          {}
+
+type Wrong struct{ T }
+
+func (Wrong) Send(<-chan int) {}
+
+func use(p Pair) {
+\tp.Send(nil)
+\tp.Fill([3]int{})
+}
+"""
+IMPLEMENTS_COMMENTED = """package m
+
+import /*c*/ "ex.com/m/sub" /*c*/
+
+type Base interface{ B() }
+
+type Pair interface {
+\t/*c*/ Base /*c*/\n\tsub /*c*/ . /*c*/ Extra
+\tSend(chan /*c*/ int)
+\tFill([ /*c*/ 3] /*c*/ int)
+\tRecv(<- /*c*/ chan /*c*/ int, chan /*c*/ <- /*c*/ int)
+\tKeys(map[ /*c*/ string] /*c*/ [] /*c*/ int, * /*c*/ int, ... /*c*/ int)
+\tParen(( /*c*/ int /*c*/ ))
+}
+
+type T struct{}
+
+func (T) B()                                 {}
+func (T) X() {}
+func (T) Send(chan /*c*/ int)                {}
+func (T) Fill([ /*c*/ 3]int)                 {}
+func (T) Recv(<- /*c*/ chan int, chan<- /*c*/ int) {}
+func (T) Keys(map[string] /*c*/ []int, *int, ... /*c*/ int) {}
+func (T) Paren(( /*c*/ int))                 {}
+
+type Wrong struct{ T }
+
+func (Wrong) Send(<- /*c*/ chan int) {}
+
+func use(p Pair) {
+\tp.Send(nil)
+\tp.Fill([ /*c*/ 3]int{})
+}
+"""
+
+
+def test_a_comment_inside_a_type_an_implements_edge_is_decided_by_changes_nothing(tmp_path):
+    """The shapes the implementer check reads a type from: a channel with and without a direction, an array length, a map,
+    a pointer, a variadic parameter, a parenthesised type and an embedded element of an interface, each with a comment
+    between its tokens. The edges (their kind and via too) must be the same as without the comments, and there must be some:
+    T has every method of Pair, Wrong gets its Send with another channel direction and is never a candidate."""
+    answers = []
+    for source in (IMPLEMENTS_PLAIN, IMPLEMENTS_COMMENTED):
+        repo = tmp_path / f"r{len(answers)}"
+        repo.mkdir()
+        (repo / "go.mod").write_text("module ex.com/m\n\ngo 1.26\n")
+        (repo / "a.go").write_text(source)
+        (repo / "sub").mkdir()
+        (repo / "sub" / "s.go").write_text("package sub\n\ntype Extra interface{ X() }\n")
+        answers.append(snapshot(repo))
+    plain =[e for e in answers[0]["edges"] if e[4] == "implements"]
+    assert sorted(e[1] for e in plain) == ["ex.com/m:T.Fill", "ex.com/m:T.Send"] and {e[5] for e in plain} == {"ex.com/m:Pair"}
+    assert answers[0]["edges"] == answers[1]["edges"] and answers[0]["unresolved"] == answers[1]["unresolved"]

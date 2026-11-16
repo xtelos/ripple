@@ -49,5 +49,11 @@
   {"file": "use/use.go", "line": 108, "col": 2, "end": "108:13", "kind": "E", "callee": "example.com/p2/use:Local.Run", "at": "use/use.go", "variants": "all"},
   {"file": "use/use.go", "line": 109, "col": 2, "end": "109:13", "kind": "E", "callee": "example.com/p2/use:Local.Run", "at": "use/use.go", "variants": "all"},
   {"file": "use/use.go", "line": 110, "col": 2, "end": "110:11", "kind": "E", "callee": "example.com/p2/use:Local.Run", "at": "use/use.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "use/use.go", "line": 36, "col": 2, "end": "36:10", "interface": "io:WriteCloser", "method": "Close", "candidates": [{"id": "example.com/p2/lib:Thing.Close", "at": "lib/lib.go"}], "packages": ["example.com/p2/lib", "example.com/p2/strs", "example.com/p2/use"], "variants": "all"},
+  {"file": "use/use.go", "line": 58, "col": 2, "end": "58:8", "interface": "example.com/p2/lib:Runner", "method": "Run", "candidates": [{"id": "example.com/p2/lib:Impl.Run", "at": "lib/lib.go"}, {"id": "example.com/p2/use:Local.Run", "at": "use/use.go"}], "packages": ["example.com/p2/lib", "example.com/p2/strs", "example.com/p2/use"], "variants": "all"},
+  {"file": "use/use.go", "line": 64, "col": 3, "end": "64:9", "interface": "example.com/p2/lib:Runner", "method": "Run", "candidates": [{"id": "example.com/p2/lib:Impl.Run", "at": "lib/lib.go"}, {"id": "example.com/p2/use:Local.Run", "at": "use/use.go"}], "packages": ["example.com/p2/lib", "example.com/p2/strs", "example.com/p2/use"], "variants": "all"},
+  {"file": "use/use.go", "line": 71, "col": 2, "end": "71:19", "interface": "example.com/p2/lib:Runner", "method": "Run", "candidates": [{"id": "example.com/p2/lib:Impl.Run", "at": "lib/lib.go"}, {"id": "example.com/p2/use:Local.Run", "at": "use/use.go"}], "packages": ["example.com/p2/lib", "example.com/p2/strs", "example.com/p2/use"], "variants": "all"}
  ]
 }

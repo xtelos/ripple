@@ -1,0 +1,14 @@
+{
+ "digest": "45b1f98377a7dbb0511fbb88ec02982213a6b04e0a00aa0b32e2699ff9cde71e",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 10, "col": 52, "end": "10:55", "kind": "D", "callee": "-", "at": "", "variants": "all"},
+  {"file": "a.go", "line": 37, "col": 2, "end": "37:12", "kind": "I", "callee": "example.com/impl_named_types:Handler.Handle", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 37, "col": 2, "end": "37:12", "interface": "example.com/impl_named_types:Handler", "method": "Handle", "candidates": [{"id": "example.com/impl_named_types:Base.Handle", "at": "a.go"}, {"id": "example.com/impl_named_types:HandlerFunc.Handle", "at": "a.go"}, {"id": "example.com/impl_named_types:List.Handle", "at": "a.go"}], "packages": ["example.com/impl_named_types"], "variants": "all"}
+ ]
+}

@@ -14,5 +14,8 @@
   {"file": "a.go", "line": 30, "col": 2, "end": "30:16", "kind": "E", "callee": "example.com/package_var_funcs:Impl.Close", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 31, "col": 2, "end": "31:9", "kind": "D", "callee": "-", "at": "", "variants": "all"},
   {"file": "a.go", "line": 32, "col": 2, "end": "32:11", "kind": "D", "callee": "-", "at": "", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:10", "interface": "example.com/package_var_funcs:Writer", "method": "Write", "candidates": [{"id": "example.com/package_var_funcs:Impl.Write", "at": "a.go"}], "packages": ["example.com/package_var_funcs"], "variants": "all"}
  ]
 }

@@ -10,5 +10,7 @@
   {"file": "a.go", "line": 14, "col": 3, "end": "14:7", "kind": "E", "callee": "example.com/goroutines_select:T.M", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 18, "col": 3, "end": "18:7", "kind": "E", "callee": "example.com/goroutines_select:T.M", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 22, "col": 2, "end": "22:6", "kind": "E", "callee": "example.com/goroutines_select:T.M", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

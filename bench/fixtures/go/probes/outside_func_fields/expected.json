@@ -20,5 +20,7 @@
   {"file": "a.go", "line": 51, "col": 2, "end": "51:41", "kind": "D", "callee": "-", "at": "", "variants": "all"},
   {"file": "a.go", "line": 55, "col": 62, "end": "55:67", "kind": "E", "callee": "example.com/off:hook", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 56, "col": 2, "end": "56:10", "kind": "D", "callee": "-", "at": "", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

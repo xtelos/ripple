@@ -18,5 +18,7 @@
   {"file": "a.go", "line": 22, "col": 2, "end": "22:6", "kind": "E", "callee": "example.com/same_line_calls:B.M", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 22, "col": 9, "end": "22:13", "kind": "E", "callee": "example.com/same_line_calls:A.M", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 22, "col": 16, "end": "22:20", "kind": "E", "callee": "example.com/same_line_calls:B.M", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

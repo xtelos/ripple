@@ -1,0 +1,17 @@
+{
+ "digest": "7fc582bead6752db65ea4a7e6d84d43a9ef00a31e5758d59afe189465e021518",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a/a.go": "all",
+  "a/cmd/app/main.go": "all",
+  "b/b.go": "all"
+ },
+ "calls": [
+  {"file": "a/a.go", "line": 12, "col": 2, "end": "12:8", "kind": "I", "callee": "example.com/mw_a:Runner.Run", "at": "a/a.go", "variants": "all"},
+  {"file": "a/cmd/app/main.go", "line": 11, "col": 2, "end": "11:8", "kind": "I", "callee": "example.com/mw_a:Runner.Run", "at": "a/a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a/a.go", "line": 12, "col": 2, "end": "12:8", "interface": "example.com/mw_a:Runner", "method": "Run", "candidates": [{"id": "example.com/mw_a/cmd/app:App.Run", "at": "a/cmd/app/main.go"}, {"id": "example.com/mw_a:Own.Run", "at": "a/a.go"}, {"id": "example.com/mw_b:T.Run", "at": "b/b.go"}], "packages": ["example.com/mw_a", "example.com/mw_a/cmd/app", "example.com/mw_b"], "variants": "all"},
+  {"file": "a/cmd/app/main.go", "line": 11, "col": 2, "end": "11:8", "interface": "example.com/mw_a:Runner", "method": "Run", "candidates": [{"id": "example.com/mw_a/cmd/app:App.Run", "at": "a/cmd/app/main.go"}, {"id": "example.com/mw_a:Own.Run", "at": "a/a.go"}], "packages": ["example.com/mw_a", "example.com/mw_a/cmd/app"], "variants": "all"}
+ ]
+}

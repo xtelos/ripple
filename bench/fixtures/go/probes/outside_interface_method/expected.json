@@ -9,5 +9,10 @@
   {"file": "a.go", "line": 11, "col": 2, "end": "11:13", "kind": "I", "callee": "io:Writer.Write", "at": "", "variants": "all"},
   {"file": "a.go", "line": 12, "col": 2, "end": "12:11", "kind": "I", "callee": "io:Closer.Close", "at": "", "variants": "all"},
   {"file": "a.go", "line": 15, "col": 2, "end": "15:13", "kind": "E", "callee": "example.com/outside_interface_method:reader.Read", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 10, "col": 2, "end": "10:12", "interface": "io:Reader", "method": "Read", "candidates": [{"id": "example.com/outside_interface_method:reader.Read", "at": "a.go"}], "packages": ["example.com/outside_interface_method"], "variants": "all"},
+  {"file": "a.go", "line": 11, "col": 2, "end": "11:13", "interface": "io:Writer", "method": "Write", "candidates": [], "packages": ["example.com/outside_interface_method"], "variants": "all"},
+  {"file": "a.go", "line": 12, "col": 2, "end": "12:11", "interface": "io:ReadCloser", "method": "Close", "candidates": [], "packages": ["example.com/outside_interface_method"], "variants": "all"}
  ]
 }

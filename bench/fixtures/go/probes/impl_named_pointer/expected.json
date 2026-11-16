@@ -1,0 +1,27 @@
+{
+ "digest": "bc90a6dd1cf230f8b6e3b3d5799ce1cf36ac83c369c952c66db5d98a67260b7c",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 85, "col": 2, "end": "85:6", "kind": "I", "callee": "example.com/impl_named_pointer:I.M", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 86, "col": 2, "end": "86:6", "kind": "I", "callee": "example.com/impl_named_pointer:I.N", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 87, "col": 2, "end": "87:6", "kind": "I", "callee": "example.com/impl_named_pointer:J.G", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 88, "col": 2, "end": "88:6", "kind": "I", "callee": "example.com/impl_named_pointer:J.H", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 89, "col": 2, "end": "89:7", "kind": "I", "callee": "example.com/impl_named_pointer:K.M4", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 90, "col": 2, "end": "90:7", "kind": "I", "callee": "example.com/impl_named_pointer:K.N4", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 91, "col": 2, "end": "91:9", "kind": "I", "callee": "example.com/impl_named_pointer:Shower.Show", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 92, "col": 2, "end": "92:9", "kind": "I", "callee": "example.com/impl_named_pointer:Shower.Show", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 85, "col": 2, "end": "85:6", "interface": "example.com/impl_named_pointer:I", "method": "M", "candidates": [], "packages": ["example.com/impl_named_pointer"], "variants": "all"},
+  {"file": "a.go", "line": 86, "col": 2, "end": "86:6", "interface": "example.com/impl_named_pointer:I", "method": "N", "candidates": [], "packages": ["example.com/impl_named_pointer"], "variants": "all"},
+  {"file": "a.go", "line": 87, "col": 2, "end": "87:6", "interface": "example.com/impl_named_pointer:J", "method": "G", "candidates": [{"id": "example.com/impl_named_pointer:E2.G", "at": "a.go"}], "packages": ["example.com/impl_named_pointer"], "variants": "all"},
+  {"file": "a.go", "line": 88, "col": 2, "end": "88:6", "interface": "example.com/impl_named_pointer:J", "method": "H", "candidates": [{"id": "example.com/impl_named_pointer:F2.H", "at": "a.go"}], "packages": ["example.com/impl_named_pointer"], "variants": "all"},
+  {"file": "a.go", "line": 89, "col": 2, "end": "89:7", "interface": "example.com/impl_named_pointer:K", "method": "M4", "candidates": [], "packages": ["example.com/impl_named_pointer"], "variants": "all"},
+  {"file": "a.go", "line": 90, "col": 2, "end": "90:7", "interface": "example.com/impl_named_pointer:K", "method": "N4", "candidates": [], "packages": ["example.com/impl_named_pointer"], "variants": "all"},
+  {"file": "a.go", "line": 91, "col": 2, "end": "91:9", "interface": "example.com/impl_named_pointer:Wrapped", "method": "Show", "candidates": [{"id": "example.com/impl_named_pointer:Sh.Show", "at": "a.go"}], "packages": ["example.com/impl_named_pointer"], "variants": "all"},
+  {"file": "a.go", "line": 92, "col": 2, "end": "92:9", "interface": "example.com/impl_named_pointer:Shower", "method": "Show", "candidates": [{"id": "example.com/impl_named_pointer:Sh.Show", "at": "a.go"}], "packages": ["example.com/impl_named_pointer"], "variants": "all"}
+ ]
+}

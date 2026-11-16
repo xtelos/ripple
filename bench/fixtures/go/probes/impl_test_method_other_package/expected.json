@@ -1,0 +1,18 @@
+{
+ "digest": "1944ae1f736bbc37df8322e5ddfe261c107f7f97d9f561b78e369b64fb4333b6",
+ "variants": ["darwin-arm64/prod", "darwin-arm64/test", "linux-amd64/prod", "linux-amd64/test", "linux-arm64/prod", "linux-arm64/test", "windows-amd64/prod", "windows-amd64/test"],
+ "built": {
+  "a/a.go": "all",
+  "a/a_test.go": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"],
+  "b/b.go": "all",
+  "b/b_test.go": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]
+ },
+ "calls": [
+  {"file": "a/a_test.go", "line": 12, "col": 2, "end": "12:8", "kind": "I", "callee": "example.com/impl_test_method_other_package/a:Runner.Run", "at": "a/a.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "b/b_test.go", "line": 14, "col": 2, "end": "14:8", "kind": "I", "callee": "example.com/impl_test_method_other_package/a:Runner.Run", "at": "a/a.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]}
+ ],
+ "implementers": [
+  {"file": "a/a_test.go", "line": 12, "col": 2, "end": "12:8", "interface": "example.com/impl_test_method_other_package/a:Runner", "method": "Run", "candidates": [{"id": "example.com/impl_test_method_other_package/a:Real.Run", "at": "a/a.go"}, {"id": "example.com/impl_test_method_other_package/b:Whole.Run", "at": "b/b.go"}], "packages": ["example.com/impl_test_method_other_package/a", "example.com/impl_test_method_other_package/b"], "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "b/b_test.go", "line": 14, "col": 2, "end": "14:8", "interface": "example.com/impl_test_method_other_package/a:Runner", "method": "Run", "candidates": [{"id": "example.com/impl_test_method_other_package/a:Real.Run", "at": "a/a.go"}, {"id": "example.com/impl_test_method_other_package/b:Half.Run", "at": "b/b_test.go"}, {"id": "example.com/impl_test_method_other_package/b:Whole.Run", "at": "b/b.go"}], "packages": ["example.com/impl_test_method_other_package/a", "example.com/impl_test_method_other_package/b"], "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]}
+ ]
+}

@@ -13,5 +13,7 @@
   {"file": "main.go", "line": 12, "col": 2, "end": "12:11", "kind": "E", "callee": "example.com/renamed_imports/b/util:Do", "at": "b/util/util.go", "variants": "all"},
   {"file": "main.go", "line": 13, "col": 2, "end": "13:9", "kind": "E", "callee": "example.com/renamed_imports/x/libx:F", "at": "x/libx/libx.go", "variants": "all"},
   {"file": "main.go", "line": 18, "col": 2, "end": "18:8", "kind": "D", "callee": "-", "at": "", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

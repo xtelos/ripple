@@ -12,5 +12,7 @@
   {"file": "a.go", "line": 22, "col": 2, "end": "22:12", "kind": "E", "callee": "example.com/generics_constraints:Inline", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 23, "col": 6, "end": "23:13", "kind": "E", "callee": "example.com/generics_constraints:Union", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 25, "col": 6, "end": "25:15", "kind": "E", "callee": "example.com/generics_constraints:S.String", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

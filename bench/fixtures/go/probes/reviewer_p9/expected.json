@@ -11,5 +11,7 @@
   {"file": "main.go", "line": 16, "col": 2, "end": "16:13", "kind": "D", "callee": "-", "at": "", "variants": "all"},
   {"file": "main.go", "line": 18, "col": 28, "end": "18:38", "kind": "E", "callee": "example.com/p9:printHelp", "at": "main.go", "variants": "all"},
   {"file": "main.go", "line": 19, "col": 6, "end": "19:15", "kind": "D", "callee": "-", "at": "", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

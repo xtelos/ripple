@@ -12,5 +12,7 @@
   {"file": "d/d.go", "line": 27, "col": 2, "end": "27:9", "kind": "E", "callee": "example.com/p4/d:helper", "at": "d/d.go", "variants": "all"},
   {"file": "d/d.go", "line": 32, "col": 36, "end": "32:40", "kind": "E", "callee": "example.com/p4/d:T.M", "at": "d/d.go", "variants": "all"},
   {"file": "d/d.go", "line": 38, "col": 24, "end": "38:28", "kind": "E", "callee": "example.com/p4/d:V.M", "at": "d/d.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

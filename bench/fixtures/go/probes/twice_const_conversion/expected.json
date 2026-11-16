@@ -8,5 +8,7 @@
  },
  "calls": [
   {"file": "common.go", "line": 8, "col": 6, "end": "8:25", "kind": "E", "callee": "example.com/twice_const_conversion:Level.String", "at": "common.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

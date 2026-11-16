@@ -10,5 +10,7 @@
   {"file": "a.go", "line": 15, "col": 2, "end": "15:6", "kind": "E", "callee": "example.com/receiver_forms:T.M", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 17, "col": 2, "end": "17:9", "kind": "E", "callee": "example.com/receiver_forms:T.M", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 20, "col": 26, "end": "20:31", "kind": "E", "callee": "example.com/receiver_forms:T.M", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

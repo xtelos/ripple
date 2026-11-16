@@ -10,5 +10,7 @@
   {"file": "f.go", "line": 10, "col": 2, "end": "10:10", "kind": "E", "callee": "example.com/test_method_shadow:Conn.Close", "at": "f_test.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
   {"file": "f_test.go", "line": 8, "col": 2, "end": "8:17", "kind": "E", "callee": "example.com/test_method_shadow:Shutdown", "at": "f.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
   {"file": "f_test.go", "line": 10, "col": 2, "end": "10:10", "kind": "E", "callee": "example.com/test_method_shadow:Conn.Close", "at": "f_test.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]}
+ ],
+ "implementers": [
  ]
 }

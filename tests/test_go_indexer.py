@@ -37,7 +37,7 @@ def index(tmp_path, files, module=M):
 
 def edges(graph, prefix=f"{M}:"):
     """The edges as sorted `caller>callee` strings, the common id prefix cut off."""
-    return sorted(f"{e.caller.removeprefix(prefix)}>{e.callee.removeprefix(prefix)}" for e in graph.edges)
+    return sorted(f"{e.caller.removeprefix(prefix)}>{e.callee.removeprefix(prefix)}" for e in graph.edges if e.kind != "implements")
 
 
 def unresolved(graph, prefix=f"{M}:"):
@@ -384,8 +384,8 @@ def test_this_stays_unresolved_with_its_reason(tmp_path, name):
     found = reasons(graph, text)
     assert found, (name, unresolved(graph))
     assert all(fragment in reason for reason in found), (name, found)
-    callers = {e.caller for e in graph.edges}
-    assert callers <= {f"{M}:pick", f"{M}:mk"} or not [e for e in graph.edges if e.callee.endswith((".M", ".Close", ".Error"))], (name, edges(graph))
+    callers = {e.caller for e in graph.edges if e.kind != "implements"}
+    assert callers <= {f"{M}:pick", f"{M}:mk"} or not [e for e in graph.edges if e.kind != "implements" and e.callee.endswith((".M", ".Close", ".Error"))], (name, edges(graph))
 
 
 def test_a_universe_builtin_is_external_and_never_an_edge(tmp_path):

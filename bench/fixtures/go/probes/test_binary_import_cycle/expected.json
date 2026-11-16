@@ -1,0 +1,27 @@
+{
+ "digest": "b88a941bc20fd2733f17ef215731045ee566367ea93a7105060b0c9c5ea4f6f1",
+ "variants": ["darwin-arm64/prod", "darwin-arm64/test", "linux-amd64/prod", "linux-amd64/test", "linux-arm64/prod", "linux-arm64/test", "windows-amd64/prod", "windows-amd64/test"],
+ "built": {
+  "a.go": "all",
+  "a_test.go": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"],
+  "b/b.go": "all",
+  "b/b_test.go": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"],
+  "c/c.go": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+  "cmd/p/main.go": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+  "d/d.go": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+  "internal/e/e.go": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+  "internal/f/f.go": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+  "x_test.go": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]
+ },
+ "calls": [
+  {"file": "a.go", "line": 6, "col": 2, "end": "6:6", "kind": "I", "callee": "example.com/test_binary_import_cycle:I.M", "at": "a.go", "variants": "all"},
+  {"file": "a_test.go", "line": 7, "col": 2, "end": "7:6", "kind": "I", "callee": "example.com/test_binary_import_cycle:I.M", "at": "a.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "internal/f/f.go", "line": 10, "col": 2, "end": "10:6", "kind": "I", "callee": "example.com/test_binary_import_cycle/internal/f:J.M", "at": "internal/f/f.go", "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"]}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 6, "col": 2, "end": "6:6", "interface": "example.com/test_binary_import_cycle:I", "method": "M", "candidates": [{"id": "example.com/test_binary_import_cycle/b:T.M", "at": "b/b.go"}, {"id": "example.com/test_binary_import_cycle/c:U.M", "at": "c/c.go"}, {"id": "example.com/test_binary_import_cycle/d:D.M", "at": "d/d.go"}, {"id": "example.com/test_binary_import_cycle/internal/e:Ee.M", "at": "internal/e/e.go"}], "packages": ["example.com/test_binary_import_cycle", "example.com/test_binary_import_cycle/b", "example.com/test_binary_import_cycle/c", "example.com/test_binary_import_cycle/d", "example.com/test_binary_import_cycle/internal/e"], "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"]},
+  {"file": "a.go", "line": 6, "col": 2, "end": "6:6", "interface": "example.com/test_binary_import_cycle:I", "method": "M", "candidates": [{"id": "example.com/test_binary_import_cycle/b:T.M", "at": "b/b.go"}, {"id": "example.com/test_binary_import_cycle/d:D.M", "at": "d/d.go"}, {"id": "example.com/test_binary_import_cycle/internal/e:Ee.M", "at": "internal/e/e.go"}], "packages": ["example.com/test_binary_import_cycle", "example.com/test_binary_import_cycle/b", "example.com/test_binary_import_cycle/d", "example.com/test_binary_import_cycle/internal/e", "example.com/test_binary_import_cycle_test"], "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "a_test.go", "line": 7, "col": 2, "end": "7:6", "interface": "example.com/test_binary_import_cycle:I", "method": "M", "candidates": [{"id": "example.com/test_binary_import_cycle/b:T.M", "at": "b/b.go"}, {"id": "example.com/test_binary_import_cycle/d:D.M", "at": "d/d.go"}, {"id": "example.com/test_binary_import_cycle/internal/e:Ee.M", "at": "internal/e/e.go"}], "packages": ["example.com/test_binary_import_cycle", "example.com/test_binary_import_cycle/b", "example.com/test_binary_import_cycle/d", "example.com/test_binary_import_cycle/internal/e", "example.com/test_binary_import_cycle_test"], "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "internal/f/f.go", "line": 10, "col": 2, "end": "10:6", "interface": "example.com/test_binary_import_cycle/internal/f:J", "method": "M", "candidates": [{"id": "example.com/test_binary_import_cycle/c:U.M", "at": "c/c.go"}, {"id": "example.com/test_binary_import_cycle/internal/f:F.M", "at": "internal/f/f.go"}], "packages": ["example.com/test_binary_import_cycle/c", "example.com/test_binary_import_cycle/cmd/p", "example.com/test_binary_import_cycle/internal/f"], "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"]}
+ ]
+}

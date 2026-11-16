@@ -1,0 +1,17 @@
+{
+ "digest": "a04d1fd99b7bfaa9f75564c04e76b54b8c407c25696ee06a905987f27fe913eb",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 38, "col": 2, "end": "38:10", "kind": "I", "callee": "example.com/impl_receivers:Closer.Close", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 39, "col": 2, "end": "39:9", "kind": "I", "callee": "example.com/impl_receivers:Both.Open", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 40, "col": 2, "end": "40:10", "kind": "I", "callee": "example.com/impl_receivers:Both.Close", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 38, "col": 2, "end": "38:10", "interface": "example.com/impl_receivers:Closer", "method": "Close", "candidates": [{"id": "example.com/impl_receivers:Inner.Close", "at": "a.go"}, {"id": "example.com/impl_receivers:Mixed.Close", "at": "a.go"}, {"id": "example.com/impl_receivers:PtrOnly.Close", "at": "a.go"}, {"id": "example.com/impl_receivers:ValOnly.Close", "at": "a.go"}], "packages": ["example.com/impl_receivers"], "variants": "all"},
+  {"file": "a.go", "line": 39, "col": 2, "end": "39:9", "interface": "example.com/impl_receivers:Both", "method": "Open", "candidates": [{"id": "example.com/impl_receivers:Inner.Open", "at": "a.go"}, {"id": "example.com/impl_receivers:Mixed.Open", "at": "a.go"}], "packages": ["example.com/impl_receivers"], "variants": "all"},
+  {"file": "a.go", "line": 40, "col": 2, "end": "40:10", "interface": "example.com/impl_receivers:Both", "method": "Close", "candidates": [{"id": "example.com/impl_receivers:Inner.Close", "at": "a.go"}, {"id": "example.com/impl_receivers:Mixed.Close", "at": "a.go"}], "packages": ["example.com/impl_receivers"], "variants": "all"}
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "digest": "9838b652307eee66a5225d208d4be6545584c3003e980ab2cf3f51a4dc4767b7",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "alias_linux.go": ["linux-amd64/prod", "linux-arm64/prod"],
+  "alias_other.go": ["darwin-arm64/prod", "windows-amd64/prod"]
+ },
+ "calls": [
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:8", "kind": "I", "callee": "example.com/impl_alias_variants:Runner.Run", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 26, "col": 2, "end": "26:9", "kind": "I", "callee": "example.com/impl_alias_variants:Walker.Walk", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 25, "col": 2, "end": "25:8", "interface": "example.com/impl_alias_variants:Runner", "method": "Run", "candidates": [{"id": "example.com/impl_alias_variants:A.Run", "at": "a.go"}], "packages": ["example.com/impl_alias_variants"], "variants": "all"},
+  {"file": "a.go", "line": 26, "col": 2, "end": "26:9", "interface": "example.com/impl_alias_variants:Walker", "method": "Walk", "candidates": [{"id": "example.com/impl_alias_variants:D.Walk", "at": "a.go"}], "packages": ["example.com/impl_alias_variants"], "variants": "all"}
+ ]
+}

@@ -1,0 +1,25 @@
+{
+ "digest": "fbc2da85a88213de6a79576a99a2e6abe3a62461ed945f1995429efe4c87e152",
+ "variants": ["darwin-arm64/prod", "darwin-arm64/test", "linux-amd64/prod", "linux-amd64/test", "linux-arm64/prod", "linux-arm64/test", "windows-amd64/prod", "windows-amd64/test"],
+ "built": {
+  "internal/helper/helper.go": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+  "internal/lonely/lonely.go": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+  "internal/onlyx/onlyx.go": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+  "lib.go": "all",
+  "lib_test.go": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"],
+  "x/x.go": "all",
+  "x/x_test.go": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"],
+  "y/y.go": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"]
+ },
+ "calls": [
+  {"file": "lib.go", "line": 15, "col": 2, "end": "15:7", "kind": "I", "callee": "example.com/impl_test_unit:Doer.Do", "at": "lib.go", "variants": "all"},
+  {"file": "lib_test.go", "line": 15, "col": 2, "end": "15:7", "kind": "I", "callee": "example.com/impl_test_unit:Doer.Do", "at": "lib.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "x/x_test.go", "line": 14, "col": 2, "end": "14:7", "kind": "I", "callee": "example.com/impl_test_unit:Doer.Do", "at": "lib.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]}
+ ],
+ "implementers": [
+  {"file": "lib.go", "line": 15, "col": 2, "end": "15:7", "interface": "example.com/impl_test_unit:Doer", "method": "Do", "candidates": [{"id": "example.com/impl_test_unit/internal/helper:H.Do", "at": "internal/helper/helper.go"}, {"id": "example.com/impl_test_unit/internal/onlyx:OX.Do", "at": "internal/onlyx/onlyx.go"}, {"id": "example.com/impl_test_unit/y:Y.Do", "at": "y/y.go"}, {"id": "example.com/impl_test_unit:Own.Do", "at": "lib.go"}], "packages": ["example.com/impl_test_unit", "example.com/impl_test_unit/internal/helper", "example.com/impl_test_unit/internal/onlyx", "example.com/impl_test_unit/x", "example.com/impl_test_unit/y"], "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"]},
+  {"file": "lib.go", "line": 15, "col": 2, "end": "15:7", "interface": "example.com/impl_test_unit:Doer", "method": "Do", "candidates": [{"id": "example.com/impl_test_unit/internal/helper:H.Do", "at": "internal/helper/helper.go"}, {"id": "example.com/impl_test_unit:Fake.Do", "at": "lib_test.go"}, {"id": "example.com/impl_test_unit:Own.Do", "at": "lib.go"}], "packages": ["example.com/impl_test_unit", "example.com/impl_test_unit/internal/helper"], "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "lib_test.go", "line": 15, "col": 2, "end": "15:7", "interface": "example.com/impl_test_unit:Doer", "method": "Do", "candidates": [{"id": "example.com/impl_test_unit/internal/helper:H.Do", "at": "internal/helper/helper.go"}, {"id": "example.com/impl_test_unit:Fake.Do", "at": "lib_test.go"}, {"id": "example.com/impl_test_unit:Own.Do", "at": "lib.go"}], "packages": ["example.com/impl_test_unit", "example.com/impl_test_unit/internal/helper"], "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "x/x_test.go", "line": 14, "col": 2, "end": "14:7", "interface": "example.com/impl_test_unit:Doer", "method": "Do", "candidates": [{"id": "example.com/impl_test_unit/internal/onlyx:OX.Do", "at": "internal/onlyx/onlyx.go"}, {"id": "example.com/impl_test_unit/y:Y.Do", "at": "y/y.go"}, {"id": "example.com/impl_test_unit:Own.Do", "at": "lib.go"}], "packages": ["example.com/impl_test_unit", "example.com/impl_test_unit/internal/onlyx", "example.com/impl_test_unit/x", "example.com/impl_test_unit/y"], "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]}
+ ]
+}

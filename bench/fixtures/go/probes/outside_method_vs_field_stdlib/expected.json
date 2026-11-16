@@ -11,5 +11,7 @@
   {"file": "a.go", "line": 13, "col": 2, "end": "13:8", "kind": "E", "callee": "sync:Pool.Get", "at": "", "variants": "all"},
   {"file": "a.go", "line": 14, "col": 2, "end": "14:8", "kind": "D", "callee": "-", "at": "", "variants": "all"},
   {"file": "a.go", "line": 15, "col": 2, "end": "15:19", "kind": "E", "callee": "strings:Builder.WriteString", "at": "", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

@@ -7,5 +7,7 @@
  },
  "calls": [
   {"file": "use.go", "line": 8, "col": 2, "end": "8:6", "kind": "E", "callee": "example.com/swallow_type_group_indented:Named.M", "at": "broken.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

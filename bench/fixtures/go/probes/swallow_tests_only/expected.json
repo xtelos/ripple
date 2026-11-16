@@ -8,5 +8,7 @@
  },
  "calls": [
   {"file": "b_test.go", "line": 7, "col": 2, "end": "7:6", "kind": "E", "callee": "example.com/swallow_tests_only:T.M", "at": "a_test.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]}
+ ],
+ "implementers": [
  ]
 }

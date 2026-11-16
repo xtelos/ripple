@@ -1,0 +1,16 @@
+{
+ "digest": "c7f88f925c4e72b02543e5740dc6956836ed2fb8a358738caabec5e490eea035",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "c/c.go": "all",
+  "ws/a/a.go": "all",
+  "ws/b/b.go": "all"
+ },
+ "calls": [
+  {"file": "ws/b/b.go", "line": 8, "col": 2, "end": "8:6", "kind": "I", "callee": "example.com/b:I.M", "at": "ws/b/b.go", "variants": "all"},
+  {"file": "ws/b/b.go", "line": 9, "col": 2, "end": "9:6", "kind": "E", "callee": "example.com/c:F", "at": "c/c.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "ws/b/b.go", "line": 8, "col": 2, "end": "8:6", "interface": "example.com/b:I", "method": "M", "candidates": [{"id": "example.com/c:T.M", "at": "c/c.go"}], "packages": ["example.com/a", "example.com/b", "example.com/c"], "variants": "all"}
+ ]
+}

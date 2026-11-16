@@ -10,5 +10,7 @@
   {"file": "a.go", "line": 27, "col": 2, "end": "27:6", "kind": "E", "callee": "example.com/embedded_generic:Base.M", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 28, "col": 6, "end": "28:12", "kind": "E", "callee": "example.com/embedded_generic:Box.Get", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 30, "col": 6, "end": "30:12", "kind": "E", "callee": "example.com/embedded_generic:Inner.Len", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

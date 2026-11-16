@@ -9,5 +9,8 @@
   {"file": "a.go", "line": 18, "col": 2, "end": "18:20", "kind": "D", "callee": "-", "at": "", "variants": "all"},
   {"file": "a.go", "line": 19, "col": 2, "end": "19:32", "kind": "E", "callee": "net/http:Server.RegisterOnShutdown", "at": "", "variants": "all"},
   {"file": "a.go", "line": 20, "col": 2, "end": "20:12", "kind": "I", "callee": "io:Reader.Read", "at": "", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 20, "col": 2, "end": "20:12", "interface": "io:Reader", "method": "Read", "candidates": [{"id": "example.com/outside_embedded_promoted:impl.Read", "at": "a.go"}], "packages": ["example.com/outside_embedded_promoted"], "variants": "all"}
  ]
 }

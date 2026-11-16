@@ -8,5 +8,7 @@
  },
  "calls": [
   {"file": "common.go", "line": 10, "col": 2, "end": "10:8", "kind": "E", "callee": "example.com/twice_generic_type_method:Box.Get", "at": "common.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

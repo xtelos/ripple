@@ -9,5 +9,7 @@
   {"file": "main.go", "line": 13, "col": 2, "end": "13:13", "kind": "E", "callee": "example.org/dep:Helper", "at": "vendor/example.org/dep/dep.go", "variants": "all"},
   {"file": "main.go", "line": 15, "col": 2, "end": "15:9", "kind": "E", "callee": "example.org/dep:T.Only", "at": "vendor/example.org/dep/dep.go", "variants": "all"},
   {"file": "main.go", "line": 16, "col": 2, "end": "16:6", "kind": "E", "callee": "example.org/dep:T.M", "at": "vendor/example.org/dep/dep.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

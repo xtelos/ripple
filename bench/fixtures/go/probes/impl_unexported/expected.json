@@ -1,0 +1,18 @@
+{
+ "digest": "bae3b77f44d212dc7ad14e25735525da5b2375b048f0b20dd31bface6bcf8915",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "b/b.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 22, "col": 2, "end": "22:9", "kind": "I", "callee": "example.com/impl_unexported:Sealed.seal", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 23, "col": 2, "end": "23:9", "kind": "I", "callee": "example.com/impl_unexported:Sealed.Name", "at": "a.go", "variants": "all"},
+  {"file": "b/b.go", "line": 17, "col": 2, "end": "17:9", "kind": "I", "callee": "example.com/impl_unexported:Sealed.Name", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 22, "col": 2, "end": "22:9", "interface": "example.com/impl_unexported:Sealed", "method": "seal", "candidates": [{"id": "example.com/impl_unexported:One.seal", "at": "a.go"}, {"id": "example.com/impl_unexported:Seal.seal", "at": "a.go"}], "packages": ["example.com/impl_unexported", "example.com/impl_unexported/b"], "variants": "all"},
+  {"file": "a.go", "line": 23, "col": 2, "end": "23:9", "interface": "example.com/impl_unexported:Sealed", "method": "Name", "candidates": [{"id": "example.com/impl_unexported/b:Mixed.Name", "at": "b/b.go"}, {"id": "example.com/impl_unexported:One.Name", "at": "a.go"}], "packages": ["example.com/impl_unexported", "example.com/impl_unexported/b"], "variants": "all"},
+  {"file": "b/b.go", "line": 17, "col": 2, "end": "17:9", "interface": "example.com/impl_unexported:Sealed", "method": "Name", "candidates": [{"id": "example.com/impl_unexported/b:Mixed.Name", "at": "b/b.go"}, {"id": "example.com/impl_unexported:One.Name", "at": "a.go"}], "packages": ["example.com/impl_unexported", "example.com/impl_unexported/b"], "variants": "all"}
+ ]
+}

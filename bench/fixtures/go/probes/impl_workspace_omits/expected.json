@@ -1,0 +1,14 @@
+{
+ "digest": "3b14d7c669f87c4b5be2f2210ee06f36e931dd690dd28f93cd33fd2ca7ca14b3",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "b/b.go": "all",
+  "ws/a/a.go": "all"
+ },
+ "calls": [
+  {"file": "ws/a/a.go", "line": 6, "col": 2, "end": "6:6", "kind": "I", "callee": "example.com/a:I.M", "at": "ws/a/a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "ws/a/a.go", "line": 6, "col": 2, "end": "6:6", "interface": "example.com/a:I", "method": "M", "candidates": [], "packages": ["example.com/a"], "variants": "all"}
+ ]
+}

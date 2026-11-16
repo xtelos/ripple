@@ -31,5 +31,7 @@
   {"file": "a.go", "line": 87, "col": 2, "end": "87:8", "kind": "E", "callee": "example.com/shadow_locals:T.Run", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 95, "col": 3, "end": "95:9", "kind": "E", "callee": "example.com/shadow_locals:U.Run", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 97, "col": 2, "end": "97:8", "kind": "E", "callee": "example.com/shadow_locals:T.Run", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

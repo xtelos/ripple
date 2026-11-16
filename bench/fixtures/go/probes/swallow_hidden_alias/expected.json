@@ -7,5 +7,7 @@
  },
  "calls": [
   {"file": "use.go", "line": 12, "col": 2, "end": "12:6", "kind": "E", "callee": "example.com/swallow_hidden_alias:A.M", "at": "use.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

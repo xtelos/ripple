@@ -1,0 +1,18 @@
+{
+ "digest": "542e5d8d017d968f9ebadce8778aee5ccaab69e4f3087c476d4cd55b60d95195",
+ "variants": ["darwin-arm64/prod", "darwin-arm64/test", "linux-amd64/prod", "linux-amd64/test", "linux-arm64/prod", "linux-arm64/test", "windows-amd64/prod", "windows-amd64/test"],
+ "built": {
+  "a/a.go": "all",
+  "a/a_test.go": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"],
+  "b/b.go": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+  "cmd/c/main.go": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"]
+ },
+ "calls": [
+  {"file": "a/a_test.go", "line": 10, "col": 2, "end": "10:6", "kind": "I", "callee": "example.com/impl_cgo_link/a:I.M", "at": "a/a.go", "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "cmd/c/main.go", "line": 11, "col": 2, "end": "11:6", "kind": "I", "callee": "example.com/impl_cgo_link/a:I.M", "at": "a/a.go", "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"]}
+ ],
+ "implementers": [
+  {"file": "a/a_test.go", "line": 10, "col": 2, "end": "10:6", "interface": "example.com/impl_cgo_link/a:I", "method": "M", "candidates": [{"id": "example.com/impl_cgo_link/a:Own.M", "at": "a/a.go"}], "packages": ["example.com/impl_cgo_link/a"], "variants": ["darwin-arm64/test", "linux-amd64/test", "linux-arm64/test", "windows-amd64/test"]},
+  {"file": "cmd/c/main.go", "line": 11, "col": 2, "end": "11:6", "interface": "example.com/impl_cgo_link/a:I", "method": "M", "candidates": [{"id": "example.com/impl_cgo_link/a:Own.M", "at": "a/a.go"}, {"id": "example.com/impl_cgo_link/cmd/c:Mine.M", "at": "cmd/c/main.go"}], "packages": ["example.com/impl_cgo_link/a", "example.com/impl_cgo_link/cmd/c"], "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"]}
+ ]
+}

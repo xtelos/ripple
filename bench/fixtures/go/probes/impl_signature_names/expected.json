@@ -1,0 +1,23 @@
+{
+ "digest": "382c8bbee8f293437f8b986ba1d1a3315e77f873bafd9a7342c370c33b85941b",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "b/b.go": "all",
+  "c/c.go": "all",
+  "d/d.go": "all",
+  "e/e.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 15, "col": 2, "end": "15:15", "kind": "I", "callee": "example.com/impl_signature_names:Taker.Take", "at": "a.go", "variants": "all"},
+  {"file": "c/c.go", "line": 17, "col": 2, "end": "17:12", "kind": "I", "callee": "example.com/impl_signature_names/c:Feeder.Feed", "at": "c/c.go", "variants": "all"},
+  {"file": "d/d.go", "line": 20, "col": 2, "end": "20:11", "kind": "I", "callee": "example.com/impl_signature_names/d:Mapper.Map", "at": "d/d.go", "variants": "all"},
+  {"file": "e/e.go", "line": 13, "col": 2, "end": "13:13", "kind": "I", "callee": "example.com/impl_signature_names/e:Writer.Write", "at": "e/e.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 15, "col": 2, "end": "15:15", "interface": "example.com/impl_signature_names:Taker", "method": "Take", "candidates": [{"id": "example.com/impl_signature_names/b:Imports.Take", "at": "b/b.go"}, {"id": "example.com/impl_signature_names:Local.Take", "at": "a.go"}], "packages": ["example.com/impl_signature_names", "example.com/impl_signature_names/b", "example.com/impl_signature_names/c", "example.com/impl_signature_names/d", "example.com/impl_signature_names/e"], "variants": "all"},
+  {"file": "c/c.go", "line": 17, "col": 2, "end": "17:12", "interface": "example.com/impl_signature_names/c:Feeder", "method": "Feed", "candidates": [{"id": "example.com/impl_signature_names/c:Same.Feed", "at": "c/c.go"}], "packages": ["example.com/impl_signature_names", "example.com/impl_signature_names/b", "example.com/impl_signature_names/c", "example.com/impl_signature_names/d", "example.com/impl_signature_names/e"], "variants": "all"},
+  {"file": "d/d.go", "line": 20, "col": 2, "end": "20:11", "interface": "example.com/impl_signature_names/d:Mapper", "method": "Map", "candidates": [{"id": "example.com/impl_signature_names/d:HTML.Map", "at": "d/d.go"}, {"id": "example.com/impl_signature_names/d:Text.Map", "at": "d/d.go"}], "packages": ["example.com/impl_signature_names", "example.com/impl_signature_names/b", "example.com/impl_signature_names/c", "example.com/impl_signature_names/d", "example.com/impl_signature_names/e"], "variants": "all"},
+  {"file": "e/e.go", "line": 13, "col": 2, "end": "13:13", "interface": "example.com/impl_signature_names/e:Writer", "method": "Write", "candidates": [{"id": "example.com/impl_signature_names/e:Dotted.Write", "at": "e/e.go"}], "packages": ["example.com/impl_signature_names", "example.com/impl_signature_names/b", "example.com/impl_signature_names/c", "example.com/impl_signature_names/d", "example.com/impl_signature_names/e"], "variants": "all"}
+ ]
+}

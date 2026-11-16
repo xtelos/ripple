@@ -8,5 +8,7 @@
  "calls": [
   {"file": "common.go", "line": 10, "col": 2, "end": "10:4", "kind": "E", "callee": "example.com/swallow_unconditional_proven:F", "at": "common.go", "variants": "all"},
   {"file": "common.go", "line": 11, "col": 2, "end": "11:6", "kind": "E", "callee": "example.com/swallow_unconditional_proven:T.M", "at": "common.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

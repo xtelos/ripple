@@ -1,0 +1,29 @@
+{
+ "digest": "54a2f96c3bcb063a1d6889747bcaef08194a1702f20aab00d29679f6739f840d",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "num_darwin.go": ["darwin-arm64/prod"],
+  "num_linux.go": ["linux-amd64/prod", "linux-arm64/prod"],
+  "num_windows.go": ["windows-amd64/prod"]
+ },
+ "calls": [
+  {"file": "a.go", "line": 48, "col": 2, "end": "48:9", "kind": "I", "callee": "example.com/impl_build_types:Adder.Add", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 49, "col": 2, "end": "49:9", "kind": "I", "callee": "example.com/impl_build_types:Session.Open", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 50, "col": 2, "end": "50:10", "kind": "I", "callee": "example.com/impl_build_types:Session.Close", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 51, "col": 2, "end": "51:10", "kind": "I", "callee": "example.com/impl_build_types:Plain.Take", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 52, "col": 2, "end": "52:10", "kind": "I", "callee": "example.com/impl_build_types:Session2.Hold", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 53, "col": 2, "end": "53:10", "kind": "I", "callee": "example.com/impl_build_types:Session2.Drop", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 48, "col": 2, "end": "48:9", "interface": "example.com/impl_build_types:Adder", "method": "Add", "candidates": [{"id": "example.com/impl_build_types:Linux.Add", "at": "a.go"}, {"id": "example.com/impl_build_types:Written.Add", "at": "a.go"}], "packages": ["example.com/impl_build_types"], "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "a.go", "line": 48, "col": 2, "end": "48:9", "interface": "example.com/impl_build_types:Adder", "method": "Add", "candidates": [{"id": "example.com/impl_build_types:Written.Add", "at": "a.go"}], "packages": ["example.com/impl_build_types"], "variants": ["darwin-arm64/prod", "windows-amd64/prod"]},
+  {"file": "a.go", "line": 49, "col": 2, "end": "49:9", "interface": "example.com/impl_build_types:Session", "method": "Open", "candidates": [], "packages": ["example.com/impl_build_types"], "variants": ["darwin-arm64/prod", "windows-amd64/prod"]},
+  {"file": "a.go", "line": 49, "col": 2, "end": "49:9", "interface": "example.com/impl_build_types:Session", "method": "Open", "candidates": [{"id": "example.com/impl_build_types:E.Open", "at": "num_linux.go"}], "packages": ["example.com/impl_build_types"], "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "a.go", "line": 50, "col": 2, "end": "50:10", "interface": "example.com/impl_build_types:Session", "method": "Close", "candidates": [], "packages": ["example.com/impl_build_types"], "variants": ["darwin-arm64/prod", "windows-amd64/prod"]},
+  {"file": "a.go", "line": 50, "col": 2, "end": "50:10", "interface": "example.com/impl_build_types:Session", "method": "Close", "candidates": [{"id": "example.com/impl_build_types:Outer.Close", "at": "a.go"}], "packages": ["example.com/impl_build_types"], "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "a.go", "line": 51, "col": 2, "end": "51:10", "interface": "example.com/impl_build_types:Plain", "method": "Take", "candidates": [{"id": "example.com/impl_build_types:Fixed.Take", "at": "a.go"}], "packages": ["example.com/impl_build_types"], "variants": "all"},
+  {"file": "a.go", "line": 52, "col": 2, "end": "52:10", "interface": "example.com/impl_build_types:Session2", "method": "Hold", "candidates": [{"id": "example.com/impl_build_types:Stable.Hold", "at": "a.go"}], "packages": ["example.com/impl_build_types"], "variants": "all"},
+  {"file": "a.go", "line": 53, "col": 2, "end": "53:10", "interface": "example.com/impl_build_types:Session2", "method": "Drop", "candidates": [{"id": "example.com/impl_build_types:Outer2.Drop", "at": "a.go"}], "packages": ["example.com/impl_build_types"], "variants": "all"}
+ ]
+}

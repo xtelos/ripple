@@ -15,5 +15,7 @@
   {"file": "a.go", "line": 28, "col": 3, "end": "28:9", "kind": "E", "callee": "example.com/shadow_decl_order:T.Run", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 36, "col": 3, "end": "36:9", "kind": "E", "callee": "example.com/shadow_decl_order:T.Run", "at": "a.go", "variants": "all"},
   {"file": "a.go", "line": 41, "col": 3, "end": "41:9", "kind": "E", "callee": "example.com/shadow_decl_order:U.Run", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

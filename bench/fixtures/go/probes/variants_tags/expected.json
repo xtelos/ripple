@@ -11,5 +11,7 @@
   {"file": "a.go", "line": 10, "col": 6, "end": "10:11", "kind": "E", "callee": "example.com/variants_tags:mode", "at": "m_nofoo.go", "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"]},
   {"file": "a.go", "line": 12, "col": 2, "end": "12:6", "kind": "E", "callee": "example.com/variants_tags:Base.M", "at": "a.go", "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"]},
   {"file": "a.go", "line": 12, "col": 2, "end": "12:6", "kind": "E", "callee": "example.com/variants_tags:T.M", "at": "m_foo.go", "variants": ["linux-amd64+foo/prod"]}
+ ],
+ "implementers": [
  ]
 }

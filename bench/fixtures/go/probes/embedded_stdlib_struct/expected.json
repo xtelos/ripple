@@ -10,5 +10,7 @@
   {"file": "a.go", "line": 22, "col": 2, "end": "22:10", "kind": "E", "callee": "os:File.Close", "at": "", "variants": "all"},
   {"file": "a.go", "line": 23, "col": 6, "end": "23:13", "kind": "E", "callee": "os:File.Name", "at": "", "variants": "all"},
   {"file": "a.go", "line": 25, "col": 2, "end": "25:10", "kind": "E", "callee": "example.com/embedded_stdlib_struct:Closer.Close", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

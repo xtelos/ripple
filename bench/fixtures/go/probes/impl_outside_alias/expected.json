@@ -1,0 +1,16 @@
+{
+ "digest": "cac0230f4692073b0c0ee5f5ce6c1ea9ac3412303311f0eb92a755574f60f70f",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "b.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 22, "col": 2, "end": "22:11", "kind": "I", "callee": "example.com/impl_outside_alias:Setter.Set", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 23, "col": 2, "end": "23:13", "kind": "I", "callee": "example.com/impl_outside_alias:Applier.Apply", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 22, "col": 2, "end": "22:11", "interface": "example.com/impl_outside_alias:Setter", "method": "Set", "candidates": [{"id": "example.com/impl_outside_alias:Same.Set", "at": "a.go"}], "packages": ["example.com/impl_outside_alias"], "variants": "all"},
+  {"file": "a.go", "line": 23, "col": 2, "end": "23:13", "interface": "example.com/impl_outside_alias:Applier", "method": "Apply", "candidates": [{"id": "example.com/impl_outside_alias:Plain.Apply", "at": "b.go"}], "packages": ["example.com/impl_outside_alias"], "variants": "all"}
+ ]
+}

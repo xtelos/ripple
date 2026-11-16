@@ -1,0 +1,22 @@
+{
+ "digest": "b0f4d4d0493df9b7abdd611084b0da02ef510a5dade91f733021637e63d79cb1",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all",
+  "extra_linux.go": ["linux-amd64/prod", "linux-arm64/prod"]
+ },
+ "calls": [
+  {"file": "a.go", "line": 35, "col": 2, "end": "35:6", "kind": "I", "callee": "example.com/impl_constrained_type:LinuxOnly.A", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 36, "col": 2, "end": "36:6", "kind": "I", "callee": "example.com/impl_constrained_type:LinuxOnly.B", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 37, "col": 2, "end": "37:6", "kind": "I", "callee": "example.com/impl_constrained_type:Everywhere.C", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 38, "col": 2, "end": "38:6", "kind": "I", "callee": "example.com/impl_constrained_type:Everywhere.D", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 35, "col": 2, "end": "35:6", "interface": "example.com/impl_constrained_type:LinuxOnly", "method": "A", "candidates": [], "packages": ["example.com/impl_constrained_type"], "variants": ["darwin-arm64/prod", "windows-amd64/prod"]},
+  {"file": "a.go", "line": 35, "col": 2, "end": "35:6", "interface": "example.com/impl_constrained_type:LinuxOnly", "method": "A", "candidates": [{"id": "example.com/impl_constrained_type:E1.A", "at": "a.go"}], "packages": ["example.com/impl_constrained_type"], "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "a.go", "line": 36, "col": 2, "end": "36:6", "interface": "example.com/impl_constrained_type:LinuxOnly", "method": "B", "candidates": [], "packages": ["example.com/impl_constrained_type"], "variants": ["darwin-arm64/prod", "windows-amd64/prod"]},
+  {"file": "a.go", "line": 36, "col": 2, "end": "36:6", "interface": "example.com/impl_constrained_type:LinuxOnly", "method": "B", "candidates": [{"id": "example.com/impl_constrained_type:E3.B", "at": "a.go"}], "packages": ["example.com/impl_constrained_type"], "variants": ["linux-amd64/prod", "linux-arm64/prod"]},
+  {"file": "a.go", "line": 37, "col": 2, "end": "37:6", "interface": "example.com/impl_constrained_type:Everywhere", "method": "C", "candidates": [{"id": "example.com/impl_constrained_type:E2.C", "at": "a.go"}], "packages": ["example.com/impl_constrained_type"], "variants": "all"},
+  {"file": "a.go", "line": 38, "col": 2, "end": "38:6", "interface": "example.com/impl_constrained_type:Everywhere", "method": "D", "candidates": [{"id": "example.com/impl_constrained_type:Wide.D", "at": "a.go"}], "packages": ["example.com/impl_constrained_type"], "variants": "all"}
+ ]
+}

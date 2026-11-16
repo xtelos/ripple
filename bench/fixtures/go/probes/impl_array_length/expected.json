@@ -1,0 +1,49 @@
+{
+ "digest": "a60c440354e7ca5389bc9a2cd688d4ffa9edb4cd27042e0a75ab7cc95cebf03d",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 199, "col": 2, "end": "199:8", "kind": "I", "callee": "example.com/impl_array_length:I1.M1", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 200, "col": 2, "end": "200:8", "kind": "I", "callee": "example.com/impl_array_length:I2.M2", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 201, "col": 2, "end": "201:8", "kind": "I", "callee": "example.com/impl_array_length:I3.M3", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 202, "col": 2, "end": "202:8", "kind": "I", "callee": "example.com/impl_array_length:I4.M4", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 203, "col": 2, "end": "203:8", "kind": "I", "callee": "example.com/impl_array_length:I5.M5", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 204, "col": 2, "end": "204:8", "kind": "I", "callee": "example.com/impl_array_length:I6.M6", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 205, "col": 2, "end": "205:8", "kind": "I", "callee": "example.com/impl_array_length:I7.M7", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 206, "col": 2, "end": "206:8", "kind": "I", "callee": "example.com/impl_array_length:I8.M8", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 207, "col": 2, "end": "207:8", "kind": "I", "callee": "example.com/impl_array_length:I9.M9", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 208, "col": 2, "end": "208:10", "kind": "I", "callee": "example.com/impl_array_length:I10.M10", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 209, "col": 2, "end": "209:10", "kind": "I", "callee": "example.com/impl_array_length:I11.M11", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 210, "col": 2, "end": "210:10", "kind": "I", "callee": "example.com/impl_array_length:I12.M12", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 211, "col": 2, "end": "211:10", "kind": "I", "callee": "example.com/impl_array_length:I13.M13", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 212, "col": 2, "end": "212:10", "kind": "I", "callee": "example.com/impl_array_length:I14.M14", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 213, "col": 2, "end": "213:10", "kind": "I", "callee": "example.com/impl_array_length:I15.M15", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 214, "col": 2, "end": "214:10", "kind": "I", "callee": "example.com/impl_array_length:I16.M16", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 215, "col": 2, "end": "215:10", "kind": "I", "callee": "example.com/impl_array_length:I17.M17", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 216, "col": 2, "end": "216:10", "kind": "I", "callee": "example.com/impl_array_length:I18.M18", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 217, "col": 2, "end": "217:10", "kind": "I", "callee": "example.com/impl_array_length:I19.M19", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 199, "col": 2, "end": "199:8", "interface": "example.com/impl_array_length:I1", "method": "M1", "candidates": [{"id": "example.com/impl_array_length:G1.M1", "at": "a.go"}], "packages": ["example.com/impl_array_length"], "variants": "all"},
+  {"file": "a.go", "line": 200, "col": 2, "end": "200:8", "interface": "example.com/impl_array_length:I2", "method": "M2", "candidates": [{"id": "example.com/impl_array_length:G2.M2", "at": "a.go"}], "packages": ["example.com/impl_array_length"], "variants": "all"},
+  {"file": "a.go", "line": 201, "col": 2, "end": "201:8", "interface": "example.com/impl_array_length:I3", "method": "M3", "candidates": [{"id": "example.com/impl_array_length:G3.M3", "at": "a.go"}], "packages": ["example.com/impl_array_length"], "variants": "all"},
+  {"file": "a.go", "line": 202, "col": 2, "end": "202:8", "interface": "example.com/impl_array_length:I4", "method": "M4", "candidates": [{"id": "example.com/impl_array_length:G4.M4", "at": "a.go"}], "packages": ["example.com/impl_array_length"], "variants": "all"},
+  {"file": "a.go", "line": 203, "col": 2, "end": "203:8", "interface": "example.com/impl_array_length:I5", "method": "M5", "candidates": [{"id": "example.com/impl_array_length:G5.M5", "at": "a.go"}], "packages": ["example.com/impl_array_length"], "variants": "all"},
+  {"file": "a.go", "line": 204, "col": 2, "end": "204:8", "interface": "example.com/impl_array_length:I6", "method": "M6", "candidates": [{"id": "example.com/impl_array_length:G6.M6", "at": "a.go"}], "packages": ["example.com/impl_array_length"], "variants": "all"},
+  {"file": "a.go", "line": 205, "col": 2, "end": "205:8", "interface": "example.com/impl_array_length:I7", "method": "M7", "candidates": [{"id": "example.com/impl_array_length:G7.M7", "at": "a.go"}], "packages": ["example.com/impl_array_length"], "variants": "all"},
+  {"file": "a.go", "line": 206, "col": 2, "end": "206:8", "interface": "example.com/impl_array_length:I8", "method": "M8", "candidates": [{"id": "example.com/impl_array_length:G8.M8", "at": "a.go"}], "packages": ["example.com/impl_array_length"], "variants": "all"},
+  {"file": "a.go", "line": 207, "col": 2, "end": "207:8", "interface": "example.com/impl_array_length:I9", "method": "M9", "candidates": [{"id": "example.com/impl_array_length:G9.M9", "at": "a.go"}], "packages": ["example.com/impl_array_length"], "variants": "all"},
+  {"file": "a.go", "line": 208, "col": 2, "end": "208:10", "interface": "example.com/impl_array_length:I10", "method": "M10", "candidates": [{"id": "example.com/impl_array_length:G10.M10", "at": "a.go"}], "packages": ["example.com/impl_array_length"], "variants": "all"},
+  {"file": "a.go", "line": 209, "col": 2, "end": "209:10", "interface": "example.com/impl_array_length:I11", "method": "M11", "candidates": [{"id": "example.com/impl_array_length:G11.M11", "at": "a.go"}], "packages": ["example.com/impl_array_length"], "variants": "all"},
+  {"file": "a.go", "line": 210, "col": 2, "end": "210:10", "interface": "example.com/impl_array_length:I12", "method": "M12", "candidates": [{"id": "example.com/impl_array_length:G12.M12", "at": "a.go"}], "packages": ["example.com/impl_array_length"], "variants": "all"},
+  {"file": "a.go", "line": 211, "col": 2, "end": "211:10", "interface": "example.com/impl_array_length:I13", "method": "M13", "candidates": [{"id": "example.com/impl_array_length:G13.M13", "at": "a.go"}], "packages": ["example.com/impl_array_length"], "variants": "all"},
+  {"file": "a.go", "line": 212, "col": 2, "end": "212:10", "interface": "example.com/impl_array_length:I14", "method": "M14", "candidates": [{"id": "example.com/impl_array_length:G14.M14", "at": "a.go"}], "packages": ["example.com/impl_array_length"], "variants": "all"},
+  {"file": "a.go", "line": 213, "col": 2, "end": "213:10", "interface": "example.com/impl_array_length:I15", "method": "M15", "candidates": [{"id": "example.com/impl_array_length:G15.M15", "at": "a.go"}], "packages": ["example.com/impl_array_length"], "variants": "all"},
+  {"file": "a.go", "line": 214, "col": 2, "end": "214:10", "interface": "example.com/impl_array_length:I16", "method": "M16", "candidates": [{"id": "example.com/impl_array_length:G16.M16", "at": "a.go"}], "packages": ["example.com/impl_array_length"], "variants": "all"},
+  {"file": "a.go", "line": 215, "col": 2, "end": "215:10", "interface": "example.com/impl_array_length:I17", "method": "M17", "candidates": [{"id": "example.com/impl_array_length:G17.M17", "at": "a.go"}], "packages": ["example.com/impl_array_length"], "variants": "all"},
+  {"file": "a.go", "line": 216, "col": 2, "end": "216:10", "interface": "example.com/impl_array_length:I18", "method": "M18", "candidates": [{"id": "example.com/impl_array_length:G18.M18", "at": "a.go"}], "packages": ["example.com/impl_array_length"], "variants": "all"},
+  {"file": "a.go", "line": 217, "col": 2, "end": "217:10", "interface": "example.com/impl_array_length:I19", "method": "M19", "candidates": [{"id": "example.com/impl_array_length:G19.M19", "at": "a.go"}], "packages": ["example.com/impl_array_length"], "variants": "all"}
+ ]
+}

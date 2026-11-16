@@ -12,5 +12,7 @@
   {"file": "d.go", "line": 27, "col": 2, "end": "27:9", "kind": "E", "callee": "example.com/parse_error_swallows_later_types:helper", "at": "d.go", "variants": "all"},
   {"file": "d.go", "line": 32, "col": 36, "end": "32:40", "kind": "E", "callee": "example.com/parse_error_swallows_later_types:T.M", "at": "d.go", "variants": "all"},
   {"file": "d.go", "line": 38, "col": 24, "end": "38:28", "kind": "E", "callee": "example.com/parse_error_swallows_later_types:V.M", "at": "d.go", "variants": "all"}
+ ],
+ "implementers": [
  ]
 }

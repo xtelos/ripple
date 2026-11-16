@@ -1,0 +1,4 @@
+{
+ "why": "the oracle runs with CGO_ENABLED=0 and cannot load a file that imports C: a type of c.go is in a build with cgo and in none without, so it is never a candidate for an implements edge (tests/test_go_implements.py holds it to the // want comments)",
+ "unresolved": []
+}

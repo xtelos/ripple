@@ -99,8 +99,13 @@ The four graph tools advertise `readOnlyHint: true`, which lets a client run the
 `check` is marked destructive instead, because a test suite can do anything its tests do.
 
 `callers`, `callees`, `impact` and `path` also take `kinds` (`--kinds` on the command line): which edges to follow,
-from `calls`, `renders` and `renderer`, comma separated, default `all`. Only a TypeScript repo with JSX has the last
-two (see [JSX](#jsx)); in a Python repo every edge is a call and nothing is labelled.
+from `calls`, `renders`, `renderer` and `implements`, comma separated, default `all`. Only a TypeScript repo with JSX has
+`renders` and `renderer` (see [JSX](#jsx)), only a Go repo has `implements` (see [Go](#go)); in a Python repo every edge is a
+call and nothing is labelled. `implements` is never a call: a Go call through a repo interface may dispatch to the methods
+of the repo types that provably satisfy the interface, so `callers` lists them under `may_be_called_through_interface`,
+`impact` under `may_be_reached_through_interface` and `callees` under `may_dispatch_to`, each with a note, and
+`--kinds calls` leaves them out. Those lists are possible, never complete, and not counted in `count`, `affected`, the
+affected tests or the `edges` statistic (`ripple index` prints their number apart).
 
 A TypeScript symbol that is applied as a decorator also lists where, apart from its callers (see
 [TypeScript](#typescript)), and `callers` and `impact` of a symbol that a class ripple does not read may call say so.
@@ -492,17 +497,107 @@ receivers are one method set), a package is `github.com/spf13/cobra`, and every 
 external test package is `github.com/spf13/cobra_test`, a second declaration of a name under build constraints is `#2`. The
 id is found by `Command.Execute`, `cobra:Command.Execute`, `command.go:Command.Execute`, or a directory (`doc/`).
 
+**Which module governs an import.** The MAIN module of a build decides what an import path names: its `replace` and `exclude`
+directives apply to the whole build, and the `replace` directives of every other module are ignored (so a program that imports
+a module `a` whose go.mod replaces `other` with a checkout still gets the published `other`, unless its own module replaces it
+too). go.work says which modules are the main modules (a workspace applies the replaces of every member, its own first, and a
+module two members replace differently is refused). A module of the repo that is neither replaced nor in the workspace is built
+from its published version, so it counts as outside. A `replace M v1.2.0 => ./b` applies only when the build selects exactly
+v1.2.0: ripple reads that from the main module's `require` line when it states `go 1.17` or later (go lists the selected version
+there, and refuses "updates to go.mod needed" when another is selected) unless the version is `exclude`d; under an older go
+directive, in a workspace, or with two requires, a versioned replace is not known to apply and the import is unresolved, never
+external and never the checkout. A main module with a committed `vendor/modules.txt` builds from `vendor/` by default, so its
+imports of other modules are unresolved too. go.mod is read by its grammar (blocks, quotes, comments, `// indirect`, `retract`).
+A call edge is resolved by the module its file is in, and drawn only when every module whose build contains that file (itself,
+and each module that replaces it or shares its go.work) names the same package for the import, so a file that one build links
+against the checkout and another against a published version has no callee. For an `implements` edge each program and test
+binary is resolved under its own root's module, closure and all, and a library call, which has no single main module, is held to
+every unit separately: one unit's module is enough, because each unit is a real build.
+
 **Proven**: a function called by name or through an import (go.mod, `replace` to a local directory and go.work say which
-directory an import names; a module of the repo that is neither replaced nor in the workspace is built from its published
-version, so it counts as outside), and a method called on a value whose type is written in the source (receiver, parameter,
+directory an import names, by the rule above), and a method called on a value whose type is written in the source (receiver, parameter,
 `x := T{}`, `NewT()`, a field, an element, a range variable, a type assertion, embedded structs by the language's depth
 rule; a method declared on an alias is its target's, and keeps the alias's name). **Unresolved, each with its reason**: an
-interface method call (the reason names the interface), function values (a parameter, a local, a field, a package variable),
+interface method call (the reason names the interface; it may also get `implements` edges, below), function values (a parameter, a local, a field, a package variable),
 type parameters, a value whose type is not written, anything that depends on which of several build-constrained definitions
 wins. Build constraints are never evaluated: a function defined under several has an edge to each variant, and a variable, a
 type, a result that the variants read differently, a method that only some builds declare (a `//go:build` line, a `_linux.go`
 name, a `_test.go` file) while another is promoted, or a method declared on an alias that is itself declared twice, is
 unresolved.
+
+**Interface implementers, the `implements` edge.** A call `v.M()` through a repo interface stays unresolved, and also gets an
+edge of a kind of its own, `implements`, to `T.M` for each repo type `T` that provably satisfies the whole interface (`*T`'s
+method set, the largest: a `T` or a `*T` is what an interface can hold). It is never a `call` edge and never joins one: the
+answers list it under `may_be_called_through_interface` (callers), `may_be_reached_through_interface` (impact) and
+`may_dispatch_to` (callees), in the words "may" and "possible", with a note that the list is **never complete**: a type from
+outside the repo, a type declared in a function, or any type ripple cannot prove can satisfy the interface too, and the call
+is still listed as unresolved. Each edge claims one thing, that the method belongs to a repo type that satisfies the
+interface in a build that contains the call, and ripple leaves a candidate out unless the source proves it by the spec: the
+interface and what it embeds are declared once, read whole, with no type parameters and nothing from outside the repo; every
+parameter and result of each method is one canonical type on both sides (aliases resolved, `byte` is `uint8`; a function
+type, a generic instance, a name a dot import binds, an array length that is not an integer or rune literal in Go's own
+grammar (`[010]` is 8, `[0x10]` is 16) and an import of an outside package that is not the standard library and has no alias
+are refused; channel directions are read as Go reads them, so `chan<- chan int` and `chan (<-chan int)` are two types); the
+type is declared once, is not generic, is not a defined pointer type (`type P *S` has no methods, not even S's) and is in no
+build-constrained or cgo file; each method is found by the depth rule with no outside embedded type that could provide it
+first, is declared once in every build, and an unexported name belongs to the interface's own package.
+
+*Which builds contain the call* is one rule, for the three places a call can be. A program links exactly its import closure,
+and a test binary links its package with the `_test.go` files, its external test package and what those import, never another
+package's test files. The closure counts only what every build of a package imports: a file under a build constraint, a
+platform file name, or a file that imports `"C"` (CGO off leaves it out) adds its imports to the builds that have it and to no
+other, so none of them is counted; a blank import links its package. A call in a `_test.go` file (with or without a
+constraint) is in its directory's test binary and in no other build, so a type is a candidate only when that binary links its
+package, and a `_test.go` type only for a call in the same directory's tests. A call in a package main is in that program and
+in its directory's test binary and nowhere else (nobody imports a main package), so only a type those two link is a candidate.
+A call in any other package is in every program and test binary that links it, and in a program of another repository that
+imports it, so the claim is that some build has both: a type is a candidate when a program or test binary of the repo links
+both packages (a type of a package main is in its program and its test binary alone, so that is its only way in), or when both
+packages can be imported from outside (neither is a main package or has an `internal` element in its import path) and one
+module of the repo builds against both modules, which is the rule an import across modules already follows (the same module,
+or a `replace` or a `go.work` joins them). A module of the repo that is neither replaced nor in the workspace is built from its
+published version, which may differ from the checkout, so none of its types is a candidate for a call of a module that does
+not build against it. Where no build can be shown to hold both (an `internal` package nothing links with the call's package),
+the candidate is left out.
+
+`bench/go_oracle` (`-implementers`) writes what `types.Implements` and the method sets say for each interface call, **per
+build unit** and never as a union of programs: the universe of a call in a package main is that program's closure, of a call
+in a test file that test binary's, and of a call in a library the packages some unit links with it plus the packages that a
+program outside could import with it (the modules the go tool's own build list says the run builds against are loaded with it).
+A candidate is agreed when some build has it and no build that has its package lacks it. `tests/test_go_implements.py` holds
+ripple to that and to the `// want:` comment on each call of the `impl_*` probes, and `tests/test_go_build_units.py` fails if
+the oracle's answer for a call in a package main lists a type of a package that program does not link. Run against that
+oracle on linux, windows and darwin: gin 175 edges (all 175 confirmed, 27 of the 87 interface calls ripple recognises have
+one, 175 of the 238 candidates the compiler agrees on), etcd as one go.work run 6,689 edges (all 6,711 site and method pairs
+confirmed, 3,704 of 6,059 calls, 6,711 of 11,356 candidates; the rest are left out for an interface or method signature ripple
+does not follow, 3,024, a test binary or program whose imports are not provable, 1,399, a signature, 124, a method the depth
+rule cannot place, 98; a second run with `-tags cluster_proxy` confirms the 5 edges of the one file the first run does not
+build), cobra none, and none unconfirmed on bubbletea, chi, fzf, lo, testify, urfave-cli, viper or zap. The version before
+this rule drew 6,708 etcd edges: 19 of them were a call in a package main given the type of a program it does not link, 12
+contradicted by this oracle and 7 in files the go.work run does not build (the old oracle merged every program into one
+build, so it confirmed such edges, and a probe wrote them into its `// want:`). Call edges and the externals are unchanged:
+with the `implements` edges taken out the graphs of gin, cobra, the Python warehouse fixture and the TypeScript warehouse
+fixture equal what the version before gave, and no call edge of etcd, bubbletea, chi, fzf, lo, testify, urfave-cli, viper or zap
+moved with the `// +build` reading below.
+
+**A call in a constrained file** (a platform file name or a build constraint, not a plain `_test.go`) is only in the builds that
+have the file, so the type's package must build in one of them: for some GOOS/GOARCH pair (and the custom tags the call file's
+header names) the package and every repo package it imports there must have a non-test file in that build that does not import
+`"C"`, and no import may be unresolved; otherwise the candidate is left out. The compiler cannot answer this by a probe (the
+oracle stops at the package error), so `tests/test_go_platform_package.py` holds it.
+
+**Build constraints.** A file's constraint is read as `go/build` reads it, and a committed table proves it: `bench/go_oracle/go_build_table.py`
+writes `go_build_table.json`, the verdict of `go list` (Go 1.27.4) for 70 header forms against 36 file-name forms on twelve
+GOOS/GOARCH/tag runs (a byte order mark, no-break space, vertical tab, a second dot in `x_linux.pb.go`, an old-style line of more
+than 100 operators, `//go:build` after the package clause, ...), and `tests/test_go_build_table.py` (no Go needed) holds ripple's
+port of `parseFileHeader`, `shouldBuild`, `constraint.Parse`, `goodOSArchFile` and `matchTag` to every cell. A `//go:build` line decides alone; otherwise every
+old-style `// +build` line must hold (spaces are or, commas and, `!` not; a term that is not a tag, `!!x` or an empty line is
+the tag `ignore`, which no build has), and a line counts only when it is above the last blank line of the file's leading
+comment stretch, so one with no blank line after it (package documentation), one after a block comment, or one after the
+package clause is no constraint. The file-name suffixes `_GOOS`, `_GOARCH`, `_GOOS_GOARCH` and `_test`, and the files the go
+tool ignores (a name that starts with `_` or `.`, a `testdata` or `vendor` directory, a file no build includes), are read as
+before. This also fixes a call edge: a method declared in a `// +build linux` file while another is promoted is now
+unresolved (it was the edge to the linux one, wrong on every other platform), as a `//go:build` one always was.
 
 **External** (a call that provably cannot reach repo code, which an agent may skip) is only what the Go standard library's own
 source proves: a func declaration of a standard library package, a method of a standard library type that is not an interface,
@@ -596,7 +691,7 @@ pick that language's runner, so pass `--lang go` there). A second language's run
 Every stream was captured with Go 1.27.4; no older Go was run, so its event shapes are unverified (a package that fails with no
 failing test and no build event is reported as such, never as a pass).
 
-`bench/fixtures/go/probes` holds 131 small legal Go modules, each with what the Go compiler's type checker says every call
+`bench/fixtures/go/probes` holds 157 small legal Go modules, each with what the Go compiler's type checker says every call
 site calls on linux, windows and darwin (`bench/go_oracle/generate.py`, run by hand with Go installed), plus the cgo ones that
 state their own answer. `tests/test_go_probes.py` needs no Go: an edge ripple makes must be the compiler's callee, declared in
 the file ripple edged to, on every platform that builds the file, and a call it counts external must have no callee inside

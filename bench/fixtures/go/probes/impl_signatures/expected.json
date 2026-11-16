@@ -1,0 +1,33 @@
+{
+ "digest": "5889a6c89ffd9b2dbfeb389ae361d09ec6e382c64d2346b5b184e9f8e9e5bf72",
+ "variants": ["darwin-arm64/prod", "linux-amd64/prod", "linux-arm64/prod", "windows-amd64/prod"],
+ "built": {
+  "a.go": "all"
+ },
+ "calls": [
+  {"file": "a.go", "line": 106, "col": 2, "end": "106:9", "kind": "I", "callee": "example.com/impl_signatures:I1.M1", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 107, "col": 2, "end": "107:11", "kind": "I", "callee": "example.com/impl_signatures:I2.M2", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 108, "col": 2, "end": "108:9", "kind": "I", "callee": "example.com/impl_signatures:I3.M3", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 109, "col": 2, "end": "109:11", "kind": "I", "callee": "example.com/impl_signatures:I4.M4", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 110, "col": 2, "end": "110:9", "kind": "I", "callee": "example.com/impl_signatures:I5.M5", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 111, "col": 2, "end": "111:36", "kind": "I", "callee": "example.com/impl_signatures:I6.M6", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 112, "col": 2, "end": "112:14", "kind": "I", "callee": "example.com/impl_signatures:I7.M7", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 113, "col": 2, "end": "113:11", "kind": "I", "callee": "example.com/impl_signatures:I8.M8", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 114, "col": 2, "end": "114:18", "kind": "I", "callee": "example.com/impl_signatures:I9.M9", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 115, "col": 2, "end": "115:18", "kind": "I", "callee": "example.com/impl_signatures:I10.M10", "at": "a.go", "variants": "all"},
+  {"file": "a.go", "line": 116, "col": 2, "end": "116:27", "kind": "I", "callee": "example.com/impl_signatures:I11.M11", "at": "a.go", "variants": "all"}
+ ],
+ "implementers": [
+  {"file": "a.go", "line": 106, "col": 2, "end": "106:9", "interface": "example.com/impl_signatures:I1", "method": "M1", "candidates": [{"id": "example.com/impl_signatures:T1.M1", "at": "a.go"}], "packages": ["example.com/impl_signatures"], "variants": "all"},
+  {"file": "a.go", "line": 107, "col": 2, "end": "107:11", "interface": "example.com/impl_signatures:I2", "method": "M2", "candidates": [{"id": "example.com/impl_signatures:T2.M2", "at": "a.go"}], "packages": ["example.com/impl_signatures"], "variants": "all"},
+  {"file": "a.go", "line": 108, "col": 2, "end": "108:9", "interface": "example.com/impl_signatures:I3", "method": "M3", "candidates": [{"id": "example.com/impl_signatures:T3.M3", "at": "a.go"}], "packages": ["example.com/impl_signatures"], "variants": "all"},
+  {"file": "a.go", "line": 109, "col": 2, "end": "109:11", "interface": "example.com/impl_signatures:I4", "method": "M4", "candidates": [{"id": "example.com/impl_signatures:T4.M4", "at": "a.go"}], "packages": ["example.com/impl_signatures"], "variants": "all"},
+  {"file": "a.go", "line": 110, "col": 2, "end": "110:9", "interface": "example.com/impl_signatures:I5", "method": "M5", "candidates": [{"id": "example.com/impl_signatures:T5b.M5", "at": "a.go"}], "packages": ["example.com/impl_signatures"], "variants": "all"},
+  {"file": "a.go", "line": 111, "col": 2, "end": "111:36", "interface": "example.com/impl_signatures:I6", "method": "M6", "candidates": [{"id": "example.com/impl_signatures:T6.M6", "at": "a.go"}], "packages": ["example.com/impl_signatures"], "variants": "all"},
+  {"file": "a.go", "line": 112, "col": 2, "end": "112:14", "interface": "example.com/impl_signatures:I7", "method": "M7", "candidates": [{"id": "example.com/impl_signatures:T7.M7", "at": "a.go"}], "packages": ["example.com/impl_signatures"], "variants": "all"},
+  {"file": "a.go", "line": 113, "col": 2, "end": "113:11", "interface": "example.com/impl_signatures:I8", "method": "M8", "candidates": [{"id": "example.com/impl_signatures:T8.M8", "at": "a.go"}], "packages": ["example.com/impl_signatures"], "variants": "all"},
+  {"file": "a.go", "line": 114, "col": 2, "end": "114:18", "interface": "example.com/impl_signatures:I9", "method": "M9", "candidates": [{"id": "example.com/impl_signatures:T9.M9", "at": "a.go"}], "packages": ["example.com/impl_signatures"], "variants": "all"},
+  {"file": "a.go", "line": 115, "col": 2, "end": "115:18", "interface": "example.com/impl_signatures:I10", "method": "M10", "candidates": [{"id": "example.com/impl_signatures:T10.M10", "at": "a.go"}], "packages": ["example.com/impl_signatures"], "variants": "all"},
+  {"file": "a.go", "line": 116, "col": 2, "end": "116:27", "interface": "example.com/impl_signatures:I11", "method": "M11", "candidates": [{"id": "example.com/impl_signatures:T11.M11", "at": "a.go"}], "packages": ["example.com/impl_signatures"], "variants": "all"}
+ ]
+}
