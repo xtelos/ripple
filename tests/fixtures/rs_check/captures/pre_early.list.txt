@@ -1,0 +1,6 @@
+   Compiling pre v0.1.0 (@ROOT@)
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"pre","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":false},"features":[],"filenames":["@TARGET@/debug/deps/libpre-946100a1a7c4abd1.rlib","@TARGET@/debug/deps/libpre-946100a1a7c4abd1.rmeta"],"executable":null,"fresh":false}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["test"],"crate_types":["bin"],"name":"early","src_path":"@ROOT@/tests/early.rs","edition":"2021","doc":false,"doctest":false,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/early-5f92711fa269aef3"],"executable":"@TARGET@/debug/deps/early-5f92711fa269aef3","fresh":false}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.29s
+     Running tests/early.rs (@TARGET@/debug/deps/early-5f92711fa269aef3)

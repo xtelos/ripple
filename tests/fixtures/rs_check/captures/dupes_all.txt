@@ -1,0 +1,52 @@
+   Compiling b v0.1.0 (@ROOT@/b)
+   Compiling a v0.1.0 (@ROOT@/a)
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@/b#0.1.0","manifest_path":"@ROOT@/b/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"b","src_path":"@ROOT@/b/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":false},"features":[],"filenames":["@TARGET@/debug/deps/libb-f265f52fdbd6b6b8.rlib","@TARGET@/debug/deps/libb-f265f52fdbd6b6b8.rmeta"],"executable":null,"fresh":false}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@/a#0.1.0","manifest_path":"@ROOT@/a/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"a","src_path":"@ROOT@/a/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":false},"features":[],"filenames":["@TARGET@/debug/deps/liba-788279446c9dd14c.rlib","@TARGET@/debug/deps/liba-788279446c9dd14c.rmeta"],"executable":null,"fresh":false}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@/b#0.1.0","manifest_path":"@ROOT@/b/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"b","src_path":"@ROOT@/b/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/b-d1010cef68bced53"],"executable":"@TARGET@/debug/deps/b-d1010cef68bced53","fresh":false}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@/a#0.1.0","manifest_path":"@ROOT@/a/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"a","src_path":"@ROOT@/a/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/a-bc9506d3f7c548e9"],"executable":"@TARGET@/debug/deps/a-bc9506d3f7c548e9","fresh":false}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.49s
+     Running unittests src/lib.rs (@TARGET@/debug/deps/a-bc9506d3f7c548e9)
+
+running 2 tests
+test tests::only_a ... ok
+test tests::it_works ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (@TARGET@/debug/deps/b-d1010cef68bced53)
+
+running 1 test
+test tests::it_works ... FAILED
+
+failures:
+
+---- tests::it_works stdout ----
+
+thread 'tests::it_works' (3350919) panicked at b/src/lib.rs:10:9:
+assertion `left == right` failed
+  left: 3
+ right: 4
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::it_works
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p b --lib`
+   Doc-tests a
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests b
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: 1 target failed:
+    `-p b --lib`

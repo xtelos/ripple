@@ -1,0 +1,20 @@
+   Compiling printer v0.1.0 (@ROOT@)
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"printer","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":false},"features":[],"filenames":["@TARGET@/debug/deps/libprinter-fa87ff3a2cf3a046.rlib","@TARGET@/debug/deps/libprinter-fa87ff3a2cf3a046.rmeta"],"executable":null,"fresh":false}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"printer","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/printer-9e229a7a8754574a"],"executable":"@TARGET@/debug/deps/printer-9e229a7a8754574a","fresh":false}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.22s
+     Running unittests src/lib.rs (@TARGET@/debug/deps/printer-9e229a7a8754574a)
+
+running 2 tests
+test tests::adds ... ok
+hello from a test
+and no newlinetest tests::chatty ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests printer
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

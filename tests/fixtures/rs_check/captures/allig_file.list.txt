@@ -1,0 +1,10 @@
+   Compiling allig v0.1.0 (@ROOT@)
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"allig","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/allig-6658d680496d3ad1"],"executable":"@TARGET@/debug/deps/allig-6658d680496d3ad1","fresh":false}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.20s
+     Running unittests src/lib.rs (@TARGET@/debug/deps/allig-6658d680496d3ad1)
+tests::fine: test
+util::tests::slow: test
+util::tests::slower: test
+
+3 tests, 0 benchmarks

@@ -1,0 +1,40 @@
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@/macros#attrgen_macros@0.1.0","manifest_path":"@ROOT@/macros/Cargo.toml","target":{"kind":["proc-macro"],"crate_types":["proc-macro"],"name":"attrgen_macros","src_path":"@ROOT@/macros/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":0,"debug_assertions":true,"overflow_checks":true,"test":false},"features":[],"filenames":["@TARGET@/debug/deps/libattrgen_macros-cd45e90373e9f081.so"],"executable":null,"fresh":true}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@/attrgen#0.1.0","manifest_path":"@ROOT@/attrgen/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"attrgen","src_path":"@ROOT@/attrgen/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/attrgen-3321b14d6dd29328"],"executable":"@TARGET@/debug/deps/attrgen-3321b14d6dd29328","fresh":true}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.00s
+     Running unittests src/lib.rs (@TARGET@/debug/deps/attrgen-3321b14d6dd29328)
+
+running 5 tests
+test util::tests::broken_a ... FAILED
+test util::tests::broken_b ... FAILED
+test util::tests::fine_a ... ok
+test util::tests::fine_b ... ok
+test util::tests::plain ... ok
+
+failures:
+
+---- util::tests::broken_a stdout ----
+
+thread 'util::tests::broken_a' (3362934) panicked at attrgen/src/util.rs:17:9:
+assertion `left == right` failed
+  left: 1
+ right: 2
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- util::tests::broken_b stdout ----
+
+thread 'util::tests::broken_b' (3362935) panicked at attrgen/src/util.rs:17:9:
+assertion `left == right` failed
+  left: 1
+ right: 2
+
+
+failures:
+    util::tests::broken_a
+    util::tests::broken_b
+
+test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p attrgen --lib`
+error: 1 target failed:
+    `-p attrgen --lib`

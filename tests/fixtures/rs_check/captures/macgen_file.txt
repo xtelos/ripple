@@ -1,0 +1,28 @@
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"macgen","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/macgen-73976e1922f02ec7"],"executable":"@TARGET@/debug/deps/macgen-73976e1922f02ec7","fresh":true}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.00s
+     Running unittests src/lib.rs (@TARGET@/debug/deps/macgen-73976e1922f02ec7)
+
+running 2 tests
+test util::tests::plain ... ok
+test util::tests::generated_fails ... FAILED
+
+failures:
+
+---- util::tests::generated_fails stdout ----
+
+thread 'util::tests::generated_fails' (3359880) panicked at src/util.rs:8:5:
+assertion `left == right` failed
+  left: 1
+ right: 2
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    util::tests::generated_fails
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p macgen --lib`
+error: 1 target failed:
+    `-p macgen --lib`

@@ -1,0 +1,20 @@
+   Compiling docsplit24_crate_attr v0.1.0 (@ROOT@)
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"docsplit24_crate_attr","src_path":"@ROOT@/src/lib.rs","edition":"2024","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":false},"features":[],"filenames":["@TARGET@/debug/deps/libdocsplit24_crate_attr-e69e9dbac30a00ea.rlib","@TARGET@/debug/deps/libdocsplit24_crate_attr-e69e9dbac30a00ea.rmeta"],"executable":null,"fresh":false}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"docsplit24_crate_attr","src_path":"@ROOT@/src/lib.rs","edition":"2024","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/docsplit24_crate_attr-fb4d9ef334e1c99e"],"executable":"@TARGET@/debug/deps/docsplit24_crate_attr-fb4d9ef334e1c99e","fresh":false}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.24s
+     Running unittests src/lib.rs (@TARGET@/debug/deps/docsplit24_crate_attr-fb4d9ef334e1c99e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests docsplit24_crate_attr
+
+running 2 tests
+test src/lib.rs - f0 (line 1) ... ok
+test src/lib.rs - f1 (line 6) ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+all doctests ran in 0.30s; merged doctests compilation took 0.29s

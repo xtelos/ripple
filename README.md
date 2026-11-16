@@ -46,7 +46,7 @@ Or from a terminal: `ripple index .`, then `ripple impact price_order`.
 | `callees(symbol)` | What this calls, plus the calls ripple could not resolve and why | yes |
 | `impact(symbol, depth=5, limit=100)` | Every transitive caller grouped by file, the tests that reach it listed separately as pytest node ids, and same-named call sites ripple could not rule out | yes |
 | `path(source, target)` | The shortest call chain from one symbol to another | yes |
-| `check(tests=None)` | Runs the test command (default `python -m pytest -q`, using the repo's `.venv` or `venv` if present, for a repo with Python files; `go test -json` in every module for a Go repo, see [Go](#go); a TypeScript-only repo, or `--lang typescript`, has no default), or just the given test paths (for Python, pytest node ids too; for Go, `file_test.go::TestName[/subtest]`), and returns pass/fail, the summary line and the first failures, never the full log | no, it runs code |
+| `check(tests=None)` | Runs the test command (default `python -m pytest -q`, using the repo's `.venv` or `venv` if present, for a repo with Python files; `go test -json` in every module for a Go repo, see [Go](#go); `cargo test` in every top-level workspace for a Rust repo, see [Rust](#rust); a TypeScript-only repo, or `--lang typescript`, has no default), or just the given test paths (for Python, pytest node ids too; for Go, `file_test.go::TestName[/subtest]`; for Rust, a `.rs` file, a directory or `file.rs::module::test_name`), and returns pass/fail, the summary line and the first failures, never the full log | no, it runs code |
 
 A symbol can be a full dotted path (`shop.pricing.price_order`), a suffix (`OrderService.place_order`)
 or a bare name (`price_order`); in TypeScript it is a path and a member (`src/util/math:clamp`, see
@@ -742,7 +742,86 @@ impl of a name for a type) and the one impl of a trait with no parameters that a
 target only when its impl is for every instantiation of the type or for the one the call writes, it is visible at the call
 and it is a function. Calls that happen with no call site (`Drop`, `Display` through `format!`, `?` through `From`,
 operators) are not edges, so a trait impl's method can show no callers.
-`check` has no default command for Rust yet (pass `--test-command`).
+**`check` for Rust** runs `cargo test` (`ripple/rs_check.py`). Stable cargo has no JSON test output (libtest's `--format json`
+is refused on a stable compiler), so the verdict is read from the two things that are stable and structured: `--message-format
+json` (a `compiler-artifact` for each test binary built, `compiler-message` for each compiler error, `build-finished`) and
+libtest's own output, which cargo's `Running` and `Doc-tests` lines divide into one section per binary (`running N tests`, a
+`test NAME ... ok|FAILED|ignored` line each, a closing `test result:` line). A section can hold more than one such run: on edition 2024
+rustdoc merges the doc tests it can and runs the others (`compile_fail`, `standalone_crate`, an `edition2018`-style override, an
+`ignore` snippet that is not Rust syntax) as a second run under the same `Doc-tests` line (measured on cargo 1.99, each case
+captured; edition 2021 prints one run whatever the doc tests are, and on 2024 `no_run`, `should_panic` and crate attributes are merged), and a test binary can print a
+run of its own. Each run is judged by
+itself, a run with no result line is a problem whichever it is, and the section counts as the sum of its runs. The counts of a result
+line are checked against its own lines, every binary the JSON says was built must have a section with a result, and cargo's exit
+status can only take a pass away. Each section was captured from cargo 1.99 (`tests/fixtures/rs_check/`, with the crate that made it and the exact command);
+no older cargo was run. `cargo` must be on `PATH` (otherwise a refusal that names `--test-command`).
+
+With no arguments it runs `cargo test --workspace` in each top-level cargo workspace (a workspace inside another's directory that
+is not a member of it, an `exclude`d fixture, is named in `notes` and run only when a path names it; a `Cargo.toml` cargo cannot read
+inside a workspace is named too). The arguments:
+
+- a directory, a `.rs` file or `file.rs::module::test_name` (`tests::adds` as written in the file). The path is read from the sources
+  only to find the crate and the module path (`util`, `net::tests`) libtest names its tests by. What is IN that module is never read
+  from the sources, because a test a macro or an attribute macro writes (`case!(..)`, `#[rstest]`, `#[test_case]`) is no `#[test]`
+  function in any file: the test binary is asked (`cargo test <target> -- --list`, stable; it builds the binary once, the run after it
+  finds it built), and the run is exactly the listed tests under that module path, `-- --exact`, judged against that list. A
+  directory is the modules whose files are below it; a package directory, or a directory that holds whole packages, is those packages
+  whole (doc tests included); a crate root file (`src/lib.rs`, `src/main.rs`), a directory that holds one and an example's file are that
+  whole target, and a note says so; so is the root of an integration test (a file of `tests/`), with no note. A file is the tests of its module and its
+  submodules (a note names the submodules in other files). A path whose module path cannot be taken as certain (`#[path]`, a file the
+  crate declares twice, `include!`, a macro that may declare a module, modules ripple could not read) is the whole target, and a note
+  says why. A `harness = false` target has no list, so the whole target runs, with a note;
+- the id `impact` lists for a test function: a Rust repo has no collected tests, so `impact`'s `tests` is empty and a test
+  function is listed among the callers as `src/lib:tests::adds` (file path without `.rs`, `mod.rs` folded into its directory)
+  under its file. `check` takes that id and the `file.rs::tests::adds` form (`r#match` as written). A name the list does not have is
+  "no test named X exists in TARGET (its test binary lists N tests)", a problem, and nothing is run for it; a function written with no
+  attribute at all is refused before anything runs, since no attribute means no test.
+
+Everything is one `cargo test` per package and target (`-p PACKAGE` with `--lib`, `--bin NAME`, `--test NAME` or `--example NAME`),
+run from the workspace root, because a filter is shared by every binary of a run, a name is not unique across packages and targets,
+and cargo's default is a substring match (`adds` would run `adds_zero` too). A file that two test targets include is a run per
+target. Afterwards the tests that ran must be the tests asked for: each listed name needs its own result line in the target, a test
+that ran without being asked for is a problem, an ignored one asked for by name is a problem (one below a file or directory is a note
+unless every one of them is ignored), and the result line's `filtered out` has to be what the list leaves over. Refused before
+cargo runs: an option, an `@file`, a path outside the repo (links resolved), a function with no attribute, a module the file
+does not have (only where the source is certain: a file with a macro called among its items, an attribute that is not an inert
+one such as `#[cfg]` or `#[test]`, or an `include!` may have modules ripple cannot see, so the test binary's list decides and a
+name it lacks is "no test named X exists"), a bench, a target with `test = false` (an example is run all the same: cargo calls it `test = false` by default),
+one whose `required-features` are off, a name for a `harness = false` target, a directory with no source of a target, and a directory
+whose `Cargo.toml` cargo cannot read (with what cargo said). `cargo metadata --no-deps` (read-only) is the one process that may run
+before the last of these.
+
+What is never reported as passed (each has a capture): a build failure (including a test target that does not build, a build
+script that fails and a manifest cargo cannot read), `running 0 tests` or a filter that matches nothing, an ignored test that was
+asked for, a run in which nothing ran or only ignored tests ran, an integration test target with no test in it, a doctest failure,
+a test binary that exits early (`std::process::exit(0)` in a test exits 0 and its result line never prints), aborts or is
+killed, a `harness = false` target whose own harness failed, ripple's timeout, a binary the JSON says was built but that never ran,
+and a result line whose counts disagree with its tests, a test line ripple cannot read (libtest 1.99 writes `test NAME[ - should
+panic | - compile | - compile fail] ... ok|FAILED|ignored[, REASON]`, and a line outside that grammar is a problem naming it), a
+binary that exits 0 before libtest starts (no libtest output, no result), and a listing that is empty or does not add up. An integration
+test target (a file of `tests/`) with no test is a problem, unless another target of the package reads its file as a module
+(`mod util;`, a shared helper): then it is a note. A `harness = false` target has no libtest output and is judged on its exit status
+alone, with a note. The result has the usual keys plus `problems`, `counts` and `notes`; failures read
+`FAILED src/lib.rs::tests::bad: panicked at src/lib.rs:6:21: message`, an id `check` takes back, and a failed doctest `FAILED
+doctest src/lib.rs - add (line 3)`. What the environment can change is either overridden or named in `notes`: `--config
+term.quiet=false term.verbose=false` and `--color never` outrank `CARGO_TERM_QUIET`, `CARGO_TERM_VERBOSE` and
+`CARGO_TERM_COLOR` (measured: the first two remove or rewrite the `Running` lines); `RUSTFLAGS`, `CARGO_BUILD_TARGET`, a
+compiler wrapper, a target runner, a `rust-toolchain` file and a repo's `.cargo/config` that sets flags, a target, a runner or
+`[env]` are named; `RUST_TEST_NOCAPTURE` glues a test's output to libtest's lines (measured), which the count check reports as a
+problem and the notes explain. A user-level `~/.cargo/config.toml` is not read. Not done: `cargo nextest`, benches, `--features`
+(a test behind an off feature is refused when named, and listed in `notes` in a whole run), and a doc test as a named id.
+`--test-command` still means exactly that command, read the generic way.
+
+What `check` for Rust cannot promise: stable cargo gives no structured test results, so the output is libtest's text, cross-checked
+but not authenticated. A test binary that deliberately imitates libtest's output (writes `test x ... ok` and a `test result: ok.`
+line to stdout itself) and then exits with status 0 can still be read as passed wherever the run is the whole of a binary, which has no
+list to compare with: no arguments, a package, a test target, and every request that maps to a whole target (an integration test
+file such as `tests/it.rs`, a crate root file such as `src/lib.rs`, a directory that holds one, an example's file, and each fallback
+to the whole target: `#[path]`, a file declared twice, `include!`, a macro that may declare a module, modules ripple could not
+read, `harness = false`). The forgery is caught only where the run is narrower than the binary's list: an id, or a file or directory
+below a crate root that ripple maps to a module path. There the result line's counts must agree with what the binary listed
+before it ran (`filtered out` is what the list leaves over), which a binary that only imitates libtest's output does not know. A
+test author who wants a green can also delete the assertion.
 
 **Attribute macros ripple trusts.** Three attribute macros are the exception to the rule above: `#[tokio::main]`,
 `#[tokio::test]` and `#[serial_test::serial]` (also written `#[serial]` after `use serial_test::serial;`). The published

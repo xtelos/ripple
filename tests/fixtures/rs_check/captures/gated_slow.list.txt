@@ -1,0 +1,8 @@
+   Compiling gated v0.1.0 (@ROOT@)
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"gated","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/gated-96c71f2cb164a2c1"],"executable":"@TARGET@/debug/deps/gated-96c71f2cb164a2c1","fresh":false}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.39s
+     Running unittests src/lib.rs (@TARGET@/debug/deps/gated-96c71f2cb164a2c1)
+tests::adds: test
+
+1 test, 0 benchmarks

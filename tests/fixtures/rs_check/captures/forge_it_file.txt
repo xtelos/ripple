@@ -1,0 +1,13 @@
+   Compiling forge v0.1.0 (@ROOT@)
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"forge","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":false},"features":[],"filenames":["@TARGET@/debug/deps/libforge-4ae1813e4fcaafde.rlib","@TARGET@/debug/deps/libforge-4ae1813e4fcaafde.rmeta"],"executable":null,"fresh":false}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["test"],"crate_types":["bin"],"name":"it","src_path":"@ROOT@/tests/it.rs","edition":"2021","doc":false,"doctest":false,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/it-6f6e722ce28873f5"],"executable":"@TARGET@/debug/deps/it-6f6e722ce28873f5","fresh":false}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.27s
+     Running tests/it.rs (@TARGET@/debug/deps/it-6f6e722ce28873f5)
+
+running 2 tests
+test a ... ok
+test b ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

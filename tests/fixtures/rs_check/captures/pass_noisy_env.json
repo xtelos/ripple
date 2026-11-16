@@ -1,0 +1,31 @@
+{
+  "crate": "pass",
+  "cwd": ".",
+  "argv": [
+    "cargo",
+    "test",
+    "--color",
+    "never",
+    "--config",
+    "term.quiet=false",
+    "--config",
+    "term.verbose=false",
+    "--message-format",
+    "json",
+    "--no-fail-fast",
+    "--workspace"
+  ],
+  "request": null,
+  "by_hand": false,
+  "exit_code": 0,
+  "timed_out": false,
+  "timeout": 600,
+  "env": {
+    "CARGO_TERM_QUIET": "true",
+    "CARGO_TERM_VERBOSE": "true",
+    "CARGO_TERM_COLOR": "always"
+  },
+  "listed": false,
+  "cargo_version": "cargo 1.99.1 (5f94df478 2026-08-27)",
+  "metadata": null
+}

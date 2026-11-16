@@ -1,0 +1,50 @@
+   Compiling mixed v0.1.0 (@ROOT@)
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"mixed","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":false},"features":[],"filenames":["@TARGET@/debug/deps/libmixed-f6d707ab16687108.rlib","@TARGET@/debug/deps/libmixed-f6d707ab16687108.rmeta"],"executable":null,"fresh":false}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"mixed","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/mixed-86ad427e7f996341"],"executable":"@TARGET@/debug/deps/mixed-86ad427e7f996341","fresh":false}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["bin"],"crate_types":["bin"],"name":"mixed","src_path":"@ROOT@/src/main.rs","edition":"2021","doc":true,"doctest":false,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":false},"features":[],"filenames":["@TARGET@/debug/mixed"],"executable":"@TARGET@/debug/mixed","fresh":false}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["test"],"crate_types":["bin"],"name":"other","src_path":"@ROOT@/tests/other.rs","edition":"2021","doc":false,"doctest":false,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/other-37418e943e449c72"],"executable":"@TARGET@/debug/deps/other-37418e943e449c72","fresh":false}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["bin"],"crate_types":["bin"],"name":"mixed","src_path":"@ROOT@/src/main.rs","edition":"2021","doc":true,"doctest":false,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/mixed-d329f1c95e8f3918"],"executable":"@TARGET@/debug/deps/mixed-d329f1c95e8f3918","fresh":false}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["test"],"crate_types":["bin"],"name":"it","src_path":"@ROOT@/tests/it.rs","edition":"2021","doc":false,"doctest":false,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/it-e4e42d75c80f16a1"],"executable":"@TARGET@/debug/deps/it-e4e42d75c80f16a1","fresh":false}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.52s
+     Running unittests src/lib.rs (@TARGET@/debug/deps/mixed-86ad427e7f996341)
+
+running 4 tests
+test net::tests::t_net ... ok
+test tests::same ... ok
+test util::tests::t_util ... ok
+test tests::t_lib ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (@TARGET@/debug/deps/mixed-d329f1c95e8f3918)
+
+running 2 tests
+test tests::same ... ok
+test tests::t_bin ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/it.rs (@TARGET@/debug/deps/it-e4e42d75c80f16a1)
+
+running 3 tests
+test common::t_common ... ok
+test same ... ok
+test t_it ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/other.rs (@TARGET@/debug/deps/other-37418e943e449c72)
+
+running 2 tests
+test t_other ... ok
+test common::t_common ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests mixed
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

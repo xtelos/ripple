@@ -1,0 +1,18 @@
+   Compiling fixture v0.1.0 (@ROOT@/fixture)
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@/fixture#0.1.0","manifest_path":"@ROOT@/fixture/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"fixture","src_path":"@ROOT@/fixture/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":false},"features":[],"filenames":["@TARGET@/debug/deps/libfixture-8555056b34c446bd.rlib","@TARGET@/debug/deps/libfixture-8555056b34c446bd.rmeta"],"executable":null,"fresh":false}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@/fixture#0.1.0","manifest_path":"@ROOT@/fixture/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"fixture","src_path":"@ROOT@/fixture/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/fixture-cb6847251d45bc9a"],"executable":"@TARGET@/debug/deps/fixture-cb6847251d45bc9a","fresh":false}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.23s
+     Running unittests src/lib.rs (@TARGET@/debug/deps/fixture-cb6847251d45bc9a)
+
+running 1 test
+test tests::adds_zero ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests fixture
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

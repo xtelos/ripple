@@ -1,0 +1,8 @@
+   Compiling b v0.1.0 (@ROOT@/b)
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@/b#0.1.0","manifest_path":"@ROOT@/b/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"b","src_path":"@ROOT@/b/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/b-d1010cef68bced53"],"executable":"@TARGET@/debug/deps/b-d1010cef68bced53","fresh":false}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.52s
+     Running unittests src/lib.rs (@TARGET@/debug/deps/b-d1010cef68bced53)
+tests::it_works: test
+
+1 test, 0 benchmarks

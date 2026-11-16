@@ -1,0 +1,53 @@
+   Compiling rawmod v0.1.0 (@ROOT@)
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"rawmod","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":false},"features":[],"filenames":["@TARGET@/debug/deps/librawmod-9260f3ad4a3aa412.rlib","@TARGET@/debug/deps/librawmod-9260f3ad4a3aa412.rmeta"],"executable":null,"fresh":false}
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"rawmod","src_path":"@ROOT@/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/rawmod-03b66140bc10243d"],"executable":"@TARGET@/debug/deps/rawmod-03b66140bc10243d","fresh":false}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.19s
+     Running unittests src/lib.rs (@TARGET@/debug/deps/rawmod-03b66140bc10243d)
+
+running 3 tests
+test r#in::tests::r#fn ... FAILED
+test r#type::tests::r#match ... FAILED
+test r#type::tests::t_fails ... FAILED
+
+failures:
+
+---- r#in::tests::r#fn stdout ----
+
+thread 'r#in::tests::r#fn' (3952852) panicked at src/lib.rs:8:13:
+assertion `left == right` failed
+  left: 1
+ right: 2
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- r#type::tests::r#match stdout ----
+
+thread 'r#type::tests::r#match' (3952853) panicked at src/type.rs:10:9:
+assertion `left == right` failed
+  left: 1
+ right: 2
+
+---- r#type::tests::t_fails stdout ----
+
+thread 'r#type::tests::t_fails' (3952854) panicked at src/type.rs:5:9:
+assertion `left == right` failed
+  left: 1
+ right: 2
+
+
+failures:
+    r#in::tests::r#fn
+    r#type::tests::r#match
+    r#type::tests::t_fails
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`
+   Doc-tests rawmod
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: 1 target failed:
+    `--lib`

@@ -1,0 +1,35 @@
+{
+  "crate": "examples_ok",
+  "cwd": ".",
+  "argv": [
+    "cargo",
+    "test",
+    "--color",
+    "never",
+    "--config",
+    "term.quiet=false",
+    "--config",
+    "term.verbose=false",
+    "--message-format",
+    "json",
+    "--no-fail-fast",
+    "-p",
+    "examples_ok",
+    "--example",
+    "demo",
+    "--",
+    "--exact",
+    "tests::ex_ok"
+  ],
+  "request": [
+    "examples/demo:tests::ex_ok"
+  ],
+  "by_hand": false,
+  "exit_code": 0,
+  "timed_out": false,
+  "timeout": 600,
+  "env": {},
+  "listed": true,
+  "cargo_version": "cargo 1.99.1 (5f94df478 2026-08-27)",
+  "metadata": "{\"packages\":[{\"name\":\"examples_ok\",\"version\":\"0.1.0\",\"id\":\"path+file://@ROOT@#0.1.0\",\"license\":null,\"license_file\":null,\"description\":null,\"source\":null,\"dependencies\":[],\"targets\":[{\"kind\":[\"lib\"],\"crate_types\":[\"lib\"],\"name\":\"examples_ok\",\"src_path\":\"@ROOT@/src/lib.rs\",\"edition\":\"2021\",\"doc\":true,\"doctest\":true,\"test\":true},{\"kind\":[\"example\"],\"crate_types\":[\"bin\"],\"name\":\"demo\",\"src_path\":\"@ROOT@/examples/demo.rs\",\"edition\":\"2021\",\"doc\":false,\"doctest\":false,\"test\":false}],\"features\":{},\"manifest_path\":\"@ROOT@/Cargo.toml\",\"metadata\":null,\"publish\":null,\"authors\":[],\"categories\":[],\"keywords\":[],\"readme\":null,\"repository\":null,\"homepage\":null,\"documentation\":null,\"edition\":\"2021\",\"links\":null,\"default_run\":null,\"rust_version\":null}],\"workspace_members\":[\"path+file://@ROOT@#0.1.0\"],\"workspace_default_members\":[\"path+file://@ROOT@#0.1.0\"],\"resolve\":null,\"target_directory\":\"/tmp/ripple-rs-check-capture/target-example_id\",\"build_directory\":\"/tmp/ripple-rs-check-capture/target-example_id\",\"version\":1,\"workspace_root\":\"@ROOT@\",\"metadata\":null}\n"
+}

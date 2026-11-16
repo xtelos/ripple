@@ -1,0 +1,29 @@
+{
+  "crate": "dupes",
+  "cwd": ".",
+  "argv": [
+    "cargo",
+    "test",
+    "--color",
+    "never",
+    "--config",
+    "term.quiet=false",
+    "--config",
+    "term.verbose=false",
+    "--message-format",
+    "json",
+    "--no-fail-fast",
+    "--workspace",
+    "--",
+    "it_works"
+  ],
+  "request": null,
+  "by_hand": true,
+  "exit_code": 101,
+  "timed_out": false,
+  "timeout": 600,
+  "env": {},
+  "listed": false,
+  "cargo_version": "cargo 1.99.1 (5f94df478 2026-08-27)",
+  "metadata": "{\"packages\":[{\"name\":\"a\",\"version\":\"0.1.0\",\"id\":\"path+file://@ROOT@/a#0.1.0\",\"license\":null,\"license_file\":null,\"description\":null,\"source\":null,\"dependencies\":[],\"targets\":[{\"kind\":[\"lib\"],\"crate_types\":[\"lib\"],\"name\":\"a\",\"src_path\":\"@ROOT@/a/src/lib.rs\",\"edition\":\"2021\",\"doc\":true,\"doctest\":true,\"test\":true}],\"features\":{},\"manifest_path\":\"@ROOT@/a/Cargo.toml\",\"metadata\":null,\"publish\":null,\"authors\":[],\"categories\":[],\"keywords\":[],\"readme\":null,\"repository\":null,\"homepage\":null,\"documentation\":null,\"edition\":\"2021\",\"links\":null,\"default_run\":null,\"rust_version\":null},{\"name\":\"b\",\"version\":\"0.1.0\",\"id\":\"path+file://@ROOT@/b#0.1.0\",\"license\":null,\"license_file\":null,\"description\":null,\"source\":null,\"dependencies\":[],\"targets\":[{\"kind\":[\"lib\"],\"crate_types\":[\"lib\"],\"name\":\"b\",\"src_path\":\"@ROOT@/b/src/lib.rs\",\"edition\":\"2021\",\"doc\":true,\"doctest\":true,\"test\":true}],\"features\":{},\"manifest_path\":\"@ROOT@/b/Cargo.toml\",\"metadata\":null,\"publish\":null,\"authors\":[],\"categories\":[],\"keywords\":[],\"readme\":null,\"repository\":null,\"homepage\":null,\"documentation\":null,\"edition\":\"2021\",\"links\":null,\"default_run\":null,\"rust_version\":null}],\"workspace_members\":[\"path+file://@ROOT@/a#0.1.0\",\"path+file://@ROOT@/b#0.1.0\"],\"workspace_default_members\":[\"path+file://@ROOT@/a#0.1.0\",\"path+file://@ROOT@/b#0.1.0\"],\"resolve\":null,\"target_directory\":\"/tmp/ripple-rs-check-capture/target-dupes_substring\",\"build_directory\":\"/tmp/ripple-rs-check-capture/target-dupes_substring\",\"version\":1,\"workspace_root\":\"@ROOT@\",\"metadata\":null}\n"
+}

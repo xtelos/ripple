@@ -1,0 +1,14 @@
+   Compiling attrgen_macros v0.1.0 (@ROOT@/macros)
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@/macros#attrgen_macros@0.1.0","manifest_path":"@ROOT@/macros/Cargo.toml","target":{"kind":["proc-macro"],"crate_types":["proc-macro"],"name":"attrgen_macros","src_path":"@ROOT@/macros/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":0,"debug_assertions":true,"overflow_checks":true,"test":false},"features":[],"filenames":["@TARGET@/debug/deps/libattrgen_macros-cd45e90373e9f081.so"],"executable":null,"fresh":false}
+   Compiling attrgen v0.1.0 (@ROOT@/attrgen)
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@/attrgen#0.1.0","manifest_path":"@ROOT@/attrgen/Cargo.toml","target":{"kind":["lib"],"crate_types":["lib"],"name":"attrgen","src_path":"@ROOT@/attrgen/src/lib.rs","edition":"2021","doc":true,"doctest":true,"test":true},"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"overflow_checks":true,"test":true},"features":[],"filenames":["@TARGET@/debug/deps/attrgen-3321b14d6dd29328"],"executable":"@TARGET@/debug/deps/attrgen-3321b14d6dd29328","fresh":false}
+{"reason":"build-finished","success":true}
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.40s
+     Running unittests src/lib.rs (@TARGET@/debug/deps/attrgen-3321b14d6dd29328)
+util::tests::broken_a: test
+util::tests::broken_b: test
+util::tests::fine_a: test
+util::tests::fine_b: test
+util::tests::plain: test
+
+5 tests, 0 benchmarks

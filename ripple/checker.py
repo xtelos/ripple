@@ -108,7 +108,7 @@ def runner_for(profile: LanguageProfile):
     `normalize(repo, tests) -> tests` (turns the ids `impact` hands out for that language into
     path-shaped ones, before check_tests refuses anything) and `run(repo, tests, timeout) -> dict` (the
     keys of run_check's result, plus whatever it can prove beyond them), added to RUNNERS under the
-    profile's name. go_check.py is the one for Go. The profile is untouched on purpose: its
+    profile's name. go_check.py is the one for Go and rs_check.py the one for Rust. The profile is untouched on purpose: its
     fields are hashed into the cache key, so a profile's default_test_command stays what it was.
     """
     module = RUNNERS.get(profile.name)
@@ -116,7 +116,7 @@ def runner_for(profile: LanguageProfile):
 
 
 # profile name -> module of the runner (see runner_for)
-RUNNERS = {"go": ".go_check"}
+RUNNERS = {"go": ".go_check", "rust": ".rs_check"}
 
 
 def run_check(

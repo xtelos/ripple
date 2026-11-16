@@ -1,0 +1,12 @@
+   Compiling build_script_failure v0.1.0 (@ROOT@)
+{"reason":"compiler-artifact","package_id":"path+file://@ROOT@#0.1.0","manifest_path":"@ROOT@/Cargo.toml","target":{"kind":["custom-build"],"crate_types":["bin"],"name":"build-script-build","src_path":"@ROOT@/build.rs","edition":"2021","doc":false,"doctest":false,"test":false},"profile":{"opt_level":"0","debuginfo":0,"debug_assertions":true,"overflow_checks":true,"test":false},"features":[],"filenames":["@TARGET@/debug/build/build_script_failure-b3e54dca1cfec3d4/build-script-build"],"executable":null,"fresh":false}
+error: failed to run custom build command for `build_script_failure v0.1.0 (@ROOT@)`
+
+Caused by:
+  process didn't exit successfully: `@TARGET@/debug/build/build_script_failure-b3e54dca1cfec3d4/build-script-build` (exit status: 101)
+  --- stderr
+
+  thread 'main' (3332150) panicked at build.rs:2:5:
+  no way to build this
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+{"reason":"build-finished","success":false}

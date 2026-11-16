@@ -1,0 +1,4 @@
+[package]
+name = "docsplit24_edition2021"
+version = "0.1.0"
+edition = "2024"

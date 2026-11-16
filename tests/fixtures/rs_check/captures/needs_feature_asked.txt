@@ -1,0 +1,2 @@
+error: target `needs` in package `needs_feature` requires the features: `extra`
+Consider enabling them by passing, e.g., `--features="extra"`
