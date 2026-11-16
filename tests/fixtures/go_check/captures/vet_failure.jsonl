@@ -1,0 +1,7 @@
+{"ImportPath":"example.com/vet_failure [example.com/vet_failure.test]","Action":"build-output","Output":"# example.com/vet_failure\n"}
+{"ImportPath":"example.com/vet_failure [example.com/vet_failure.test]","Action":"build-output","Output":"# [example.com/vet_failure]\n"}
+{"ImportPath":"example.com/vet_failure [example.com/vet_failure.test]","Action":"build-output","Output":"./calc_test.go:6:10: (*testing.common).Logf format %d has arg \"not a number\" of wrong type string\n"}
+{"ImportPath":"example.com/vet_failure [example.com/vet_failure.test]","Action":"build-fail"}
+{"Time":"2026-11-15T21:18:16.299053649-05:00","Action":"start","Package":"example.com/vet_failure"}
+{"Time":"2026-11-15T21:18:16.299233909-05:00","Action":"output","Package":"example.com/vet_failure","Output":"FAIL\texample.com/vet_failure [build failed]\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:16.29925807-05:00","Action":"fail","Package":"example.com/vet_failure","Elapsed":0,"FailedBuild":"example.com/vet_failure [example.com/vet_failure.test]"}

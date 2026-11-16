@@ -1,0 +1,3 @@
+{"Time":"2026-11-15T21:18:28.226291759-05:00","Action":"start","Package":"example.com/silent_exit/initexit"}
+{"Time":"2026-11-15T21:18:28.233218537-05:00","Action":"output","Package":"example.com/silent_exit/initexit","Output":"ok  \texample.com/silent_exit/initexit\t0.005s\n"}
+{"Time":"2026-11-15T21:18:28.233443218-05:00","Action":"pass","Package":"example.com/silent_exit/initexit","Elapsed":0.007}

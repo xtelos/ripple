@@ -1,0 +1,12 @@
+{"Time":"2026-11-15T21:18:40.622246929-05:00","Action":"start","Package":"example.com/printpass/ok"}
+{"Time":"2026-11-15T21:18:40.622602816-05:00","Action":"start","Package":"example.com/printpass/printpass"}
+{"Time":"2026-11-15T21:18:40.626419946-05:00","Action":"output","Package":"example.com/printpass/printpass","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:40.626669035-05:00","Action":"output","Package":"example.com/printpass/printpass","Output":"ok  \texample.com/printpass/printpass\t0.004s\n"}
+{"Time":"2026-11-15T21:18:40.626707754-05:00","Action":"pass","Package":"example.com/printpass/printpass","Elapsed":0.004}
+{"Time":"2026-11-15T21:18:40.628933157-05:00","Action":"run","Package":"example.com/printpass/ok","Test":"TestOK"}
+{"Time":"2026-11-15T21:18:40.629090239-05:00","Action":"output","Package":"example.com/printpass/ok","Test":"TestOK","Output":"=== RUN   TestOK\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:40.629112558-05:00","Action":"output","Package":"example.com/printpass/ok","Test":"TestOK","Output":"--- PASS: TestOK (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:40.629118061-05:00","Action":"pass","Package":"example.com/printpass/ok","Test":"TestOK","Elapsed":0}
+{"Time":"2026-11-15T21:18:40.629123524-05:00","Action":"output","Package":"example.com/printpass/ok","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:40.629286128-05:00","Action":"output","Package":"example.com/printpass/ok","Output":"ok  \texample.com/printpass/ok\t0.007s\n"}
+{"Time":"2026-11-15T21:18:40.629326965-05:00","Action":"pass","Package":"example.com/printpass/ok","Elapsed":0.007}

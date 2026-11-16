@@ -1,0 +1,16 @@
+{"Time":"2026-11-15T21:18:29.949919406-05:00","Action":"start","Package":"example.com/grid"}
+{"Time":"2026-11-15T21:18:29.982725888-05:00","Action":"run","Package":"example.com/grid","Test":"TestGrid"}
+{"Time":"2026-11-15T21:18:29.982831591-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid","Output":"=== RUN   TestGrid\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:29.982870192-05:00","Action":"run","Package":"example.com/grid","Test":"TestGrid/y"}
+{"Time":"2026-11-15T21:18:29.982873036-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/y","Output":"=== RUN   TestGrid/y\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:29.982876769-05:00","Action":"run","Package":"example.com/grid","Test":"TestGrid/y/2"}
+{"Time":"2026-11-15T21:18:29.982883716-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/y/2","Output":"=== RUN   TestGrid/y/2\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:29.982890451-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/y/2","Output":"--- PASS: TestGrid/y/2 (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:29.982895694-05:00","Action":"pass","Package":"example.com/grid","Test":"TestGrid/y/2","Elapsed":0}
+{"Time":"2026-11-15T21:18:29.982902715-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/y","Output":"--- PASS: TestGrid/y (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:29.982906773-05:00","Action":"pass","Package":"example.com/grid","Test":"TestGrid/y","Elapsed":0}
+{"Time":"2026-11-15T21:18:29.982910589-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid","Output":"--- PASS: TestGrid (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:29.982913498-05:00","Action":"pass","Package":"example.com/grid","Test":"TestGrid","Elapsed":0}
+{"Time":"2026-11-15T21:18:29.982916017-05:00","Action":"output","Package":"example.com/grid","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:29.989288959-05:00","Action":"output","Package":"example.com/grid","Output":"ok  \texample.com/grid\t0.015s\n"}
+{"Time":"2026-11-15T21:18:29.989352876-05:00","Action":"pass","Package":"example.com/grid","Elapsed":0.039}

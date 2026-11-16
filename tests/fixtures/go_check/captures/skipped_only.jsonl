@@ -1,0 +1,9 @@
+{"Time":"2026-11-15T21:18:23.415741182-05:00","Action":"start","Package":"example.com/skipped"}
+{"Time":"2026-11-15T21:18:23.421074533-05:00","Action":"run","Package":"example.com/skipped","Test":"TestSkipped"}
+{"Time":"2026-11-15T21:18:23.421381411-05:00","Action":"output","Package":"example.com/skipped","Test":"TestSkipped","Output":"=== RUN   TestSkipped\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:23.422005068-05:00","Action":"output","Package":"example.com/skipped","Test":"TestSkipped","Output":"    calc_test.go:6: not today\n"}
+{"Time":"2026-11-15T21:18:23.422045211-05:00","Action":"output","Package":"example.com/skipped","Test":"TestSkipped","Output":"--- SKIP: TestSkipped (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:23.422052749-05:00","Action":"skip","Package":"example.com/skipped","Test":"TestSkipped","Elapsed":0}
+{"Time":"2026-11-15T21:18:23.422060323-05:00","Action":"output","Package":"example.com/skipped","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:23.425087094-05:00","Action":"output","Package":"example.com/skipped","Output":"ok  \texample.com/skipped\t0.009s\n"}
+{"Time":"2026-11-15T21:18:23.425156821-05:00","Action":"pass","Package":"example.com/skipped","Elapsed":0.009}

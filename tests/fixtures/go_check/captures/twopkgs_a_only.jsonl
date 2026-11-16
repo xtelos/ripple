@@ -1,0 +1,8 @@
+{"Time":"2026-11-15T21:18:22.092676022-05:00","Action":"start","Package":"example.com/twopkgs/a"}
+{"Time":"2026-11-15T21:18:22.096566983-05:00","Action":"run","Package":"example.com/twopkgs/a","Test":"TestSame"}
+{"Time":"2026-11-15T21:18:22.096700161-05:00","Action":"output","Package":"example.com/twopkgs/a","Test":"TestSame","Output":"=== RUN   TestSame\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:22.09677822-05:00","Action":"output","Package":"example.com/twopkgs/a","Test":"TestSame","Output":"--- PASS: TestSame (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:22.096809833-05:00","Action":"pass","Package":"example.com/twopkgs/a","Test":"TestSame","Elapsed":0}
+{"Time":"2026-11-15T21:18:22.096818912-05:00","Action":"output","Package":"example.com/twopkgs/a","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:22.097747255-05:00","Action":"output","Package":"example.com/twopkgs/a","Output":"ok  \texample.com/twopkgs/a\t0.005s\n"}
+{"Time":"2026-11-15T21:18:22.097789219-05:00","Action":"pass","Package":"example.com/twopkgs/a","Elapsed":0.005}

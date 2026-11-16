@@ -1,0 +1,9 @@
+{"Time":"2026-11-15T21:18:23.744649191-05:00","Action":"start","Package":"example.com/exit_early"}
+{"Time":"2026-11-15T21:18:23.747303672-05:00","Action":"run","Package":"example.com/exit_early","Test":"TestBefore"}
+{"Time":"2026-11-15T21:18:23.747425327-05:00","Action":"output","Package":"example.com/exit_early","Test":"TestBefore","Output":"=== RUN   TestBefore\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:23.747511753-05:00","Action":"output","Package":"example.com/exit_early","Test":"TestBefore","Output":"--- PASS: TestBefore (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:23.747555223-05:00","Action":"pass","Package":"example.com/exit_early","Test":"TestBefore","Elapsed":0}
+{"Time":"2026-11-15T21:18:23.747566089-05:00","Action":"run","Package":"example.com/exit_early","Test":"TestExits"}
+{"Time":"2026-11-15T21:18:23.747570363-05:00","Action":"output","Package":"example.com/exit_early","Test":"TestExits","Output":"=== RUN   TestExits\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:23.747867254-05:00","Action":"output","Package":"example.com/exit_early","Test":"TestExits","Output":"ok  \texample.com/exit_early\t0.003s\n"}
+{"Time":"2026-11-15T21:18:23.747899949-05:00","Action":"pass","Package":"example.com/exit_early","Test":"TestExits","Elapsed":0.003}

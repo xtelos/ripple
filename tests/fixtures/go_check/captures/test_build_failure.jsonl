@@ -1,0 +1,6 @@
+{"ImportPath":"example.com/test_build_failure [example.com/test_build_failure.test]","Action":"build-output","Output":"# example.com/test_build_failure [example.com/test_build_failure.test]\n"}
+{"ImportPath":"example.com/test_build_failure [example.com/test_build_failure.test]","Action":"build-output","Output":"./calc_test.go:6:2: undefined: Addd\n"}
+{"ImportPath":"example.com/test_build_failure [example.com/test_build_failure.test]","Action":"build-fail"}
+{"Time":"2026-11-15T21:18:15.841034792-05:00","Action":"start","Package":"example.com/test_build_failure"}
+{"Time":"2026-11-15T21:18:15.841298089-05:00","Action":"output","Package":"example.com/test_build_failure","Output":"FAIL\texample.com/test_build_failure [build failed]\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:15.841338931-05:00","Action":"fail","Package":"example.com/test_build_failure","Elapsed":0,"FailedBuild":"example.com/test_build_failure [example.com/test_build_failure.test]"}

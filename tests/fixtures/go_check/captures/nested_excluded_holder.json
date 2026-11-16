@@ -1,0 +1,23 @@
+{
+  "module": "nested_excluded",
+  "cwd": ".",
+  "argv": [
+    "go",
+    "test",
+    "-json",
+    "-count=1",
+    "-skip=",
+    "-list=",
+    "-c=false",
+    "-fuzz=",
+    "-run=",
+    "./services/..."
+  ],
+  "request": null,
+  "by_hand": true,
+  "env": {},
+  "exit_code": 1,
+  "stderr": "go: warning: \"./services/...\" matched no packages\nno packages to test\n",
+  "go_version": "go version go1.27.4 linux/amd64",
+  "directories": {}
+}

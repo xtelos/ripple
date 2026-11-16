@@ -1,0 +1,14 @@
+{"ImportPath":"example.com/build_failure [example.com/build_failure.test]","Action":"build-output","Output":"# example.com/build_failure [example.com/build_failure.test]\n"}
+{"ImportPath":"example.com/build_failure [example.com/build_failure.test]","Action":"build-output","Output":"./calc.go:3:37: undefined: missing\n"}
+{"ImportPath":"example.com/build_failure [example.com/build_failure.test]","Action":"build-fail"}
+{"Time":"2026-11-15T21:18:15.284793239-05:00","Action":"start","Package":"example.com/build_failure"}
+{"Time":"2026-11-15T21:18:15.284935988-05:00","Action":"output","Package":"example.com/build_failure","Output":"FAIL\texample.com/build_failure [build failed]\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:15.284955574-05:00","Action":"fail","Package":"example.com/build_failure","Elapsed":0,"FailedBuild":"example.com/build_failure [example.com/build_failure.test]"}
+{"Time":"2026-11-15T21:18:15.577389296-05:00","Action":"start","Package":"example.com/build_failure/ok"}
+{"Time":"2026-11-15T21:18:15.589369557-05:00","Action":"run","Package":"example.com/build_failure/ok","Test":"TestOne"}
+{"Time":"2026-11-15T21:18:15.589537419-05:00","Action":"output","Package":"example.com/build_failure/ok","Test":"TestOne","Output":"=== RUN   TestOne\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:15.589576619-05:00","Action":"output","Package":"example.com/build_failure/ok","Test":"TestOne","Output":"--- PASS: TestOne (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:15.589583226-05:00","Action":"pass","Package":"example.com/build_failure/ok","Test":"TestOne","Elapsed":0}
+{"Time":"2026-11-15T21:18:15.589592003-05:00","Action":"output","Package":"example.com/build_failure/ok","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:15.590366056-05:00","Action":"output","Package":"example.com/build_failure/ok","Output":"ok  \texample.com/build_failure/ok\t0.008s\n"}
+{"Time":"2026-11-15T21:18:15.590409557-05:00","Action":"pass","Package":"example.com/build_failure/ok","Elapsed":0.013}

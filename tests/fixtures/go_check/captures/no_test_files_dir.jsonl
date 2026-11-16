@@ -1,0 +1,3 @@
+{"Time":"2026-11-15T21:18:31.602410062-05:00","Action":"start","Package":"example.com/no_test_files"}
+{"Time":"2026-11-15T21:18:31.602912487-05:00","Action":"output","Package":"example.com/no_test_files","Output":"?   \texample.com/no_test_files\t[no test files]\n"}
+{"Time":"2026-11-15T21:18:31.603015004-05:00","Action":"skip","Package":"example.com/no_test_files","Elapsed":0.001}

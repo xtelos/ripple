@@ -1,0 +1,3 @@
+package exnoout
+
+func Hello() {}

@@ -1,0 +1,28 @@
+{
+  "module": "subtests",
+  "cwd": ".",
+  "argv": [
+    "go",
+    "test",
+    "-json",
+    "-count=1",
+    "-skip=",
+    "-list=",
+    "-c=false",
+    "-fuzz=",
+    "-run",
+    "^TestTable$/^a$/^(b)$",
+    "."
+  ],
+  "request": [
+    "calc_test.go::TestTable/a/b"
+  ],
+  "by_hand": false,
+  "env": {},
+  "exit_code": 0,
+  "stderr": "",
+  "go_version": "go version go1.27.4 linux/amd64",
+  "directories": {
+    "example.com/subtests": "."
+  }
+}

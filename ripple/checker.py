@@ -116,7 +116,7 @@ def runner_for(profile: LanguageProfile):
 
 
 # profile name -> module of the runner (see runner_for)
-RUNNERS: dict[str, str] = {}
+RUNNERS = {"go": ".go_check"}
 
 
 def run_check(

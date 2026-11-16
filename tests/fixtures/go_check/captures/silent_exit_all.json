@@ -1,0 +1,27 @@
+{
+  "module": "silent_exit",
+  "cwd": ".",
+  "argv": [
+    "go",
+    "test",
+    "-json",
+    "-count=1",
+    "-skip=",
+    "-list=",
+    "-c=false",
+    "-fuzz=",
+    "-run=",
+    "./..."
+  ],
+  "request": null,
+  "by_hand": false,
+  "env": {},
+  "exit_code": 0,
+  "stderr": "",
+  "go_version": "go version go1.27.4 linux/amd64",
+  "directories": {
+    "example.com/silent_exit/initexit": "initexit",
+    "example.com/silent_exit/noop": "noop",
+    "example.com/silent_exit/ok": "ok"
+  }
+}

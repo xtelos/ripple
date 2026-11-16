@@ -1,0 +1,9 @@
+{"Time":"2026-11-15T21:18:25.228189765-05:00","Action":"start","Package":"example.com/multimod/sub"}
+{"Time":"2026-11-15T21:18:25.232006562-05:00","Action":"run","Package":"example.com/multimod/sub","Test":"TestSub"}
+{"Time":"2026-11-15T21:18:25.232118154-05:00","Action":"output","Package":"example.com/multimod/sub","Test":"TestSub","Output":"=== RUN   TestSub\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:25.232169477-05:00","Action":"output","Package":"example.com/multimod/sub","Test":"TestSub","Output":"    sub_test.go:7: sub is wrong\n","OutputType":"error"}
+{"Time":"2026-11-15T21:18:25.232181452-05:00","Action":"output","Package":"example.com/multimod/sub","Test":"TestSub","Output":"--- FAIL: TestSub (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:25.232185004-05:00","Action":"fail","Package":"example.com/multimod/sub","Test":"TestSub","Elapsed":0}
+{"Time":"2026-11-15T21:18:25.232196167-05:00","Action":"output","Package":"example.com/multimod/sub","Output":"FAIL\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:25.233814586-05:00","Action":"output","Package":"example.com/multimod/sub","Output":"FAIL\texample.com/multimod/sub\t0.005s\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:25.233844793-05:00","Action":"fail","Package":"example.com/multimod/sub","Elapsed":0.006}

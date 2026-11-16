@@ -1,0 +1,34 @@
+{"Time":"2026-11-15T21:18:31.537251039-05:00","Action":"start","Package":"example.com/grid"}
+{"Time":"2026-11-15T21:18:31.541428766-05:00","Action":"run","Package":"example.com/grid","Test":"TestGrid"}
+{"Time":"2026-11-15T21:18:31.541624269-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid","Output":"=== RUN   TestGrid\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:31.541715689-05:00","Action":"run","Package":"example.com/grid","Test":"TestGrid/x"}
+{"Time":"2026-11-15T21:18:31.541721413-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/x","Output":"=== RUN   TestGrid/x\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:31.541732168-05:00","Action":"run","Package":"example.com/grid","Test":"TestGrid/x/1"}
+{"Time":"2026-11-15T21:18:31.541747008-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/x/1","Output":"=== RUN   TestGrid/x/1\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:31.541755558-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/x/1","Output":"--- PASS: TestGrid/x/1 (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:31.54176207-05:00","Action":"pass","Package":"example.com/grid","Test":"TestGrid/x/1","Elapsed":0}
+{"Time":"2026-11-15T21:18:31.541770074-05:00","Action":"run","Package":"example.com/grid","Test":"TestGrid/x/2"}
+{"Time":"2026-11-15T21:18:31.541772982-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/x/2","Output":"=== RUN   TestGrid/x/2\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:31.541776382-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/x/2","Output":"    calc_test.go:11: x/2 was not asked for\n","OutputType":"error"}
+{"Time":"2026-11-15T21:18:31.54178257-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/x/2","Output":"--- FAIL: TestGrid/x/2 (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:31.541785812-05:00","Action":"fail","Package":"example.com/grid","Test":"TestGrid/x/2","Elapsed":0}
+{"Time":"2026-11-15T21:18:31.541789286-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/x","Output":"--- FAIL: TestGrid/x (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:31.541793649-05:00","Action":"fail","Package":"example.com/grid","Test":"TestGrid/x","Elapsed":0}
+{"Time":"2026-11-15T21:18:31.541796669-05:00","Action":"run","Package":"example.com/grid","Test":"TestGrid/y"}
+{"Time":"2026-11-15T21:18:31.541799086-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/y","Output":"=== RUN   TestGrid/y\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:31.541815547-05:00","Action":"run","Package":"example.com/grid","Test":"TestGrid/y/1"}
+{"Time":"2026-11-15T21:18:31.541818521-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/y/1","Output":"=== RUN   TestGrid/y/1\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:31.541822115-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/y/1","Output":"    calc_test.go:11: y/1 was not asked for\n","OutputType":"error"}
+{"Time":"2026-11-15T21:18:31.541826413-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/y/1","Output":"--- FAIL: TestGrid/y/1 (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:31.541829535-05:00","Action":"fail","Package":"example.com/grid","Test":"TestGrid/y/1","Elapsed":0}
+{"Time":"2026-11-15T21:18:31.54183236-05:00","Action":"run","Package":"example.com/grid","Test":"TestGrid/y/2"}
+{"Time":"2026-11-15T21:18:31.541835223-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/y/2","Output":"=== RUN   TestGrid/y/2\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:31.541838891-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/y/2","Output":"--- PASS: TestGrid/y/2 (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:31.541841957-05:00","Action":"pass","Package":"example.com/grid","Test":"TestGrid/y/2","Elapsed":0}
+{"Time":"2026-11-15T21:18:31.541845672-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid/y","Output":"--- FAIL: TestGrid/y (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:31.541849127-05:00","Action":"fail","Package":"example.com/grid","Test":"TestGrid/y","Elapsed":0}
+{"Time":"2026-11-15T21:18:31.541852258-05:00","Action":"output","Package":"example.com/grid","Test":"TestGrid","Output":"--- FAIL: TestGrid (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:31.541855343-05:00","Action":"fail","Package":"example.com/grid","Test":"TestGrid","Elapsed":0}
+{"Time":"2026-11-15T21:18:31.541862392-05:00","Action":"output","Package":"example.com/grid","Output":"FAIL\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:31.54508562-05:00","Action":"output","Package":"example.com/grid","Output":"FAIL\texample.com/grid\t0.007s\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:31.545158374-05:00","Action":"fail","Package":"example.com/grid","Elapsed":0.008}

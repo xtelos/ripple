@@ -1,0 +1,8 @@
+{"Time":"2026-11-15T21:18:34.37325123-05:00","Action":"start","Package":"example.com/nestedmods/services/web"}
+{"Time":"2026-11-15T21:18:34.376912821-05:00","Action":"run","Package":"example.com/nestedmods/services/web","Test":"TestWeb"}
+{"Time":"2026-11-15T21:18:34.377005112-05:00","Action":"output","Package":"example.com/nestedmods/services/web","Test":"TestWeb","Output":"=== RUN   TestWeb\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:34.377039126-05:00","Action":"output","Package":"example.com/nestedmods/services/web","Test":"TestWeb","Output":"--- PASS: TestWeb (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:34.377043452-05:00","Action":"pass","Package":"example.com/nestedmods/services/web","Test":"TestWeb","Elapsed":0}
+{"Time":"2026-11-15T21:18:34.377050965-05:00","Action":"output","Package":"example.com/nestedmods/services/web","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:34.377469509-05:00","Action":"output","Package":"example.com/nestedmods/services/web","Output":"ok  \texample.com/nestedmods/services/web\t0.004s\n"}
+{"Time":"2026-11-15T21:18:34.377516141-05:00","Action":"pass","Package":"example.com/nestedmods/services/web","Elapsed":0.004}

@@ -1,0 +1,9 @@
+{"Time":"2026-11-15T21:18:21.354920051-05:00","Action":"start","Package":"example.com/subtests"}
+{"Time":"2026-11-15T21:18:21.357754092-05:00","Action":"run","Package":"example.com/subtests","Test":"TestTable"}
+{"Time":"2026-11-15T21:18:21.357852455-05:00","Action":"output","Package":"example.com/subtests","Test":"TestTable","Output":"=== RUN   TestTable\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:21.358159311-05:00","Action":"output","Package":"example.com/subtests","Test":"TestTable","Output":"--- PASS: TestTable (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:21.358363795-05:00","Action":"pass","Package":"example.com/subtests","Test":"TestTable","Elapsed":0}
+{"Time":"2026-11-15T21:18:21.358486352-05:00","Action":"output","Package":"example.com/subtests","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-11-15T21:18:21.35849306-05:00","Action":"output","Package":"example.com/subtests","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:21.358529912-05:00","Action":"output","Package":"example.com/subtests","Output":"ok  \texample.com/subtests\t0.003s [no tests to run]\n"}
+{"Time":"2026-11-15T21:18:21.358552887-05:00","Action":"pass","Package":"example.com/subtests","Elapsed":0.004}

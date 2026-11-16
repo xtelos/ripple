@@ -1,0 +1,3 @@
+{"Time":"2026-11-15T21:18:24.44198513-05:00","Action":"start","Package":"example.com/testmain_noop"}
+{"Time":"2026-11-15T21:18:24.445189073-05:00","Action":"output","Package":"example.com/testmain_noop","Output":"ok  \texample.com/testmain_noop\t0.003s\n"}
+{"Time":"2026-11-15T21:18:24.445254949-05:00","Action":"pass","Package":"example.com/testmain_noop","Elapsed":0.003}

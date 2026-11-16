@@ -1,0 +1,16 @@
+{"Time":"2026-11-15T21:18:32.731887392-05:00","Action":"start","Package":"example.com/example_noout"}
+{"Time":"2026-11-15T21:18:32.737888141-05:00","Action":"run","Package":"example.com/example_noout","Test":"TestAdd"}
+{"Time":"2026-11-15T21:18:32.737994762-05:00","Action":"output","Package":"example.com/example_noout","Test":"TestAdd","Output":"=== RUN   TestAdd\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:32.738031241-05:00","Action":"output","Package":"example.com/example_noout","Test":"TestAdd","Output":"--- PASS: TestAdd (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:32.738042468-05:00","Action":"pass","Package":"example.com/example_noout","Test":"TestAdd","Elapsed":0}
+{"Time":"2026-11-15T21:18:32.738055919-05:00","Action":"run","Package":"example.com/example_noout","Test":"ExampleAdd_withOutput"}
+{"Time":"2026-11-15T21:18:32.73805879-05:00","Action":"output","Package":"example.com/example_noout","Test":"ExampleAdd_withOutput","Output":"=== RUN   ExampleAdd_withOutput\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:32.738063959-05:00","Action":"output","Package":"example.com/example_noout","Test":"ExampleAdd_withOutput","Output":"--- PASS: ExampleAdd_withOutput (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:32.7380676-05:00","Action":"pass","Package":"example.com/example_noout","Test":"ExampleAdd_withOutput","Elapsed":0}
+{"Time":"2026-11-15T21:18:32.73807024-05:00","Action":"run","Package":"example.com/example_noout","Test":"ExampleAdd_unordered"}
+{"Time":"2026-11-15T21:18:32.73807287-05:00","Action":"output","Package":"example.com/example_noout","Test":"ExampleAdd_unordered","Output":"=== RUN   ExampleAdd_unordered\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:32.738076807-05:00","Action":"output","Package":"example.com/example_noout","Test":"ExampleAdd_unordered","Output":"--- PASS: ExampleAdd_unordered (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:32.738079447-05:00","Action":"pass","Package":"example.com/example_noout","Test":"ExampleAdd_unordered","Elapsed":0}
+{"Time":"2026-11-15T21:18:32.738082254-05:00","Action":"output","Package":"example.com/example_noout","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-11-15T21:18:32.745001826-05:00","Action":"output","Package":"example.com/example_noout","Output":"ok  \texample.com/example_noout\t0.012s\n"}
+{"Time":"2026-11-15T21:18:32.745067345-05:00","Action":"pass","Package":"example.com/example_noout","Elapsed":0.013}

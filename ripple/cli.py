@@ -311,7 +311,7 @@ def build_parser() -> argparse.ArgumentParser:
     for name, help_text in (("check", "run the test command once"), ("serve", "run the MCP server on stdio")):
         p = sub.add_parser(name, help=help_text)
         if name == "check":
-            p.add_argument("tests", nargs="*", help="test paths or pytest node ids to run instead of the whole suite")
+            p.add_argument("tests", nargs="*", help="test paths, pytest node ids, or for Go a _test.go file or file_test.go::TestName[/subtest] to run instead of the whole suite")
         p.add_argument("--repo", default=".")
         p.add_argument(
             "--test-command",
