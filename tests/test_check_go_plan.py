@@ -398,7 +398,7 @@ def test_an_explicit_command_still_means_that_command_and_the_generic_reading(fa
 
 
 def test_the_seam_is_a_runner_per_profile_name_and_python_and_typescript_have_none():
-    assert RUNNERS["go"] == ".go_check"
+    assert RUNNERS["go"] == ".go_check"  # a runner per language: other languages add their own entries
     assert runner_for(GO).run.__module__ == "ripple.go_check"
     assert runner_for(PYTHON) is None
     assert runner_for(TYPESCRIPT) is None

@@ -250,9 +250,10 @@ def test_callees_impact_and_path_work_on_a_java_repo(capsys):
 
 
 @needs_parser
-def test_check_in_a_java_repo_is_a_refusal_until_it_is_given_the_command(capsys):
+def test_check_in_a_java_repo_with_no_pom_at_its_root_is_a_refusal_that_names_the_command(capsys):
     assert main(["check", "--repo", str(SHOP_JAVA), "--lang", "java"]) == 2
-    assert "does not know how to run Java tests yet" in capsys.readouterr().out
+    said = capsys.readouterr().out
+    assert "no pom.xml at the repository root" in said and "--test-command" in said
 
 
 @needs_parser

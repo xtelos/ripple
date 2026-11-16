@@ -46,7 +46,7 @@ Or from a terminal: `ripple index .`, then `ripple impact price_order`.
 | `callees(symbol)` | What this calls, plus the calls ripple could not resolve and why | yes |
 | `impact(symbol, depth=5, limit=100)` | Every transitive caller grouped by file, the tests that reach it listed separately as pytest node ids, and same-named call sites ripple could not rule out | yes |
 | `path(source, target)` | The shortest call chain from one symbol to another | yes |
-| `check(tests=None)` | Runs the test command (default `python -m pytest -q`, using the repo's `.venv` or `venv` if present, for a repo with Python files; `go test -json` in every module for a Go repo, see [Go](#go); `cargo test` in every top-level workspace for a Rust repo, see [Rust](#rust); a TypeScript-only repo, or `--lang typescript`, has no default), or just the given test paths (for Python, pytest node ids too; for Go, `file_test.go::TestName[/subtest]`; for Rust, a `.rs` file, a directory or `file.rs::module::test_name`), and returns pass/fail, the summary line and the first failures, never the full log | no, it runs code |
+| `check(tests=None)` | Runs the test command (default `python -m pytest -q`, using the repo's `.venv` or `venv` if present, for a repo with Python files; `go test -json` in every module for a Go repo, see [Go](#go); `cargo test` in every top-level workspace for a Rust repo, see [Rust](#rust); `mvn test` for a Maven repo, see [Java](#java); a TypeScript-only repo, or `--lang typescript`, has no default), or just the given test paths (for Python, pytest node ids too; for Go, `file_test.go::TestName[/subtest]`; for Rust, a `.rs` file, a directory or `file.rs::module::test_name`; for Java, the id `impact` lists, a test `.java` file or a directory), and returns pass/fail, the summary line and the first failures, never the full log | no, it runs code |
 
 A symbol can be a full dotted path (`shop.pricing.price_order`), a suffix (`OrderService.place_order`)
 or a bare name (`price_order`); in TypeScript it is a path and a member (`src/util/math:clamp`, see
@@ -1089,6 +1089,110 @@ the five source trees it was checked on (see "Checked against the compiler" belo
 rounds of fixes for wrong edges in legal Java those trees did not contain, and the JDK table it reads is new.
 Read its unresolved reasons, and report an edge that javac would not make.
 
+**`check` for Java** runs Maven (`ripple/java_check.py`) and reads the verdict from surefire's XML reports
+(`target/surefire-reports/TEST-*.xml`: a testcase per test, with its failure, error or skipped child), cross-checked against
+Maven's exit status and against what was asked for, never from the exit code alone or the log text. `mvnw` in the repo is
+preferred to `mvn` on `PATH` (it is the Maven version the repo pins, and a Maven that is too old or too new fails a build
+for no fault of its tests; it may download a distribution on first use, which is the repo's own build, and a `mvnw` that is
+a link to a file outside the repo is refused, never run). It needs a `pom.xml` at the root, and a root with both a `pom.xml`
+and a Gradle file, or Gradle alone, is refused with the command to pass instead. With no arguments it runs
+`mvn -B --fail-at-end test` (every module of the reactor; `--fail-at-end` so an independent module still runs after a
+failure). The arguments:
+
+- the id `impact` lists for a JUnit test method, `com.acme.shop.CartTest.addsItems()` (`...CartTest.Receipts.receiptHasTotal()`
+  for a nested class, parameter types as `impact` writes them), a test `.java` file (the test classes it declares), or a
+  directory (a module, or a directory of modules, as a whole, or the test classes under a test source directory);
+  `file.java::Class[.Nested][.method[(types)]]` is the same thing with the file named. An id that names two files (the same
+  class in two modules) is refused, never guessed.
+
+A class is `-Dtest=com.acme.shop.CartTest` (its `@Nested` classes run with it) and a method `-Dtest=...CartTest#addsItems`, in
+the module that holds it: `-pl <module> -am` in a build of several modules, always with `-am`. ripple does not read the poms to
+guess which modules a module needs (a dependency in a profile, a parent or a plugin would be missed, and `-pl` alone then runs
+against an installed copy of the sibling from the local repository, which can be an old one): Maven builds what the module needs
+from the tree. A module asked for whole therefore also runs the tests of what it needs, and the verdict says so; a class or method
+runs none of theirs unless a class of the same name is there (named in `notes`). Whole classes of a module share a run; a method
+never shares one with another class, because several `#` filters in one `-Dtest` are a cross product in some surefire versions.
+The `-Dtest` value is made of names read from the source file, never from the argument. Every argument that is an option, an
+`@file`, a path outside the repo, a control character, or not a test is refused before a process starts, and nothing a caller
+writes becomes a `-D` property or a build flag.
+
+Merging requests merges the runs, never the requirements: `check([".", "OffTest.java"])` is one Maven run, and OffTest, asked for
+by name, is still held to its own obligation (it ran, it was not skipped, it passed). The same goes for a file beside a method
+of it, a class beside its nested class, a module beside a class of it, and the same id twice or in two spellings.
+
+Two `check` calls in one repository are serialized (an advisory lock file named by the repo's path in the temporary directory,
+never in the repo): two Maven runs writing one `target/` cannot be told apart by the snapshot below, and measured, they did
+read each other's reports. A second call waits up to its time limit and then refuses; a build started by anything else (an IDE)
+is not covered, and a report it writes during a check can be read as the check's own.
+
+Which reports are this run's: a snapshot of every report file is taken before the run, and a report counts only if it is new or
+changed since (mtime, size, inode) and was written no earlier than the run began. A report an earlier run left, saying
+PASSED, is never read; it is counted in a note. What is never reported as passed (each has a run captured from real Maven 3.9.9
+and surefire 3.5.2 in `tests/fixtures/java_check/`, with the project and the command): a selector that matches nothing (Maven
+exits 0 with `Tests run: 0` and no report), a compile failure in main or test code, a module that never reached its tests (the
+reactor says SKIPPED, and a module with test classes and no report is named even when it does not), a JVM that crashed or
+called `System.exit`, a surefire fork timeout (the report says the test passed and Maven exits 1) and ripple's own time limit, a
+requested test that was skipped or disabled, a build that skips its tests (`skipTests`, `maven.test.skip`), a test class
+surefire's name patterns do not pick up (`CartChecks`: the run is green without it), and a failure the build ignores
+(`testFailureIgnore` exits 0).
+
+Which classes should have run (a whole-build or whole-module run) is predicted from the test sources (every class with a JUnit
+method of its own) **and from the classes Maven compiled** (`target/test-classes`: javac has already resolved a test inherited
+from an abstract base or an interface default method, a test method carrying a composed annotation such as `@FastTest` that is
+itself annotated `@Test`, a `@RunWith`, and whatever test source root the build has, from a parent pom or from build-helper).
+The class files are read by ripple (no JDK needed), and the rule has a middle ground that is stated, not left to a guess:
+
+- **A class ripple knows holds tests, and that has no result, is a problem.** It knows when, in the part of the class's supertype
+  closure it can read (its superclasses and superinterfaces, transitively, cycles cut, as far as they are classes of the repo),
+  it finds one of the known set: on a method JUnit 4 `@Test` and `@Theory`, JUnit Jupiter `@Test`, `@RepeatedTest`,
+  `@TestFactory`, `@TestTemplate` and `@ParameterizedTest`, TestNG `@Test`, and any annotation meta-annotated with the JUnit
+  Platform's `@Testable` (jqwik's `@Property`, a project's own) where that annotation's class file is in the repo (composed to
+  any depth, so `@FastTest` meta-annotated `@Test` counts); on the class JUnit 4 `@RunWith` (a `Suite`, `Enclosed`, any runner)
+  or TestNG's class-level `@Test`; JUnit 3 as a superclass `junit.framework.TestCase`. What is proven in the part ripple read
+  decides, even when the closure leaves the repo further up. Its name does not matter: `CartChecks`, which surefire's patterns
+  (`Test*`, `*Test`, `*Tests`, `*TestCase`) never pick up, and a class a build `excludes`, are problems.
+- **A class ripple cannot decide is a note, never a problem**: an annotation it does not know on a void method (JMH's `@Setup`,
+  Spring's `@PostConstruct`, Guava's `@Subscribe`: helper code is full of them), or a supertype outside the repo (a library
+  class, an interface of a library), or a name defined in several modules ripple cannot rank, with nothing known to hold tests
+  in the part it read. The note names the class and why ("cannot tell whether X holds tests (X.setup carries
+  org/openjdk/jmh/annotations/Setup), and no test of it ran"); five are named and the rest counted. A class surefire's default
+  patterns name (when no pom sets `includes` or `excludes`) is not even that: surefire looked at it and found nothing. It is a
+  problem when the request names it and no test of it ran.
+- **The cost, stated:** a test class of a framework ripple does not know (a library's own base class, an annotation whose class
+  is in a jar, such as jqwik's `@Property` on its own) whose name misses surefire's patterns is not run by `mvn test` either, and
+  ripple reports it in a note, not as a failure. A repo that never runs such a class passes. The alternative, a problem for every
+  class that cannot be decided, made every whole-build check of commons-lang read not passed (two JMH benchmark classes in its
+  test tree) and would have made any repo with helpers read the same.
+
+A class is looked up the way its own module's build would resolve it, never by name across the whole repo: in the module's
+`target/test-classes`, then its `target/classes`, then the modules of this build it depends on (read from `<dependencies>`, in
+profiles and parents too; their `target/classes`, and their `target/test-classes` only through a `test-jar` dependency). A name
+found in two of those that ripple cannot rank is ambiguous, and the class is undecided. A compiled class counts only if the
+module's current source roots (`src/main/java`, `src/test/java`, or what the poms set, build-helper included) hold a source for
+it: the same package path and the outer class's name (`Outer$Inner` and `Outer$1` follow `Outer`), or the file the class file
+names as its source. A class with none is left over from an earlier build (a module this run did not build, a deleted source) or
+generated, and is evidence of nothing; it is named in a note ("compiled class with no hand-written source"), whatever its
+package is called. Where the source roots cannot be read (a property), or a class was not compiled from a `.java` file (Kotlin,
+Groovy), every class counts. Class files, sources and reports are read as regular files inside the repo only (a link, a FIFO or a
+file over the size cap is refused, with a read that never blocks), and a class file that cannot be read is a note naming it.
+
+A module with test sources (or a test root held in a property) and no current compiled test classes is "cannot predict"; results
+from a module whose prediction is empty are "predicted no test class but tests ran". Left out, and named in `notes`: failsafe's
+classes (`IT*`, `*IT`, `*ITCase`, run in `verify`). Not decided from bytecode: a class that gets its tests from an external
+library base, the interface of a library, a `Cucumber`-style runner (its results come under feature names: it has a result
+through its report file, when that holds tests), a class that exists only in a `target` directory other than Maven's default.
+Results are matched by the class a testcase
+names, or by the class the report file is of (a JUnit `AllTests` suite reports its tests under other names). `MAVEN_OPTS`, `MAVEN_ARGS`, `.mvn/maven.config` or `.mvn/jvm.config` that set `-DskipTests`,
+`-Dtest`, `-Dgroups` and the like make the run not passed, named; a pom that configures `skipTests`, `groups`, `excludedGroups` or
+`testFailureIgnore` is named in `notes` (an `excludes` the build sets shows as a test class with no result). Maven selects by method name, so an overloaded test method runs every overload: the verdict says so,
+names the overload that failed, and fails when only other overloads ran. A parameterized test, a `@RepeatedTest` and a
+`@TestFactory` report as `name()[1]`, `name()[2]`: the method name is what is matched, and the verdict says how many invocations
+ran. The
+result has the usual keys plus `problems`, `counts` and `notes`; failures read `FAILED file.java::Class.method: message`.
+What it does not read: Gradle, TestNG, a build whose reports are written outside the repo (nothing is found, so it is not
+passed), failsafe integration tests (`verify`, not `test`: named in `notes`, never expected), and Kotlin tests. `--test-command` still means exactly that command.
+Java's profile is untouched (its fields are hashed into the cache key).
+
 Java is read by tree-sitter too, as its own optional extra (`tree-sitter` and `tree-sitter-java`):
 
 ```sh
@@ -1151,8 +1255,8 @@ JDK class: it is final in every JDK (`String`), or it is a class with no public 
 every non-final table type below it (`java.util.Arrays`, which is final from JDK 21 only).
 
 Not followed, and never an edge: method references (`this::show` names a method, it does not call it), reflection,
-Lombok and annotation-processor output, qualified inner-class creation (`outer.new Inner()`), `check` for Maven and
-Gradle (a Java repo has no default test command yet, and no test is collected), and JDK 25 syntax the grammar does not
+Lombok and annotation-processor output, qualified inner-class creation (`outer.new Inner()`), `check` for Gradle (a Gradle
+repo has no default test command yet: pass `--test-command`; no Java test is collected, see `check` for Java), and JDK 25 syntax the grammar does not
 know (those files are listed with the ones that could not be parsed, and read as far as the parser recovers).
 A file whose directory does not end in its `package` path is not indexed and is listed with the reason (a Java file a test
 compiles as data), and two files that define one fully qualified name (Android product flavours) are indexed as neither:
@@ -1234,7 +1338,7 @@ names in a script outside ISO-8859-1 in UTF-16 or UTF-32 with no byte-order mark
 `java.sql`) or from a library is unknown, so a call that a supertype of that kind could answer stays unresolved. A name that
 an on-demand import supplies has no package in ripple's reading, so it is unknown, whatever the table holds.
 The table is read for a name only through a single-type import, a fully written name, or java.lang. `check` has no
-default test command for Java, and no test is collected.
+default test command for Gradle, and no Java test is collected: `impact` lists a test method among the callers.
 
 **Checked against the compiler.** `bench/fixtures/java/probes` holds 195 small legal Java programs, each with `javac.json`:
 every invoke instruction javac wrote for it (`bench/java_probes.py`, run by hand with a JDK). Five of them depend on the JDK

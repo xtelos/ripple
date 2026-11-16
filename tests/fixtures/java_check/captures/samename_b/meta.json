@@ -1,0 +1,27 @@
+{
+  "project": "samename",
+  "cwd": ".",
+  "argv": [
+    "mvn",
+    "-B",
+    "--fail-at-end",
+    "-pl",
+    "b",
+    "-am",
+    "test",
+    "-Dtest=com.acme.SameTest",
+    "-Dsurefire.failIfNoSpecifiedTests=false"
+  ],
+  "request": [
+    "b/src/test/java/com/acme/SameTest.java"
+  ],
+  "before": null,
+  "written": [
+    "b/TEST-com.acme.SameTest.xml"
+  ],
+  "edits": null,
+  "exit_code": 1,
+  "timed_out": false,
+  "timeout_s": 300,
+  "maven": "Apache Maven 3.9.9 (8e8579a9e76f7d015ee5ec7bfcdc97d260186937)"
+}
