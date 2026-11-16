@@ -115,6 +115,14 @@ JS_AFTER_ERROR = (
     "the call is inside or right after a syntax error the parser recovered from, usually a name the TypeScript grammar reads "
     "as a keyword (`abstract.foo()` is `abstract.` and a call of foo there), so what it calls is not known"
 )
+# The names a CommonJS file is run with (a function's parameters, as Node wraps the file): what is reachable through them is the file's
+# own exports and any other module's, so code of the repo, and a call through one is never "outside the repo"
+MODULE_NAMES = ("require", "module", "exports")
+MODULE_ROOTS = (*MODULE_NAMES, "process")  # `process.mainModule` is the entry module, which may be this file
+OWN_EXPORTS = (
+    "the callee is a member of `exports`, `module`, `require` or `process.mainModule`, which hold the modules' own objects (this file's "
+    "exports, the loader, the entry module), and ripple does not follow what is stored on them, so it is not known to be outside the repo"
+)
 # what ends the climb from a call to see whether a syntax error comes right before it (the statement that holds it)
 STATEMENT_END = ("statement_block", "program", "class_body", "switch_body")
 
@@ -431,6 +439,7 @@ class FileBuilder:
         self.call_nodes: dict[int, RawCall] = {}  # tree-sitter id of a call expression -> the call recorded for it
         self.jsx_nodes: dict[int, JsxElement] = {}  # tree-sitter id of a component element -> its fact
         self.props: dict[str, tuple[dict, str | None]] = {}  # scope id -> ({local name: prop key}, name of the props object)
+        self.top_names = self._top_names(root)  # the module names the file declares at its top level (see _module_name_of)
         for node in named(root):
             self.visit(node)
         for exported, local in self.exports:
@@ -504,6 +513,54 @@ class FileBuilder:
         """A dotted reference as the resolver should read it: its first name, under the key it is bound by."""
         return [self._name(parts[0]), *parts[1:]] if parts else parts
 
+    def _module_name_of(self, parts: list) -> str:
+        """The name (`exports`, `module`, `require`, or `process` for `process.mainModule`) a reference goes through to reach the
+        exports of a module, "" when it does not: a name followed by a member (`require.main.exports.f`, not the call `require(...)`
+        or `require(...).f`, whose result is what a call of `require` returns), or `process.mainModule`. A name that a declaration
+        around the reference gives a value of its own (a parameter, a `var`, `let`, `const`, `function` or `class` of a function or
+        block around it, or of the file, an import) is that value: it is not the module's. A bare assignment (`exports = new K()`) is
+        not a declaration: the name still holds the module's own object until it runs, and which it holds at a call is not known."""
+        if len(parts) < 2 or parts[1] == "()":
+            return ""
+        if parts[0] in MODULE_NAMES or parts[:2] == ["process", "mainModule"]:
+            return "" if self._local(parts[0]) or parts[0] in self.top_names else parts[0]
+        return ""
+
+    def _own_exports(self, call: RawCall | JsxElement, parts: list) -> None:
+        """A call (or JSX tag) through a module name that no declaration shadows reaches the module's own exports, or another
+        module's: it may run code of the repo, so it is unresolved, never outside the repo."""
+        if not self._module_name_of(parts):
+            return
+        if isinstance(call, JsxElement):  # <exports.Widget />: a tag the resolver reads as it reads a callee
+            call.chain, call.why = None, OWN_EXPORTS
+        else:
+            call.chain, call.path, call.special, call.why = None, None, "computed", OWN_EXPORTS
+
+    def _top_names(self, root) -> set[str]:
+        """The names of the module names (`exports`, `module`, `require`, `process`) that the file declares at its top level, wherever
+        in the file, as a value of its own: `let`, `const`, `function`, `class` and an import. What ripple binds for none of these is
+        left out on purpose, so a call through such a name stays unresolved: an `enum` or a `namespace` (a namespace of the name merges
+        with the module's own object where the file is CommonJS), an `import x = require()` (it binds nothing here), an `interface`,
+        a type alias, and everything after `declare`, which makes no value. A top-level `var` is left out as well: where the file is
+        CommonJS it redeclares the parameter Node runs the file with, so the name holds the module's own object until the assignment
+        runs, as it does for a bare assignment."""
+        found = set(self._declared_names(named(root)))  # let, const, class, function, not the type-only declarations
+        for node in named(root):
+            if node.type != "import_statement" or any(c.type == "type" for c in node.children):
+                continue
+            clause = next((c for c in named(node) if c.type == "import_clause"), None)
+            for part in named(clause) if clause is not None else ():
+                if part.type == "identifier":
+                    found.add(text(part))
+                elif part.type == "namespace_import":
+                    found.update(text(c) for c in named(part) if c.type == "identifier")
+                elif part.type == "named_imports":
+                    for item in named(part):
+                        local = field_of(item, "alias") or field_of(item, "name")
+                        if item.type == "import_specifier" and local is not None and not any(c.type == "type" for c in item.children):
+                            found.add(text(local))
+        return found & set(MODULE_ROOTS)
+
     def _ref_text(self, dotted_name: str) -> str:
         head, dot, rest = dotted_name.partition(".")
         return self._name(head) + dot + rest
@@ -523,7 +580,9 @@ class FileBuilder:
                         names += self._pattern_names(target, visit_defaults=False)
             elif t in FUNCTION_DECLARATIONS or t in ("class_declaration", "abstract_class_declaration") or t in TYPE_DECLARATIONS:
                 name = field_of(node, "name")
-                if name is not None:
+                # an interface, a type alias, an enum or a namespace named like a module name is no value that stands for the module's
+                # own object (see _module_name_of), so it does not hide the name
+                if name is not None and not (t in TYPE_DECLARATIONS and text(name) in MODULE_ROOTS):
                     names.append(text(name))
         return names
 
@@ -1533,12 +1592,14 @@ class FileBuilder:
                 call = RawCall(None, short(func), line, special="computed", why=THIS_REBOUND)
             elif chain:
                 call = RawCall(self._ref(chain), ".".join(chain)[:80], line)
+                self._own_exports(call, chain)
             else:
                 path = call_path(func)
                 if path and self.rebinds_this and path[0] == "this":
                     call = RawCall(None, short(func), line, special="computed", why=THIS_REBOUND)
                 elif path:
                     call = RawCall(None, short(func), line, path=self._ref(path))
+                    self._own_exports(call, path)
                 else:
                     why = COMPUTED_SUBSCRIPT if func.type == "subscript_expression" else COMPUTED_OTHER
                     call = RawCall(None, short(func), line, special="computed", why=why)
@@ -1590,13 +1651,17 @@ class FileBuilder:
         if chain and self.rebinds_this and chain[0] == "this":
             self.scope.calls.append(RawCall(None, short(constructor), line, special="computed", why=THIS_REBOUND))
         elif chain:
-            self.scope.calls.append(RawCall(self._ref(chain), ".".join(chain)[:80], line))
+            call = RawCall(self._ref(chain), ".".join(chain)[:80], line)
+            self.scope.calls.append(call)
+            self._own_exports(call, chain)
         elif constructor is not None:
             path = call_path(constructor)
             if path and self.rebinds_this and path[0] == "this":
                 self.scope.calls.append(RawCall(None, short(constructor), line, special="computed", why=THIS_REBOUND))
             elif path:
-                self.scope.calls.append(RawCall(None, short(constructor), line, path=self._ref(path)))
+                call = RawCall(None, short(constructor), line, path=self._ref(path))
+                self.scope.calls.append(call)
+                self._own_exports(call, path)
             else:
                 self.scope.calls.append(RawCall(None, short(constructor), line, special="computed", why=COMPUTED_OTHER))
         if constructor is not None and chain is None:
@@ -1683,6 +1748,8 @@ class FileBuilder:
         written = ".".join(chain) if chain else short(name)
         element = JsxElement(self._ref(chain) if chain else None, written, line_of(node), why=why)
         self.jsx_nodes[node.id] = element
+        if chain:
+            self._own_exports(element, chain)
         element.placement = self._placement(node)
         self.scope.jsx.append(element)
 

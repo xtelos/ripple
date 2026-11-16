@@ -329,6 +329,27 @@ TypeScript pass enters the directory first. A `#` specifier is mapped by the nea
 unresolved. A bare specifier is a package unless a config maps it or it names a package of the repo (see "Which tsconfig a
 file gets"). These rules apply to TypeScript importers too.
 
+**A path that may name a file of the repo is never a package.** A relative import is never a package where it reaches source of
+the repo: a file in a hidden directory or in the root `dist`, `build` or `env` (the walk skips them) is unresolved with the
+reason, as is a path that leaves the repo by `..` and walks back in (`../repo/a.mjs` from the root of `repo`, found on the file
+system, a link back in included), for either language. An entry of the repo whose name starts with two dots (`./..x/a.mjs`,
+`./..lib.mjs`) does not leave it and is read like any other relative path: the file at the root is an edge, one in a skipped
+directory is unresolved. A path that leaves for good, a JSON, CSS or image file, and a file of a package in `node_modules` are
+packages as before. A bare name that is a Node builtin (`util`, `fs/promises`, but not `test`) is the builtin to Node whatever
+`baseUrl` or `paths` map it to, and a bundler may load the repo's file instead, so for either language it is unresolved when a
+config maps it into the repo, and `node:util` is always the builtin. In a JavaScript file an absolute path (`/abs/x.mjs`), a
+`file:` URL (any case, any spaces the URL parser drops) and a specifier written with an escape sequence (not decoded:
+`'\x2fabs/x'` is `/abs/x`) are unresolved too, because where the repo is on a machine is not known; TypeScript keeps its answer
+for those. A call through `exports`, `module` or `require` followed by a member (`exports.f()`, `module.exports.f()`,
+`require.main.exports.f()`, `new exports.C()`, `<exports.C />`, `process.mainModule.exports.f()`, `require.resolve(...)`)
+reaches the modules' own objects (this file's exports, the loader, the entry module), which ripple does not follow, so in a
+JavaScript or TypeScript file it is unresolved and never counted as outside the repo. Only a declaration of the name that gives
+it a value of its own makes it that value (a parameter, `var`, `let`, `const`, `function`, `class` or an import, in a function or
+block around the call or at the top of the file): a bare assignment (`exports = new K()`) does not, since the name holds the
+module's own object until the assignment runs, a `var` at the top of the file does not for the same reason (in a CommonJS
+file it redeclares the parameter Node runs the file with), and an `interface`, a type alias, anything after `declare`, an `enum`, a
+`namespace` and `import x = require()` do not either. A call of `require(...)` itself is a call of the builtin loader, as before.
+
 **The two languages do not follow each other.** A TypeScript file that imports a `.js` file (or the reverse, through a relative
 path, `baseUrl` or `paths`) has an unresolved call with the reason "names src/x.js, a JavaScript file, whose calls ripple does
 not follow from TypeScript": not a package, so not counted as code outside the repo, and not an edge. That holds for a file
