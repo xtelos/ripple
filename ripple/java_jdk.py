@@ -6,6 +6,13 @@ class files of EVERY released JDK from 8 through 27 (the twenty GA feature relea
 file's header), because the repo may be built against any of them and ripple cannot tell which. Every fact is merged across
 the JDKs in the one direction it is used safely.
 
+THE FLOOR. "In every JDK" means every JDK of the table, 8 through 27: a build for an older JDK (JDK 7 code with
+`import org.apache.commons.codec.binary.*; import java.util.*;` meant Base64 of the library, which became ambiguous on 8) may
+have a type the table's first JDK already has as a type of a library, so a "type every JDK has" is a fact about 8 and later
+only. Ripple cannot tell the build's JDK from the repo, so that is an assumption too, as the horizon is. It is used for the
+names java.lang supplies and for a type a repo file writes with a single-type import or a full name; an on-demand import of
+a JDK package is never read through the table (java_resolver._on_demand_type).
+
 THE HORIZON. The table covers JDK 8 through 27. A repo built with a later JDK may meet a member, a supertype, a field or a
 member type that no JDK of the table has (JDK 26 gave `java.lang.Process` an `AutoCloseable` supertype and a `close()`),
 and ripple cannot prove from the repo that it does not. That is an assumption of the table, not a fact: the first GA after

@@ -1,0 +1,13 @@
+{
+ "invokes": [
+  ["p/Use.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Use.<init>:()V", 1],
+  ["p/Use.java", 7, "invokeinterface", "p.Writer", "write", "(I)V", "p.Use.f:(Lp/Writer;)V", 2],
+  ["p/Use.java", 11, "invokevirtual", "java.io.Reader", "read", "()I", "p.Use.g:(Ljava/io/Reader;)V", 1],
+  ["p/Use.java", 16, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Other.<init>:()V", 1]
+ ],
+ "classes": {
+  "p.Other": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0], ["write", "(I)V", 0]], "bridges": [], "compiler": []},
+  "p.Use": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Lp/Writer;)V", 0], ["g", "(Ljava/io/Reader;)V", 0]], "bridges": [], "compiler": []},
+  "p.Writer": {"supers": ["java.lang.Object"], "methods": [["write", "(I)V", 1]], "bridges": [], "compiler": []}
+ }
+}

@@ -984,13 +984,85 @@ A file whose directory does not end in its `package` path is not indexed and is 
 compiles as data), and two files that define one fully qualified name (Android product flavours) are indexed as neither:
 their types have no symbol, calls of them are unresolved, and `ripple index` warns that the files share a module name.
 
+**What an on-demand import does not give.** A name that an on-demand import of a JDK package might supply (`import java.util.*;`,
+then `Timer`) is NOT resolved to the JDK's type. It is `?.Name`, a type of a package that is not known, and the shipped JDK table
+is not read for it. A type of the file's own package comes before every on-demand import (JLS 6.4.1), and a package is not
+closed: a jar on the classpath, or generated code, can put a `Timer` into the file's package or into a repo package the file
+imports, and ripple cannot see it. The table's absences ("`java.util.Timer` has no `foo`, so `foo()` is the enclosing class's",
+"final", "no such constructor") would then be about the wrong type. So such a name supplies nothing: a class that extends it may
+declare, inherit and be anything, a call on it is external only where no repo type may be an instance of it, and it never picks an
+overload by its type. A package that no outside source can add to would allow more, and that is a named module,
+`module-info.java`, which ripple does not read. What the repo's own sources supply is exact: a repo type an on-demand import
+brings is the name, and a type of the package, in any file ripple read, comes first.
+
+**What this closes.** Each of these gave a wrong edge or a wrong "external" before, and is now unresolved with the reason:
+a single static import of the name (`import static p.Shapes.Queue;` may import a member type that comes before the on-demand
+import); a static on-demand import of a repo type that has a member type of the name; `import module m;` (JDK 23 and later),
+which the grammar cannot read and which may export repo types; a package that only a file in the wrong directory declares, which
+is an unknown package and not a repo package; and a `.java` file of the repo that ripple did not read whole.
+
+*Which files.* Every `.java` file below the repo that the walk does not hand over: `package-info.java` (javac accepts a class
+there), `module-info.java`, build output under `target/`, `build/`, `out/`, `bin/` (where the build tool that writes it is
+there), hidden directories and every other directory the walk skips, a file in a directory that is not its package's, a file the
+parser read in part (a parse error: the structure it recovered is no evidence, so every method the text of such a file declares
+counts as unseen, the ones the parser saw too), and a file that could not be read. Only `.git`, `node_modules`, `__pycache__`
+and `site-packages` are not looked into, and a directory behind a symlink is not followed (the walk does not follow one either).
+Ripple reads their text, not their tree. The text is decoded as UTF-8, else ISO-8859-1 (which gives every byte a character, so no
+byte sequence hides a name), with UTF-16 and UTF-32 decoded by their byte-order mark or, with none, by the NUL bytes between the
+letters. A scan errs toward more names: a name is any run of characters that is no blank, separator, operator or quote (Java
+allows `$`, currency signs, connector punctuation, combining marks and every letter of Unicode, and characters javac ignores in an
+identifier are dropped); a method name is noted wherever a declaration may stand (a name after a result type, so `record(...)`,
+`yield()` and every contextual keyword count, and a name after something the scan does not know counts with no arity); every
+component of a record is an accessor; every name after `class`, `interface`, `enum` and `record` is a type. The number of
+parameters narrows a refusal only when the list is read with certainty (closed, no receiver parameter; a varargs one takes any
+number from one less than its parameters).
+
+*Which verdicts.* One question is asked wherever ripple would take a type for a library type, `unread_type(qualified name)`: may
+an unread file declare a type of that package and name? If so the verdict is unresolved, never external. It is asked on every
+route that makes a type external: a single-type import, a full name (`new q.Maker()`, a field, a parameter, a local, a cast, a
+caught type), an on-demand import, a name of the file's own package, a single or on-demand static import (`make()`), a
+superclass (`class Sub extends Maker`, `super.m()`, `super(...)`, a method a read subtype inherits from it), a member type, and
+a full name in a package of the JDK. A test (`tests/test_java_unread_types.py`) reads every place the resolver builds an
+external verdict off the module's own syntax tree and fails on one that is not classified, and runs a matrix of every route twice,
+with the type in an unread file and in a jar. The other conclusion, "no repo code runs here" from the absence of a method name,
+asks `unseen_method(name, arguments)` on every route: a call no repo method has the name of, a value of a type from outside the
+repo that a repo type may be, a method inherited from outside the repo that a subtype may override. An enum, a record and a final
+class have no subtype in a file ripple did not read, but only where their own file was read whole.
+
+*Which files are never opened.* Only a regular file inside the repo is opened, and at most 4 MiB of it is read. A named pipe, a
+device, a socket and a directory called `X.java` are never opened and declare nothing; neither does a link that leads nowhere
+(dangling, or around a loop). A link to a file outside the repo is not read and may declare anything, a file that cannot be read
+and a directory that cannot be listed may declare anything, and a file larger than 4 MiB is not scanned: it may declare any method
+and any type of the package its first bytes say. Each of these is listed with the files that did not parse, with the reason.
+
+*What it costs.* Recall only. A repo with a `.java` file that declares a method of a name ripple would otherwise have proven
+external has those calls unresolved, whatever type they go through (a name is asked, not a receiver). A copy of the sources that
+is not byte-identical (a `target/checkout` that the maven release plugin leaves, a checkout under `.claude/worktrees`) is a set of
+unread files that declares what the sources do: on commons-lang with such a copy, 2,950 of 43,235 external calls become
+unresolved. A byte-identical copy costs nothing. Measured on gson, commons-lang, junit5, okhttp, auto, petclinic and antennapod
+(a quarter of a million call sites), two sites move from external to unresolved, both in auto, and none in the other six.
+
+**What is assumed.** The names `java.lang` supplies keep the reading they had before this: `java.lang.Name` where every JDK has
+the type or nothing else is imported on demand, `?.Name` otherwise, and a full name `java.lang.Name` is not asked of the unread
+files. That reading has the same exposure (a type of the package that no source shows would come first), none of the guards above
+applies to it, and it is not widened. "Every JDK" means JDK 8 through 27: a build for an older JDK, whose library had a type that
+JDK 8 added to `java.util` (`Base64`), is outside it, as a JDK after 27 is. Code outside the repo is assumed to be what its name
+says: a type from a jar is a library type, and a file that a build compiles from outside the repo directory (a source path above it,
+a directory behind a symlink, generated output written elsewhere, an annotation processor's) is not seen. Other JVM languages are
+not read: a Kotlin, Scala or Groovy source in the repo may declare a type that a `.java` file imports, and ripple does not know it.
+A source in an encoding that is neither UTF-8, UTF-16 or UTF-32 nor ASCII-compatible (EBCDIC) is not read as the text it is, and
+names in a script outside ISO-8859-1 in UTF-16 or UTF-32 with no byte-order mark are not decoded.
+
+
+
 **Limits.** The JDK table covers JDK 8 through 27 (a later JDK is past its horizon, see above) and `java.base` and
 `java.compiler` only: a type from any other JDK module (`java.desktop`,
 `java.sql`) or from a library is unknown, so a call that a supertype of that kind could answer stays unresolved. A name that
-an on-demand import supplies (`import java.util.*;`) has no package in ripple's reading, so it is unknown too. `check` has no
+an on-demand import supplies has no package in ripple's reading, so it is unknown, whatever the table holds.
+The table is read for a name only through a single-type import, a fully written name, or java.lang. `check` has no
 default test command for Java, and no test is collected.
 
-**Checked against the compiler.** `bench/fixtures/java/probes` holds 185 small legal Java programs, each with `javac.json`:
+**Checked against the compiler.** `bench/fixtures/java/probes` holds 195 small legal Java programs, each with `javac.json`:
 every invoke instruction javac wrote for it (`bench/java_probes.py`, run by hand with a JDK). Five of them depend on the JDK
 they are built with and also carry the answer of another javac (`javac-8.json`, `javac-25.json`, `javac-26.json`); ripple is
 held to every one. (A source file whose first line is `// javac-min: 26` is compiled only by a javac of that release or later.) `tests/test_java_probes.py`

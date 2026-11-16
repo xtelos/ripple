@@ -1,0 +1,19 @@
+{
+ "invokes": [
+  ["p/Use.java", 5, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Item.<init>:()V", 1],
+  ["p/Use.java", 11, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Base.<init>:()V", 1],
+  ["p/Use.java", 15, "invokespecial", "java.lang.Thread", "<init>", "()V", "p.Task.<init>:()V", 1],
+  ["p/Use.java", 19, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Use.<init>:()V", 1],
+  ["p/Use.java", 21, "invokevirtual", "p.Base", "note", "(Lp/Item;)V", "p.Use.run:(Lp/Base;Lp/Task;Lp/Item;Ljava/util/List;)V", 2],
+  ["p/Use.java", 22, "invokevirtual", "p.Task", "note", "(Lp/Item;)V", "p.Use.run:(Lp/Base;Lp/Task;Lp/Item;Ljava/util/List;)V", 7],
+  ["p/Use.java", 23, "invokevirtual", "p.Base", "pid", "()J", "p.Use.run:(Lp/Base;Lp/Task;Lp/Item;Ljava/util/List;)V", 11],
+  ["p/Use.java", 24, "invokevirtual", "p.Task", "getName", "()Ljava/lang/String;", "p.Use.run:(Lp/Base;Lp/Task;Lp/Item;Ljava/util/List;)V", 16],
+  ["p/Use.java", 25, "invokeinterface", "java.util.List", "size", "()I", "p.Use.run:(Lp/Base;Lp/Task;Lp/Item;Ljava/util/List;)V", 22]
+ ],
+ "classes": {
+  "p.Base": {"supers": ["java.lang.Comparable", "java.lang.Object", "java.lang.ProcessHandle"], "methods": [["<init>", "()V", 0], ["note", "(Lp/Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.Item": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 0]], "bridges": [], "compiler": []},
+  "p.Task": {"supers": ["java.lang.Object", "java.lang.Runnable", "java.lang.Thread"], "methods": [["<init>", "()V", 0], ["note", "(Lp/Item;)V", 0]], "bridges": [], "compiler": []},
+  "p.Use": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["run", "(Lp/Base;Lp/Task;Lp/Item;Ljava/util/List;)V", 0]], "bridges": [], "compiler": []}
+ }
+}

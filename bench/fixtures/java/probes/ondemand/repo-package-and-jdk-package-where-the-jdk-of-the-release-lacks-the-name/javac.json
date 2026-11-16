@@ -1,0 +1,13 @@
+{
+ "invokes": [
+  ["p/Use.java", 6, "invokespecial", "java.lang.Object", "<init>", "()V", "p.Use.<init>:()V", 1],
+  ["p/Use.java", 8, "invokevirtual", "q.SequencedCollection", "addFirst", "(Ljava/lang/Object;)V", "p.Use.f:(Lq/SequencedCollection;Ljava/util/List;)I", 3],
+  ["p/Use.java", 9, "invokeinterface", "java.util.List", "size", "()I", "p.Use.f:(Lq/SequencedCollection;Ljava/util/List;)I", 11],
+  ["p/Use.java", 9, "invokevirtual", "q.SequencedCollection", "size", "()I", "p.Use.f:(Lq/SequencedCollection;Ljava/util/List;)I", 7],
+  ["q/SequencedCollection.java", 9, "invokespecial", "java.lang.Object", "<init>", "()V", "q.SequencedCollection.<init>:()V", 1]
+ ],
+ "classes": {
+  "p.Use": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["f", "(Lq/SequencedCollection;Ljava/util/List;)I", 0]], "bridges": [], "compiler": []},
+  "q.SequencedCollection": {"supers": ["java.lang.Object"], "methods": [["<init>", "()V", 1], ["addFirst", "(Ljava/lang/Object;)V", 1], ["size", "()I", 1]], "bridges": [], "compiler": []}
+ }
+}
