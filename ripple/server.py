@@ -18,8 +18,8 @@ from mcp.types import ToolAnnotations
 
 from . import __version__, queries
 from .cache import RepoIndex
-from .checker import run_check
-from .languages import RepoError, check_profile, check_repo, selected_profiles, with_warnings
+from .checker import given_command, run_check
+from .languages import RepoError, check_profile, check_repo, choices, selected_profiles, with_warnings
 
 INSTRUCTIONS = """\
 ripple answers questions about the call graph of this repository, written in
@@ -76,6 +76,7 @@ def build_server(repo: str, test_command: str | None = None, timeout: float = 30
     """The server for one repository. lang is "auto" (the languages its files are in) or the name of a registered language (registry.py)."""
     check_repo(repo)  # a repo that is not there fails now, with a message, not at the first question
     selected_profiles(lang)
+    server_lang = lang  # the `check` tool has an argument of the same name
     index = RepoIndex(repo, lang=lang)
     server = MCPServer("ripple", version=__version__, instructions=INSTRUCTIONS)
 
@@ -155,7 +156,7 @@ def build_server(repo: str, test_command: str | None = None, timeout: float = 30
         description=(
             "Run the repository's test command and return pass or fail, the summary line and the first "
             "failing tests, never the full log. The command is the one the server was started with; with none, "
-            "the Python profile (a repo with any Python file, or --lang python) runs python -m pytest -q (the "
+            "the Python profile (a repo with only Python files, or --lang python) runs python -m pytest -q (the "
             "repo's .venv or venv if it has one), the Go profile (a repo with only Go files, or --lang go) runs "
             "`go test -json` in every module and reads the verdict from the event stream (a build failure, a package "
             "with no test files, a -run pattern that matches nothing, a panic, a timeout or a test binary that exits "
@@ -168,7 +169,12 @@ def build_server(repo: str, test_command: str | None = None, timeout: float = 30
             "only Java files, or --lang java) runs mvn test (mvnw if the repo has one) and reads the verdict from "
             "surefire's XML reports of that run (a selector that matches nothing, a compile failure, a module that never "
             "ran, a JVM crash, a skipped test or a stale report is never reported as passed), and the TypeScript profile "
-            "(a repo with only TypeScript files, or --lang typescript) has no default and refuses. tests: optional test "
+            "(a repo with only TypeScript files, or --lang typescript) has no default and refuses. lang (optional; "
+            f"{', '.join(choices())}) is needed when the repo has source files of more than one language (TypeScript and "
+            "JavaScript count as one) and the server was started with no --lang and no test command: check refuses then, "
+            "with an error that names the languages, and lang picks that language's runner for this call only (with a test "
+            "command it picks the profile that reads the failing tests out of the output); omitted, it is the --lang the "
+            "server was started with. tests: optional test "
             "file or directory paths inside the repo, or for Python pytest node ids (path::name, e.g. the node_id of each "
             "test impact listed), added to that command to run instead of the whole suite. For Go: a directory, a "
             "_test.go file, file_test.go::TestName or file_test.go::TestName/subtest, or the symbol id impact lists for "
@@ -182,10 +188,12 @@ def build_server(repo: str, test_command: str | None = None, timeout: float = 30
             "Options (anything starting with '-') are refused."
         ),
     )
-    def check(tests: list[str] | None = None) -> dict:
+    def check(tests: list[str] | None = None, lang: str | None = None) -> dict:
         try:
-            profile = check_profile(index.repo, lang)
-            return run_check(index.repo, command=test_command, timeout=timeout, tests=tests, profile=profile)
+            # a per-call lang overrides the server's for this call only; an unknown name is selected_profiles' RepoError
+            command = given_command(test_command)  # decided once: the refusal and the runner both read this
+            profile = check_profile(index.repo, server_lang if lang is None else lang, has_command=command is not None, tool=True)
+            return run_check(index.repo, command=command, timeout=timeout, tests=tests, profile=profile)
         except ValueError as error:  # includes RepoError, and a language with no default test command
             raise ToolError(str(error)) from error  # the agent sees this message; other errors are masked
 

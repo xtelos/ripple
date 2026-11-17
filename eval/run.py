@@ -146,7 +146,13 @@ def mcp_config(
         "args": [*lead, "serve", "--repo", str(repo)],
         "env": {"RIPPLE_CACHE_DIR": str(cache_dir)},
     }
-    if task is not None and task.is_node:
+    if task is None or not task.is_node:
+        # A Python task is graded by pytest, and its checkout may hold a stray file of another language (werkzeug has one
+        # debugger.js beside 138 Python files). Without --lang, `check` refuses a repo of two languages and names the choices,
+        # so the with-ripple arm's first `check` would fail where the without arm runs the tests. --lang python makes `check`
+        # run pytest as it always did, and the server indexes the Python files only.
+        entry["args"] += ["--lang", "python"]
+    else:
         # A TypeScript repo has no default test command, so the `check` tool needs one: the runner shim, which
         # runs what the grader runs (and, started by this server, needs node on its PATH).
         runner = shlex.join([f"{bin_dir}/{task.spec.runner}", *(["run"] if task.spec.runner == "vitest" else [])])

@@ -6,7 +6,7 @@ from conftest import FIXTURES
 from stdio_client import StdioClient
 
 from ripple.checker import check_tests, default_test_command
-from ripple.languages import check_profile
+from ripple.languages import RepoError, check_profile
 from ripple.profile import PYTHON, TYPESCRIPT
 
 READ_ONLY = {"callers", "callees", "impact", "path"}
@@ -49,11 +49,18 @@ def test_check_description_says_what_check_does(client, make_repo, tmp_path_fact
     mixed = make_repo({"a.py": "def f():\n    pass\n", "b.ts": "export function g() { return 1; }\n"})
     typescript_only = tmp_path_factory.mktemp("tsonly")
     (typescript_only / "b.ts").write_text("export function g() { return 1; }\n")
-    # "with none, the Python profile (a repo with any Python file, or --lang python) runs python -m pytest -q ... the
-    # TypeScript profile (a repo with only TypeScript files, or --lang typescript) has no default and refuses"
-    assert "a repo with any Python file, or --lang python" in check
+    # "with none, the Python profile (a repo with only Python files, or --lang python) runs python -m pytest -q ... the
+    # TypeScript profile (a repo with only TypeScript files, or --lang typescript) has no default and refuses ... a server
+    # started with no --lang and no test command: check refuses then" (the tool's lang is the way out)
+    assert "a repo with only Python files, or --lang python" in check
     assert "a repo with only TypeScript files, or --lang typescript" in check
-    assert check_profile(mixed, "auto") is PYTHON and check_profile(mixed, "python") is PYTHON
+    assert "is needed when the repo has source files of more than one language" in check
+    assert "the server was started with no --lang and no test command: check refuses then" in check
+    with pytest.raises(RepoError, match=r'it has Python and TypeScript source files.*Call check again with lang="python" or lang="typescript"'):
+        check_profile(mixed, "auto", tool=True)
+    with pytest.raises(RepoError, match="Pass --lang python or --lang typescript"):
+        check_profile(mixed, "auto")
+    assert check_profile(mixed, "auto", has_command=True) is PYTHON and check_profile(mixed, "python") is PYTHON
     assert check_profile(typescript_only, "auto") is TYPESCRIPT and check_profile(mixed, "typescript") is TYPESCRIPT
     assert default_test_command(mixed, PYTHON)[-3:] == ["-m", "pytest", "-q"]
     with pytest.raises(ValueError, match="does not know how to run TypeScript tests"):

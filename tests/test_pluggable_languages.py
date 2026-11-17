@@ -118,10 +118,17 @@ def test_scan_finds_the_files_of_all_three_languages_and_names_them_in_its_error
         scan_repo(empty, "beta")
 
 
-def test_check_uses_the_first_language_the_repo_has(three, make_repo):  # (make_repo writes into one directory, so the files accumulate)
+def test_check_uses_the_language_the_repo_has_and_names_the_languages_when_it_has_more(three, make_repo):  # (make_repo writes into one directory, so the files accumulate)
     assert check_profile(make_repo({"a.fb": "sym x.y\n"})) is BETA
-    assert check_profile(make_repo({"a.fa": "sym x.y\n"})) is ALPHA  # same directory: Alpha comes before Beta
-    assert check_profile(make_repo({"a.py": "x = 1\n"})) is PYTHON
+    repo = make_repo({"a.fa": "sym x.y\n"})  # same directory: now Alpha and Beta
+    with pytest.raises(RepoError, match=r"it has Alpha and Beta source files.*Pass --lang alpha or --lang beta"):
+        check_profile(repo)
+    assert check_profile(repo, has_command=True) is ALPHA  # a command was given: the first registered language, as before
+    assert check_profile(repo, "beta") is BETA
+    repo = make_repo({"a.py": "x = 1\n"})
+    with pytest.raises(RepoError, match="it has Python, Alpha and Beta source files"):
+        check_profile(repo)
+    assert check_profile(repo, has_command=True) is PYTHON
 
 
 def test_each_language_is_indexed_by_its_own_front_end_and_cached_under_its_own_key(three, make_repo, tmp_path):
