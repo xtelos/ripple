@@ -25,8 +25,8 @@ INSTRUCTIONS = """\
 ripple answers questions about the call graph of this repository, written in
 Python, TypeScript, JavaScript, Go, Rust, Java or a mix. Before changing a function, call impact on it to
 see what calls it (grouped by file) and which tests reach it; after the
-change, call check with the node_id of each of those tests (TypeScript, JavaScript, Go, Rust and Java tests
-are not collected yet: every caller of one of their symbols is listed as code).
+change, call check with the node_id of each of those tests (Go tests are collected too, as file_test.go::TestName;
+TypeScript, JavaScript, Rust and Java tests are not collected yet: every caller of one of their symbols is listed as code).
 A Python symbol is a full dotted path (pkg.module.Class.method), a suffix
 (Class.method) or a bare name. A TypeScript or JavaScript symbol is its file path without
 the extension, a colon and the member (src/util/math:clamp, src/cart/cart:Cart.add),
@@ -126,7 +126,8 @@ def build_server(repo: str, test_command: str | None = None, timeout: float = 30
         description=(
             "Answer 'what breaks if I change this?': every transitive caller of a symbol up to depth "
             "hops, grouped by file, with the Python tests that reach it listed separately (each with the pytest "
-            "node_id to pass to check; TypeScript tests are not collected, so their callers are listed as code). "
+            "node_id to pass to check; so are Go tests, as file_test.go::TestName, and a caller that looks like a Go test but has no id check can run "
+            "is listed under tests_not_listed with the reason; TypeScript tests are not collected, so their callers are listed as code). "
             "At most limit callers and limit tests are listed; truncated and omitted_callers / omitted_tests say how many more were found (decorator sites are cut too: decorations_omitted, and truncated counts them). Also lists unresolved call "
             "sites with the same name, which static analysis cannot rule out, and where a TypeScript symbol is written as a decorator (decorations, not calls), including where a caller it found is itself a decorator (decorations_of_callers: the reach continues past those sites). Follows every edge kind by default: a "
             "TypeScript component that writes <Symbol /> is affected too (it can break when the symbol changes), and a "

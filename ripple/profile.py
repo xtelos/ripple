@@ -25,6 +25,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
+from .go_tests import GoTestCollection
 from .model import Graph
 from .pytest_collection import PytestCollection
 
@@ -380,7 +381,7 @@ GO = LanguageProfile(
     allocator_name="",
     implicit_base="",
     has_universal_member=lambda name: False,
-    test_collection=NoTestCollection,
+    test_collection=GoTestCollection,  # the indexer decides which functions are tests (go_tests.py), the graph holds the ids
     default_test_command=_no_go_test_command,
     failure_prefixes=(),
 )

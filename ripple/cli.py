@@ -243,6 +243,11 @@ def format_impact(result: dict) -> str:
         lines.append(f"  {t['node_id']}")
     if result["omitted_tests"]:
         lines.append(MORE.format(n=result["omitted_tests"], what="tests"))
+    if result.get("tests_not_listed"):  # Go: callers that look like tests and have no id check can run, with why
+        lines.append(f"callers that look like tests but have no id `check` can run ({len(result['tests_not_listed'])}), the reason after each:")
+        lines += [f"  {t['symbol']}  {t['file']}:{t['line']}  {t['reason']}" for t in result["tests_not_listed"]]
+    if result.get("tests_not_listed_omitted"):
+        lines.append(MORE.format(n=result["tests_not_listed_omitted"], what="tests without an id"))
     if result["more_beyond_depth"]:
         lines.append("more callers exist beyond this depth; raise --depth to see them")
     if result["possible_missed_callers"]:

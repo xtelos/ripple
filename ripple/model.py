@@ -175,6 +175,10 @@ class Graph:
     # Rust: files no `mod` declaration reaches, and `mod x;` declarations that name no file, each with its reason. They
     # were not read (a parse failure is in parse_errors). Empty for Python and TypeScript.
     unread: list[str] = field(default_factory=list)
+    # Go: the symbol id of each test function `go test` runs -> the id `check` takes for it (`file_test.go::TestX`), and the
+    # id of each function that looks like a test and has none -> why (see go_tests.py). Empty for every other language.
+    test_ids: dict[str, str] = field(default_factory=dict)
+    tests_withheld: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self._index()
@@ -251,6 +255,10 @@ class Graph:
             data["export_aliases"] = self.export_aliases
         if self.unread:
             data["unread"] = self.unread
+        if self.test_ids:  # only a Go graph with tests carries the keys
+            data["test_ids"] = self.test_ids
+        if self.tests_withheld:
+            data["tests_withheld"] = self.tests_withheld
         return data
 
     @classmethod
@@ -269,4 +277,6 @@ class Graph:
             decorations=[Decoration(**d) for d in data.get("decorations", [])],
             export_aliases=data.get("export_aliases", {}),
             unread=data.get("unread", []),
+            test_ids=data.get("test_ids", {}),
+            tests_withheld=data.get("tests_withheld", {}),
         )
