@@ -544,7 +544,9 @@ type parameters, a value whose type is not written, anything that depends on whi
 wins. Build constraints are never evaluated: a function defined under several has an edge to each variant, and a variable, a
 type, a result that the variants read differently, a method that only some builds declare (a `//go:build` line, a `_linux.go`
 name, a `_test.go` file) while another is promoted, or a method declared on an alias that is itself declared twice, is
-unresolved.
+unresolved. A `_test.go` method counts only for a call in a `_test.go` file of the same directory (its package and its
+external `_test` package); a call in another directory's tests, whose binary links the package without its test files, runs
+the promoted method.
 
 **Interface implementers, the `implements` edge.** A call `v.M()` through a repo interface stays unresolved, and also gets an
 edge of a kind of its own, `implements`, to `T.M` for each repo type `T` that provably satisfies the whole interface (`*T`'s
