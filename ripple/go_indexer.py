@@ -1620,10 +1620,25 @@ class Resolver:
             return ("unknown", None)
         return self.walk([base[1]], name, set())
 
+    def in_another_test_build(self, decl: FuncDecl) -> bool:
+        """Whether the declaration is in a _test.go file of another directory than a call in a _test.go file: a package's
+        test files are compiled into its own test binary (and its external test package's) and into no other, so the
+        build that has the call never has the declaration, whatever tags either file carries."""
+        return (
+            self.file is not None
+            and self.file.rel.endswith("_test.go")
+            and decl.file.rel.endswith("_test.go")
+            and decl.file.package.dir != self.file.package.dir
+        )
+
     def in_every_build(self, decl: FuncDecl) -> bool:
         """Whether the declaration is there in every build that has the call being resolved: a declaration in no
-        constrained file is, and so is one in a _test.go file for a call in a _test.go file (a test build has them all)."""
-        return not decl.file.constrained or (decl.file.tests_only and self.file is not None and self.file.tests_only)
+        constrained file is, and so is one in a _test.go file for a call in a _test.go file of the same directory (that
+        package's test binary has them all, and so does its external test package's; another directory's test binary
+        has none of them)."""
+        return not decl.file.constrained or (
+            decl.file.tests_only and self.file is not None and self.file.tests_only and decl.file.package.dir == self.file.package.dir
+        )
 
     def walk(self, level: list[TypeInfo], name: str, seen: set[int]):
         """The spec's depth rule: the shallowest level of embedded types that has `name`, and unresolved whenever a
@@ -1636,7 +1651,8 @@ class Resolver:
                 if id(type_info) in seen:
                     continue
                 seen.add(id(type_info))
-                declared = type_info.methods.get(name)
+                # a method of another directory's _test.go file is not in the build the call is in: the type has what it embeds
+                declared = [d for d in type_info.methods.get(name, ()) if not self.in_another_test_build(d)]
                 if declared and any(self.in_every_build(d) for d in declared):
                     matches.append(("method", declared, type_info))  # a declaration that every build of this call has
                     continue
@@ -2100,11 +2116,18 @@ class Resolver:
         """The signature is the same, and an unexported name is of the same package (two packages' `m` are two methods)."""
         return ours[0] == theirs[0] and (name[:1].isupper() or ours[1] is theirs[1])
 
+    def build_context(self) -> tuple:
+        """Everything about the file being read that `walk` takes into what is built wherever the call is: whether it is
+        built exactly with the other _test.go files (`tests_only`), whether it is a _test.go file at all (a constrained one is
+        not `tests_only`, and still never has another directory's test files), and its package (its directory). A cache of
+        walk's answers keys on all of it, or one file's answer is read by another."""
+        return (self.file.tests_only, self.file.rel.endswith("_test.go"), id(self.file.package))
+
     def provided(self, type_info: TypeInfo, name: str):
         """What a type's method set has under `name`, by the depth rule, as far as every build has it: ("method", [decl])
         for one method declared once, ("iface", interface) for one the type's embedded interface gives it, else
         ("none",). Answers are kept per build context (what is built wherever the call is depends on the call's file)."""
-        context = (self.file.tests_only, id(self.file.package), id(type_info), name)
+        context = (*self.build_context(), id(type_info), name)
         if context not in self.provided_cache:
             found = self.walk([type_info], name, set())
             answer = ("none",)
@@ -2169,7 +2192,7 @@ class Resolver:
     def implementers(self, iface: TypeInfo, member: str) -> list[FuncDecl]:
         """The repo methods a call of `member` on a value held as `iface` may dispatch to: the method each satisfying type
         has under that name, when it is declared (a method a type's embedded interface gives has no source here)."""
-        key = (self.file.tests_only, id(self.file.package), id(iface))
+        key = (*self.build_context(), id(iface))
         if key not in self.satisfiers:
             self.satisfiers[key] = self.satisfying(iface)
         out: dict[str, FuncDecl] = {}
