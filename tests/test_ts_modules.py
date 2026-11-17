@@ -103,7 +103,7 @@ def test_bare_specifiers_are_packages_unless_an_alias_names_a_repo_file(make_rep
     assert modules.resolve("react", "src/a.ts") == ("package", "react")
     assert modules.resolve("node:fs", "src/a.ts") == ("package", "node:fs")
     assert modules.resolve("@wh/policy", "src/a.ts") == ("package", "@wh/policy")  # no tsconfig, no alias
-    assert modules.resolve("/abs/path", "src/a.ts") == ("package", "/abs/path")
+    assert modules.resolve("/abs/path", "src/a.ts")[0] == "unresolved"  # a path on this machine: it may name a file of the repo
 
 
 def test_tsconfig_paths_resolve_wildcards_exact_names_and_prefer_the_longest_pattern(make_repo):

@@ -15,10 +15,22 @@ An import specifier is turned into one of four answers (see ModuleMap.resolve):
                 package.json of the repo
 "package" and "missing" claim that nothing of the repo can be reached, which is made only when it is so. So a relative path never
 names a package where it reaches source of the repo (a file in a hidden directory, or in the root build output, which the walk skips,
-or one that leaves the repo by `..` and walks back in; an entry of the repo whose name starts with `..` is inside it), and a bare name
-that is a Node builtin (which Node takes whatever `baseUrl` or `paths` map it to, and a bundler may not) is "unresolved" when a config
-maps it into the repo; `node:` is always the builtin. All of these hold for either language. In a JavaScript file an absolute path and
-a `file:` URL (which name a file by where it is on the machine) are "unresolved" as well.
+a .vue, .svelte or .astro component, which ripple does not read, or one that leaves the repo by `..` and walks back in; an entry of
+the repo whose name starts with `..` is inside it), and it is never "missing" where adding an extension (or `/index`) names such a
+file. A bare name that is a Node builtin (which Node takes whatever `baseUrl` or `paths` map it to, and a bundler may not, esbuild for
+the browser maps `node:util` as well) is "unresolved" when a config maps it into the repo. All of these hold for either language, as
+do these: an absolute path, a `file:` URL (which name a file by where it is on the machine), a `data:` URL (code written in the file,
+which may import a file of the repo by its `file:` URL) and a string with a backslash are "unresolved"; so is a relative specifier with
+`?`, `#` or `%` (ESM and the bundlers read it as a URL, the compiler and Node's require as a path), and so is an alias with one when
+the part before it is mapped (a bundler keeps the query apart and loads the repo's file); and a bare alias with a trailing slash (the
+compiler takes the directory's index, a bundler the file of the same name, `lib.json` included) when a file of that name is there.
+A relative path and an alias classify what they find on disk by one rule (`_unread`): a file that holds code ripple does not read is
+unresolved, a JSON, CSS or image file or a package's file is a package, nothing is missing (or, for an alias, the next rule).
+
+The answers above read the file system beyond the files the walk finds (a path under a skipped directory, a component, a directory, a
+link, whether a path leaves the repo and comes back). The cache fingerprint does not watch those, so every such question a ModuleMap
+asks is kept (`ModuleMap.probes`, `ModuleMap.reenter`), stored with the graph (ProbeRecorder, cache.load_graph) and asked again when
+the graph is loaded: a difference means the cached graph is not used.
 
 Which file an import names is the compiler's answer, and ripple names a file only when the compiler, Node and the bundlers
 agree on it. The compiler tries every TypeScript extension (.ts, .tsx, then the directory's index) and only then the
@@ -62,6 +74,7 @@ import json
 import os
 import posixpath
 import re
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -91,6 +104,14 @@ MAX_REFERENCE_DEPTH = 4  # levels of `references` followed below a config (a con
 # What an include pattern may match (the compiler's supported extensions); `files` names a file outright.
 SOURCE_EXTENSIONS = SUFFIXES + JS_SUFFIXES
 IMPLICIT_EXCLUDES = ("node_modules", "bower_components", "jspm_packages")
+# Files that hold code of the repo and that ripple does not read (no module id): a component of a framework. An import of one is
+# never a package. The extensions an import may omit and a resolver adds without ripple's walk having the file: see `_on_disk`.
+COMPONENTS = (".vue", ".svelte", ".astro")
+CODE = SOURCE_EXTENSIONS + COMPONENTS
+# What a resolver adds to a path with no extension (the compiler: .ts .tsx .d.ts .js .jsx; Node's require: .js .json .node; Vite, Rollup and
+# esbuild: .mjs .js .mts .ts .jsx .tsx .json; a Vue or Svelte setup: the component's own), never .cjs or .cts. The one list: a file of
+# one of them beside a directory is its twin (see `_file_of`), and one that holds code ripple does not read is what the import names.
+PROBED = (".ts", ".tsx", ".js", ".jsx", ".mjs", ".mts", ".json", ".node", *COMPONENTS, *DECLARATIONS)
 # The modules Node 24 loads by a bare name (`require("module").builtinModules`): Node takes one of these before any package or any
 # path a config maps, so `import "util"` is the builtin to Node even where `baseUrl` reaches a util.js of the repo. The names that
 # only exist behind `node:` (`node:test`, `node:sqlite`, `node:sea`) are not in it: they are never a bare name.
@@ -632,11 +653,17 @@ def above_root(base: str) -> bool:
     return base == ".." or base.startswith("../")
 
 
-def _file_url(specifier: str) -> bool:
-    """Whether Node reads the specifier as a URL with the `file:` scheme. The URL parser drops leading and trailing control characters
-    and spaces and every tab and newline, and takes the scheme in any case, so ` FILE://x` and `fi<tab>le://x` are file URLs."""
+def _url_scheme(specifier: str, scheme: str) -> bool:
+    """Whether Node reads the specifier as a URL with this scheme (`file:`, `data:`). The URL parser drops leading and trailing
+    control characters and spaces and every tab and newline, and takes the scheme in any case, so ` FILE://x` and `fi<tab>le://x`
+    are file URLs."""
     cleaned = specifier.translate({9: None, 10: None, 13: None}).strip("".join(chr(c) for c in range(33)))
-    return cleaned[:5].lower() == "file:"
+    return cleaned[: len(scheme)].lower() == scheme
+
+
+def _file_url(specifier: str) -> bool:
+    """Whether Node reads the specifier as a URL with the `file:` scheme."""
+    return _url_scheme(specifier, "file:")
 
 
 def _candidates(base: str, js: bool, directory: bool = False) -> list[str]:
@@ -654,6 +681,85 @@ def _candidates(base: str, js: bool, directory: bool = False) -> list[str]:
         if base.endswith(ext) and not directory:
             written += [base[: -len(ext)] + other for other in replacements]
     return written + [b + ext for b in plain for ext in GUESSES] + [f"{pre}index{ext}" for ext in GUESSES]
+
+
+def file_state(root: Path, rel: str) -> list:
+    """What the file system holds at the repo-relative path `rel` (`root` is the repo's real path), as one short token the
+    resolver's answers depend on: `[]` for nothing, `["!"]` for a path it cannot read (a link loop, a name too long), else
+    `[kind]` with kind `f` (a file), `d` (a directory) or `o`, and a second item when the path is really somewhere else (a link,
+    or a link in a directory above it): the repo-relative path it leads to, or None when that is outside the repo. Nothing in it is an
+    absolute path."""
+    try:
+        path = root / rel
+        if not path.exists():
+            return []
+        kind = "f" if path.is_file() else "d" if path.is_dir() else "o"
+        real = path.resolve()
+        if not real.is_relative_to(root):
+            return [kind, None]
+        target = real.relative_to(root).as_posix()
+        target = "" if target == "." else target
+        return [kind] if target == ("" if rel == "." else rel) else [kind, target]
+    except (OSError, RuntimeError, ValueError):
+        return ["!"]
+
+
+def reenters_at(root: Path, base: str) -> bool:
+    """Whether the repo-relative path `base`, which leaves the repo by `..`, lands inside it again as the file system has it
+    (`../repo/a` from the root of /work/repo is /work/repo/a, and a link outside the repo may lead back in). True when it cannot be read:
+    a path the file system cannot read is not claimed to be outside."""
+    try:
+        lexical = Path(os.path.normpath(root / base))
+        return any(landing.is_relative_to(root) for landing in (lexical, lexical.resolve()))
+    except (OSError, RuntimeError, ValueError):
+        return True
+
+
+_RECORDERS: list["ProbeRecorder"] = []
+_RECORDING = threading.Lock()
+
+
+class ProbeRecorder:
+    """Collects, while it is open, what the file system was asked by every ModuleMap made (`ModuleMap.probes`, `ModuleMap.reenter`), as
+    the record the cache stores with the graph: the answers of an import that names a file ripple does not read, a directory, a link or a
+    path that leaves the repo hold only so long as these do, and none of them is a file the cache fingerprint watches. `probes_hold`
+    asks the file system the same questions again. Maps made on another thread in the same window are included: that costs a cache miss
+    at worst, never a stale answer."""
+
+    def __enter__(self) -> "ProbeRecorder":
+        self.maps: list[ModuleMap] = []
+        with _RECORDING:
+            _RECORDERS.append(self)
+        return self
+
+    def __exit__(self, *exc) -> None:
+        with _RECORDING:
+            _RECORDERS.remove(self)
+
+    def record(self) -> dict:
+        """{"fs": {repo-relative path: file_state}, "reenter": {repo-relative path above the root: whether it re-enters}}, both sorted."""
+        fs: dict[str, list] = {}
+        reenter: dict[str, bool | None] = {}
+        for found in self.maps:
+            for rel, state in found.probes.items():
+                fs[rel] = state if fs.get(rel, state) == state else ["?"]  # a path that changed under the build matches nothing
+            for base, back in found.reenter.items():
+                reenter[base] = back if reenter.get(base, back) == back else None
+        return {"fs": dict(sorted(fs.items())), "reenter": dict(sorted(reenter.items()))}
+
+
+def probes_hold(repo: Path, record: object) -> bool:
+    """Whether the file system still answers every question of a ProbeRecorder record as it did. A record that is not one (a cache
+    written before records existed) holds for nothing."""
+    if not isinstance(record, dict) or not isinstance(record.get("fs"), dict) or not isinstance(record.get("reenter"), dict):
+        return False
+    try:
+        root = repo.resolve()
+    except (OSError, RuntimeError):
+        return False
+    return all(file_state(root, rel) == state for rel, state in record["fs"].items()) and all(
+        reenters_at(root, base) == back for base, back in record["reenter"].items()
+    )
 
 
 class ModuleMap:
@@ -687,6 +793,11 @@ class ModuleMap:
         self._elsewhere: dict[tuple, str] = {}  # (specifier, importer) -> _aliased_elsewhere's answer
         self._names: dict[str, str] | None = None  # package name -> its package.json (see _package_names)
         self._directories: dict[str, bool] = {}  # repo-relative path -> whether it is a directory of the repo (see _directory)
+        # what the file system said outside the walk, for the cache to re-ask (see ProbeRecorder): repo-relative path -> file_state, and
+        # repo-relative path above the root -> whether it re-enters the repo
+        self.probes: dict[str, list] = {}
+        self.reenter: dict[str, bool] = {}
+        self._real_root: Path | None = None
         self.files = files
         self.modules: dict[str, str] = {}  # repo-relative path -> module id
         self.shadowed: list[str] = []  # the files that lost a clash over their id
@@ -708,6 +819,9 @@ class ModuleMap:
                 self.modules[rel] = chosen
                 used.add(chosen)
         self.repo = repo
+        with _RECORDING:
+            for recorder in _RECORDERS:
+                recorder.maps.append(self)
 
     def resolve(self, specifier: str, importer: str) -> tuple[str, str]:
         """("repo", module id), ("package", specifier), ("missing", specifier) or ("unresolved", why) for an import written in importer.
@@ -716,8 +830,13 @@ class ModuleMap:
         nothing the repo holds could be named: a directory, a package.json name or `imports` entry, or an alias of a
         config that does not govern the importer is left unresolved, because the file it names is decided by something
         ripple does not read or does not know applies."""
-        js = importer.endswith(JS_SUFFIXES)
-        if js and ("\\" in specifier or _file_url(specifier)):
+        if _url_scheme(specifier, "data:"):
+            # the module is the text of the URL, which is code of this file, and it may import a file of the repo by its `file:` URL
+            return "unresolved", (
+                f"`{specifier[:40]}` is a data: URL: the module is code written in this file, and it may import a file of this repo "
+                "by its file: URL, so what a call into it runs is not known"
+            )
+        if "\\" in specifier or _file_url(specifier):
             # a backslash is an escape sequence of the string, which is not decoded (`'\x2fabs/a.mjs'` is `/abs/a.mjs` to Node), and a
             # `file:` URL (any case, with the white space the URL parser drops) is a path on this machine
             return "unresolved", (
@@ -725,6 +844,11 @@ class ModuleMap:
                 "this repo, and ripple does not know where on a machine the repo is"
             )
         if specifier.startswith("."):
+            if re.search(r"[?#%]", specifier):
+                return "unresolved", (
+                    f"`{specifier}` has a `?`, a `#` or a `%`: ESM and the bundlers read a relative specifier as a URL (a query and a fragment "
+                    "are no part of the file name and `%2e` is a dot), the compiler and Node's require as a path, so which file it names is not known"
+                )
             base = posixpath.normpath(posixpath.join(posixpath.dirname(importer), specifier))
             if above_root(base):  # an entry of the repo called `..x` is inside it, and is read like any other relative path
                 if self._reenters(specifier, importer):
@@ -740,42 +864,130 @@ class ModuleMap:
                 return "unresolved", why
             if found:
                 return self._reached(found, specifier, importer)
-            exists = self._exists(base)
-            if exists and base.endswith(DECLARATIONS):
-                return "unresolved", f"`{specifier}` names {base}, a declaration file: it holds types and no code, so what a name from it runs is not known"
+            # a file of the repo that ripple does not read (the walk skips it, or it is a component) is what the path names, written or
+            # with an extension a resolver adds, and then it is no package and no missing path
+            unread = self._unread(specifier, [base], directory)
+            if unread is not None and unread[0] == "unresolved":
+                return unread
             governor = self.governor(importer)
-            if not exists and governor is not None and governor.root_dirs:
+            if unread is None and governor is not None and governor.root_dirs:
                 return "unresolved", f"{governor.path} sets rootDirs, so `{specifier}` may name a file in another of the roots, which ripple does not follow"
-            if exists:
-                if self._repo_source(base):
-                    return "unresolved", (
-                        f"`{specifier}` names {base}, a source file of this repo that ripple does not read (it is in a hidden directory, "
-                        "or one the walk skips), so what it does is not known"
-                    )
-                return "package", specifier
-            return "missing", specifier
+            return ("package", specifier) if unread is not None else ("missing", specifier)
         if specifier.startswith("/"):
-            if js:
-                return "unresolved", f"`{specifier}` is an absolute path: it may name a file of this repo, and ripple does not know where on a machine the repo is"
-            return "package", specifier
+            # a path on this machine, for either language: the compiler and Node read it from the file system, a bundler from its root
+            return "unresolved", f"`{specifier}` is an absolute path: it may name a file of this repo, and ripple does not know where on a machine the repo is"
         if specifier.startswith("#"):
             return "unresolved", f"`{specifier}` is a subpath import: the `imports` of the nearest package.json maps it, and ripple does not read package.json"
-        if specifier.startswith("node:"):
-            return "package", specifier  # the scheme says the builtin: no config maps it, for either language
         governor = self.governor(importer)
         if governor is not None:
-            found, why = self._pick(self._places(specifier, governor), importer, specifier)
+            if re.search(r"[?#%]", specifier):
+                # the part before a query or fragment is what an alias maps: a bundler keeps the rest as a query and loads the repo's
+                # file (esbuild bundles `src/a.mjs?v=1` for `@/a.mjs?v=1`), the compiler resolves nothing
+                cut = re.search(r"[?#]", specifier)
+                plain = specifier[: cut.start()] if cut else specifier
+                if plain and self._reaches(plain, governor, importer):
+                    return "unresolved", (
+                        f"`{specifier}` has a `?`, a `#` or a `%` and `{plain}` is an alias of {governor.path}: a bundler reads the query and the "
+                        "fragment apart from the file name and finds the file of the repo, the compiler does not resolve it, so which file it names is not known"
+                    )
+            # a trailing slash names a directory: the compiler (and Node's require) take its index, a bundler may take the file of the
+            # same name, so a file `lib.js` beside or instead of `lib/` leaves the answer open
+            directory = specifier.endswith("/")
+            places = self._places(specifier, governor)
+            if directory:
+                twin = self._file_of(places)
+                if twin is not None:
+                    return "unresolved", (
+                        f"`{specifier}` is written with a trailing slash, which names the directory (the compiler takes its index file), "
+                        f"and {twin} is the file a bundler takes for it: which one it names is not known"
+                    )
+            found, why = self._pick(places, importer, specifier)
             if why:
                 return "unresolved", why
             if found:
-                if specifier in NODE_BUILTINS:
+                if specifier in NODE_BUILTINS or specifier.startswith("node:"):
                     return "unresolved", (
                         f"`{specifier}` is a Node builtin, which Node loads whatever {governor.path} maps it to, and the file it maps it to "
-                        f"({found}) is what a bundler may load: which one runs is not known"
+                        f"({found}) is what a bundler may load (esbuild does for the browser): which one runs is not known"
                     )
                 return self._reached(found, specifier, importer)
+            # a file the walk skips or ripple does not read (build output, a .vue component) is no package, as for a relative path
+            unread = self._unread(specifier, places, directory)
+            if unread is not None and unread[0] == "unresolved":
+                return unread
+        if specifier.startswith("node:"):
+            return "package", specifier  # the scheme says the builtin, and no config maps it into the repo
         why = self._aliased_elsewhere(specifier, importer, governor) or self._own_package(specifier)
         return ("unresolved", why) if why else ("package", specifier)
+
+    def _reaches(self, specifier: str, governor: TsConfig, importer: str) -> bool:
+        """Whether the config's aliases give the bare specifier a file of the repo or a path into it: a `paths` entry it matches, or
+        something a baseUrl, a place or a skipped directory holds at the path."""
+        if self._maps(specifier, governor, importer):
+            return True
+        unread = self._unread(specifier, self._places(specifier, governor), specifier.endswith("/"))
+        return unread is not None and unread[0] == "unresolved"
+
+    def _unread(self, specifier: str, places: list[str], directory: bool) -> tuple[str, str] | None:
+        """What the file system holds at the places of an import that no index reads, for a relative path and an alias alike.
+
+        ("unresolved", why) when a place, or a place with an extension a resolver adds (or `/index`), is a file of the repo that
+        holds code ripple does not read (a declaration file, a component, source the walk skips); ("file", "") when something is
+        written there that holds none (data, a package's file, a link out of the repo); None when nothing is. Only the first kind is
+        a file the import may name: JSON, CSS and a package's file are outside the repo's code, as `./data.json` always was."""
+        found = False
+        for place in places:
+            if above_root(place):
+                continue
+            if self._exists(place):
+                if place.endswith(DECLARATIONS) or self._repo_source(place):
+                    return "unresolved", self._unread_reason(specifier, place)
+                found = True
+                continue
+            hit = self._on_disk(place, directory, self._holds_code)
+            if hit is not None:
+                return "unresolved", self._unread_reason(specifier, hit)
+        return ("file", "") if found else None
+
+    def _holds_code(self, rel: str) -> bool:
+        return rel.endswith(DECLARATIONS) or self._repo_source(rel)
+
+    @staticmethod
+    def _spellings(base: str, directory: bool) -> tuple[list[str], list[str]]:
+        """(the files, then the directory's index files) that an import of `base` may name: the path as written and with each extension a
+        resolver adds, and the compiler's own readings of it (a `.js` for the `.ts` it is built from). A `directory` names no file."""
+        pre = "" if base == "." else base + "/"
+        indexes = [f"{pre}index{ext}" for ext in PROBED]
+        if directory or base == ".":
+            return [], indexes
+        files = [base, *_candidates(base, False), *_candidates(base, True), *(base + ext for ext in PROBED)]
+        return [name for name in dict.fromkeys(files) if name not in indexes], indexes
+
+    def _file_of(self, places: list[str]) -> str | None:
+        """The first file a place names as a file, not as a directory (its own name and every extension a resolver adds), that is on disk."""
+        return next((name for place in places for name in self._spellings(place, False)[0] if not above_root(name) and self._is_file(name)), None)
+
+    def _on_disk(self, base: str, directory: bool, keep: Callable[[str], bool]) -> str | None:
+        """The first file of the repo, on disk, that an import of `base` may name by adding an extension (to the path, or to `index` in the
+        directory), as the compiler, Node's require and the bundlers do, and that `keep` accepts: None when there is none. The walk skips
+        some files (a hidden directory, the root build output) and ripple reads no .vue, .svelte or .astro, so `_has` cannot tell them."""
+        files, indexes = self._spellings(base, directory)
+        return next((name for name in [*files, *indexes] if not above_root(name) and self._is_file(name) and keep(name)), None)
+
+    def _unread_reason(self, specifier: str, path: str) -> str:
+        """Why an import that names the file `path` of the repo, which ripple does not read as a module, is left unresolved."""
+        if path.endswith(DECLARATIONS):
+            return f"`{specifier}` names {path}, a declaration file: it holds types and no code, so what a name from it runs is not known"
+        if self._has(path):
+            return f"`{specifier}` names {path} once an extension is added, which Vite and Rollup do and Node's require does not, so which file it names is not known"
+        if path.endswith(COMPONENTS):
+            return f"`{specifier}` names {path}, a component file of this repo that ripple does not read (a .vue, .svelte or .astro file), so what it does is not known"
+        if self._repo_source(path):
+            return (
+                f"`{specifier}` names {path}, a source file of this repo that ripple does not read (it is in a hidden directory, "
+                "or one the walk skips), so what it does is not known"
+            )
+        return f"`{specifier}` names {path}, a file that ripple does not read, so what it does is not known"
 
     def _reached(self, found: str, specifier: str, importer: str) -> tuple[str, str]:
         """The answer for a specifier that reached the file `found` (see `_pick`): its module, or, for a file of the other
@@ -987,11 +1199,34 @@ class ModuleMap:
         node_modules and the like names a package)."""
         if place not in self._directories:
             ok = not above_root(place) and not any(part in IMPLICIT_EXCLUDES for part in place.split("/"))
-            self._directories[place] = ok and (self.repo / place).is_dir() and _inside_dir(self.repo, place)
+            state = self._probe(place) if ok else []
+            self._directories[place] = bool(state) and state[0] == "d" and self._within(state)
         return self._directories[place]
 
     def _has_package_json(self, place: str) -> bool:
-        return _inside(self.repo, posixpath.join("" if place == "." else place, "package.json"))
+        return self._is_file(posixpath.join("" if place == "." else place, "package.json"))
+
+    def _probe(self, rel: str) -> list:
+        """What the file system holds at the repo-relative path (see file_state), asked once and kept for the cache to re-ask."""
+        if rel not in self.probes:
+            if self._real_root is None:
+                self._real_root = self.repo.resolve()
+            self.probes[rel] = file_state(self._real_root, rel)
+        return self.probes[rel]
+
+    @staticmethod
+    def _within(state: list) -> bool:
+        """Whether a file_state is not a link that leads out of the repo."""
+        return len(state) < 2 or state[1] is not None
+
+    def _is_file(self, rel: str) -> bool:
+        """Whether the repo-relative path is a file really inside the repo (a link out of it is not one of its files)."""
+        state = self._probe(rel)
+        return bool(state) and state[0] == "f" and self._within(state)
+
+    def _exists(self, base: str) -> bool:
+        state = self._probe(base)
+        return bool(state) and state[0] != "!"
 
     def _first(self, places: list[str], js: bool, directory: bool) -> tuple[str, str] | None:
         """(the first file of the compiler's pass over the places, the place it was found at), or None."""
@@ -1026,31 +1261,23 @@ class ModuleMap:
         return self._others
 
     def _reenters(self, specifier: str, importer: str) -> bool:
-        """Whether a relative specifier that leaves the repo by `..` lands inside it again, as the file system has it: `../repo/a` from
-        the root of /work/repo is /work/repo/a, and a symbolic link outside the repo may lead back in."""
-        try:
-            root = self.repo.resolve()
-            lexical = Path(os.path.normpath(root / posixpath.dirname(importer) / specifier))
-            return any(landing.is_relative_to(root) for landing in (lexical, lexical.resolve()))
-        except (OSError, RuntimeError, ValueError):
-            return True  # not known: a path the file system cannot read is not claimed to be outside
+        """Whether a relative specifier that leaves the repo by `..` lands inside it again, as the file system has it (see reenters_at)."""
+        base = posixpath.normpath(posixpath.join(posixpath.dirname(importer), specifier))
+        if base not in self.reenter:
+            if self._real_root is None:
+                self._real_root = self.repo.resolve()
+            self.reenter[base] = reenters_at(self._real_root, base)
+        return self.reenter[base]
 
     def _repo_source(self, base: str) -> bool:
         """Whether a repo-relative path that exists, and that no index reads, is a source file of this repo: one of the languages'
-        extensions, really inside the repo (a link into it from node_modules counts), and not in a directory of a package. What the walk
-        skips (a hidden directory, the root dist, build or env) is not outside the repo for being skipped. A file that is not source
-        (JSON, CSS, an image) holds no code to follow, and a package's file is outside it as it was."""
-        if not base.endswith(SOURCE_EXTENSIONS):
+        extensions (or a component's), really inside the repo (a link into it from node_modules counts), and not in a directory of a
+        package. What the walk skips (a hidden directory, the root dist, build or env) is not outside the repo for being skipped. A file
+        that is not source (JSON, CSS, an image) holds no code to follow, and a package's file is outside it as it was."""
+        if not base.endswith(CODE):
             return False
-        try:
-            real = (self.repo / base).resolve()
-            parts = real.relative_to(self.repo.resolve()).parts
-            return real.is_file() and not any(part in IMPLICIT_EXCLUDES for part in parts)
-        except (OSError, RuntimeError, ValueError):
+        state = self._probe(base)
+        if not state or state[0] != "f" or not self._within(state):
             return False
-
-    def _exists(self, base: str) -> bool:
-        try:
-            return (self.repo / base).exists()
-        except OSError:
-            return False
+        where = base if len(state) < 2 else state[1]
+        return not any(part in IMPLICIT_EXCLUDES for part in where.split("/"))

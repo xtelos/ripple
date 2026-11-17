@@ -330,11 +330,13 @@ def test_the_answers_for_an_absolute_path_and_a_file_url_in_the_module_map(make_
     for spec in ("/abs/x", "file:///abs/x", "FILE:///abs/x", " file:///abs/x"):
         kind, why = modules.resolve(spec, "main.js")
         assert kind == "unresolved" and "may name a file of this repo" in why, (spec, kind, why)
-    # other schemes are not paths of this machine, and TypeScript is answered as it was
-    for spec in ("data:text/javascript,export default 1", "https://example.com/x.js", "node:fs"):
+    # other schemes are not paths of this machine (a data: URL is answered in test_js_resolver_answers.py)
+    for spec in ("https://example.com/x.js", "node:fs"):
         assert modules.resolve(spec, "main.js")[0] == "package"
-    assert modules.resolve("/abs/x", "main.ts") == ("package", "/abs/x")
-    assert modules.resolve("file:///abs/x", "main.ts") == ("package", "file:///abs/x")
+    # TypeScript is answered the same way: the compiler and Node read a path from the file system, a bundler from its root
+    for spec in ("/abs/x", "file:///abs/x"):
+        kind, why = modules.resolve(spec, "main.ts")
+        assert kind == "unresolved" and "may name a file of this repo" in why, (spec, kind, why)
 
 
 # ---- 4: a relative path that leaves the repo and comes back
@@ -488,17 +490,21 @@ def test_a_reexport_of_a_builtin_that_a_config_maps_into_the_repo_leaves_the_nam
     only_unresolved(graph_of(repo), "main.mjs", 2)
 
 
-def test_the_node_prefix_is_always_the_builtin(make_repo):
+def test_the_node_prefix_is_the_builtin_unless_a_config_maps_it_into_the_repo(make_repo):
+    """esbuild (platform browser) bundles a repo file named `node:util.js` for `node:util` under `baseUrl: "."`; Node takes the builtin.
+    With no such file, and for `node:path` here, the scheme is the builtin."""
     repo = make_repo(
         {
             "jsconfig.json": json.dumps({"compilerOptions": {"baseUrl": "."}}),
             "util.js": "export function f() {}\n",
             "node:util.js": "export function f() {}\n",
             "main.mjs": "import { format } from 'node:util';\nformat();\n",
+            "other.mjs": "import { join } from 'node:path';\njoin();\n",
         }
     )
     graph = graph_of(repo)
-    assert graph.external_calls == 1 and graph.edges == [] and graph.unresolved == []
+    assert graph.external_calls == 1 and graph.edges == []  # node:path
+    assert [(u.file, "Node builtin" in u.reason) for u in graph.unresolved] == [("main.mjs", True)]
 
 
 def test_a_name_that_is_no_builtin_keeps_the_edge_a_config_gives_it(make_repo):
@@ -548,13 +554,14 @@ def test_a_typescript_importer_gets_no_edge_for_a_builtin_a_config_maps_into_the
             "ns.ts": "import * as util from 'util';\nutil.format();\n",
             "def.ts": "import fmt from 'util';\nfmt();\n",
             "ok.ts": "import { format } from 'node:util';\nformat();\n",
-            "node:util.ts": "export function format() {}\n",  # a file named like the scheme: `node:` still means the builtin
+            "node:util.ts": "export function format() {}\n",  # a file named like the scheme: esbuild (browser) bundles it, Node takes the builtin
+            "path.ts": "import { join } from 'node:path';\njoin();\n",
         }
     )
     graph = graph_of(repo, TYPESCRIPT)
     assert graph.edges == []
-    assert {u.file for u in graph.unresolved if "Node builtin" in u.reason} == {"main.ts", "ns.ts", "def.ts"}
-    assert graph.external_calls == 1  # node:util
+    assert {u.file for u in graph.unresolved if "Node builtin" in u.reason} == {"main.ts", "ns.ts", "def.ts", "ok.ts"}
+    assert graph.external_calls == 1  # node:path, which no file of the repo is named like
 
 
 def test_a_typescript_name_that_is_no_builtin_keeps_the_edge_a_config_gives_it(make_repo):
