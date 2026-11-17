@@ -135,15 +135,50 @@ def scan_repo(repo: str | Path, lang: str = "auto") -> Scan:
     return Scan(root, present, files, skipped)
 
 
-def check_profile(repo: str | Path, lang: str = "auto") -> LanguageProfile:
-    """The profile whose way of running tests `check` uses: the first language (in registry order) the repo has
-    files of. A repo with nothing but TypeScript uses TypeScript's (which has no default command and says so);
-    one with any Python uses Python's pytest, and so does one with no source at all."""
+# Languages `check` treats as one: neither has a runner (checker.RUNNERS) or a default command, and both list a failing
+# test by the same prefixes, so whichever `check` takes of the two, the result is the same. A repo with TypeScript and
+# JavaScript is not "mixed" for `check`. (tests/test_check_mixed_repos.py fails when either stops being true.)
+CHECKED_ALIKE = ({"typescript", "javascript"},)
+
+
+def check_profile(repo: str | Path, lang: str = "auto", has_command: bool = False, tool: bool = False) -> LanguageProfile:
+    """The profile whose way of running tests `check` uses.
+
+    An explicit `lang` is that language's. With "auto" it is the language the repo has files of, and a repo with files
+    of more than one is a RepoError that names them (see mixed_check_message): which language's tests ran is what a
+    `passed` means, so it is never a guess from registry order. The files are found by the walk every other command
+    uses (scan_repo), so node_modules, virtualenvs, build output and declaration files count for nothing.
+
+    has_command says the caller gave the command that runs the tests. Then the profile chooses nothing that bears on
+    the verdict (run_check takes the exit code as it is, and uses no runner or id translation, only the prefixes that
+    pick the failing lines out of the output), so the repo is not refused and the first language is used as it was.
+    A repo with one language uses that one's; one with no source at all uses the first registered, Python's pytest.
+    tool says the caller is the server's `check` tool, whose refusal names its `lang` argument and not the CLI flag."""
     root = check_repo(repo)
     if lang != "auto":
         return selected_profiles(lang)[0]
     files, _ = walk_languages(root, profiles())
-    return next((profile for profile in profiles() if files[profile.name]), default_language().profile)
+    present = [profile for profile in profiles() if files[profile.name]]
+    kinds = {frozenset(next((group for group in CHECKED_ALIKE if profile.name in group), {profile.name})) for profile in present}
+    if len(kinds) > 1 and not has_command:
+        raise RepoError(mixed_check_message(repo, present, tool))
+    return present[0] if present else default_language().profile
+
+
+def mixed_check_message(repo: str | Path, present: list[LanguageProfile], tool: bool = False) -> str:
+    """Why `check` will not choose, naming the languages the repo has and what the caller can do about it (the names are the
+    ones --lang takes). The CLI is told the flag; the server's tool is told its `lang` argument, which it can set on the
+    next call, with the flag as the way to make it last."""
+    found = join([label(profile.name) for profile in present])
+    head = f"cannot choose which tests to run in {repo}: it has {found} source files, and a verdict from one language's tests says nothing about the others. "
+    if tool:
+        args = join([f'lang="{profile.name}"' for profile in present], "or")
+        return (
+            f"{head}Call check again with {args}, or start the server with `ripple serve --lang <name>` (or RIPPLE_LANG) to fix "
+            "one for the session, or with the command that runs every test (--test-command)."
+        )
+    flags = join([f"--lang {profile.name}" for profile in present], "or")
+    return f"{head}Pass {flags} (`ripple serve` takes the same flag, and so does RIPPLE_LANG), or the command that runs every test (--test-command)."
 
 
 def merge_graphs(graphs: list[Graph]) -> Graph:

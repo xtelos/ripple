@@ -33,6 +33,19 @@ def default_test_command(repo: Path, profile: LanguageProfile = PYTHON) -> list[
     return profile.default_test_command(repo)
 
 
+def given_command(command: list[str] | tuple[str, ...] | str | None) -> list[str] | None:
+    """The argv of the test command the caller gave, or None when none was given. The one place that decides it.
+
+    A string is split the way a shell would; a list is taken as it is. A command that comes to nothing (None, "", "   ",
+    "''", [], [""]) is no command: the caller chose nothing, so `check` picks the profile's runner, and refuses when the repo
+    has several languages. Reading "was a command given" any other way (a bare `bool(" ")`) lets a blank command skip the
+    refusal and then run the first language's tests anyway. Raises ValueError for a string that cannot be split (an
+    unclosed quote).
+    """
+    argv = shlex.split(command) if isinstance(command, str) else list(command or [])
+    return argv if argv and str(argv[0]).strip() else None
+
+
 def check_tests(repo: Path, tests: list[str]) -> None:
     """Refuse anything that is not a test path or pytest node id inside repo.
 
@@ -131,8 +144,7 @@ def run_check(
     Raises ValueError if an entry in tests is not a path or node id inside repo.
     """
     repo = Path(repo).resolve()
-    if isinstance(command, str):
-        command = shlex.split(command)
+    command = given_command(command)
     runner = None if command else runner_for(profile)
     if runner is not None:
         tests = runner.normalize(repo, list(tests or []))

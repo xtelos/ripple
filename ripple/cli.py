@@ -27,7 +27,7 @@ from collections import Counter
 
 from . import queries
 from .cache import load_repo
-from .checker import run_check
+from .checker import given_command, run_check
 from .languages import (
     SHOWN_UNPARSABLE,
     RepoError,
@@ -358,7 +358,7 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument(
             "--test-command",
             default=os.environ.get("RIPPLE_TEST_COMMAND"),
-            help="test command (default: python -m pytest -q, using the repo's .venv or venv if present; `go test -json` for a Go repo, `cargo test` for a Rust repo and `mvn test` for a Maven repo; a repo with no Python, or --lang typescript or javascript, has no default)",
+            help="test command (default: python -m pytest -q, using the repo's .venv or venv if present; `go test -json` for a Go repo, `cargo test` for a Rust repo and `mvn test` for a Maven repo; a repo with no Python, or --lang typescript or javascript, has no default; a repo with files of more than one language is refused unless --lang or this option says what to run)",
         )
         p.add_argument("--timeout", type=float, default=300, help="seconds before the test run is killed")
 
@@ -390,9 +390,14 @@ def run(args: argparse.Namespace) -> int:
         return 0
 
     if args.command == "check":
-        profile = check_profile(args.repo, args.lang)
         try:
-            result = run_check(args.repo, command=args.test_command, timeout=args.timeout, tests=args.tests, profile=profile)
+            command = given_command(args.test_command)  # decided once: the refusal and the runner both read this
+        except ValueError as error:
+            print(error)
+            return 2
+        profile = check_profile(args.repo, args.lang, has_command=command is not None)
+        try:
+            result = run_check(args.repo, command=command, timeout=args.timeout, tests=args.tests, profile=profile)
         except ValueError as error:
             print(error)
             return 2

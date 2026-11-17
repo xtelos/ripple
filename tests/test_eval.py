@@ -567,7 +567,7 @@ def test_the_command_never_uses_bare_and_leaves_out_user_settings():
 def test_only_with_ripple_gets_a_server(tmp_path):
     assert mcp_config("without", tmp_path, tmp_path) == {"mcpServers": {}}
     server = mcp_config("with-ripple", tmp_path, tmp_path / "cache")["mcpServers"]["ripple"]
-    assert server["args"] == ["serve", "--repo", str(tmp_path)]
+    assert server["args"] == ["serve", "--repo", str(tmp_path), "--lang", "python"]  # a stray file of another language must not make `check` refuse
     assert server["env"] == {"RIPPLE_CACHE_DIR": str(tmp_path / "cache")}
 
 

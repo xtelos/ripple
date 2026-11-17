@@ -92,7 +92,7 @@ def test_python_agent_command_prompt_and_server_are_what_they_always_were(tmp_pa
     assert build_prompt("T", "with-ripple") == PREAMBLE + "\n\n" + WITH_RIPPLE_LINE + "\n\nT"
     assert mcp_config("without", Path("/r"), Path("/c")) == {"mcpServers": {}}
     assert mcp_config("with-ripple", Path("/r"), Path("/c")) == {
-        "mcpServers": {"ripple": {"command": str(RIPPLE_BIN), "args": ["serve", "--repo", "/r"], "env": {"RIPPLE_CACHE_DIR": "/c"}}}
+        "mcpServers": {"ripple": {"command": str(RIPPLE_BIN), "args": ["serve", "--repo", "/r", "--lang", "python"], "env": {"RIPPLE_CACHE_DIR": "/c"}}}
     }  # fmt: skip
 
 

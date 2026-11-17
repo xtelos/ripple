@@ -164,7 +164,9 @@ def test_a_repo_with_go_and_python_merges_without_a_false_ambiguity(make_repo):
     assert result.warnings == [] and [(x.name, x.found) for x in result.languages] == [("python", 2), ("go", 3)]
     ids = set(result.graph.symbols)
     assert {"ex.com/m:A", "ex.com/m:B", "tools.gen.a", "A.A"} <= ids and result.graph.ambiguous_ids == {}
-    assert check_profile(repo).name == "python"  # the first language present runs the tests
+    with pytest.raises(RepoError, match="it has Python and Go source files"):  # no language's tests are picked for the repo
+        check_profile(repo)
+    assert check_profile(repo, "go").name == "go" and check_profile(repo, has_command=True).name == "python"
 
 
 @needs_go

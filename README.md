@@ -46,7 +46,7 @@ Or from a terminal: `ripple index .`, then `ripple impact price_order`.
 | `callees(symbol)` | What this calls, plus the calls ripple could not resolve and why | yes |
 | `impact(symbol, depth=5, limit=100)` | Every transitive caller grouped by file, the tests that reach it listed separately as test ids (pytest node ids; `file_test.go::TestName` for Go), and same-named call sites ripple could not rule out | yes |
 | `path(source, target)` | The shortest call chain from one symbol to another | yes |
-| `check(tests=None)` | Runs the test command (default `python -m pytest -q`, using the repo's `.venv` or `venv` if present, for a repo with Python files; `go test -json` in every module for a Go repo, see [Go](#go); `cargo test` in every top-level workspace for a Rust repo, see [Rust](#rust); `mvn test` for a Maven repo, see [Java](#java); a TypeScript-only repo, or `--lang typescript`, has no default), or just the given test paths (for Python, pytest node ids too; for Go, `file_test.go::TestName[/subtest]`; for Rust, a `.rs` file, a directory or `file.rs::module::test_name`; for Java, the id `impact` lists, a test `.java` file or a directory), and returns pass/fail, the summary line and the first failures, never the full log | no, it runs code |
+| `check(tests=None, lang=None)` | Runs the test command (default `python -m pytest -q`, using the repo's `.venv` or `venv` if present, for a repo with only Python files; `go test -json` in every module for a Go repo, see [Go](#go); `cargo test` in every top-level workspace for a Rust repo, see [Rust](#rust); `mvn test` for a Maven repo, see [Java](#java); a TypeScript-only repo, or `--lang typescript`, has no default; a repo of several languages is refused until `lang` names one, unless the server has a `--lang` or a test command), or just the given test paths (for Python, pytest node ids too; for Go, `file_test.go::TestName[/subtest]`; for Rust, a `.rs` file, a directory or `file.rs::module::test_name`; for Java, the id `impact` lists, a test `.java` file or a directory), and returns pass/fail, the summary line and the first failures, never the full log | no, it runs code |
 
 A symbol can be a full dotted path (`shop.pricing.price_order`), a suffix (`OrderService.place_order`)
 or a bare name (`price_order`); in TypeScript it is a path and a member (`src/util/math:clamp`, see
@@ -169,6 +169,20 @@ for Python, `.ts`, `.tsx`, `.mts` and `.cts` for TypeScript, `.js`, `.jsx`, `.mj
 JavaScript below), `.go` for Go, `.rs` for Rust, `.java` for Java, skipping `.d.ts`, `node_modules` and virtualenvs. A repo with none of them, or one that does
 not exist, is an error (exit status 2), not "0 files".
 
+`check` does not pick a language for you. With files of two or more languages (found by the same walk, so
+`node_modules`, virtualenvs, build output and declaration files count for nothing), no `--lang` and no test command,
+it refuses with exit status 2 (a tool error from the server) and names the languages and the flag:
+`cannot choose which tests to run in <repo>: it has Python and Go source files, and a verdict from one language's tests says
+nothing about the others. Pass --lang python or --lang go ...`. A `passed` that covers one language of several is a guess,
+so the answer is to say which: `--lang go` or `RIPPLE_LANG` on the command line, and for the server's `check` tool its
+optional `lang` argument (`check(lang="go")`, the same names as `--lang`; the refusal names it, and `ripple serve --lang go`
+fixes one for the session). A `lang` on a call overrides the server's `--lang` for that call only, and an unknown one is the
+"unknown language ... choose one of" error. An explicit `--lang` always wins. A test command (`--test-command`, `RIPPLE_TEST_COMMAND`) is not refused: with one,
+`check` takes its exit code as the verdict and the language (`--lang`, or the tool's `lang`) only chooses which output lines are listed as failures. A command that
+comes to nothing (empty, only blanks, `''`) is no command, and is refused like none. TypeScript
+and JavaScript count as one language here (neither has a runner or a default command, and both list failures the same way).
+`index`, `impact`, `path` and the other graph commands read every language and are not affected.
+
 **Symbols** are the file's path without the extension, a colon and the member: `src/util/math:clamp`,
 `src/cart/cart:Cart.add` (an `index` file is its directory, a second declaration of a name under one parent
 gets `#2`, a test callback is `tests/a.test:suite > case`). Any of these finds it, when it names one
@@ -287,8 +301,8 @@ remove or change none. The fixture figures above are measured on the current cod
 **Not yet:** jest or vitest collection. `impact` lists every
 TypeScript caller, tests included, as code to update, so its `tests` list is empty, and `check` refuses a
 TypeScript-only repo until it is given the command (`--test-command` or `RIPPLE_TEST_COMMAND`, for example
-`npx vitest run`), with the refusal as an ordinary error. In a mixed repo `check` runs pytest by default, unless
-the server was started with `--lang typescript`. It takes TypeScript test file paths only: ripple's own test ids
+`npx vitest run`), with the refusal as an ordinary error. A repo of TypeScript and another language is
+refused until `--lang` or a command says what to run (see `--lang` above). It takes TypeScript test file paths only: ripple's own test ids
 (`tests/a.test:suite > case`) and a runner's line filter (`tests/a.test.ts:12`) are refused.
 
 ### JavaScript
@@ -717,8 +731,8 @@ runner: one that never runs the test binary leaves a package with no events, whi
 no "no tests to run" notice, so a helpers-only package is reported as a problem there, the same as a `TestMain` that
 prints `PASS` (a false failure under an unusual GOFLAGS, never a false pass).
 `--test-command` still means exactly that command, read the generic way. `check` picks the Go runner from the profile
-(`--lang go`, or a repo whose first language by registry order is Go: a stray Python or TypeScript file makes `auto`
-pick that language's runner, so pass `--lang go` there). A second language's runner goes in `checker.RUNNERS`
+(`--lang go`, or a repo whose only language is Go: a stray Python or TypeScript file makes `auto` refuse
+and name the languages, so pass `--lang go` there). A second language's runner goes in `checker.RUNNERS`
 (profile name to a module with `normalize` and `run`), so that adding one leaves the profile, whose fields are hashed into
 the cache key, alone.
 Every stream was captured with Go 1.27.4; no older Go was run, so its event shapes are unverified (a package that fails with no
