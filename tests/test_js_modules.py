@@ -44,8 +44,9 @@ def test_a_javascript_import_is_the_file_as_written_or_with_js_then_jsx_added(ma
 
 def test_mjs_and_cjs_are_never_guessed_for_an_import_with_no_extension(make_repo):
     modules, _ = mapper(make_repo, ["main.js", "esm/a.mjs", "esm/b.cjs"])
-    assert modules.resolve("./esm/a", "main.js") == ("missing", "./esm/a")
-    assert modules.resolve("./esm/b", "main.js") == ("missing", "./esm/b")
+    # never an edge: Node's require and the compiler add no .mjs or .cjs, Vite and Rollup add .mjs, so the file named is not known
+    assert modules.resolve("./esm/a", "main.js")[0] == "unresolved"
+    assert modules.resolve("./esm/b", "main.js") == ("missing", "./esm/b")  # .cjs is added by none of them
 
 
 def test_js_is_tried_before_jsx_when_a_name_has_both(make_repo):
@@ -112,7 +113,8 @@ def test_a_javascript_file_importing_a_typescript_file_is_unresolved_with_the_re
 
 def test_a_declaration_file_is_not_a_file_of_the_other_language(make_repo):
     modules, _ = mapper(make_repo, ["src/main.js", "src/types.d.ts"], JAVASCRIPT)
-    assert modules.resolve("./types.d", "src/main.js") == ("missing", "./types.d")  # src/types.d.ts is declarations only
+    kind, why = modules.resolve("./types.d", "src/main.js")  # src/types.d.ts is declarations only: a file, with no code to follow
+    assert kind == "unresolved" and "a declaration file" in why
 
 
 def test_a_json_or_css_file_is_still_a_package_for_either_language(make_repo):
@@ -339,8 +341,8 @@ def test_an_import_into_a_directory_the_walk_skips_is_no_file_of_the_other_langu
 def test_the_other_languages_file_is_found_by_the_walk_so_a_file_it_skips_is_no_candidate(make_repo):
     modules, _ = mapper(make_repo, ["src/main.js", "src/x.ts", "src/y.d.ts", "build/z.ts"], JAVASCRIPT)
     assert modules.resolve("./x", "src/main.js")[0] == "unresolved"
-    assert modules.resolve("./y", "src/main.js") == ("missing", "./y")  # a declaration file is read by neither
-    assert modules.resolve("../build/z", "src/main.js") == ("missing", "../build/z")  # build/z.ts is in a directory the walk skips
+    assert modules.resolve("./y", "src/main.js")[0] == "unresolved"  # a declaration file is read by neither, and is a file
+    assert modules.resolve("../build/z", "src/main.js")[0] == "unresolved"  # build/z.ts is a file of the repo in a directory the walk skips
 
 
 # ---- round 2: what a package.json, a directory and a config that does not hold a file decide

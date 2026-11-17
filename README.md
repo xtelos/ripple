@@ -335,12 +335,21 @@ reason, as is a path that leaves the repo by `..` and walks back in (`../repo/a.
 system, a link back in included), for either language. An entry of the repo whose name starts with two dots (`./..x/a.mjs`,
 `./..lib.mjs`) does not leave it and is read like any other relative path: the file at the root is an edge, one in a skipped
 directory is unresolved. A path that leaves for good, a JSON, CSS or image file, and a file of a package in `node_modules` are
-packages as before. A bare name that is a Node builtin (`util`, `fs/promises`, but not `test`) is the builtin to Node whatever
-`baseUrl` or `paths` map it to, and a bundler may load the repo's file instead, so for either language it is unresolved when a
-config maps it into the repo, and `node:util` is always the builtin. In a JavaScript file an absolute path (`/abs/x.mjs`), a
-`file:` URL (any case, any spaces the URL parser drops) and a specifier written with an escape sequence (not decoded:
-`'\x2fabs/x'` is `/abs/x`) are unresolved too, because where the repo is on a machine is not known; TypeScript keeps its answer
-for those. A call through `exports`, `module` or `require` followed by a member (`exports.f()`, `module.exports.f()`,
+packages as before, by the same rule for a relative path and for an alias (`./data.json` and `@/data.json` are both packages). A
+relative import of a `.vue`, `.svelte` or `.astro` file, which ripple does not read, is unresolved (an alias that names one, or a
+file the walk skips, is too), and a path with no extension, or a directory's `/index`, that a resolver gives one (`.js`, `.d.ts`,
+`.vue`) to such a file names that file and is never "missing"; only a path that names nothing is. A relative specifier with a `?`,
+a `#` or a `%` (`./a.mjs?v=1`, `./%61.mjs`) is unresolved, for ESM and the bundlers read it as a URL and the compiler and Node's
+require as a path, and so is an alias with one (`@/a.mjs?v=1`, Vite's `?worker` and `?raw`) when the part before it is mapped. A bare name that is a Node builtin (`util`,
+`fs/promises`, but not `test`) is the builtin to Node whatever `baseUrl` or `paths` map it to, and a bundler may load the repo's
+file instead (esbuild for the browser does, for `node:util` as well), so for either language it is unresolved when a config
+maps it into the repo; `node:util` with no such file is the builtin. An absolute path (`/abs/x.mjs`), a `file:` URL (any case,
+any spaces the URL parser drops), a `data:` URL (code written in the file, which may import a file of the repo by its `file:` URL)
+and a specifier written with an escape sequence (not decoded: `'\x2fabs/x'` is `/abs/x`) are unresolved in JavaScript and
+TypeScript alike, because where the repo is on a machine is not known. A bare alias with a trailing slash (`import 'lib/'`
+under `baseUrl: "src"`) names the directory to the compiler and to Node's require (its index file) and the file of that name to
+a bundler (esbuild), so it is unresolved when `lib.js`, `lib.json` or another file a resolver adds an extension to is there, and
+keeps the index edge when only `lib/index.js` is. A call through `exports`, `module` or `require` followed by a member (`exports.f()`, `module.exports.f()`,
 `require.main.exports.f()`, `new exports.C()`, `<exports.C />`, `process.mainModule.exports.f()`, `require.resolve(...)`)
 reaches the modules' own objects (this file's exports, the loader, the entry module), which ripple does not follow, so in a
 JavaScript or TypeScript file it is unresolved and never counted as outside the repo. Only a declaration of the name that gives
@@ -1580,7 +1589,9 @@ hand it one. Not covered: a word spelled by computing a string at run time
 
 The index is cached outside your repo (`RIPPLE_CACHE_DIR` if set, else `$XDG_CACHE_HOME/ripple` or
 `~/.cache/ripple`) and keyed on every file's mtime and size, so each query re-checks the files and
-rebuilds only when something changed.
+rebuilds only when something changed. A TypeScript or JavaScript graph is also stored with what the resolver found on disk beyond
+those files (a file in a skipped directory, a `.vue` component, a directory, a link), and is not served once any of it differs
+(on create-react-app that is 471 paths and 20 ms of the 400 ms a cached load takes).
 On my machine (a WSL2 laptop, timings vary by about 30% run to run) click, 91 files, takes 0.4 s cold and
 0.08 s from the cache; pydantic's repository, 3,156 files with its core's tests and docs, 3.7 s and 0.4 s,
 peaking at 190 MB; Django, 2,941 files, 16 to 20 s and 1.1 s, peaking at 445 MB (the cyclic garbage

@@ -38,7 +38,7 @@ from .registry import default_language, front_end, is_missing_parser
 
 # Bump when the graph format or the resolution rules change, so old caches
 # are ignored rather than served.
-CACHE_FORMAT = f"{__version__}-37"
+CACHE_FORMAT = f"{__version__}-40"
 
 
 def default_cache_dir() -> Path:
@@ -111,6 +111,17 @@ def profile_key(profile: LanguageProfile) -> str:
     return f"{re.sub(r'[^A-Za-z0-9_]+', '_', profile.name)}-{digest}"
 
 
+def _probing(profile: LanguageProfile):
+    """The module that records what the file system was asked while the graph was built, when the profile's front end has one, else None.
+
+    The TypeScript and JavaScript resolver answers an import by what is on disk where the walk and the fingerprint do not look (a file in
+    a skipped directory, a component, a directory), so its graph is stored with a record of those answers (ts_modules.ProbeRecorder). The
+    other front ends have none, and their cache records are written as they always were."""
+    from . import ts_modules
+
+    return ts_modules if getattr(front_end(profile), "config_files", None) is ts_modules.config_files else None
+
+
 def cache_file(repo: Path, cache_dir: Path, profile: LanguageProfile = PYTHON) -> Path:
     key = hashlib.sha256(str(repo).encode()).hexdigest()[:16]
     pkey = profile_key(profile)
@@ -128,29 +139,43 @@ def load_graph(
     pkey = profile_key(profile)
     path = cache_file(repo, Path(cache_dir) if cache_dir else default_cache_dir(), profile)
     files = files if files is not None else fingerprint(repo, profile)
+    probing = _probing(profile)
     try:
         saved = json.loads(path.read_text())
         # A record with no "profile" is a Python one: the only kind written before profiles existed.
         if saved["format"] == CACHE_FORMAT and saved["files"] == files and saved.get("profile", "") == pkey:
-            return Graph.from_dict(saved["graph"]), True
+            # a record with no "probes" is not one with none: it is read as a record that holds for nothing
+            if probing is None or probing.probes_hold(repo, saved.get("probes")):
+                graph = Graph.from_dict(saved["graph"])
+                if probing is not None:
+                    graph.probes = saved["probes"]  # for RepoIndex, which asks again before it keeps a graph
+                return graph, True
     except (OSError, ValueError, KeyError, TypeError):
         pass  # missing or unreadable cache: rebuild
-    graph = build_graph(repo, profile)
+    if probing is None:
+        graph, probes = build_graph(repo, profile), None
+    else:
+        with probing.ProbeRecorder() as recorder:
+            graph = build_graph(repo, profile)
+        probes = graph.probes = recorder.record()
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         record = {"format": CACHE_FORMAT, "files": files, "graph": graph.to_dict()}
         if pkey:  # left out for PYTHON, so its bytes do not change
             record["profile"] = pkey
+        if probes is not None:  # only a front end that reads what is on disk beyond the walk has one
+            record["probes"] = probes
         path.write_text(json.dumps(record))
     except OSError:
         pass  # a read-only cache dir costs speed, not correctness
     return graph, False
 
 
-def _index(scan: Scan, fingerprints: dict[str, dict], cache_dir: str | Path | None) -> RepoGraph:
+def _index(scan: Scan, fingerprints: dict[str, dict], cache_dir: str | Path | None, held: list | None = None) -> RepoGraph:
     """Each language's graph (from its own cache entry, or built and saved there), merged.
 
-    A language whose parser is missing is left out and said so, unless it is the repo's only one."""
+    A language whose parser is missing is left out and said so, unless it is the repo's only one. `held` collects the probe record of
+    each graph that has one (see _probing)."""
     graphs, languages, missing = [], [], {}
     for profile in scan.profiles:
         language = LanguageIndex(profile.name, found=len(scan.files[profile.name]))
@@ -166,6 +191,8 @@ def _index(scan: Scan, fingerprints: dict[str, dict], cache_dir: str | Path | No
         language.files, language.parse_errors = language.found, list(graph.parse_errors)  # files read, unparsable too
         language.unread = list(graph.unread)
         graphs.append(graph)
+        if held is not None and getattr(graph, "probes", None) is not None:
+            held.append(graph.probes)
     skipped = []
     for language in languages:
         if language.skipped:
@@ -205,6 +232,7 @@ class RepoIndex:
         self.cache_dir = cache_dir
         self._files: dict | None = None
         self._loaded: RepoGraph | None = None
+        self._probes: list[dict] = []  # the probe record of each graph held (see _probing)
 
     def _scan(self) -> Scan:
         if self.profile is None:
@@ -215,10 +243,20 @@ class RepoIndex:
         """The graph and what went into it, rebuilt only for a language whose files changed."""
         scan = self._scan()
         files = {p.name: fingerprint(self.repo, p, scan.files[p.name]) for p in scan.profiles}
-        if self._loaded is None or files != self._files:
-            self._loaded = _index(scan, files, self.cache_dir)
+        if self._loaded is None or files != self._files or not self._probes_hold():
+            held: list[dict] = []
+            self._loaded = _index(scan, files, self.cache_dir, held)
             self._files = files
+            self._probes = held
         return self._loaded
+
+    def _probes_hold(self) -> bool:
+        """Whether what the file system held beyond the fingerprinted files when the held graphs were built is still so."""
+        if not self._probes:
+            return True
+        from .ts_modules import probes_hold
+
+        return all(probes_hold(self.repo, record) for record in self._probes)
 
     def graph(self) -> Graph:
         return self.load().graph
