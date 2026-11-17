@@ -2,8 +2,12 @@
 
 The tools are looked for in JAVA_HOME and on PATH, then in the portable copies under /tmp the measurements
 used. The build runs offline against a Maven cache (RIPPLE_TEST_M2, else /tmp/java-inv-m2) that must already hold
-JUnit 5.11.3 and the surefire 3.5.2, compiler 3.13.0 and resources 3.3.1 plugins; nothing is ever written to the
-home directory or the repo (the cache is named in the copy's own .mvn/maven.config).
+JUnit 5.11.3, JMH 1.37 and the surefire 3.5.2, compiler and resources plugins of the Maven in use; nothing is ever
+written to the home directory or the repo (the cache is named in the copy's own .mvn/maven.config). CI fills the
+cache with ci/warm-maven.sh.
+
+RIPPLE_REQUIRE_LIVE_MAVEN=1 (set by the CI jobs that install the java extra) turns the skip into a failure: a
+suite that is meant to run there must not go back to skipping unseen.
 """
 
 from __future__ import annotations
@@ -48,11 +52,14 @@ elif not (Path(M2) / "org" / "junit" / "jupiter" / "junit-jupiter" / "5.11.3").i
 else:
     SKIP = None
 
-pytestmark = pytest.mark.skipif(SKIP is not None, reason=SKIP or "")
+REQUIRED = os.environ.get("RIPPLE_REQUIRE_LIVE_MAVEN") == "1"
+pytestmark = pytest.mark.skipif(SKIP is not None and not REQUIRED, reason=SKIP or "")
 
 
 @pytest.fixture(autouse=True)
 def tools(monkeypatch):
+    if SKIP is not None:  # only reached when REQUIRED: without it the mark above skipped the test
+        pytest.fail(f"RIPPLE_REQUIRE_LIVE_MAVEN=1 but the live Maven tests cannot run: {SKIP}", pytrace=False)
     monkeypatch.setenv("JAVA_HOME", JAVA_HOME)
     monkeypatch.setenv("PATH", f"{JAVA_HOME}/bin:{Path(MVN).parent}:{os.environ['PATH']}")
     for name in ("MAVEN_OPTS", "MAVEN_ARGS", "JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS"):
