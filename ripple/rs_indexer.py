@@ -1330,6 +1330,47 @@ def concrete_shape(node) -> bool:
     return True
 
 
+INT_LITERAL = re.compile(r"(0x[0-9a-fA-F]+|0o[0-7]+|0b[01]+|[0-9]+)([iu](?:8|16|32|64|128|size))?")
+
+
+def canonical_type(node, src: bytes) -> str | None:
+    """A concrete type argument (concrete_shape) written one way whatever its spelling: `(u8)` is `u8`, `(u8,)` is a tuple, `&  mut u8` is `&mut u8`,
+    and an array length is its value (`4usize`, `0x4`, `04` and `4_` are `4`). Two such arguments are the same type exactly when these texts are equal, so
+    `relation` can call them `disjoint` when they differ. None for a node it has no reading of (a kind not in CONCRETE_TYPE_KINDS, an integer it cannot
+    parse), which TypeArg then treats as not concrete."""
+    t = node.type
+    if t == "primitive_type":
+        return src[node.start_byte : node.end_byte].decode()
+    if t == "unit_type":
+        return "()"
+    named = node.named_children
+    if t == "tuple_type":
+        parts = [canonical_type(c, src) for c in named]
+        if None in parts:
+            return None
+        if len(parts) == 1 and not any(c.type == "," for c in node.children):
+            return parts[0]  # a parenthesized type
+        return "(" + ", ".join(parts) + ("," if len(parts) == 1 else "") + ")"
+    if t == "reference_type":
+        inner = [c for c in named if c.type != "mutable_specifier"]
+        if len(inner) != 1 or len(named) - len(inner) > 1:
+            return None
+        got = canonical_type(inner[0], src)
+        return None if got is None else "&" + ("mut " if len(named) > len(inner) else "") + got
+    if t == "array_type":
+        if len(named) != 2 or named[1].type != "integer_literal":
+            return None
+        elem = canonical_type(named[0], src)
+        number = INT_LITERAL.fullmatch(src[named[1].start_byte : named[1].end_byte].decode().replace("_", ""))
+        if elem is None or number is None:
+            return None
+        digits = number.group(1)
+        if len(digits) > 80:  # no usize is this long, and int() refuses a decimal of thousands of digits (ValueError): not concrete
+            return None
+        return f"[{elem}; {int(digits, 0) if digits[:2] in ('0x', '0o', '0b') else int(digits)}]"
+    return None
+
+
 # What to make of an attribute of SHADOWABLE_ATTRS: queue it (Attrs.shadow), read it as an attribute macro, or as the built-in
 QUEUE, MACRO, BUILTIN = "queue", "macro", "builtin"
 
@@ -1833,6 +1874,14 @@ def in_namespace(d: Def, ns: str) -> bool:
     return d.kind == "macro"
 
 
+def type_arg(node, src: bytes, scope, generics: tuple) -> TypeArg:
+    """One type argument: a concrete one (canonical_type) as its canonical text, so that two spellings of one type are equal, any other as written."""
+    canonical = canonical_type(node, src) if concrete_shape(node) else None
+    if canonical is None:
+        return TypeArg(squash(text(src, node)), scope, tuple(generics), False)
+    return TypeArg(canonical, scope, tuple(generics), True)
+
+
 def written_args_of(node, src: bytes, scope=None, generics: tuple = ()) -> tuple | None:
     """The type arguments a written type carries, lifetimes left out, each as one TypeArg (its text, and where it is written): () for a
     path with none, None for a type that is no path. `scope` and `generics` are where the type is written."""
@@ -1840,7 +1889,7 @@ def written_args_of(node, src: bytes, scope=None, generics: tuple = ()) -> tuple
         return None
     if node.type in ("generic_type", "generic_type_with_turbofish"):
         args = node.child_by_field_name("type_arguments")
-        return tuple(TypeArg(squash(text(src, a)), scope, tuple(generics), concrete_shape(a)) for a in args.named_children if a.type != "lifetime") if args is not None else ()
+        return tuple(type_arg(a, src, scope, generics) for a in args.named_children if a.type != "lifetime") if args is not None else ()
     if node.type in ("type_identifier", "scoped_type_identifier", "identifier", "scoped_identifier"):
         return ()
     return None
@@ -3633,8 +3682,13 @@ class Index:
             return unresolved(INHERENT_NOT_VISIBLE if seen is not None else INVISIBLE_PATH)
         if d.kind != "method":
             return unresolved(CALLS_CONST)
-        if d.extra.get("cfg") and not self.shares_cfg(d, tdef, body):  # it may not exist where the call does: it is the target only if nothing else could be
-            return edge(d) if self.assoc_traits(body, tdef, name, targs) == unresolved(NO_IMPL) else unresolved(CFG_UNKNOWN)
+        if d.extra.get("cfg") and not self.shares_cfg(d, tdef, body):
+            # It may not exist where the call does, and then the call finds whatever else gives the name: another impl of the type under
+            # the opposite cfg, a repo trait (a blanket impl too), a provided method of a standard or foreign trait the type implements
+            # (`Iterator::count`, `PartialEq::ne`), the reflexive `From` and `TryFrom`, a foreign crate's extension trait. ripple cannot close
+            # that set, so no edge is drawn. Where nothing else gives the name the crate does not build with `d` off, and the build with `d`
+            # on has the call shared with it only if the call is under the same cfg (shares_cfg). Probe path_self_cfg, groups A and D.
+            return unresolved(CFG_UNKNOWN)
         return edge(d)
 
     def call_cfg(self, body: Body) -> frozenset:

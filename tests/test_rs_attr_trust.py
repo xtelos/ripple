@@ -314,11 +314,12 @@ def test_the_items_a_trusted_function_declares_are_read_like_those_of_an_ordinar
     )
     g = graph_of(make_repo, {"Cargo.toml": PKG + TOKIO, "src/main.rs": src})
     assert {(e.caller, e.callee) for e in g.edges} == {
-        ("src/main:main", "src/main:main::S::f"),
         ("src/main:main", "src/main:main::nested"),
         ("src/main:main", "src/main:helper"),
     }
-    assert not g.unresolved
+    # `S::f` is in an impl inside a function under an attribute macro that ripple trusts but does not read as a cfg the call shares: an inherent
+    # function that may not be built is never an edge (rs_indexer.Index.inherent_hit), so this edge, drawn before, is a precision cost
+    assert {(u.text, u.reason) for u in g.unresolved} == {("S::f", rs.CFG_UNKNOWN)}
 
 
 def test_the_same_function_under_a_refused_attribute_has_all_of_it_unresolved(make_repo):
@@ -336,7 +337,9 @@ IMPL_IN_BODY = "struct S;\n#[tokio::main]\nasync fn main() {\n    impl S {\n    
 
 def test_an_impl_inside_a_trusted_function_applies_to_the_whole_crate_and_is_read(make_repo):
     g = graph_of(make_repo, {"Cargo.toml": PKG + TOKIO, "src/main.rs": IMPL_IN_BODY})
-    assert {(e.caller, e.callee) for e in g.edges} == {("src/main:run", "src/main:main::S::f")}
+    # the impl is inside a function under an attribute macro ripple trusts, which is not a cfg the call shares: no edge (inherent_hit), a precision cost
+    assert not g.edges
+    assert {(u.caller, u.text, u.reason) for u in g.unresolved} == {("src/main:run", "S::f", rs.CFG_UNKNOWN)}
 
 
 def test_an_impl_inside_a_refused_function_is_one_an_attribute_macro_may_have_rewritten(make_repo):

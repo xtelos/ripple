@@ -1,0 +1,11 @@
+[package]
+name = "path_self_cfg"
+version = "0.1.0"
+edition = "2021"
+
+# `a` and `b` are both on by default (the oracle reads the crate with both on, so the calls under them are in what it reads);
+# every `#[test]` asserts which function ran, and they pass under each of: --no-default-features, --features a, --features b, the default.
+[features]
+default = ["a", "b"]
+a = []
+b = []

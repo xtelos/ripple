@@ -1,0 +1,12 @@
+[package]
+name = "path_self_cfg_ext"
+version = "0.1.0"
+edition = "2021"
+
+# the same four feature settings as path_self_cfg (see its lib.rs); `a` is on by default, which is the build the oracle reads
+[features]
+default = ["a"]
+a = []
+
+[dependencies]
+extblanket = { path = "../_ext/extblanket" }
