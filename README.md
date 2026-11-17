@@ -44,7 +44,7 @@ Or from a terminal: `ripple index .`, then `ripple impact price_order`.
 |---|---|---|
 | `callers(symbol)` | Who calls this directly, with the file:line of each call site | yes |
 | `callees(symbol)` | What this calls, plus the calls ripple could not resolve and why | yes |
-| `impact(symbol, depth=5, limit=100)` | Every transitive caller grouped by file, the tests that reach it listed separately as pytest node ids, and same-named call sites ripple could not rule out | yes |
+| `impact(symbol, depth=5, limit=100)` | Every transitive caller grouped by file, the tests that reach it listed separately as test ids (pytest node ids; `file_test.go::TestName` for Go), and same-named call sites ripple could not rule out | yes |
 | `path(source, target)` | The shortest call chain from one symbol to another | yes |
 | `check(tests=None)` | Runs the test command (default `python -m pytest -q`, using the repo's `.venv` or `venv` if present, for a repo with Python files; `go test -json` in every module for a Go repo, see [Go](#go); `cargo test` in every top-level workspace for a Rust repo, see [Rust](#rust); `mvn test` for a Maven repo, see [Java](#java); a TypeScript-only repo, or `--lang typescript`, has no default), or just the given test paths (for Python, pytest node ids too; for Go, `file_test.go::TestName[/subtest]`; for Rust, a `.rs` file, a directory or `file.rs::module::test_name`; for Java, the id `impact` lists, a test `.java` file or a directory), and returns pass/fail, the summary line and the first failures, never the full log | no, it runs code |
 
@@ -669,9 +669,9 @@ leaves it out; `vendor`, `testdata` and `.x`/`_x` directories are skipped as Go 
   packages of its own. With nothing below it having run, the message stays a problem), a `_test.go` file (the tests it declares that `go test` runs: an Example with no
   `// Output:` or `// Unordered output:` comment is compiled and never run, so it is left out, and refused by name), or
   `file_test.go::TestName` and `file_test.go::TestName/sub/case` (a space in a subtest's name is written `_`, as Go names it);
-- the id `impact` lists for a test function: a Go repo has no collected tests, so `impact`'s `tests` is empty and a test
-  function is listed among the callers as `example.com/mod/pkg:TestName` (`.../pkg_test:TestName` in an external test
-  package) under its file. `check` takes that id too and finds the file that declares it.
+- the id `impact` lists for a test function, `file_test.go::TestName` (see "Go tests in `impact`" below). `check` also takes
+  the symbol id of a test, `example.com/mod/pkg:TestName` (`.../pkg_test:TestName` in an external test package), which an
+  older `impact` listed among the callers, and finds the file that declares it.
 
 Ids become `go test -run '^(TestA|TestB)$' <package dirs>` (with the flags above), run in the module that holds the package, with the pattern built
 per package: a test name two packages share runs only in the package it was asked for in, and subtests are levels of
@@ -719,9 +719,48 @@ prints `PASS` (a false failure under an unusual GOFLAGS, never a false pass).
 `--test-command` still means exactly that command, read the generic way. `check` picks the Go runner from the profile
 (`--lang go`, or a repo whose first language by registry order is Go: a stray Python or TypeScript file makes `auto`
 pick that language's runner, so pass `--lang go` there). A second language's runner goes in `checker.RUNNERS`
-(profile name to a module with `normalize` and `run`); Go's profile is untouched, since its fields are hashed into the cache key.
+(profile name to a module with `normalize` and `run`), so that adding one leaves the profile, whose fields are hashed into
+the cache key, alone.
 Every stream was captured with Go 1.27.4; no older Go was run, so its event shapes are unverified (a package that fails with no
 failing test and no build event is reported as such, never as a pass).
+
+**Go tests in `impact`.** A Go test that reaches the symbol is listed under `tests` as `file_test.go::TestName` (the
+file is the repo-relative path, `a/a_test.go::TestSame`), the form `check` takes first, so the ids go straight into
+`check`: `ripple check --lang go a/a_test.go::TestSame`. The ids follow the go command's own selection rules (checked
+against `go test -list`, `tests/test_go_impact_tests.py`): `TestXxx(t *testing.T)`, `FuzzXxx(f *testing.F)` (plain `go test`
+runs only its seeds, so it is listed only when the target has an `f.Add(...)` statement before `f.Fuzz`) and `ExampleXxx()` whose last comment is `// Output:` or `// Unordered output:`, in a `_test.go` file
+(an external test package, `package m_test`, included: it is built into the same test binary), where the name after the
+prefix does not start with a lowercase letter. `TestMain(m *testing.M)` is not a test. A `t.Run` subtest is not collected on
+its own; a change reached only through one lists the parent test, whose closure holds the call. A helper that takes
+`*testing.T` but is not named like a test is a caller, as before. What `impact` gives no id, it says: `tests_not_listed`
+holds each caller that looks like a test, with the reason, and it stays among the callers too. The rule behind it: every
+caller `impact` reaches that runs in a test binary without being called by a listed test is named. So it also holds:
+
+- `TestMain`, an `init` and a package variable's initializer in a `_test.go` file, which run before every test of the
+  directory's binary (the package and its external test package): one entry names the directory, and `check` takes the directory
+  (with the symbol broken, go fails the directory's tests, checked on a module for each of the three);
+- an `init` or a package variable's initializer in any other file, which runs in every binary that links the package: one entry
+  says so, and does not list those tests;
+- a method named like a test in a `_test.go` file (a suite runs it by reflection), and any other symbol of a `_test.go` file that no
+  listed test is known to call within the depth asked.
+
+A call through a function value (`f := pkg.Fn; f(1)`) is not an edge, so a test that does that is not reached at all and is
+not named: this is the call graph's recall gap, the same as for any other caller. The cases with no id:
+
+- a benchmark (`go test` runs it only with `-bench`, and `check` does not take one);
+- an example with no output comment (compiled, never run), or whose output comment `check` cannot read (`/* */`, or after code on its line);
+- a test in a file only some builds have (a `//go:build` line, `x_linux_test.go`): which of its tests your `go test` runs is not known;
+- every test of a directory where `go test` fails the package: a `Test`, `Benchmark` or `Fuzz` function with a signature go
+  refuses, a malformed name (`Testfoo(t *testing.T)`) or an `// Output:` that is not the last comment, which go vet fails;
+- a fuzz target with no visible seed (without `-fuzz` go runs no input, so the fuzz function never executes and a pass proves
+  nothing; `testdata/fuzz` is not read, since the cache does not fingerprint it);
+- a name declared more than once in the directory, in any `_test.go` file whatever its constraint (`go test -run` runs each);
+- a directory with no `go.mod` above it, with a file ripple could not read completely, or a test file that imports `"C"`.
+
+Not modelled: what go vet makes of an example's name (an `ExampleFoo` where `Foo` does not exist fails vet, and so
+`check`, with go's own message), and which tags or platform your build has (a file with any constraint is left out, never
+guessed). An unconstrained test file is assumed to build, as the rest of the package does. The ids live in the graph
+(`Graph.test_ids`, decided where the files are read), so the cache moved with this change.
 
 `bench/fixtures/go/probes` holds 157 small legal Go modules, each with what the Go compiler's type checker says every call
 site calls on linux, windows and darwin (`bench/go_oracle/generate.py`, run by hand with Go installed), plus the cgo ones that

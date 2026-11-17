@@ -79,6 +79,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from . import go_tests
 from .go_modules import MISSING, OWN, PUBLISHED, REPLACE, WORK, GoMod, Modules, is_ignored_dir
 from .model import IMPLEMENTS, Edge, Graph, Symbol, Unresolved
 from .profile import GO, GO_BUILTIN_FUNCTIONS, GO_BUILTIN_TYPES, GO_BUILTIN_VALUES, LanguageProfile
@@ -2869,6 +2870,7 @@ def index_files(repo: Path, files: list[Path], skipped: list[str], profile: Lang
             graph.symbols[symbol.id] = symbol
         for info in package.files:
             graph.modules[info.rel] = package.id
+    graph.test_ids, graph.tests_withheld = go_tests.collect(program)
     return graph
 
 

@@ -645,6 +645,22 @@ class _Collections:
             self.built[profile.name] = profile.test_collection(self.graph)
         return self.built[profile.name].node_ids(symbol_id)
 
+    def unlisted(self, distance: dict[str, int], targets: set[str]) -> list[dict]:
+        """What a language's collection says the reached callers run in a test binary with no id (Go: go_tests.py), for the
+        languages whose collection says anything; the others have no such method and add nothing."""
+        by_language: dict[str, tuple[LanguageProfile, dict[str, int]]] = {}
+        for sid, hops in distance.items():
+            profile = _profile_of(self.graph.symbols[sid], self.profile)
+            by_language.setdefault(profile.name, (profile, {}))[1][sid] = hops
+        found: list[dict] = []
+        for name, (profile, reached) in by_language.items():
+            if name not in self.built:
+                self.built[name] = profile.test_collection(self.graph)
+            method = getattr(self.built[name], "unlisted", None)
+            if method is not None:
+                found += method(reached, targets)
+        return found
+
 
 def _targets(graph: Graph, symbol_id: str, profile: LanguageProfile | None) -> set[str]:
     """Ids whose callers count as callers of symbol_id.
@@ -794,9 +810,12 @@ def impact(
     collection = _Collections(graph, profile)
     code: list[dict] = []
     tests: list[dict] = []
+    not_listed: list[dict] = []
     for sid in sorted(distance, key=lambda sid: (distance[sid], sid)):
         symbol = graph.symbols[sid]
         entry = {"symbol": sid, "line": symbol.line, "distance": distance[sid]}
+        if sid in graph.tests_withheld:  # Go: looks like a test, has no id `check` can run (see go_tests.py); still a caller
+            not_listed.append({**entry, "file": symbol.file, "reason": graph.tests_withheld[sid]})
         if sid in via_wrapper:
             entry["via_wrapper"] = via_wrapper[sid]
         labelled = _edge_kinds(reached.get(sid, ()))
@@ -836,6 +855,12 @@ def impact(
         "possible_missed_callers": missed[:20],
         "possible_missed_total": len(missed),
     }
+    not_listed = sorted(not_listed + collection.unlisted(distance, targets), key=lambda e: (e["distance"], e["symbol"]))
+    if not_listed:  # only a Go answer has the key
+        result["tests_not_listed"] = not_listed[:limit]
+        if len(not_listed) > limit:
+            result["tests_not_listed_omitted"] = len(not_listed) - limit
+            result["truncated"] = True
     result.update(_decorations(graph, symbol_id, targets, kinds, limit))
     result.update(_decorations_of_callers(graph, distance, kinds, profile, limit))
     if result.get("decorations_omitted") or result.get("decorations_of_callers_omitted"):

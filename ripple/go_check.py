@@ -33,6 +33,7 @@ from pathlib import Path, PurePosixPath
 
 from .checker import MAX_COMMAND, MAX_FAILURES, check_tests, clip, run_process
 from .go_modules import GoMod, is_ignored_dir, read_gomod
+from .go_tests import selected
 
 TEST_FUNCTION = re.compile(r"^func ((?:Test|Example|Fuzz)\w*)\(", re.MULTILINE)
 PREFIXES = ("Test", "Example", "Fuzz")
@@ -106,8 +107,7 @@ def is_test_name(name: str) -> bool:
     """Whether Go's test runner would take `name` as a test, example or fuzz target (Benchmark: no)."""
     for prefix in PREFIXES:
         if name.startswith(prefix):
-            rest = name[len(prefix):]
-            return rest == "" or not rest[0].islower()
+            return selected(name, prefix)  # go_tests.selected: Go's rule (unicode.IsLower), the one the collection uses
     return False
 
 

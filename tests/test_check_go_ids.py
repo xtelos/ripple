@@ -1,8 +1,8 @@
 """The ids `impact` hands out for Go tests, and what `check` makes of them (no Go needed).
 
-Measured on the current code: a Go repo has no collected tests (`tests` is empty, NoTestCollection),
-so impact lists a Go test function among the callers to update, as `<import path>:<TestName>` under
-the file it is in. `check` takes that id, and the `file_test.go::TestName` form, for the same test.
+`impact` lists a Go test among `tests` as `file_test.go::TestName` (tests/test_go_impact_tests.py has the rules). `check`
+also takes the symbol id of a test, `<import path>:<TestName>` (what a caller of an older ripple listed under the
+callers), and turns it into the same file form: those are the cases below.
 """
 
 import importlib.util
@@ -23,20 +23,22 @@ needs_go_parser = pytest.mark.skipif(not HAS_GO, reason="Go support is not insta
 
 
 @needs_go_parser
-def test_impact_lists_a_go_test_as_a_caller_with_a_symbol_id_and_no_test_ids():
+def test_impact_lists_a_go_test_with_the_file_id_check_takes_and_not_among_the_callers():
     graph = load_repo(MODULES / "twopkgs").graph
     result = queries.impact(graph, "One")
-    assert result["tests"] == []
-    assert result["by_file"]["a/a_test.go"] == [{"symbol": "example.com/twopkgs/a:TestSame", "line": 5, "distance": 1}]
+    assert result["tests"] == [
+        {"node_id": "a/a_test.go::TestSame", "symbol": "example.com/twopkgs/a:TestSame", "line": 5, "distance": 1, "file": "a/a_test.go"}
+    ]
+    assert result["by_file"] == {}
 
 
 @needs_go_parser
 def test_the_ids_impact_emits_run_the_test_they_name():
     graph = load_repo(MODULES / "twopkgs").graph
-    callers = [entry["symbol"] for entries in queries.impact(graph, "One")["by_file"].values() for entry in entries]
     repo = MODULES / "twopkgs"
-    asked = normalize(repo, callers)
+    asked = [entry["node_id"] for entry in queries.impact(graph, "One")["tests"]]
     assert asked == ["a/a_test.go::TestSame"]
+    assert normalize(repo, asked) == asked  # already the file form: left as it is
     runs = plan(find_modules(repo), parse_wants(repo, asked))
     assert [run.argv() for run in runs] == [go_argv("./a", run="^(TestSame)$")]
 
