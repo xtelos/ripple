@@ -872,6 +872,19 @@ there; a second definition under another cfg is still counted and refuses (`SEVE
 receiver's own `let` or parameter (never an ancestor of the call), or in another crate's copy of a file is not shared; nor is an attribute that does
 more than make its host exist or not (`head_shared`: `cfg`, and a `cfg_attr` of those and inert attributes; `test`, `path`, `no_implicit_prelude` and
 attribute macros are not).
+A path call (`Self::f()`, `<Self>::f()`, `T::f()`) into an inherent function that is not shared in that way is never an edge (`CFG_UNKNOWN`),
+as for a method call. Where the function is not built, the call finds whatever else gives the name, and ripple cannot close that set: an impl of the
+type under the opposite cfg (for `W<A>` with `type A = u8`, or an impl for every `T`, or a call that writes no type arguments, ripple cannot say
+which impl applies), a repo trait (a blanket impl too), a provided method of a standard or foreign trait the type implements (`Iterator::count`,
+`PartialEq::ne`), the reflexive `From` and `TryFrom`, a foreign crate's extension trait. Where nothing else gives the name the crate does not build
+with the function off, so no edge is lost that a build with the call has; on ripgrep, clap, serde, mini-redis, fd and bat no site changes. Before,
+the edge was drawn when no trait impl written for the type gave the name, which is wrong for each of those (probes `path_self_cfg` groups A and D
+and `path_self_cfg_ext`, compiled and run under each feature setting; their oracle is rust-analyzer's). The call and the function under one
+predicate, and an unconditional function, stay edges (group B). CACHE_FORMAT -42.
+The type arguments of an impl and of a call are compared as the type they name (`canonical_type`): `(u8)` is `u8`, `& u8` is `&u8`, and `[u8; 4usize]`,
+`[u8; 0x4]` and `[u8; 04]` are `[u8; 4]`. Compared as written, a trait impl for `W<(u8)>` was another type than `W<u8>`, so `W::<(u8)>::f()` got an edge to
+the trait impl where the inherent function of `W<u8>` runs (group E). A type argument that is not built of primitives, tuples, arrays and references
+of them is still never compared.
 Two rules satisfy a conditional attribute of the declaration's path: **the same attribute** on the call's path (above), and **the same predicate**
 (`cfg_covers`): another attribute on the call's path whose predicate is the identical tokens, so ripgrep's `#[cfg(test)] mod testutil;` holding the
 impl and its sibling `#[cfg(test)] mod tests` holding the calls is an edge (`SearcherTester::new` and its like: 69 of the path edges that the shared-attribute rule alone lost in ripgrep), under five conditions, each one a probe
