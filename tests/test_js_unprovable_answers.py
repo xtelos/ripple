@@ -221,8 +221,13 @@ def test_a_declaration_that_makes_no_value_of_its_own_leaves_the_call_unresolved
     with the module's own object (and, in a function, ripple reads no value for it), and `import x = require()` binds nothing here:
     a call through the name is unresolved and never counted outside the repo."""
     graph = graph_of(make_repo({"main.cts": TS_NOT_VALUES[name] + "\n", "a.cts": "exports.f = function () {};\n"}), TYPESCRIPT)
-    assert [u for u in graph.unresolved if REASON in u.reason], graph.unresolved
-    assert graph.external_calls == 0 and graph.edges == [] or "enum" in name, (graph.external_calls, graph.edges)
+    # an enum, and a namespace that holds a value, are values at run time (Node with --experimental-transform-types: `exports.h` is the
+    # namespace's, and `module.exports` throws), so in a function each is a declaration of that function: the name is bound there to what
+    # ripple does not follow, and the reason says so (see test_js_module_names.py). Every other declaration here makes no value, and the
+    # name is still the module's own.
+    binds = "enum" in name or name == "a namespace in a function"
+    assert [u for u in graph.unresolved if REASON in u.reason or (binds and "declared here" in u.reason)], graph.unresolved
+    assert graph.external_calls == 0 and graph.edges == [], (graph.external_calls, graph.edges)
 
 
 def test_a_call_of_require_itself_is_answered_as_before(make_repo):

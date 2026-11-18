@@ -370,8 +370,21 @@ JavaScript or TypeScript file it is unresolved and never counted as outside the 
 it a value of its own makes it that value (a parameter, `var`, `let`, `const`, `function`, `class` or an import, in a function or
 block around the call or at the top of the file): a bare assignment (`exports = new K()`) does not, since the name holds the
 module's own object until the assignment runs, a `var` at the top of the file does not for the same reason (in a CommonJS
-file it redeclares the parameter Node runs the file with), and an `interface`, a type alias, anything after `declare`, an `enum`, a
-`namespace` and `import x = require()` do not either. A call of `require(...)` itself is a call of the builtin loader, as before.
+file it redeclares the parameter Node runs the file with), and at the top of the file an `enum`, a `namespace` and
+`import x = require()` do not either. Inside a function or block, what exists at run time decides: an `enum` and a `namespace` that holds a
+value are bindings of their block (or of the function, at its top level), so the call is unresolved with the reason that the name is
+declared there (a `const enum` is erased by tsc and kept by Node's transform and by esbuild, so that is not known either), while an
+`interface`, a type alias, anything after `declare` and a namespace of types only exist in no form, hide nothing, and leave the call a
+member of the module's own objects. A `var` belongs to the function (or the file) around its block, whatever else of that name is
+declared in the block (an interface, a namespace, anything), and a function declared in a block is also taken for a name of the function, as in code that is not strict; a `let`, `const`,
+`class`, `enum` and `namespace` stop at their block. `STATEMENT_KINDS` in `ripple/ts_indexer.py` states the scope of each kind of
+statement, and `tests/test_js_module_names.py` runs each kind, in each position, in Node. A call of `require(...)` itself is a call of
+the builtin loader, as before. The same objects spelled another way are unresolved too, never outside the repo:
+`globalThis.process.mainModule.exports.f()`, `global.process.mainModule...`, and `process` (or `ns.default`, or `mainModule`) imported
+from `process` or `node:process` reach the entry module. `globalThis.module`, `globalThis.exports` and `globalThis.require` do not
+reach anything in a file Node runs (they are parameters of the file's wrapper function, so the call throws) unless code of the repo stores a module
+object on the global object, so they are unresolved with a reason that says that. A `globalThis` or `global` that a declaration gives a
+value of its own (a parameter, `let`, `const`, a top-level `var`, an import) is that value, and the call is read as written.
 
 **The two languages do not follow each other.** A TypeScript file that imports a `.js` file (or the reverse, through a relative
 path, `baseUrl` or `paths`) has an unresolved call with the reason "names src/x.js, a JavaScript file, whose calls ripple does

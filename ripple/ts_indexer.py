@@ -102,6 +102,7 @@ OWN_PROPERTY = "the receiver is a field or parameter property of the class, whic
 ABSTRACT = "the receiver is an abstract member, which runs nothing and hides what a base class defines"
 STATIC_AND_INSTANCE = "the receiver is a name that a static and an instance member of the class both declare"
 TYPE_DECLARED = "the receiver is named like an interface, type, enum or namespace declared here, which ripple does not follow"
+BLOCK_FUNCTION = "the receiver is named like a function declared in a block, which in code that is not strict is a variable of the function around it too"
 OWN_NAME = "the receiver is the name of a function expression, which is the function itself"
 DESTRUCTURED = "the receiver is destructured from an object or array, whose type ripple does not follow"
 CALLBACK_PARAMETER = "the receiver is a parameter of an anonymous function, whose type ripple does not infer"
@@ -119,6 +120,14 @@ JS_AFTER_ERROR = (
 # own exports and any other module's, so code of the repo, and a call through one is never "outside the repo"
 MODULE_NAMES = ("require", "module", "exports")
 MODULE_ROOTS = (*MODULE_NAMES, "process")  # `process.mainModule` is the entry module, which may be this file
+GLOBAL_OBJECTS = ("globalThis", "global")  # `globalThis.module` is the module root again, spelled as a property of the global object
+PROCESS_MODULES = ("process", "node:process")  # what `import process from "..."` names when it is Node's own
+TRACKED = {*MODULE_ROOTS, *GLOBAL_OBJECTS}  # the names whose answer depends on what a declaration of the same name does (see `_declares`)
+GLOBAL_EXPORTS = (
+    "the callee is reached through `globalThis` or `global` as a member of `module`, `exports` or `require`, which a file Node runs does not "
+    "have on the global object unless some code stores one there (code of the repo or of a package), so it is not known what runs, or "
+    "that it is outside the repo"
+)
 OWN_EXPORTS = (
     "the callee is a member of `exports`, `module`, `require` or `process.mainModule`, which hold the modules' own objects (this file's "
     "exports, the loader, the entry module), and ripple does not follow what is stored on them, so it is not known to be outside the repo"
@@ -192,6 +201,134 @@ def field_of(node, name: str):
 def named(node) -> list:
     """The named children that are not comments."""
     return [c for c in node.named_children if c.type != "comment"]
+
+
+class _Frame(dict):
+    """The names one block or function declares ({name: the key it is bound under}). `erased` are those that only the types declare, and
+    `kind` is "function" for a function's frame (where `var` names belong, wherever in the function they are written), "catch" for the
+    frame of a catch clause with a plain parameter (the one block a `var` of the same name is bound in), else "block"."""
+
+    erased: frozenset = frozenset()
+    kind: str = "block"
+
+
+# What each kind of statement the grammar has does to the names around it, and so which frame (see `_Frame`) a name it declares belongs to.
+# This table is read by the code (declaration_of, _declared_names, _var_names, _bind_type_names, TYPE_DECLARATIONS, NAMESPACES), and
+# tests/test_js_module_names.py runs every row in Node 24 and tsc: the scope is what the language does, not a guess.
+#   block           the name belongs to the block the statement stands in (`let`, `const`, `class`)
+#   block type      the same, and it is a type too (an `enum`: `let` in a block, merged into what the file is run with at the top of a CommonJS file)
+#   namespace       the same as `block type`, unless it holds only types, when it is erased (`namespace N {}`, `module N {}`)
+#   function        the name belongs to the function (the file's, at top level) around the statement, whichever block it is written in: `var`.
+#                   It is never decided by what else of that name is in the block
+#   block function  the block's own name, and in sloppy-mode code the function's too (Annex B), which ripple cannot tell from strict code, so
+#                   a function declared in a block is a name of the function as well
+#   erased          no name at run time (an interface, a type alias)
+#   ambient         `declare ...`: no name at run time, and nothing ripple reads
+#   wrapper         holds the declaration in another node, which `declaration_of` looks through (see HOLDERS)
+#   import          an import statement: its `import` clause binds names ripple follows (`import x = require()` is the same kind of node and binds none)
+#   none            binds no name that ripple reads: a control statement (the statements inside are read where they stand), and `import a = N.M`,
+#                   which is wrongly answered as outside the repo (a KNOWN-WRONG row of the tests)
+STATEMENT_KINDS = {
+    "export_statement": "wrapper",
+    "expression_statement": "wrapper",  # the grammar holds `namespace N {}` in one
+    "labeled_statement": "wrapper",
+    "ambient_declaration": "ambient",
+    "lexical_declaration": "block",
+    "variable_declaration": "function",
+    "function_declaration": "block function",
+    "generator_function_declaration": "block function",
+    "class_declaration": "block",
+    "abstract_class_declaration": "block",
+    "enum_declaration": "block type",
+    "internal_module": "namespace",  # `namespace N {}`
+    "module": "namespace",  # `module N {}`
+    "interface_declaration": "erased",
+    "type_alias_declaration": "erased",
+    "import_statement": "import",
+    "import_alias": "none",
+    "function_signature": "none",
+    "statement_block": "none",
+    "if_statement": "none",
+    "switch_statement": "none",
+    "for_statement": "none",
+    "for_in_statement": "none",
+    "while_statement": "none",
+    "do_statement": "none",
+    "try_statement": "none",
+    "with_statement": "none",
+    "break_statement": "none",
+    "continue_statement": "none",
+    "debugger_statement": "none",
+    "return_statement": "none",
+    "throw_statement": "none",
+    "empty_statement": "none",
+}
+NAMESPACES = tuple(kind for kind, role in STATEMENT_KINDS.items() if role == "namespace")
+TYPE_DECLARATIONS = tuple(kind for kind, role in STATEMENT_KINDS.items() if role in ("block type", "namespace", "erased"))
+
+
+def _held_by_export(node):
+    return field_of(node, "declaration")
+
+
+def _held_by_label(node):
+    return field_of(node, "body")
+
+
+def _held_by_expression(node):
+    """The grammar holds `namespace N {}` in an expression statement; any other expression holds no declaration."""
+    kids = named(node)
+    return kids[0] if len(kids) == 1 and STATEMENT_KINDS.get(kids[0].type) == "namespace" else None
+
+
+HOLDERS = {"export_statement": _held_by_export, "labeled_statement": _held_by_label, "expression_statement": _held_by_expression}
+
+
+def declaration_of(node):
+    """(the declaration a statement holds, whether it follows `declare`), seen through every node whose row of STATEMENT_KINDS says
+    "wrapper" (`export` and `export default`, a label, the expression statement that holds a `namespace`) or "ambient" (`declare`).
+    A statement that holds no declaration is returned as it is."""
+    ambient = False
+    while True:
+        role = STATEMENT_KINDS.get(node.type)
+        if role == "ambient":
+            ambient = True
+            kids = named(node)
+            if not kids:
+                return node, True
+            node = kids[0]
+        elif role == "wrapper":
+            held = HOLDERS[node.type](node)
+            if held is None:
+                return node, ambient
+            node = held
+        else:
+            return node, ambient
+
+
+def declared_name(node) -> str | None:
+    """The name a declaration binds: `A` for `namespace A.B {}`, which declares `A`. None for what has no plain name."""
+    name = field_of(node, "name")
+    if name is not None and name.type == "nested_identifier":
+        name = next(iter(named(name)), None)
+    return text(name) if name is not None and name.type in ("identifier", "type_identifier") else None
+
+
+def _erased(node) -> bool:
+    """Whether a declaration of the types exists in no form at run time: an interface, a type alias, and a namespace that holds only
+    these (and ambient declarations, and namespaces like it), which TypeScript emits nothing for. Run in Node 24 (`--experimental-
+    transform-types`), such a namespace left `module` the module's own object, where an enum, a `const enum` and a namespace with a value
+    bound it. Anything not shown to be erased is not."""
+    if STATEMENT_KINDS.get(node.type) == "erased":
+        return True
+    if node.type not in NAMESPACES:
+        return False
+    body = field_of(node, "body")
+    for statement in named(body) if body is not None else ():
+        held, ambient = declaration_of(statement)
+        if not ambient and not _erased(held):
+            return False
+    return True
 
 
 def inner(node):
@@ -374,7 +511,6 @@ TEST_CASES = {"it", "test", "xit", "fit"}
 TEST_MODIFIERS = {"only", "skip", "todo", "concurrent", "sequential"}
 FUNCTION_VALUES = ("arrow_function", "function_expression", "function", "generator_function")
 FUNCTION_DECLARATIONS = ("function_declaration", "generator_function_declaration")
-TYPE_DECLARATIONS = ("interface_declaration", "type_alias_declaration", "enum_declaration", "internal_module")
 FUNCTION_NODES = FUNCTION_VALUES + FUNCTION_DECLARATIONS + ("method_definition",)
 SKIPPED = {
     "interface_declaration",
@@ -431,7 +567,7 @@ class FileBuilder:
         self.exports: list[tuple[str, str]] = []  # (exported name, local name), settled when the file is read
         self.not_known: dict[str, str] = {}  # specifier -> why an import of it is not known to be a package or a file
         self._methods: dict = {}
-        self.frames: list[dict[str, str]] = []  # the names each enclosing block or function declares (see _push)
+        self.frames: list[_Frame] = []  # the names each enclosing block or function declares (see _push)
         self.counter = 0
         self.statics: dict[str, bool] = {}  # scope id -> whether it is a static member
         self.own_accessors: dict[str, set] = {}  # class id -> the names it declares with get or set
@@ -440,6 +576,7 @@ class FileBuilder:
         self.jsx_nodes: dict[int, JsxElement] = {}  # tree-sitter id of a component element -> its fact
         self.props: dict[str, tuple[dict, str | None]] = {}  # scope id -> ({local name: prop key}, name of the props object)
         self.top_names = self._top_names(root)  # the module names the file declares at its top level (see _module_name_of)
+        self.process_imports = self._process_imports(root)  # local name -> how Node's `process` is imported under it (see _canonical)
         for node in named(root):
             self.visit(node)
         for exported, local in self.exports:
@@ -481,15 +618,28 @@ class FileBuilder:
         self.counter += 1
         return f"{name}#{self.counter}"
 
-    def _push(self, names, fresh: bool) -> None:
-        """Open a frame for the names a block, a function or a clause declares."""
-        self.frames.append({n: (self._fresh(n) if fresh else n) for n in dict.fromkeys(names)})
+    def _push(self, names, fresh: bool, erased=(), kind: str = "block") -> None:
+        """Open a frame for the names a block, a function or a clause declares. `erased` are the names among them that only an
+        interface, a type alias or a namespace of types declares: they are no value at run time (see `_declares`)."""
+        frame = _Frame({n: (self._fresh(n) if fresh else n) for n in dict.fromkeys(names)})
+        frame.erased = frozenset(erased)
+        frame.kind = kind
+        self.frames.append(frame)
 
     def _pop(self) -> None:
         self.frames.pop()
 
     def _name(self, name: str) -> str:
-        """The key a name written here is bound under: the innermost frame that declares it, else itself."""
+        """The key a name written here (read or written) is bound under: the innermost frame that holds it as a value, else itself. A frame
+        that only an interface or a type alias of that name stands in is skipped: it is erased, so the name there is still the one outside.
+        Reads and writes of a value go through this one function; a name in the position of a type is `_type_name`."""
+        for frame in reversed(self.frames):
+            if name in frame and name not in frame.erased:
+                return frame[name]
+        return name
+
+    def _type_name(self, name: str) -> str:
+        """The key a name written in the position of a type is looked up under: an interface or a type alias of that name hides a class."""
         for frame in reversed(self.frames):
             if name in frame:
                 return frame[name]
@@ -509,6 +659,13 @@ class FileBuilder:
         """Whether some function or block around here declares the name (so it is not the module's, or a global)."""
         return any(name in frame for frame in self.frames)
 
+    def _declares(self, name: str) -> bool:
+        """Whether a function or block around here gives the name a value of its own at run time. `_local` also counts what only the
+        types declare (`interface module {}`): that is erased, so `module` there is still the module's own object. An enum is a
+        value (`const enum` is erased by tsc and bound by Node and esbuild, which ripple cannot tell apart, so it counts as one: the
+        call is then unresolved, never a call of the module's own)."""
+        return any(name in frame and name not in frame.erased for frame in self.frames)
+
     def _ref(self, parts: list) -> list:
         """A dotted reference as the resolver should read it: its first name, under the key it is bound by."""
         return [self._name(parts[0]), *parts[1:]] if parts else parts
@@ -522,19 +679,75 @@ class FileBuilder:
         not a declaration: the name still holds the module's own object until it runs, and which it holds at a call is not known."""
         if len(parts) < 2 or parts[1] == "()":
             return ""
+        parts, spelled = self._canonical(parts)
+        if len(parts) < 2 or parts[1] == "()":
+            return ""
         if parts[0] in MODULE_NAMES or parts[:2] == ["process", "mainModule"]:
-            return "" if self._local(parts[0]) or parts[0] in self.top_names else parts[0]
+            return "" if not spelled and (self._declares(parts[0]) or parts[0] in self.top_names) else parts[0]
         return ""
+
+    def _canonical(self, parts: list) -> tuple[list, str]:
+        """(the reference as Node's own names spell it, how it was spelled another way: "global", "import" or "" when it was not).
+        `globalThis.module.exports.f` and `global.process.mainModule.exports.f` are `module.exports.f` and
+        `process.mainModule.exports.f`, and the name a declaration around the reference gives `module` does not hide the property of the
+        global object; a `globalThis` or `global` that a declaration gives a value of its own (a parameter, a `let`, `const`, `var`,
+        `function` or `class`, an import) is not the global object, so the reference is left as written. `process` (or a namespace of
+        it, or its `mainModule`) imported from Node's `process` or `node:process` is `process`, which is reached through
+        `process.mainModule` the same way."""
+        head = parts[0]
+        if head in GLOBAL_OBJECTS and not (self._declares(head) or head in self.top_names):
+            rest = parts[1:]
+            while rest and rest[0] in GLOBAL_OBJECTS:
+                rest = rest[1:]
+            return rest, "global"
+        how = self.process_imports.get(head)
+        if how is None or self._declares(head):
+            return parts, ""
+        if how == "mainModule":
+            return ["process", "mainModule", *parts[1:]], "import"
+        if how == "*" and parts[1:2] == ["default"]:  # `import * as ns from "process"`: ns.default is process, and ns.mainModule too
+            return ["process", *parts[2:]], "import"
+        return ["process", *parts[1:]], "import"
+
+    def _process_imports(self, root) -> dict[str, str]:
+        """The names the file imports Node's `process` under: {local name: "default" | "*" | "mainModule"}. `import process from`,
+        `import { default as p } from` and `import * as ns from` of `process` or `node:process`, and `import { mainModule }`
+        (which is `process.mainModule`). Any other member of it is no module object. A type-only import is no value."""
+        found: dict[str, str] = {}
+        for node in named(root):
+            if node.type != "import_statement" or any(c.type == "type" for c in node.children):
+                continue
+            source = field_of(node, "source")
+            if source is None or string_value(source) not in PROCESS_MODULES:
+                continue
+            clause = next((c for c in named(node) if c.type == "import_clause"), None)
+            for part in named(clause) if clause is not None else ():
+                if part.type == "identifier":
+                    found[text(part)] = "default"
+                elif part.type == "namespace_import":
+                    found.update({text(c): "*" for c in named(part) if c.type == "identifier"})
+                elif part.type == "named_imports":
+                    for item in named(part):
+                        name, alias = field_of(item, "name"), field_of(item, "alias")
+                        if item.type != "import_specifier" or name is None or any(c.type == "type" for c in item.children):
+                            continue
+                        if text(name) in ("default", "mainModule"):
+                            found[text(alias or name)] = "default" if text(name) == "default" else "mainModule"
+        return found
 
     def _own_exports(self, call: RawCall | JsxElement, parts: list) -> None:
         """A call (or JSX tag) through a module name that no declaration shadows reaches the module's own exports, or another
         module's: it may run code of the repo, so it is unresolved, never outside the repo."""
-        if not self._module_name_of(parts):
+        name = self._module_name_of(parts)
+        if not name:
             return
+        # `globalThis.module` is not `module`: Node's own `module`, `exports` and `require` are the file's parameters, so through the
+        # global object they are what code stored there, or nothing (a call that throws), and the reason must not say they are the module's
+        why = GLOBAL_EXPORTS if name in MODULE_NAMES and self._canonical(parts)[1] == "global" else OWN_EXPORTS
         if isinstance(call, JsxElement):  # <exports.Widget />: a tag the resolver reads as it reads a callee
-            call.chain, call.why = None, OWN_EXPORTS
+            call.chain, call.why = None, why
         else:
-            call.chain, call.path, call.special, call.why = None, None, "computed", OWN_EXPORTS
+            call.chain, call.path, call.special, call.why = None, None, "computed", why
 
     def _top_names(self, root) -> set[str]:
         """The names of the module names (`exports`, `module`, `require`, `process`) that the file declares at its top level, wherever
@@ -544,7 +757,7 @@ class FileBuilder:
         a type alias, and everything after `declare`, which makes no value. A top-level `var` is left out as well: where the file is
         CommonJS it redeclares the parameter Node runs the file with, so the name holds the module's own object until the assignment
         runs, as it does for a bare assignment."""
-        found = set(self._declared_names(named(root)))  # let, const, class, function, not the type-only declarations
+        found = set(self._declared_names(named(root), types=False))  # let, const, class, function, not the type-only declarations
         for node in named(root):
             if node.type != "import_statement" or any(c.type == "type" for c in node.children):
                 continue
@@ -559,57 +772,80 @@ class FileBuilder:
                         local = field_of(item, "alias") or field_of(item, "name")
                         if item.type == "import_specifier" and local is not None and not any(c.type == "type" for c in item.children):
                             found.add(text(local))
-        return found & set(MODULE_ROOTS)
+        # `globalThis` and `global` are no parameters of the file: a top-level `var` of the name is an ordinary variable that hides the global
+        # object (the `var` of a module name is not left out because of the parameter Node runs the file with, which these two are not)
+        found |= set(self._var_names(root, namespaces=False)) & set(GLOBAL_OBJECTS)
+        return found & {*MODULE_ROOTS, *GLOBAL_OBJECTS}
 
     def _ref_text(self, dotted_name: str) -> str:
         head, dot, rest = dotted_name.partition(".")
-        return self._name(head) + dot + rest
+        return self._type_name(head) + dot + rest
 
-    def _declared_names(self, nodes) -> list[str]:
+    def _declared_names(self, nodes, types: bool = True, erased: bool = True) -> list[str]:
         """The names the statements declare directly (not in a nested block or function) with let, const,
-        class or function: what a block of them makes its own, before any of them runs."""
+        class or function: what a block of them makes its own, before any of them runs. An interface, a type alias, an
+        enum or a namespace is a declaration of its block too (`_bind_type_names` binds it there), unless `types` is False:
+        the file's own top level leaves them out (see `_top_names`), which is the one place where they must not count.
+        With `erased` False the ones that exist only in the types (see `_erased`) are left out as well: the names that are values."""
         names: list[str] = []
-        for node in nodes:
-            if node.type == "export_statement":
-                node = field_of(node, "declaration") or node
-            t = node.type
-            if t == "lexical_declaration":
-                for declarator in named(node):
-                    target = field_of(declarator, "name") if declarator.type == "variable_declarator" else None
-                    if target is not None:
-                        names += self._pattern_names(target, visit_defaults=False)
-            elif t in FUNCTION_DECLARATIONS or t in ("class_declaration", "abstract_class_declaration") or t in TYPE_DECLARATIONS:
-                name = field_of(node, "name")
-                # an interface, a type alias, an enum or a namespace named like a module name is no value that stands for the module's
-                # own object (see _module_name_of), so it does not hide the name
-                if name is not None and not (t in TYPE_DECLARATIONS and text(name) in MODULE_ROOTS):
-                    names.append(text(name))
+        for node, ambient in map(declaration_of, nodes):  # `export`, a label, a namespace's expression statement: see declaration_of
+            role = STATEMENT_KINDS.get(node.type)
+            if ambient:
+                continue
+            if role in ("block", "block function"):
+                names += self._names_declared(node)
+            elif role in ("block type", "namespace", "erased") and types and (erased or not _erased(node)):
+                names += self._names_declared(node)
         return names
+
+    def _names_declared(self, node) -> list[str]:
+        """The names one declaration binds: what its declarators bind (`let`, `const`, `var`), or its own name."""
+        if node.type in ("lexical_declaration", "variable_declaration"):
+            names: list[str] = []
+            for declarator in named(node):
+                target = field_of(declarator, "name") if declarator.type == "variable_declarator" else None
+                if target is not None:
+                    names += self._pattern_names(target, visit_defaults=False)
+            return names
+        name = declared_name(node)
+        return [name] if name is not None else []
+
+    def _erased_names(self, nodes) -> set[str]:
+        """The names the statements declare only in the types (an interface, a type alias, a namespace of types), which exist at run time
+        in no form: `interface module {}` does not hide the module's own `module`, though it hides a class of that name to the types.
+        Only the names a module name can be spelled with are recorded: they are the ones whose answer depends on it (see `_declares`)."""
+        if not any(declaration_of(n)[0].type in TYPE_DECLARATIONS for n in nodes):
+            return set()  # nearly every block: nothing here is a declaration of the types
+        return (set(self._declared_names(nodes)) - set(self._declared_names(nodes, erased=False))) & TRACKED
 
     def _bind_type_names(self, nodes) -> None:
         """An interface, a type alias, an enum or a namespace declared in a block hides a class of that name from
-        the code around it, so the name is bound here to something ripple does not follow."""
-        for node in nodes:
-            if node.type == "export_statement":
-                node = field_of(node, "declaration") or node
-            name = field_of(node, "name") if node.type in TYPE_DECLARATIONS else None
-            if name is not None and name.type == "identifier":
-                self._bind(text(name), [unknown_ref(TYPE_DECLARED)])
+        the code around it, so the name is bound here, under the key of the block, to something ripple does not follow."""
+        for node, ambient in map(declaration_of, nodes):
+            # an interface and a type alias are erased: they bind no value to answer for (their name only hides a class in the types)
+            if not ambient and STATEMENT_KINDS.get(node.type) in ("block type", "namespace"):
+                for name in self._names_declared(node):
+                    self.scope.bind(self._name(name), Binding("var", evidence=[unknown_ref(TYPE_DECLARED)]))
 
-    def _var_names(self, node) -> list[str]:
-        """The names `var` declares anywhere in a function body (it is function scoped), not inside a nested function."""
+    def _var_names(self, node, namespaces: bool = True) -> list[str]:
+        """The names `var` declares anywhere in a function body (it is function scoped), not inside a nested function. With `namespaces`
+        False not inside a namespace either, whose `var` is that namespace's own. A function declared in a block is a name of the
+        function as well, where the code is not strict (Annex B), and which it is cannot be read: it is listed here when a module name
+        can be spelled with it (see `_declares`), so the name after the block is not taken for the module's own."""
         names: list[str] = []
         stack = list(node.named_children)
         while stack:
             child = stack.pop()
+            role = STATEMENT_KINDS.get(child.type)
+            if role == "function":  # `var`: the function's, whichever block it is written in and whatever else of that name is there
+                names += self._names_declared(child)
+            elif role == "block function" and declared_name(child) in TRACKED:
+                names.append(declared_name(child))
             if child.type in FUNCTION_NODES or child.type in ("class_declaration", "abstract_class_declaration", "class"):
                 continue
-            if child.type == "variable_declaration":
-                for declarator in named(child):
-                    target = field_of(declarator, "name") if declarator.type == "variable_declarator" else None
-                    if target is not None:
-                        names += self._pattern_names(target, visit_defaults=False)
-            elif child.type == "for_in_statement" and field_of(child, "kind") is not None and text(field_of(child, "kind")) == "var":
+            if not namespaces and child.type in NAMESPACES:
+                continue
+            if child.type == "for_in_statement" and field_of(child, "kind") is not None and text(field_of(child, "kind")) == "var":
                 left = field_of(child, "left")
                 if left is not None:
                     names += self._pattern_names(left, visit_defaults=False)
@@ -641,9 +877,13 @@ class FileBuilder:
         body = field_of(node, "body")
         own = self._own_name(node)
         names = ([own] if own else []) + self._param_names(node)
+        erased: set[str] = set()
         if body is not None and body.type == "statement_block":
-            names += self._declared_names(named(body)) + self._var_names(body)
-        self._push(names, fresh)
+            variables = self._var_names(body)
+            erased = self._erased_names(named(body)) - set(names) - set(variables)  # a parameter or a `var` of that name is a value
+            names += self._declared_names(named(body)) + variables
+        self._push(names, fresh, erased)
+        self.frames[-1].kind = "function"
         if body is not None and body.type == "statement_block":
             self._bind_type_names(named(body))
 
@@ -659,12 +899,13 @@ class FileBuilder:
         scope_id: str | None = None,
         variable: bool = True,
         static: bool = False,
+        var: bool = False,
     ) -> Scope:
         """The scope of a declaration. A name declared again in the same frame (an overload's body, a getter and
         its setter) is the same symbol. A name declared in another block, or a static and an instance member of one
         name, is another declaration and gets an id of its own (`m.f`, then `m.f#2`)."""
         parent = parent or self.scope
-        bound = self._name(name) if variable else name
+        bound = self._var_key(name) if var else self._name(name) if variable else name
         if scope_id is not None:  # a test callback, named by its titles
             existing, sid = self.scopes.get(scope_id), scope_id
         else:
@@ -692,12 +933,31 @@ class FileBuilder:
                 parent.names[bound] = Binding("var", evidence=[unknown_ref(STATIC_AND_INSTANCE)])
         return scope
 
-    def _bind(self, name: str, evidence: list) -> None:
-        self.scope.bind(self._name(name), Binding("var", evidence=list(evidence)))
+    def _var_key(self, name: str) -> str:
+        """The key a `var` of the name is bound under: the function's (or the file's, which has no frame), whatever block it is written in and
+        whatever else of that name is declared in that block, a namespace or an interface or anything. The one block it reaches is the catch
+        clause of a plain parameter of the same name, where the initializer is assigned to the parameter (Annex B.3.5)."""
+        for frame in reversed(self.frames):
+            if frame.kind == "catch" and name in frame:
+                return frame[name]
+            if frame.kind == "function":
+                return frame.get(name, name)
+        return name
 
-    def _assign_name(self, name: str, evidence: list) -> None:
+    def _function_key(self, name: str) -> str:
+        """The key the name has in the function around here (or the file): where a function declared in a block belongs as well, in code
+        that is not strict."""
+        for frame in reversed(self.frames):
+            if frame.kind == "function":
+                return frame.get(name, name)
+        return name
+
+    def _bind(self, name: str, evidence: list, var: bool = False) -> None:
+        self.scope.bind(self._var_key(name) if var else self._name(name), Binding("var", evidence=list(evidence)))
+
+    def _assign_name(self, name: str, evidence: list, var: bool = False) -> None:
         """`x = value` where x was declared outside this function is the same variable, not a new local."""
-        key = self._name(name)
+        key = self._var_key(name) if var else self._name(name)
         for scope in reversed(self.stack):
             if scope.kind != "class" and key in scope.names:
                 scope.bind(key, Binding("var", evidence=list(evidence)))
@@ -896,10 +1156,10 @@ class FileBuilder:
 
     # ---- functions ------------------------------------------------------------------------
 
-    def _function(self, node, name: str, kind: str = "function", accessor: str = "", static: bool = False) -> Scope:
+    def _function(self, node, name: str, kind: str = "function", accessor: str = "", static: bool = False, var: bool = False) -> Scope:
         """A named function, method or accessor: its scope, its parameters, its body."""
         parent = self.scope
-        scope = self._enter(name, kind, node, variable=kind != "method", static=static)
+        scope = self._enter(name, kind, node, variable=kind != "method", static=static, var=var)
         self.fn_nodes[scope.id] = node.id
         self.props[scope.id] = self._prop_names(node)
         hint = self._hint_name(annotation_type(field_of(node, "return_type")))
@@ -1036,6 +1296,10 @@ class FileBuilder:
         if name is None:
             self._anonymous(node)
         else:
+            if STATEMENT_KINDS.get(node.type) == "block function" and text(name) in TRACKED and self.frames and self.frames[-1].kind != "function":
+                # declared in a block: the block's own name, and where the code is not strict (Annex B) the function's too, which ripple
+                # cannot read, so the name after the block is not taken for the module's own or for a builtin
+                self.scope.bind(self._function_key(text(name)), Binding("var", evidence=[unknown_ref(BLOCK_FUNCTION)]))
             self._function(node, text(name))
 
     visit_generator_function_declaration = visit_function_declaration
@@ -1298,16 +1562,20 @@ class FileBuilder:
             if declarator.type == "variable_declarator":
                 self._declarator(declarator)
 
-    visit_variable_declaration = visit_lexical_declaration
+    def visit_variable_declaration(self, node) -> None:
+        """`var`: its names belong to the function (see `_var_key`)."""
+        for declarator in named(node):
+            if declarator.type == "variable_declarator":
+                self._declarator(declarator, var=True)
 
-    def _declarator(self, node) -> None:
+    def _declarator(self, node, var: bool = False) -> None:
         target, type_node, value = field_of(node, "name"), field_of(node, "type"), field_of(node, "value")
         if target is None:
             return
         if target.type == "identifier":
             name = text(target)
             if value is not None and inner(value).type in FUNCTION_VALUES:
-                self._function(inner(value), name)  # const f = () => ...: the function is named f
+                self._function(inner(value), name, var=var)  # const f = () => ...: the function is named f
                 return
             if value is not None and inner(value).type == "call_expression" and self._wrapped_component(name, inner(value)):
                 return
@@ -1317,17 +1585,17 @@ class FileBuilder:
                 evidence = self._annotation_evidence(type_node, self.scope.id)
             else:
                 evidence = self._evidence(value)
-            self._bind(name, evidence)
+            self._bind(name, evidence, var=var)
         else:
             if value is not None:
                 self.visit(value)
             for name in self._pattern_names(target):
-                self._bind(name, [unknown_ref(DESTRUCTURED)])
+                self._bind(name, [unknown_ref(DESTRUCTURED)], var=var)
 
     # ---- statements that bind a name ------------------------------------------------------
 
     def visit_statement_block(self, node) -> None:
-        self._push(self._declared_names(named(node)), fresh=True)
+        self._push(self._declared_names(named(node)), fresh=True, erased=self._erased_names(named(node)))
         self._bind_type_names(named(node))
         self.generic(node)
         self._pop()
@@ -1335,7 +1603,7 @@ class FileBuilder:
     def visit_switch_body(self, node) -> None:
         """Every case of a switch shares one block."""
         statements = [stmt for case in named(node) for stmt in field_nodes(case, "body")]
-        self._push(self._declared_names(statements), fresh=True)
+        self._push(self._declared_names(statements), fresh=True, erased=self._erased_names(statements))
         self._bind_type_names(statements)
         self.generic(node)
         self._pop()
@@ -1350,6 +1618,7 @@ class FileBuilder:
         left, right, body = field_of(node, "left"), field_of(node, "right"), field_of(node, "body")
         kind = field_of(node, "kind")
         declares = kind is not None and text(kind) in ("let", "const")
+        is_var = kind is not None and text(kind) == "var"
         names = []
         if left is not None and declares:
             names = self._pattern_names(left, visit_defaults=False)
@@ -1361,13 +1630,13 @@ class FileBuilder:
                 if declares:
                     self._bind(text(left), [unknown_ref(LOOP_VARIABLE)])
                 else:
-                    self._assign_name(text(left), [unknown_ref(LOOP_VARIABLE)])
+                    self._assign_name(text(left), [unknown_ref(LOOP_VARIABLE)], var=is_var)
             elif left.type in ("object_pattern", "array_pattern"):
                 for name in self._pattern_names(left):
                     if declares:
                         self._bind(name, [unknown_ref(DESTRUCTURED)])
                     else:
-                        self._assign_name(name, [unknown_ref(DESTRUCTURED)])
+                        self._assign_name(name, [unknown_ref(DESTRUCTURED)], var=is_var)
             else:
                 self.visit(left)
         if body is not None:
@@ -1379,7 +1648,7 @@ class FileBuilder:
         names = []
         if parameter is not None:
             names = self._pattern_names(parameter, visit_defaults=False) if parameter.type != "identifier" else [text(parameter)]
-        self._push(names, fresh=True)
+        self._push(names, fresh=True, kind="catch" if parameter is not None and parameter.type == "identifier" else "block")
         for name in names:
             self._bind(name, [unknown_ref(CAUGHT)])
         body = field_of(node, "body")
