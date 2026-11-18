@@ -205,6 +205,10 @@ class JsxEdges:
             return set(), f"{placement.scope} is not known to be rendered as a component, or is also called as a function"
         target = self.targets.get(id(placement.element))
         if target is None:
+            from .ts_indexer import GLOBAL_EXPORTS, OWN_EXPORTS  # a tag through the module objects: not known to be outside the repo, so not said to be
+
+            if placement.element.chain is None and placement.element.why in (OWN_EXPORTS, GLOBAL_EXPORTS):
+                return set(), f"<{placement.element.text}> is not known to be a component of the repo"
             return set(), f"<{placement.element.text}> is not a component of the repo"
         holder = r.scopes[target]
         if holder.kind != "function" or not self.owner(target):
