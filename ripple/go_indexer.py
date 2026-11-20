@@ -1257,22 +1257,23 @@ class Resolver:
         self.move_alias_methods()
         self.float_methods()
         self.method_names: set[str] = {m for p in program.packages.values() for t in p.types.values() for m in t.methods}
-        self.result_cache: dict[int, list] = {}
+        self.result_cache: dict[tuple, list] = {}
         self.typing: set[tuple[int, str]] = set()
         # interface implementers (see Resolver.implements): the `implements` edges, kept apart from the call edges
         self.implement_edges: list[Edge] = []
         self.implement_seen: set[Edge] = set()
         self.implement_sites: list[tuple[str, int, int, str, str, tuple[str, ...]]] = []
-        self.shapes: dict[int, dict | None] = {}  # interface TypeInfo -> its method set, when ripple knows it completely
+        self.shapes: dict[tuple, dict | None] = {}  # (interface TypeInfo, naming) -> its method set, when ripple knows it completely
         self.provided_cache: dict[tuple, tuple] = {}
         self.satisfiers: dict[tuple, list[TypeInfo]] = {}
-        self.concrete: list[TypeInfo] | None = None
+        self.concrete: dict[tuple | None, list[TypeInfo]] = {}  # by naming
         self.links: dict[tuple, set[Package] | bool] = {}
         self.units: list[set[Package]] | None = None
         self.expressions: dict[str, object] = {}
         self.unit_imports: dict[tuple, Package | None] = {}
         self.var_types: dict[tuple[int, str], object] = {}
         self.caller = ""
+        self.some_unreadable = any(p.unreadable for p in program.packages.values())
 
     def move_alias_methods(self) -> None:
         """A method declared on an alias (`type A = B`, `func (A) M()`) is a method of B, which the compiler names A.M:
@@ -1303,8 +1304,20 @@ class Resolver:
 
     def always(self, file: FileInfo) -> bool:
         """Whether a file is built in every build that has the file being read: one with no build constraint is, and so
-        is a _test.go file for a call in a _test.go file (a test build has them all)."""
-        return not file.constrained or (file.tests_only and self.file is not None and self.file.tests_only and self.file.package is file.package)
+        is a _test.go file for a call in a _test.go file of the same directory (that directory's test binary has them all,
+        and its external test package, a Package of its own, is built into it: the rule of in_every_build and every_build)."""
+        return not file.constrained or (
+            file.tests_only and self.file is not None and self.file.tests_only and self.file.package.dir == file.package.dir
+        )
+
+    def naming(self) -> tuple | None:
+        """What a name's meaning (`named`, through `unsure`) reads of the file being resolved: whether it is built exactly
+        with the other _test.go files and its directory, which is all `always` looks at. A memo of anything derived from a
+        type's name keys on this, or the caller that asks first decides the answer for every other; nothing is read of the
+        file when no package has a file ripple could not read (`unsure` is then false for every name)."""
+        if self.file is None or not self.some_unreadable:
+            return None
+        return (self.file.tests_only, self.file.package.dir)
 
     def unsure(self, package: Package, name: str) -> bool:
         """Whether a package-level name may be declared another way in a file ripple could not read. A file with a
@@ -1488,7 +1501,10 @@ class Resolver:
     def results_of(self, decls: list[FuncDecl]) -> list:
         """The declared result types of a function or method, when every variant agrees on them (and reads its imports alike)."""
         first = decls[0]
-        key = id(first)
+        # What is stored reads every declaration of the list (the variants must agree) and, through the result type, what a
+        # name means to the caller. The walk hands each caller the declarations its own build has, so the list differs by
+        # caller and is part of the key, not only its first element.
+        key = (tuple(id(d) for d in decls), self.naming())
         if key not in self.result_cache:
             result = field_of(first.node, "result")
             same = all(
@@ -2069,11 +2085,12 @@ class Resolver:
         key = id(iface)
         if key in seen:
             return None
-        if not seen and key in self.shapes:
-            return self.shapes[key]
+        kept = (key, self.naming())  # the elements an interface embeds are named, and what a name means depends on who reads it
+        if not seen and kept in self.shapes:
+            return self.shapes[kept]
         found = self._interface_shape(iface, seen | {key})
         if not seen:
-            self.shapes[key] = found
+            self.shapes[kept] = found
         return found
 
     def _interface_shape(self, iface: TypeInfo, seen: frozenset):
@@ -2161,7 +2178,8 @@ class Resolver:
 
     def concrete_types(self) -> list[TypeInfo]:
         """The types that can have a method set of their own: declared once, read whole, not generic, not an interface."""
-        if self.concrete is None:
+        key = self.naming()
+        if key not in self.concrete:
             found = []
             for package in sorted(self.program.packages.values(), key=lambda p: p.id):
                 for name in sorted(package.types):
@@ -2172,8 +2190,8 @@ class Resolver:
                     if isinstance(inner, TypeInfo) and inner.kind == "interface":
                         continue
                     found.append(ty)
-            self.concrete = found
-        return self.concrete
+            self.concrete[key] = found
+        return self.concrete[key]
 
     def satisfying(self, iface: TypeInfo) -> list[TypeInfo]:
         """The repo types whose method sets provably have every method of the interface (see the comment above)."""

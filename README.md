@@ -582,7 +582,11 @@ type, a result that the variants read differently, a method that only some build
 name, a `_test.go` file) while another is promoted, or a method declared on an alias that is itself declared twice, is
 unresolved. A `_test.go` method counts only for a call in a `_test.go` file of the same directory (its package and its
 external `_test` package); a call in another directory's tests, whose binary links the package without its test files, runs
-the promoted method.
+the promoted method. In a directory with a file ripple could not read, a name declared in one of its `_test.go` files (an alias,
+a helper that `export_test.go` exports) is as sure for the external test package as for the package's own tests, and not
+sure for a library file or another directory's tests. Every memo is keyed on what the calling file changes about its answer
+(the declarations its build has, how a name reads in it), so a call's answer does not depend on which call was resolved
+before it.
 
 **Interface implementers, the `implements` edge.** A call `v.M()` through a repo interface stays unresolved, and also gets an
 edge of a kind of its own, `implements`, to `T.M` for each repo type `T` that provably satisfies the whole interface (`*T`'s
