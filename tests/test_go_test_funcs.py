@@ -289,16 +289,17 @@ def test_go_runs_the_method_of_the_result_the_caller_has(tmp_path):
 
 def named_layout(root, how: str):
     """F (generic G) is in a linux library file of d and in a windows test file of d, which also holds Only (H) alone. e calls
-    them bare through a dot import, or as `d.G[int, string](...)` (two type arguments parse as a conversion, the route that
-    reads function_named)."""
+    them bare through a dot import, or as `d.G[int, string](1, "x")` (a call) or `d.G[int, string](1)` (one argument: the
+    grammar reads a conversion, the route that reads function_named)."""
     if how == "dot":
         names = {"imports": 'import . "m/d"', "spec": '. "m/d"', "f": "F()", "only": "Only()"}
         d = {"d/f_linux.go": 'package d\n\nfunc F() string { return "F linux" }\n', "d/f_windows_test.go": 'package d\n\nfunc F() string { return "F windows test" }\n\nfunc Only() string { return "Only" }\n'}
     else:
-        names = {"imports": 'import "m/d"', "spec": '"m/d"', "f": 'd.G[int, string](1, "x")', "only": 'd.H[int, string](1, "x")'}
+        params, args = ("a A, b B", '1, "x"') if how == "generic" else ("a A", "1")
+        names = {"imports": 'import "m/d"', "spec": '"m/d"', "f": f"d.G[int, string]({args})", "only": f"d.H[int, string]({args})"}
         d = {
-            "d/g_linux.go": 'package d\n\nfunc G[A, B any](a A, b B) string { return "G linux" }\n',
-            "d/g_windows_test.go": 'package d\n\nfunc G[A, B any](a A, b B) string { return "G windows test" }\n\nfunc H[A, B any](a A, b B) string { return "H" }\n',
+            "d/g_linux.go": f'package d\n\nfunc G[A, B any]({params}) string {{ return "G linux" }}\n',
+            "d/g_windows_test.go": f'package d\n\nfunc G[A, B any]({params}) string {{ return "G windows test" }}\n\nfunc H[A, B any]({params}) string {{ return "H" }}\n',
         }
     return write(
         root,
@@ -312,7 +313,10 @@ def named_layout(root, how: str):
     )
 
 
-@pytest.mark.parametrize("how", ["dot", "generic"], ids=["dot import", "generic function"])
+HOWS = ["dot", "generic", "conversion"]
+
+
+@pytest.mark.parametrize("how", HOWS)
 def test_a_function_named_without_a_qualifier_or_with_type_arguments_is_given_the_declaration_the_caller_has(tmp_path, how):
     # go build ./e: Lib and TestE run the linux declaration (`F linux`), and `Only` / `d.H` are undefined (d's test file is not in e's build)
     graph = build_graph(named_layout(tmp_path, how), GO)
@@ -321,7 +325,7 @@ def test_a_function_named_without_a_qualifier_or_with_type_arguments_is_given_th
     assert answers(graph, "Uses")["Uses"][0] == [], "no edge to the function d's test file declares alone"
 
 
-@pytest.mark.parametrize("how,only,ran", [("dot", "undefined: Only", "F linux"), ("generic", "undefined: d.H", "G linux")], ids=["dot import", "generic function"])
+@pytest.mark.parametrize("how,only,ran", [("dot", "undefined: Only", "F linux"), ("generic", "undefined: d.H", "G linux"), ("conversion", "undefined: d.H", "G linux")], ids=HOWS)
 def test_go_builds_the_declaration_the_library_has_and_rejects_the_one_only_d_s_test_file_has(tmp_path, how, only, ran):
     root = named_layout(tmp_path, how)
     rejected = go("vet", "./e", root=root)
@@ -329,6 +333,14 @@ def test_go_builds_the_declaration_the_library_has_and_rejects_the_one_only_d_s_
     (root / "e" / "e.go").write_text((root / "e" / "e.go").read_text().split("func Uses")[0])
     assert go("vet", "./e", root=root).returncode == 0
     assert ran in printed(root, "./e")
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN-WRONG: a generic call of one argument through a package name that names nothing is no outcome at all")
+def test_a_one_argument_generic_call_of_a_name_only_d_s_tests_declare_is_left_open(tmp_path):
+    # The grammar reads `d.H[int, string](1)` as a conversion, and `conversion` records a call only for a function it found. Before the
+    # fix this was an edge to d's test file H; now it is no record at all, as it is on main for a name nobody declares (`d.NoSuch[...]`).
+    graph = build_graph(named_layout(tmp_path, "conversion"), GO)
+    assert answers(graph, "Uses")["Uses"][1] != [], "the call is neither an edge nor left open"
 
 
 # ---- the rule for a library file of d's own directory and the names of d the lookups also serve ------------------------------
@@ -375,6 +387,7 @@ ONLY = {
     "type, literal": ("type T struct{ Base }", "_ = d.T{}.M()", "Base.M", "undefined: d.T"),
     "type, variable": ("type T struct{ Base }", "var x d.T\n\t_ = x.M()", "Base.M", "undefined: d.T"),
     "type, conversion": ("type T struct{ Base }", "_ = d.T(d.U{}).M()", "Base.M", "undefined: d.T"),
+    "type, pointer conversion": ("type T struct{ Base }", "_ = (*d.T)(nil)", None, "undefined: d.T"),
     "function value": ("func Only() R { return R{} }", "f := d.Only\n\t_ = f().N()", "R.N", "undefined: d.Only"),
 }
 
@@ -453,6 +466,43 @@ def test_a_dot_import_binds_nothing_of_a_type_only_d_s_tests_declare(tmp_path):
     assert answers(graph, "Lib")["Lib"][0] == []
     vetted = go("vet", "./e", root=root)
     assert vetted.returncode != 0 and "undefined: T" in vetted.stderr, vetted.stderr
+
+
+# ---- a type read for the file that writes it, not for the call that asks ----------------------------------------------------------
+#
+# d's library file returns x.T, a type x's test file declares (valid only in x's test binary, which links d through e: x's external
+# test imports e). The result type of `d.Mk` is read once, for d/d.go, and a call in e's test file and a call in e's library file are
+# both told it: whether the type is in a build is asked of the file that writes `x.T`, never of whichever caller is resolved first.
+
+
+def perspective_layout(root, library: str):
+    return write(
+        root,
+        {
+            "go.mod": GOMOD,
+            "x/x.go": 'package x\n\ntype Base struct{}\n\nfunc (Base) M() string { return "Base.M" }\n',
+            "x/t_test.go": "package x\n\ntype T struct{ Base }\n",
+            "x/use_test.go": 'package x_test\n\nimport (\n\t"testing"\n\n\t"m/e"\n)\n\nfunc TestUse(t *testing.T) { t.Log("TestUse " + e.Lib()) }\n',
+            "d/d.go": 'package d\n\nimport "m/x"\n\nfunc Mk() x.T { return x.T{} }\n',
+            f"e/{library}": 'package e\n\nimport "m/d"\n\nfunc Lib() string { return d.Mk().M() }\n',
+            "e/e_linux_test.go": 'package e\n\nimport (\n\t"testing"\n\n\t"m/d"\n)\n\nfunc TestE(t *testing.T) { t.Log(d.Mk().M()) }\n',
+        },
+    )
+
+
+@pytest.mark.parametrize("library", ["e_linux.go", "z_linux.go"], ids=["library file first", "library file last"])
+def test_a_result_type_is_read_for_the_file_that_writes_it_whichever_caller_is_resolved_first(tmp_path, library):
+    graph = build_graph(perspective_layout(tmp_path, library), GO)
+    assert answers(graph, "Lib")["Lib"] == (["Base.M", "Mk"], []), "x's test binary links e and d, built against x with its test file"
+    edges = {name: answers(graph, name)[name] for name in ("Lib", "TestE")}
+    assert edges["Lib"] == edges["TestE"], "both read one result type for d.Mk"
+
+
+def test_go_runs_x_s_test_file_type_through_the_library_file_x_s_tests_link(tmp_path):
+    root = perspective_layout(tmp_path, "e_linux.go")
+    assert "TestUse Base.M" in printed(root, "./x")
+    built = go("build", "./d", root=root)
+    assert built.returncode != 0 and "undefined: x.T" in built.stderr, built.stderr
 
 
 # ---- KNOWN-WRONG: a name declared in a library file of d and, as another kind, in d's test file --------------------------------
