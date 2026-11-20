@@ -596,7 +596,13 @@ type, a result that the variants read differently, a method that only some build
 name, a `_test.go` file) while another is promoted, or a method declared on an alias that is itself declared twice, is
 unresolved. A `_test.go` method counts only for a call in a `_test.go` file of the same directory (its package and its
 external `_test` package); a call in another directory, in its tests or in a library file, whose build has the package without
-its test files, never sees it and runs the promoted method. In a directory with a file ripple could not read, a name declared in one of its `_test.go` files (an alias,
+its test files, never sees it and runs the promoted method, except for a library file that a test binary of that directory may
+link (a test binary builds every package its tests import together with the directory's test files; when ripple cannot place
+an import of the tests, any package may be linked, and the declarations are kept). A function a call names by its package (`d.F()`, a dot import's
+`F()`, `d.F` read as a value, `d.G[int, string](x)`) follows the same rule: a declaration in a `_test.go` file of another
+directory is not one of the callee's, so `d.F()` in `e` draws an edge to the library `F` alone, not to a windows-only test
+file's `F` beside it, and a function that only another directory's test files declare is left unresolved with that reason
+(Go does not compile the call). In a directory with a file ripple could not read, a name declared in one of its `_test.go` files (an alias,
 a helper that `export_test.go` exports) is as sure for the external test package as for the package's own tests, and not
 sure for a library file or another directory's tests. Every memo is keyed on what the calling file changes about its answer
 (the declarations its build has, how a name reads in it), so a call's answer does not depend on which call was resolved

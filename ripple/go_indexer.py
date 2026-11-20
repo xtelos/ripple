@@ -125,6 +125,9 @@ def load_parser():
 DAMAGED = "tree-sitter could not read all of this function (a Go syntax it does not know), so what its names mean is not followed"
 UNDECLARED = "the name is not declared in the files of its package that ripple read (a build constraint, cgo, or generated code can hide it)"
 OTHER_PACKAGE_NAME = "the name is not declared in the imported package's files that ripple read"
+ONLY_IN_TESTS = (
+    "the name is declared only in _test.go files of the imported package, and no build that has this call compiles them (Go reports it undefined)"
+)
 CONFLICT = "the name is declared more than once with different meanings (build constraints), and which one wins is not known"
 BUILD_VARIANT_TYPE = "the type is declared more than once with different meanings (build constraints), and which one wins is not known"
 FLOATING_METHOD = (
@@ -1651,6 +1654,14 @@ class Resolver:
         linked = self.test_binary_may_link(decl.file.package.dir)
         return linked is not None and self.file.package not in linked
 
+    def visible(self, decls: list[FuncDecl]) -> list[FuncDecl]:
+        """The declarations of a package-level function of another package that some build of the file being read has: the
+        rule of in_another_test_build, which the walk of a method applies, for a function a call names by its package
+        (`d.F()`, a dot import's `F()`, `d.F` as a value). Empty when the name is declared in _test.go files of another
+        directory alone: the caller then names nothing, and Go does not compile it. The list is what the caller reads, so
+        a memo of anything derived from it keys on the list (results_of does)."""
+        return [d for d in decls if not self.in_another_test_build(d)]
+
     def in_every_build(self, decl: FuncDecl) -> bool:
         """Whether the declaration is there in every build that has the call being resolved: a declaration in no
         constrained file is, and so is one in a _test.go file for a call in a _test.go file of the same directory (that
@@ -2565,7 +2576,8 @@ class Resolver:
                 if member in package.vars and len(package.names[member]) == 1:
                     return self.var_type(package, member)
                 if member in package.funcs and len(package.names[member]) == 1:
-                    return ("func", self.results_of(package.funcs[member]))
+                    found = self.visible(package.funcs[member])
+                    return ("func", self.results_of(found)) if found else None
                 return None
             if entry.kind in ("outside", "published", "cgo"):
                 return ("ext", f"{entry.path}.{member}")
@@ -2624,7 +2636,10 @@ class Resolver:
                 if self.unsure(package, name):
                     return ("hidden", package)
                 if "func" in package.names[name]:
-                    return ("func", package.funcs[name])
+                    found = self.visible(package.funcs[name])
+                    if not found:
+                        continue  # a function this file's builds do not have: the dot import binds nothing of that name
+                    return ("func", found)
                 if "type" in package.names[name]:
                     return ("type", self.named(package.types[name]))
                 return ("var", package.vars.get(name))
@@ -2680,7 +2695,7 @@ class Resolver:
             and len(entry.package.names[member]) == 1
             and not self.unsure(entry.package, member)
         ):
-            return entry.package.funcs[member]
+            return self.visible(entry.package.funcs[member]) or None
         return None
 
     @staticmethod
@@ -2851,8 +2866,12 @@ class Resolver:
             elif kinds and self.unsure(package, member):
                 self.unresolved(node, written, self.unread(package))
             elif "func" in kinds:
-                self.edge(package.funcs[member], node)
-                return self.first(self.results_of(package.funcs[member]), want_tuple)
+                found = self.visible(package.funcs[member])
+                if not found:
+                    self.unresolved(node, written, ONLY_IN_TESTS)
+                    return None
+                self.edge(found, node)
+                return self.first(self.results_of(found), want_tuple)
             elif "type" in kinds:
                 return self.named(package.types[member])  # a conversion
             elif "var" in kinds:
