@@ -445,7 +445,10 @@ def dotted(node) -> list | None:
             prop = field_of(node, "property")
             if prop is None or prop.type not in ("property_identifier", "private_property_identifier"):
                 return None
-            parts.append(text(prop))
+            name = property_key(prop)  # an escaped name is the name it spells
+            if name is None:
+                return None
+            parts.append(name)
             node = field_of(node, "object")
         elif node.type == "identifier":
             parts.append(text(node))
@@ -468,7 +471,10 @@ def call_path(node) -> list | None:
             prop = field_of(node, "property")
             if prop is None or prop.type not in ("property_identifier", "private_property_identifier"):
                 return None
-            parts.append(text(prop))
+            name = property_key(prop)
+            if name is None:
+                return None
+            parts.append(name)
             node = field_of(node, "object")
         elif node.type == "call_expression":
             parts.append("()")
@@ -660,6 +666,7 @@ class FileBuilder:
         self.counter = 0
         self.statics: dict[str, bool] = {}  # scope id -> whether it is a static member
         self.own_accessors: dict[str, set] = {}  # class id -> the names it declares with get or set
+        self.replaced: set[int] = set()  # tree-sitter ids of the class members that a later member of the same name replaces
         self.fn_nodes: dict[str, int] = {}  # scope id -> the tree-sitter id of the function node it is
         self.call_nodes: dict[int, RawCall] = {}  # tree-sitter id of a call expression -> the call recorded for it
         self.jsx_nodes: dict[int, JsxElement] = {}  # tree-sitter id of a component element -> its fact
@@ -1502,10 +1509,13 @@ class FileBuilder:
         body = field_of(node, "body")
         members = named(body) if body is not None else []
         constructor = next((m for m in members if m.type == "method_definition" and self._member_key(m) == "constructor"), None)
+        self.replaced |= self._replaced_members(members)
         self.own_accessors[scope.id] = {
             self._member_key(m)
             for m in members
-            if m.type in ("method_definition", "abstract_method_signature") and {"get", "set"} & {c.type for c in m.children}
+            if m.type in ("method_definition", "abstract_method_signature")
+            and m.id not in self.replaced
+            and {"get", "set"} & {c.type for c in m.children}
         }
         self.stack.append(scope)
         if constructor is not None:
@@ -1531,7 +1541,8 @@ class FileBuilder:
         t = member.type
         if t == "method_definition":
             kids = {c.type for c in member.children}
-            if "static" not in kids:
+            gone = member.id in self.replaced
+            if "static" not in kids and not gone:
                 self._own_writes(member, cls, constructor=self._member_key(member) == "constructor")
             name = self._member_key(member)
             if name is None:
@@ -1540,7 +1551,10 @@ class FileBuilder:
             for d in [*decorators, *(c for c in member.children if c.type == "decorator")]:
                 self._decorator(d, cls)
             self._parameter_decorators(member, cls)
-            self._function(member, name, "method", accessor, static="static" in kids)
+            if gone:
+                self._replaced_method(member, cls, name, "static" in kids)
+            else:
+                self._function(member, name, "method", accessor, static="static" in kids)
             if decorators or "decorator" in kids:
                 cls.names[name] = Binding("var", evidence=[unknown_ref(DECORATED)])
         elif t == "abstract_method_signature":
@@ -1562,6 +1576,40 @@ class FileBuilder:
         class below declares for the name, where a field or `Object.defineProperty` defines the property over it."""
         reason = STATIC_PROPERTY if static else OWN_ASSIGNED if assigned else OWN_PROPERTY
         cls.bind(name, Binding("var", evidence=[unknown_ref(reason)]))
+
+    def _replaced_members(self, members: list) -> set:
+        """The tree-sitter ids of the methods and accessors of a class body that a later member of the same name (and the same
+        side, static or instance) replaces, so that what the class ends up with is the last one. A later method replaces
+        everything before it; a later getter replaces an earlier method and an earlier getter, and keeps an earlier setter (the
+        two make one accessor), and a setter likewise. Run in Node: `m(){} m(){}`, `m(){} 'm'(){}` and `m(){} ['m'](){}` run the
+        last, `get m(){} set m(v){}` is one accessor, and `m(){} get m(){}` leaves no method m."""
+        slots: dict = {}
+        gone: set = set()
+        for member in members:
+            key = self._member_key(member) if member.type == "method_definition" else None
+            if key is None or key == "constructor":
+                continue
+            kids = {c.type for c in member.children}
+            slot = slots.get((key, "static" in kids), {})
+            kind = "get" if "get" in kids else "set" if "set" in kids else "method"
+            if kind == "method":
+                gone.update(slot.values())
+                slots[(key, "static" in kids)] = {"method": member.id}
+            else:
+                other = "set" if kind == "get" else "get"
+                gone.update(slot.get(x) for x in ("method", kind))
+                slots[(key, "static" in kids)] = {kind: member.id, other: slot.get(other)} if slot.get(other) else {kind: member.id}
+        gone.discard(None)
+        return gone
+
+    def _replaced_method(self, node, cls: Scope, name: str, static: bool) -> None:
+        """A member that a later one of the same name replaces never runs. It is a symbol of its own (so a change to it maps to
+        something that nothing calls and nothing reaches, and no test is picked for it), under an id no name finds, and its body
+        is not read: code that never runs makes no calls, and it is not what `C.name` is."""
+        n = 1
+        while f"{cls.id}.{name}#replaced{n}" in self.scopes:
+            n += 1
+        self._enter(name, "method", node, scope_id=f"{cls.id}.{name}#replaced{n}", variable=False, static=static)
 
     def _member_key(self, member) -> str | None:
         """The name a method, accessor or signature is declared under, else None (`[Symbol.iterator]`, `[k]`). `m`, `'m'`, `["m"]`

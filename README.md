@@ -327,7 +327,9 @@ the call is unresolved, with the reason. The body says something else when the c
 holds `this`), when a field is named `m` (`m = f`, `'m' = f`, `['m'] = f`), when a base class does either of those to every instance,
 when a constructor may return another object (`return { m }`, `return new Proxy(this, ...)`, any `return` that is not `this` or a
 primitive, in the class or in a base), and when a method gives the instance another prototype (`Object.setPrototypeOf(this, ...)`,
-`this.__proto__ = ...`). A member written `'m'() {}`, `['m']() {}` or `m() {}` is the member `m`. A key that is known only when
+`this.__proto__ = ...`). A member written `'m'() {}`, `['m']() {}` or `\u006d() {}` is the member `m`. When a class declares one name twice, the last declaration is the method, as in Node: it is the symbol `C.m`, with its own
+lines and its own calls, and each earlier one is a symbol of its own (`C.m#replaced1`) that nothing calls and that makes no calls, so a change to
+it selects no test. A getter and a setter of one name are one accessor, and a static `m` beside an instance `m` stays unresolved. A key that is known only when
 the code runs (`this[k] = f`, `Object.assign(this, options)`, `[k]() {}`), a write inside a function that is not an arrow, and a write
 made by a function that is handed `this` (`install(this)`) are not read, so the edge stays.
 

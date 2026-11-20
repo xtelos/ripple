@@ -19,6 +19,7 @@ pytest.importorskip("tree_sitter_typescript", reason="TypeScript support is not 
 
 from ripple.indexer import build_graph  # noqa: E402
 from ripple.profile import JAVASCRIPT, TYPESCRIPT  # noqa: E402
+from ripple.queries import callers  # noqa: E402
 
 R = "function () { return 'REPLACED'; }"
 M = "m() { return 'ORIGINAL'; }"
@@ -149,7 +150,8 @@ def test_a_class_that_does_not_replace_m_keeps_its_edge(make_repo, body):
 
 
 def test_a_static_and_an_instance_member_of_one_name_are_answered_alike_in_every_spelling(make_repo):
-    # `static m() {}` beside `m() {}` is already unresolved (which one a call reaches is not read); `static 'm'() {}` is the same name
+    # `static m() {}` beside `m() {}` is already unresolved (which one a call reaches is not read); `static 'm'() {}` is the same name.
+    # That is a lost right edge (Node runs the instance m), not a correct answer: see the cost pinned further down.
     plain = class_answer(make_repo, "static m() { return 'STATIC'; } " + M)
     assert_unresolved(plain)
     assert class_answer(make_repo, "static 'm'() { return 'STATIC'; } " + M) == plain
@@ -180,16 +182,133 @@ def test_a_field_with_no_initializer_named_by_a_string_hides_the_method_as_a_pla
 
 # ---- a later member spelled another way replaces the earlier `m` (M02, M03, M05) -------------------------------------------------
 
-def test_a_member_named_m_in_another_spelling_is_the_same_member_as_m(make_repo):
-    """`m(){} 'm'(){}` is one member in Node (the later one runs), as `m(){} m(){}` already is here: one symbol, `C.m`, never two.
-    The edge is to that one symbol: the call runs the member the class ends up with, and the class has no other."""
-    for later in ("'m'() { return 'REPLACED'; }", "['m']() { return 'REPLACED'; }", "[`m`]() { return 'REPLACED'; }",
-                  "\\u006d() { return 'REPLACED'; }", "\\u{6d}() { return 'REPLACED'; }", "'\\x6d'() { return 'REPLACED'; }"):
-        files = {"c.js": cls(f"{M} {later}"), "main.js": MAIN}
-        graph = build_graph(make_repo(files), JAVASCRIPT)
-        symbols = sorted(s for s in graph.symbols if s.startswith("c:C"))
-        assert symbols == ["c:C", "c:C.m"], (later, symbols)
+def members_source(*members):
+    """A class C whose members each span three lines and call one function (a, b, c3, in order), so which body a symbol is shows."""
+    lines = ["export function a() {}", "export function b() {}", "export function c3() {}", "export class C {"]
+    for n, header in enumerate(members):
+        lines += [f"  {header} {{", f"    return {'abc'[n] if n < 2 else 'c3'}();", "  }"]
+    return "\n".join([*lines, "}"]) + "\n"
+
+
+def member_lines(n):
+    """The first and last line of the n-th member of members_source."""
+    return 5 + 3 * n, 7 + 3 * n
+
+
+def dup_graph(make_repo, *members):
+    return build_graph(make_repo({"c.js": members_source(*members), "main.js": MAIN}), JAVASCRIPT)
+
+
+def calls_from(graph, caller):
+    return sorted(e.callee for e in graph.edges if e.caller == caller and e.kind == "call")
+
+
+LATER_SPELLINGS = ["m()", "'m'()", "['m']()", "[`m`]()", "\\u006d()", "\\u{6d}()", "'\\x6d'()", "async m()", "*m()"]
+
+
+@pytest.mark.parametrize("later", LATER_SPELLINGS)
+def test_the_last_member_of_a_name_is_the_symbol_and_the_earlier_one_is_a_symbol_nothing_reaches(make_repo, later):
+    """Node puts the LAST `m` on the prototype, so the first body never runs. `C.m` is that last member: its range is its lines and
+    its calls are the ones its body makes. The first is kept as a symbol of its own, under an id no name finds, with no calls and no
+    callers, so a change to it selects no test and a change to the last one reaches the callers of `C.m`. (M01, M02, M03, M05)"""
+    graph = dup_graph(make_repo, "m()", later)
+    live, dead = graph.symbols["c:C.m"], graph.symbols["c:C.m#replaced1"]
+    assert (live.line, live.end_line) == member_lines(1)
+    assert (dead.line, dead.end_line) == member_lines(0)
+    assert calls_from(graph, "c:C.m") == ["c:b"]  # the first body calls a(), and never runs
+    assert calls_from(graph, "c:C.m#replaced1") == []
+    assert [e for e in graph.edges if e.callee == "c:C.m#replaced1"] == []
+    assert sorted(s for s in graph.symbols if s.startswith("c:C")) == ["c:C", "c:C.m", "c:C.m#replaced1"]
+    assert_edge(answer(make_repo, {"c.js": members_source("m()", later), "main.js": MAIN}))
+    assert callers(graph, "c:a")["count"] == 0
+    assert callers(graph, "c:b")["count"] == 1
+
+
+def test_three_definitions_leave_the_last_one_and_two_that_nothing_reaches(make_repo):
+    graph = dup_graph(make_repo, "m()", "'m'()", "['m']()")
+    assert (graph.symbols["c:C.m"].line, graph.symbols["c:C.m"].end_line) == member_lines(2)
+    assert {(s.line, s.end_line) for k, s in graph.symbols.items() if "#replaced" in k} == {member_lines(0), member_lines(1)}
+    assert sorted(k for k in graph.symbols if "#replaced" in k) == ["c:C.m#replaced1", "c:C.m#replaced2"]
+    assert calls_from(graph, "c:C.m") == ["c:c3"]
+
+
+def test_a_getter_after_a_method_leaves_no_method_and_a_method_after_a_getter_is_the_method(make_repo):
+    # Node: `m(){} get m(){}` has no method m (`c.m()` calls what the getter returns); `get m(){} m(){}` is the method.
+    last_getter = dup_graph(make_repo, "m()", "get m()")
+    assert (last_getter.symbols["c:C.m"].line, last_getter.symbols["c:C.m"].end_line) == member_lines(1)
+    assert "c:C.m#replaced1" in last_getter.symbols
+    assert_unresolved(answer(make_repo, {"c.js": members_source("m()", "get m()"), "main.js": MAIN}))
+    last_method = dup_graph(make_repo, "get m()", "set m(v)", "m()")
+    assert sorted(k for k in last_method.symbols if "#replaced" in k) == ["c:C.m#replaced1", "c:C.m#replaced2"]
+    assert (last_method.symbols["c:C.m"].line, last_method.symbols["c:C.m"].end_line) == member_lines(2)
+    assert_edge(answer(make_repo, {"c.js": members_source("get m()", "set m(v)", "m()"), "main.js": MAIN}))
+
+
+def test_a_getter_and_a_setter_of_one_name_are_one_accessor_not_a_replacement(make_repo):
+    # Node: `get m(){} set m(v){}` is one property with both. Both bodies belong to the one symbol, as they did.
+    graph = dup_graph(make_repo, "get m()", "set m(v)")
+    assert not [k for k in graph.symbols if "#replaced" in k]
+    assert calls_from(graph, "c:C.m") == ["c:a", "c:b"]
+    assert_unresolved(answer(make_repo, {"c.js": members_source("get m()", "set m(v)"), "main.js": MAIN}))
+    # a second getter replaces the first and keeps the setter
+    graph = dup_graph(make_repo, "get m()", "set m(v)", "get m()")
+    assert sorted(k for k in graph.symbols if "#replaced" in k) == ["c:C.m#replaced1"]
+    assert calls_from(graph, "c:C.m") == ["c:b", "c:c3"]
+
+
+def test_members_that_are_not_duplicates_make_no_replaced_symbol(make_repo):
+    for body in (
+        "static m() { return 'S'; } m() { return 'I'; }",  # a static and an instance member are two members
+        "#m() { return 'P'; } m() { return 'M'; }",  # a private name is another name
+        "m() { return 'M'; } m = () => 'F';",  # a field is not a method: see the own-property rule
+        "m = () => 'F'; m() { return 'M'; }",
+    ):
+        graph = build_graph(make_repo({"c.js": cls(body), "main.js": MAIN}), JAVASCRIPT)
+        assert not [k for k in graph.symbols if "#replaced" in k], body
+    assert_edge(class_answer(make_repo, "#m() { return 'P'; } m() { return 'M'; }"))  # Node: M
+    # Node runs the field in both orders: it is an own property, which comes before the prototype's method
+    assert_unresolved(class_answer(make_repo, "m() { return 'M'; } m = () => 'F';"))
+    assert_unresolved(class_answer(make_repo, "m = () => 'F'; m() { return 'M'; }"))
+
+
+def test_a_static_member_beside_an_instance_member_of_one_name_is_unresolved_a_lost_right_edge(make_repo):
+    # COST, not a correct answer: Node runs the instance `m` (`new C().m()` is 'INSTANCE'), and ripple answers unresolved because a
+    # static and an instance member share one binding. `static m` beside `m` always did; the string spelling now does too.
+    assert_unresolved(class_answer(make_repo, "static m() { return 'STATIC'; } m() { return 'INSTANCE'; }"))
+    assert_unresolved(class_answer(make_repo, "static 'm'() { return 'STATIC'; } m() { return 'INSTANCE'; }"))
+
+
+def test_duplicate_statics_are_one_static_too(make_repo):
+    source = "export function a() {}\nexport function b() {}\nexport class C {\n  static m() {\n    return a();\n  }\n  static 'm'() {\n    return b();\n  }\n}\n"
+    graph = build_graph(make_repo({"c.js": source, "main.js": "import { C } from './c.js';\nC.m();\n"}), JAVASCRIPT)
+    assert calls_from(graph, "c:C.m") == ["c:b"]
+    assert [(s.line, s.end_line) for k, s in graph.symbols.items() if "#replaced" in k] == [(4, 6)]
+
+
+def test_a_decorated_duplicate_stays_unresolved(make_repo):
+    source = "function dec(t: any, k: string, d: any) {}\nexport class C {\n  @dec m() { return 1; }\n  m() { return 2; }\n}\n"
+    result = answer(make_repo, {"c.ts": source, "main.ts": MAIN_TS}, main="main.ts", profile=TYPESCRIPT)
+    assert_unresolved(result)
+
+
+def test_an_escaped_property_at_a_call_site_is_the_name_it_spells(make_repo):
+    # c.<escape for m>() runs C.m (Node). Read as the raw text it matched nothing, and with a base class from a package that was
+    # answered "a method inherited from outside the repo", a wrong claim.
+    base = "import { Base } from 'pkg';\nexport class C extends Base { m() { return 1; } }\n"
+    for call in ("c.\\u006d(); // CALL", "c.\\u{6d}(); // CALL", "(c).\\u006d(); // CALL"):
+        files = {"c.js": base, "main.js": f"import {{ C }} from './c.js';\nconst c = new C();\n{call}\n"}
         assert_edge(answer(make_repo, files))
+        graph = build_graph(make_repo(files), JAVASCRIPT)
+        plain = build_graph(make_repo({"c.js": base, "main.js": "import { C } from './c.js';\nconst c = new C();\nc.m(); // CALL\n"}), JAVASCRIPT)
+        assert graph.external_reasons == plain.external_reasons
+    through_a_call = {"c.js": base, "main.js": "import { C } from './c.js';\nnew C().\\u006d(); // CALL\n"}
+    assert_edge(answer(make_repo, through_a_call))
+
+
+def test_a_replaced_getter_does_not_make_an_accessor_of_that_name(make_repo):
+    # `get m(){} m(){}` leaves the method, so `this.m = f` in the constructor is an own property (Node: REPLACED), not a setter call
+    body = f"get m() {{ return 1; }} constructor() {{ this.m = {R}; }} m() {{ return 'ORIGINAL'; }}"
+    assert_unresolved(class_answer(make_repo, body))
 
 
 def test_a_method_written_as_a_string_alone_is_the_method_the_call_runs(make_repo):
