@@ -470,9 +470,13 @@ def linked_layout(root, how: str | None):
         "b/b_test.go": 'package b\n\nfunc (Conn) Close() string { return "Conn.Close" }\n',
         "a/a.go": 'package a\n\nimport "m/b"\n\nfunc Direct(c b.Conn) string { return c.Close() }\n',
     }
-    if how is not None:
+    if how in ("plain", "tagged"):
         name = "ext_test.go" if how == "plain" else "ext_linux_test.go"
         files[f"b/{name}"] = 'package b_test\n\nimport (\n\t"testing"\n\n\t"m/a"\n\t"m/b"\n)\n\nfunc TestUse(t *testing.T) { t.Log("TestUse " + a.Direct(b.Conn{})) }\n'
+    elif how == "stdlib":  # tests that import definite answers only: the standard library
+        files["b/ext_test.go"] = 'package b_test\n\nimport (\n\t"fmt"\n\t"testing"\n)\n\nfunc TestUse(t *testing.T) { t.Log(fmt.Sprint("TestUse")) }\n'
+    elif how == "outside":  # a module the repo does not hold (ripple alone: there is no such module offline)
+        files["b/ext_test.go"] = 'package b_test\n\nimport (\n\t"testing"\n\n\t"example.com/lib/x"\n)\n\nfunc TestUse(t *testing.T) { t.Log(x.Name) }\n'
     write(root, files)
     return root
 
@@ -608,3 +612,88 @@ def test_go_runs_the_variant_the_linux_build_has(tmp_path):
         env = {**go_env(root), "GOOS": goos}
         vetted = subprocess.run([go, "vet", "./d"], cwd=root, env=env, capture_output=True, text=True)
         assert vetted.returncode == 0, vetted.stderr
+
+
+# ---- an import ripple cannot place may name the library file: the test binary may link it -------------------------------
+#
+# test_binary_may_link is an upper bound, and dropping another directory's _test.go declaration is only right when the file is
+# outside it. An import that resolve_in answers MISSING (it cannot tell which directory the build uses) may name any package of
+# the repo, so the bound is unknown and the declaration stays. OUTSIDE (no module of the repo holds the path) and PUBLISHED
+# name no directory of the repo, and the drop stays. Both cases below are valid Go in which the library file x.Lib runs the
+# method d's export_test.go declares, because d's external test links it.
+
+
+def vendored_layout(root, linked: bool = True):
+    """m is vendored, replaces n with ../n, and d's external test imports n/x; n requires m and replaces it with ../m. n/x.Lib
+    calls d.T.M, which export_test.go overrides (T embeds S, which has M). `go test -mod=mod ./d` in m links n/x from the
+    checkout, built against d with its test files. `linked=False`: d's tests import nothing of n."""
+    lib = 'package x\n\nimport "m/d"\n\nfunc Lib() string { return d.T{}.M() + " " + d.Only() }\n'
+    write(
+        root,
+        {
+            "m/go.mod": "module m\n\ngo 1.22\n\nrequire n v0.0.0\n\nreplace n => ../n\n",
+            "m/vendor/modules.txt": "# n v0.0.0 => ../n\n## explicit; go 1.22\nn/x\n# n => ../n\n",
+            "m/vendor/n/x/x.go": lib,
+            "m/d/t.go": 'package d\n\ntype S struct{}\n\nfunc (S) M() string { return "S.M" }\n\ntype T struct{ S }\n',
+            "m/d/export_test.go": 'package d\n\nfunc (T) M() string { return "T.M(test)" }\n\nfunc Only() string { return "Only" }\n',
+            "m/d/d_test.go": 'package d_test\n\nimport (\n\t"testing"\n\n\t"n/x"\n)\n\nfunc TestX(t *testing.T) { t.Log(x.Lib()) }\n',
+            "n/go.mod": "module n\n\ngo 1.22\n\nrequire m v0.0.0\n\nreplace m => ../m\n",
+            "n/x/x.go": lib,
+        },
+    )
+    return root
+
+
+def unplaced_layout(root, readable: bool):
+    """d's external test imports m/w, w imports m/x, and x.Lib calls d's overridden method. With `readable` False, w's only file
+    has no package clause: the directory holds no package ripple read, so `m/w` names no directory. (`readable` True is the
+    twin the toolchain runs.)"""
+    write(
+        root,
+        {
+            "go.mod": "module m\n\ngo 1.22\n",
+            "d/t.go": 'package d\n\ntype S struct{}\n\nfunc (S) M() string { return "S.M" }\n\ntype T struct{ S }\n',
+            "d/export_test.go": 'package d\n\nfunc (T) M() string { return "T.M(test)" }\n\nfunc Only() string { return "Only" }\n',
+            "d/d_test.go": 'package d_test\n\nimport (\n\t"testing"\n\n\t"m/w"\n)\n\nfunc TestX(t *testing.T) { t.Log(w.Run()) }\n',
+            "w/w.go": 'package w\n\nimport "m/x"\n\nfunc Run() string { return x.Lib() }\n' if readable else "  garbled {{{ \n",
+            "x/x.go": 'package x\n\nimport "m/d"\n\nfunc Lib() string { return d.T{}.M() + " " + d.Only() }\n',
+        },
+    )
+    return root
+
+
+def test_a_library_file_that_a_vendored_module_import_may_name_keeps_the_method_it_may_run(tmp_path):
+    # go test -mod=mod -v ./d (in m): TestX logs `T.M(test) Only`. go build ./... in n fails: undefined: d.Only.
+    graph = build_graph(vendored_layout(tmp_path), GO)
+    # `Only` is declared in d's test file alone and the one build that compiles Lib has it: an edge. `M` is left open.
+    assert answers(graph, "Lib")["Lib"] == (["Only"], ["d.T{}.M"]), "an edge to the promoted S.M is an edge to a method the one build of Lib does not run"
+
+
+def test_a_library_file_that_an_unreadable_directory_may_import_keeps_the_method_it_may_run(tmp_path):
+    # go vet ./x (the readable twin): undefined: d.Only. go test -v ./d: TestX logs `T.M(test) Only`.
+    graph = build_graph(unplaced_layout(tmp_path, readable=False), GO)
+    assert answers(graph, "Lib")["Lib"] == (["Only"], ["d.T{}.M"])
+
+
+def test_the_drop_stays_when_every_import_of_the_tests_resolves_definitely(tmp_path):
+    # Direct runs Base.Close in every build it is in: d's tests (b) import the standard library, or a module the repo does not hold
+    for how in (None, "stdlib", "outside"):
+        graph = build_graph(linked_layout(tmp_path / str(how), how), GO)
+        assert answers(graph, "Direct")["Direct"] == (["Base.Close"], []), how
+
+
+def test_go_runs_the_method_the_vendored_and_the_unreadable_layouts_link(tmp_path):
+    go = shutil.which("go")
+    if go is None:
+        pytest.skip("the go toolchain is not on PATH")
+    root = vendored_layout(tmp_path / "v1")
+    env = {**go_env(root), "GOFLAGS": "-mod=mod"}
+    ran = subprocess.run([go, "test", "-count=1", "-v", "./d"], cwd=root / "m", env=env, capture_output=True, text=True)
+    assert "T.M(test) Only" in ran.stdout, ran.stdout + ran.stderr
+    built = subprocess.run([go, "build", "./..."], cwd=root / "n", env=env, capture_output=True, text=True)
+    assert built.returncode != 0 and "undefined: d.Only" in built.stderr, built.stderr
+    twin = unplaced_layout(tmp_path / "l1go", readable=True)
+    ran = printed(go, twin, twin)
+    assert any(line.endswith("T.M(test) Only") for line in ran["TestX"]), ran
+    vetted = subprocess.run([go, "vet", "./x"], cwd=twin, env=go_env(twin), capture_output=True, text=True)
+    assert vetted.returncode != 0 and "undefined: d.Only" in vetted.stderr, vetted.stderr

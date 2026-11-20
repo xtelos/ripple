@@ -80,7 +80,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import go_tests
-from .go_modules import MISSING, OWN, PUBLISHED, REPLACE, WORK, GoMod, Modules, is_ignored_dir
+from .go_modules import MISSING, OUTSIDE, OWN, PUBLISHED, REPLACE, WORK, GoMod, Modules, is_ignored_dir
 from .model import IMPLEMENTS, Edge, Graph, Symbol, Unresolved
 from .profile import GO, GO_BUILTIN_FUNCTIONS, GO_BUILTIN_TYPES, GO_BUILTIN_VALUES, LanguageProfile
 
@@ -1270,7 +1270,7 @@ class Resolver:
         self.links: dict[tuple, set[Package] | bool | None] = {}
         self.units: list[set[Package]] | None = None
         self.expressions: dict[str, object] = {}
-        self.unit_imports: dict[tuple, Package | None] = {}
+        self.unit_imports: dict[tuple, tuple[str, Package | None]] = {}
         self.var_types: dict[tuple[int, str], object] = {}
         self.caller = ""
         self.some_unreadable = any(p.unreadable for p in program.packages.values())
@@ -1792,7 +1792,7 @@ class Resolver:
             return True
         return file.tests_only and self.file is not None and self.file.tests_only and file.package.dir == self.file.package.dir
 
-    def imported_by(self, package: Package, with_tests: bool, main: GoMod, every_file: bool = False) -> set[Package]:
+    def imported_by(self, package: Package, with_tests: bool, main: GoMod, every_file: bool = False) -> set[Package] | None:
         """The repo packages the files of a package that EVERY build of it has import, each import path read as a build whose
         main module is `main` reads it (the module that governs: its replaces decide, never the replaces of the module the
         importing file is in; see go_modules.py). For the package a test binary is built for, its plain _test.go files too:
@@ -1800,7 +1800,12 @@ class Resolver:
         platform file name, a file that imports "C", which CGO_ENABLED=0 leaves out) adds its imports to the builds that
         have it and not to the others, so none of them is counted: a package only such a file imports is not certain to be
         linked. With `every_file`, the other reading: every file a build may have counts (an upper bound of what is linked,
-        where the default is a lower one), a _test.go file only for the package a test binary is built for."""
+        where the default is a lower one), a _test.go file only for the package a test binary is built for. That reading is
+        an upper bound only if what ripple cannot place is never taken for "not linked": an import `resolve_in` answers
+        MISSING for (vendored modules under flags ripple cannot see, a replace that may or may not be the one the build
+        selects, a directory with no package ripple read) may name any package of the repo, so it makes the answer None.
+        OUTSIDE (no module of the repo holds the path) and PUBLISHED (a module of the repo, built from a published version)
+        name no directory of the repo, and those imports add nothing."""
         found: set[Package] = set()
         modules = self.program.modules
         for info in package.files:
@@ -1814,20 +1819,27 @@ class Resolver:
                 key = (main.dir, path)
                 if key not in self.unit_imports:
                     how, target = modules.resolve_in(main, path, self.program.importable)
-                    self.unit_imports[key] = self.program.packages[(target, False)] if how in (OWN, REPLACE, WORK) else None
-                if self.unit_imports[key] is not None:
-                    found.add(self.unit_imports[key])
+                    self.unit_imports[key] = (how, self.program.packages[(target, False)] if how in (OWN, REPLACE, WORK) else None)
+                how, imported = self.unit_imports[key]
+                if imported is not None:
+                    found.add(imported)
+                elif every_file and how not in (OUTSIDE, PUBLISHED):
+                    return None
         return found
 
-    def closure(self, roots: list[Package], tests: bool, main: GoMod | None, every_file: bool = False) -> set[Package]:
+    def closure(self, roots: list[Package], tests: bool, main: GoMod | None, every_file: bool = False) -> set[Package] | None:
         """The packages a program or test binary built from these roots links: the roots (with their plain _test.go files
         when it is a test binary) and what they import, transitively, every import path read as the build's main module
         (the module of the roots) reads it. A package main is nobody's import, so no program or test binary of another
-        package links one. With `every_file`, the packages SOME build of the roots may link (see imported_by)."""
+        package links one. With `every_file`, the packages SOME build of the roots may link (see imported_by), or None when
+        an import of the closure cannot be placed."""
         seen, stack = set(roots), [(r, tests) for r in roots]
         while stack and main is not None:
             package, is_root = stack.pop()
-            for imported in self.imported_by(package, is_root, main, every_file):
+            imports = self.imported_by(package, is_root, main, every_file)
+            if imports is None:
+                return None
+            for imported in imports:
                 if imported not in seen:
                     seen.add(imported)
                     stack.append((imported, False))
