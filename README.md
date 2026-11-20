@@ -907,7 +907,34 @@ which impl applies), a repo trait (a blanket impl too), a provided method of a s
 with the function off, so no edge is lost that a build with the call has; on ripgrep, clap, serde, mini-redis, fd and bat no site changes. Before,
 the edge was drawn when no trait impl written for the type gave the name, which is wrong for each of those (probes `path_self_cfg` groups A and D
 and `path_self_cfg_ext`, compiled and run under each feature setting; their oracle is rust-analyzer's). The call and the function under one
-predicate, and an unconditional function, stay edges (group B). CACHE_FORMAT -42.
+predicate, and an unconditional function, stay edges (group B).
+The same rule holds for a path call into a trait impl (`assoc_traits`): the impl, or a method written in it, under a `#[cfg]` the call is not also under
+is never an edge (`CFG_UNKNOWN`). Where the impl is off the call finds another giver of the name, a foreign extension trait for one: compiled and run, a
+`#[cfg(feature = "a")] impl Tr for S` called as `S::g()` runs the impl with `a` on and `extblanket::Ext::g` (imported under `not(feature = "a")`) with it off.
+An impl with no cfg, and one the call shares its cfg with, keep the edge. The same holds for the trait's own default method that the impl does not
+override: a `#[cfg(feature = "a")]` on `fn g` in the trait, called as `S::g()` where the impl writes no `g`, is no edge (cargo: `ext-blanket` with `a` off,
+the default with it on), and is one for a call under the same cfg or an identical predicate. A conditional trait (`#[cfg] trait Tr`) is no separate path: its
+impl is conditional too, and the impl's cfg refuses the call. A trait is certainly in scope at the call only if some way to it has no hop the call can
+exist without (`Index.reach_trait`): the ways are the name's own imports in the nearest scope that has a type of that name, else its globs, else the scope
+around a block, and each hop is an import (its own `#[cfg]`, then the name in the module its path goes to, recursively, so a `pub use` re-export in
+another module is read), or a glob (then the name in its module; a glob under a `#[cfg]` is refused by the lookup before this point). A hop under a `#[cfg]` is certain only if the
+call is under the same attribute or an identical predicate. A trait that is not certainly in scope is no edge (`CFG_UNKNOWN`; the lookup of the name reads a
+conditional import as the trait, which says what the name means, not that the trait is in scope). Compiled and run: `#[cfg(feature = "a")] use m::Tr;`
+with `S::g()` runs `Tr::g` with `a` on and the foreign `Ext::g` with it off, and so do the same re-export in a prelude behind an unconditional `use
+prelude::*;` and an unconditional `use r::Tr;` of a module that re-exports `Tr` under `a` and `Ext as Tr` under `not(a)`. A value item of the trait's name
+(`fn Tr() {}` in the calling function) is not a hop: the search goes on to the scope around it. Kept edges: an unconditional `use` or glob, however many
+unconditional re-exports it goes through; a conditional hop the call is under too; one whole way that is unconditional (two globs, or an explicit `use`
+beside a glob); the trait an enclosing impl writes. Every module a path goes through is a hop too (`Index.module_hop`, each prefix of the path): one
+under a `#[cfg]` that the call is not also under is not certain, so twin modules (`#[cfg(a)] mod r` with `#[cfg(not(a))] mod r`, also by `#[path]`
+files, also nested in a conditional module) make `use r::*;` and `use r::Tr;` refused (cargo: the foreign trait runs with `a` off), and so does a single
+conditional module (an edge lost where no build without it is a program). A glob under a `#[cfg]` is refused by the lookup before this point. What is
+not read: the visibility of a re-export, and the cfg of an ancestor of a module that the path does not name.
+An impl whose header the parser could not read whole is read as unknown everywhere (`IMPL_HEADER_UNREAD`): `impl<u8> W<[u8; 2]>` declares a parameter named
+`u8`, which tree-sitter parses as an error with no generics, so ripple read `u8` as the primitive and `W::<[u16; 2]>::f()` got an edge to a trait impl where
+the inherent function runs. As a candidate, such an impl is compared with no type arguments; in its own body every path call is refused (`Self::f()`, a type
+argument written there, a first segment that may be a parameter of the header; a one-segment call to a function is not); a method call there is refused as in any
+file the parser read with errors; and an impl whose self type is a bare name (`impl<u8> Tr for u8`, a blanket impl in disguise) taints the crate's impl tables
+like an impl ripple cannot resolve. It costs the edges of an impl whose header merely has a missing node (`impl W<u8> where u8:`). CACHE_FORMAT -47.
 The type arguments of an impl and of a call are compared as the type they name (`canonical_type`): `(u8)` is `u8`, `& u8` is `&u8`, and `[u8; 4usize]`,
 `[u8; 0x4]` and `[u8; 04]` are `[u8; 4]`. Compared as written, a trait impl for `W<(u8)>` was another type than `W<u8>`, so `W::<(u8)>::f()` got an edge to
 the trait impl where the inherent function of `W<u8>` runs (group E). A type argument that is not built of primitives, tuples, arrays and references
