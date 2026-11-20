@@ -363,7 +363,23 @@ and a specifier written with an escape sequence (not decoded: `'\x2fabs/x'` is `
 TypeScript alike, because where the repo is on a machine is not known. A bare alias with a trailing slash (`import 'lib/'`
 under `baseUrl: "src"`) names the directory to the compiler and to Node's require (its index file) and the file of that name to
 a bundler (esbuild), so it is unresolved when `lib.js`, `lib.json` or another file a resolver adds an extension to is there, and
-keeps the index edge when only `lib/index.js` is. A call through `exports`, `module` or `require` followed by a member (`exports.f()`, `module.exports.f()`,
+keeps the index edge when only `lib/index.js` is. Without the slash (`lib` or `./lib`) a `lib.json` beside `lib/index.js` is
+the file Node's require, Vite and esbuild take (they add `.json` before they enter the directory, and tsc adds no extension for
+JSON), so the import is unresolved with a reason that names `lib.json`. A `paths` list is read the same way: when an earlier target
+holds a file a bundler takes (`x.json` or `x.css` beside it, the target itself written as `a/x.json`, or an `index.json` or `index.css`
+in a directory of that name) and a later one holds the code, the compiler and the bundler name different files, so it is unresolved.
+`./data` beside `data.json` and nothing else is the data file, a package as `./data.json` is, not a missing path; a `data.json` that is a
+link to code of the repo is the code it leads to (Node, esbuild and Vite load it by the real path), so it is unresolved, as is a file with no
+extension (`./data` where `data` is a file: Node, esbuild and Vite load it as JavaScript, which webpack's asset rule does not). Two more
+files a resolver adds an extension to leave the answer open: `./x` beside `x.node` (Node's require may load the native addon, a bundler
+cannot resolve it, and it is beside `x/index.js` too) and `./data` beside `data.css` (esbuild may bundle it, Node throws) are unresolved
+with a reason that names the file, never missing; `x.json` beside `x.node` is the data file, a package. For a bare name that is a Node
+builtin (`events`) the reason says only that a file of the repo may be taken for it. An extensionless import is unresolved when the
+tools name different code files: Vite and Rollup try `.mjs .js .mts .ts .jsx .tsx .json`, esbuild `.tsx .ts .jsx .js .css .json`, and Node's
+require (for a JavaScript importer, in the file and in the directory's index alike) `.js .json .node`, so `lib.jsx` beside `lib.js` (esbuild
+takes `lib.jsx`), `lib.ts` beside `lib.tsx` (esbuild takes `lib.tsx`) and `index.jsx` beside `index.json` (Node's require takes the JSON) name
+no one file. Not modelled: esbuild's refusal to add `.mjs`, `.mts`, `.cjs` and `.cts` (`lib.mjs` alone), and Node's require loading any
+other extension (`./data.txt`) as JavaScript, which keeps a written file of an extension no tool reads as code a package. A call through `exports`, `module` or `require` followed by a member (`exports.f()`, `module.exports.f()`,
 `require.main.exports.f()`, `new exports.C()`, `<exports.C />`, `process.mainModule.exports.f()`, `require.resolve(...)`)
 reaches the modules' own objects (this file's exports, the loader, the entry module), which ripple does not follow, so in a
 JavaScript or TypeScript file it is unresolved and never counted as outside the repo. Only a declaration of the name that gives

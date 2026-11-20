@@ -238,11 +238,11 @@ def test_an_extensionless_path_that_a_resolver_gives_a_code_extension_to_is_not_
     assert modules_of(repo, TYPESCRIPT).resolve("./types", "main.ts")[0] == "unresolved"
 
 
-def test_an_extensionless_path_to_a_data_file_is_still_missing_as_it_was(make_repo):
-    """KNOWN-WRONG: Node's require and Vite load data.json for `./data`, so `missing` is not true. It is main's answer, left as it was:
-    a file that holds no code is classed by one rule for a relative path and an alias, and the written `./data.json` is a package."""
+def test_an_extensionless_path_to_a_data_file_is_the_package_the_written_path_is(make_repo):
+    """Node's require, Vite and esbuild load data.json for `./data`, so `missing` is not true. A file that holds no code is classed by one
+    rule for a relative path and an alias, and the written `./data.json` is a package: so is `./data` (see test_js_resolver_twins.py)."""
     repo = make_repo({"data.json": "{}", "main.js": ""})
-    assert modules_of(repo).resolve("./data", "main.js") == ("missing", "./data")
+    assert modules_of(repo).resolve("./data", "main.js") == ("package", "./data")
 
 
 def test_a_path_that_names_nothing_is_still_missing(make_repo):
