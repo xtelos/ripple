@@ -365,16 +365,22 @@ under `baseUrl: "src"`) names the directory to the compiler and to Node's requir
 a bundler (esbuild), so it is unresolved when `lib.js`, `lib.json` or another file a resolver adds an extension to is there, and
 keeps the index edge when only `lib/index.js` is. Without the slash (`lib` or `./lib`) a `lib.json` beside `lib/index.js` is
 the file Node's require, Vite and esbuild take (they add `.json` before they enter the directory, and tsc adds no extension for
-JSON), so the import is unresolved with a reason that names `lib.json`. A `paths` list is read the same way: when an earlier target
-holds a file a bundler takes (`x.json` or `x.css` beside it, the target itself written as `a/x.json`, or an `index.json` or `index.css`
-in a directory of that name) and a later one holds the code, the compiler and the bundler name different files, so it is unresolved.
-`./data` beside `data.json` and nothing else is the data file, a package as `./data.json` is, not a missing path; a `data.json` that is a
+JSON), so the import is unresolved with a reason that names `lib.json`. A `paths` list is read the same way: a bundler takes the first target that holds a file for the path, so when an earlier target
+holds one that the walk does not read (code in `node_modules`, `dist` or a hidden directory: `"*": ["node_modules/*", "src/*"]` with
+`node_modules/foo/index.js` and `src/foo.js`), or a file a bundler takes and the compiler does not (`x.json` or `x.css` beside it, the target
+itself written as `a/x.json`, or an `index.json` or `index.css` in a directory of that name), and a later one holds the code, the import is
+unresolved and its reason names the earlier file. An earlier target that holds nothing for the path keeps the later edge, and a file the
+walk reads is left to the compiler's order (its TypeScript pass runs over every target before its JavaScript one). `./data` beside `data.json` and nothing else is the data file, a package as `./data.json` is, not a missing path; a `data.json` that is a
 link to code of the repo is the code it leads to (Node, esbuild and Vite load it by the real path), so it is unresolved, as is a file with no
 extension (`./data` where `data` is a file: Node, esbuild and Vite load it as JavaScript, which webpack's asset rule does not). Two more
 files a resolver adds an extension to leave the answer open: `./x` beside `x.node` (Node's require may load the native addon, a bundler
 cannot resolve it, and it is beside `x/index.js` too) and `./data` beside `data.css` (esbuild may bundle it, Node throws) are unresolved
 with a reason that names the file, never missing; `x.json` beside `x.node` is the data file, a package. For a bare name that is a Node
-builtin (`events`) the reason says only that a file of the repo may be taken for it. An extensionless import is unresolved when the
+builtin (`events`) every reason says only that a file of the repo may be taken for it (Node loads the builtin), and for any bare name a
+reason names only tools that reach the file through the config (esbuild and the compiler read `baseUrl` and `paths`, Vite needs a plugin,
+Node's require reaches it only through `NODE_PATH`, which it searches after `node_modules`). A file with no extension beside a code file of
+its name (`src/data` and `src/data.js`) is unresolved too: Node's require, esbuild and Vite take the path as written, tsc the code file. An
+extensionless import is unresolved when the
 tools name different code files: Vite and Rollup try `.mjs .js .mts .ts .jsx .tsx .json`, esbuild `.tsx .ts .jsx .js .css .json`, and Node's
 require (for a JavaScript importer, in the file and in the directory's index alike) `.js .json .node`, so `lib.jsx` beside `lib.js` (esbuild
 takes `lib.jsx`), `lib.ts` beside `lib.tsx` (esbuild takes `lib.tsx`) and `index.jsx` beside `index.json` (Node's require takes the JSON) name

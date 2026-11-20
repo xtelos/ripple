@@ -478,10 +478,12 @@ def test_a_reason_for_a_node_builtin_beside_a_file_a_resolver_adds_an_extension_
 
 @pytest.mark.parametrize("twin", ["foo.css", "foo.node"])
 def test_an_installed_package_beside_a_stylesheet_or_a_native_addon_under_the_base_url_is_unresolved_with_a_true_reason(make_repo, twin):
-    """esbuild bundles foo.css for `foo`, Node, Vite and tsc take node_modules/foo/index.js; Node loads no foo.node here either."""
+    """esbuild bundles foo.css for `foo`, Node, Vite and tsc take node_modules/foo/index.js; Node loads no foo.node here either (its
+    require reaches a file under baseUrl only through NODE_PATH, which is searched after node_modules)."""
     repo = make_repo({**ROOT_BASE, **PACKAGE, twin: "", "main.js": ""})
     kind, why = modules_of(repo).resolve("foo", "main.js")
-    assert kind == "unresolved" and twin in why and "may" in why, (twin, kind, why)
+    assert kind == "unresolved" and twin in why, (twin, kind, why)
+    assert ("may" in why) if twin == "foo.css" else ("NODE_PATH" in why and "Node's require may load" not in why), why
 
 
 def test_an_installed_package_beside_a_json_file_under_the_base_url_stays_a_package(make_repo):
@@ -558,3 +560,119 @@ def test_a_file_with_no_extension_that_appears_is_not_served_from_a_stale_cache(
     (repo / "src" / "data").unlink()
     graph, hit = load(repo, cache)
     assert not hit and not any("no extension" in u.reason for u in graph.unresolved)
+
+
+# ---- 5: review round 2: an earlier target that holds code the walk skips, an extensionless file beside code, reasons for a bare name
+#
+# Run the same way (Node 24.0.1 require and ESM, esbuild 0.28.0, tsc 6.0.3, Vite 7; `/tmp/ripple-wave2/w3-js-resolver-twins/r2/rerun.py` prints
+# each tool's answer and ripple's, before and after):
+#   - `paths {"*": ["node_modules/*", "src/*"]}`, node_modules/foo/index.js and src/foo.js, `import 'foo'`: Node's require, Node ESM, esbuild, Vite
+#     and tsc all take node_modules/foo/index.js. With `{"@/*": ["node_modules/pkg/*", "src/*"]}`, or dist/*, or .gen/* first, and the same
+#     name in src/: esbuild and tsc take the earlier file. An earlier target that holds nothing for the path (a directory with a readme, a
+#     node_modules with no such package) leaves the later one's edge.
+#   - src/data (no extension) beside src/data.js, `./data`: Node's require, esbuild and Vite take src/data, tsc takes src/data.js. The same
+#     with src/data.ts and a TypeScript importer: esbuild and Vite take src/data, tsc takes data.ts.
+#   - installed `foo` under baseUrl src with src/foo.node: Node's require, esbuild and tsc take node_modules/foo/index.js. `events` (a
+#     builtin) under baseUrl src with an extensionless src/events: Node loads the builtin, esbuild (browser) bundles src/events, Vite loads
+#     nothing. Node's require does not read baseUrl at all (NODE_PATH, searched after node_modules, is the only way it reaches such a file).
+
+PATHS_STAR = {"tsconfig.json": json.dumps({"compilerOptions": {"baseUrl": ".", "allowJs": True, "paths": {"*": ["node_modules/*", "src/*"]}}})}
+
+
+@pytest.mark.parametrize(
+    "config, spec, earlier, later",
+    [
+        pytest.param(PATHS_STAR, "foo", "node_modules/foo/index.js", "src/foo.js", id="star-node-modules-first"),
+        pytest.param(
+            {"tsconfig.json": json.dumps({"compilerOptions": {"baseUrl": ".", "allowJs": True, "paths": {"@/*": ["node_modules/pkg/*", "src/*"]}}})},
+            "@/x", "node_modules/pkg/x.js", "src/x.js", id="node-modules-pkg-first",
+        ),
+        pytest.param(
+            {"tsconfig.json": json.dumps({"compilerOptions": {"baseUrl": ".", "allowJs": True, "paths": {"@/*": ["dist/*", "src/*"]}}})},
+            "@/x", "dist/x.js", "src/x.js", id="dist-first",
+        ),
+        pytest.param(
+            {"tsconfig.json": json.dumps({"compilerOptions": {"baseUrl": ".", "allowJs": True, "paths": {"@/*": [".gen/*", "src/*"]}}})},
+            "@/x", ".gen/x.js", "src/x.js", id="hidden-first",
+        ),
+    ],
+)
+def test_an_earlier_target_that_holds_code_the_walk_skips_beats_a_later_place_that_holds_code(make_repo, config, spec, earlier, later):
+    """esbuild and tsc take the earlier file: an edge to the later one is an edge to a file no tool loads."""
+    repo = make_repo({**config, earlier: "exports.f = 1;\n", later: "exports.f = 1;\n", "main.js": ""})
+    kind, why = modules_of(repo).resolve(spec, "main.js")
+    assert kind == "unresolved" and earlier in why, (kind, why)
+
+
+def test_an_earlier_target_that_holds_nothing_for_the_path_leaves_the_later_edge(make_repo):
+    """node_modules has no foo here, and an earlier target equal to the later one is the same file."""
+    repo = make_repo({**PATHS_STAR, "node_modules/bar/index.js": "exports.f = 1;\n", "src/foo.js": "exports.f = 1;\n", "main.js": ""})
+    assert modules_of(repo).resolve("foo", "main.js") == ("repo", "src/foo")
+    twice = {"tsconfig.json": json.dumps({"compilerOptions": {"baseUrl": ".", "allowJs": True, "paths": {"@/*": ["src/*", "./src/*"]}}})}
+    repo = make_repo({**twice, "src/x.js": "exports.f = 1;\n", "main.js": ""})
+    assert modules_of(repo).resolve("@/x", "main.js") == ("repo", "src/x")
+
+
+def test_a_file_that_appears_at_an_earlier_node_modules_target_is_not_served_from_a_stale_cache(make_repo, tmp_path_factory):
+    repo = make_repo({**PATHS_STAR, "src/foo.js": "export function f() {}\n", "main.js": "import { f } from 'foo';\nf();\n"})
+    cache = tmp_path_factory.mktemp("cache")
+    graph, hit = load(repo, cache)
+    assert not hit and len(graph.edges) == 1
+    (repo / "node_modules" / "foo").mkdir(parents=True)
+    (repo / "node_modules" / "foo" / "index.js").write_text("exports.f = 1;\n")  # the walk skips node_modules: only the probe record sees it
+    graph, hit = load(repo, cache)
+    assert not hit and graph.edges == [] and any("node_modules/foo/index.js" in u.reason for u in graph.unresolved)
+    (repo / "node_modules" / "foo" / "index.js").unlink()
+    graph, hit = load(repo, cache)
+    assert not hit and len(graph.edges) == 1
+
+
+@pytest.mark.parametrize(
+    "importer, profile, code",
+    [("src/main.js", JAVASCRIPT, "src/data.js"), ("src/main.ts", TYPESCRIPT, "src/data.ts")],
+)
+def test_an_extensionless_file_beside_a_code_file_of_its_name_is_unresolved(make_repo, importer, profile, code):
+    """Node's require, esbuild and Vite take src/data as written, tsc takes the code file."""
+    repo = make_repo({"src/data": "exports.f = 1;\n", code: EXPORT, importer: ""})
+    kind, why = modules_of(repo, profile).resolve("./data", importer)
+    assert kind == "unresolved" and "src/data" in why and code in why, (kind, why)
+
+
+def test_the_written_path_beside_a_code_file_is_still_that_file(make_repo):
+    repo = make_repo({"src/data": "exports.f = 1;\n", "src/data.js": EXPORT, "src/main.js": ""})
+    assert modules_of(repo).resolve("./data.js", "src/main.js") == ("repo", "src/data")
+
+
+def test_a_reason_for_an_installed_package_beside_a_native_addon_under_the_base_url_names_no_loader_that_does_not_load_it(make_repo):
+    """Node's require, esbuild and tsc all take node_modules/foo/index.js: Node's require reaches src/foo.node only through NODE_PATH."""
+    repo = make_repo({**JS_BASE, **PACKAGE, "src/foo.node": "", "src/main.js": ""})
+    kind, why = modules_of(repo).resolve("foo", "src/main.js")
+    assert kind == "unresolved" and "src/foo.node" in why and "NODE_PATH" in why and "Node's require may load" not in why, (kind, why)
+
+
+@pytest.mark.parametrize("twin", ["events", "events.node", "events.css", "events.d.ts"])
+def test_every_reason_for_a_node_builtin_beside_a_file_of_the_repo_says_only_that_a_tool_may_take_it(make_repo, twin):
+    """Node loads the builtin, esbuild (browser) bundles src/events or src/events.css, Vite loads nothing: no reason may say a loader loads the file."""
+    repo = make_repo({**JS_BASE, "src/" + twin: "exports.f = 1;\n", "src/main.js": ""})
+    kind, why = modules_of(repo).resolve("events", "src/main.js")
+    assert kind == "unresolved" and "Node builtin" in why and "src/" + twin in why and "may" in why, (kind, why)
+
+
+def test_a_reason_for_a_bare_extensionless_file_under_the_base_url_says_only_what_the_tools_that_read_it_do(make_repo):
+    """Node's require reads no baseUrl and Vite none without a plugin: only esbuild and the compiler reach src/foo for `foo`."""
+    repo = make_repo({**JS_BASE, "src/foo": "exports.f = 1;\n", "src/main.js": ""})
+    kind, why = modules_of(repo).resolve("foo", "src/main.js")
+    assert kind == "unresolved" and "src/foo" in why and "Node's require, esbuild and Vite load" not in why, (kind, why)
+
+
+def test_a_reason_for_a_bare_name_that_two_tools_order_differently_names_only_the_tools_that_reach_the_file(make_repo):
+    """Under baseUrl, esbuild and the compiler read the config, Vite needs a plugin, Node's require only NODE_PATH; a relative path is read by all."""
+    repo = make_repo({**JS_BASE, "src/lib/index.js": EXPORT, "src/lib.json": "{}", "src/main.js": ""})
+    kind, why = modules_of(repo).resolve("lib", "src/main.js")
+    assert kind == "unresolved" and "src/lib.json" in why and "to Vite and Rollup," not in why and "with a plugin" in why, (kind, why)
+    repo = make_repo({"src/idx/index.jsx": EXPORT, "src/idx/index.json": "{}", "src/main.js": ""})
+    kind, why = modules_of(repo).resolve("./idx", "src/main.js")
+    assert kind == "unresolved" and "to Node's require," in why and "NODE_PATH" not in why, (kind, why)
+    repo = make_repo({**JS_BASE, "src/bare/index.jsx": EXPORT, "src/bare/index.json": "{}", "src/main.js": ""})
+    kind, why = modules_of(repo).resolve("bare", "src/main.js")
+    assert kind == "unresolved" and "NODE_PATH" in why, (kind, why)
