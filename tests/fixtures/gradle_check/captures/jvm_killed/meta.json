@@ -1,0 +1,21 @@
+{
+  "request": [],
+  "calls": [
+    {
+      "kind": "run",
+      "exit": 1
+    }
+  ],
+  "recorded_verdict": {
+    "passed": false,
+    "summary": "5 passed, 0 failed, 1 skipped in 4 test classes",
+    "problems": [
+      ":test failed with no failing test: Process 'Gradle Test Executor 1' finished with non-zero exit value 137 (this value may indicate that the process was terminated with the SIGKILL signal, which is often caused by the system running out [truncated 11 chars]",
+      ":test: Gradle ended 2 suites SKIPPED without finishing it (com.acme.shop.ZzzKillTest, Gradle Test Executor 1): the test JVM stopped there (System.exit, Runtime.halt), so what ran after it never ran"
+    ],
+    "failures": [],
+    "notes": [
+      "1 test skipped or disabled, so not run"
+    ]
+  }
+}

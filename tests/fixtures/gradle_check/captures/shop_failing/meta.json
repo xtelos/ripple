@@ -1,0 +1,18 @@
+{
+  "request": [],
+  "calls": [
+    {
+      "kind": "run",
+      "exit": 1
+    }
+  ],
+  "recorded_verdict": {
+    "passed": false,
+    "summary": "2 passed, 2 failed, 0 skipped in 2 test classes",
+    "problems": [],
+    "failures": [
+      "FAILED src/test/java/com/acme/shop/CartTest.java::CartTest.totalIsWrong(): deliberately wrong ==> expected: <99> but was: <100>",
+      "FAILED src/test/java/com/acme/shop/CartTest.java::CartTest.boom(): kaboom"
+    ]
+  }
+}

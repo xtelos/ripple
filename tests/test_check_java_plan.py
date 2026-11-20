@@ -463,11 +463,14 @@ def test_a_repo_with_no_root_pom_is_refused_with_what_to_pass(tmp_path, no_proce
         checker.run_check(repo, tests=[], profile=JAVA)
 
 
-def test_gradle_alone_is_refused_not_run_as_maven(tmp_path, no_process):
+def test_gradle_alone_is_not_run_as_maven_and_without_a_launcher_is_refused(tmp_path, no_process, monkeypatch):
+    # was: refused as "only Maven". Gradle roots now go to gradle_check.py (tests/test_check_gradle_*.py); with neither
+    # gradlew in the repo nor gradle on PATH there is nothing to run, and the refusal says so.
     repo = tmp_path / "r"
     repo.mkdir()
     (repo / "build.gradle").write_text("plugins { id 'java' }\n")
-    with pytest.raises(ValueError, match="only Maven"):
+    monkeypatch.setattr(shutil, "which", lambda name: None)
+    with pytest.raises(ValueError, match="neither .gradlew. in the repository nor .gradle. on PATH"):
         checker.run_check(repo, tests=[], profile=JAVA)
 
 
