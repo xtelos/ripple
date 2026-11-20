@@ -1267,7 +1267,7 @@ class Resolver:
         self.provided_cache: dict[tuple, tuple] = {}
         self.satisfiers: dict[tuple, list[TypeInfo]] = {}
         self.concrete: dict[tuple | None, list[TypeInfo]] = {}  # by naming
-        self.links: dict[tuple, set[Package] | bool] = {}
+        self.links: dict[tuple, set[Package] | bool | None] = {}
         self.units: list[set[Package]] | None = None
         self.expressions: dict[str, object] = {}
         self.unit_imports: dict[tuple, Package | None] = {}
@@ -1638,15 +1638,18 @@ class Resolver:
         return self.walk([base[1]], name, set())
 
     def in_another_test_build(self, decl: FuncDecl) -> bool:
-        """Whether the declaration is in a _test.go file of another directory than a call in a _test.go file: a package's
-        test files are compiled into its own test binary (and its external test package's) and into no other, so the
-        build that has the call never has the declaration, whatever tags either file carries."""
-        return (
-            self.file is not None
-            and self.file.rel.endswith("_test.go")
-            and decl.file.rel.endswith("_test.go")
-            and decl.file.package.dir != self.file.package.dir
-        )
+        """Whether no build the file being read is in has the declaration: it is in a _test.go file of another directory. A
+        package's test files are compiled into its own test binary (and its external test package's) and into no other, so
+        a call in a _test.go file never has them, whatever tags either file carries. A library file does, in one case: a
+        test binary links the packages the tests import, and builds every one of them against the package under test WITH
+        its test files, so a library file that a directory's tests may link (test_binary_may_link) has them there. Anything
+        that cannot be told is kept."""
+        if self.file is None or not decl.file.rel.endswith("_test.go") or decl.file.package.dir == self.file.package.dir:
+            return False
+        if self.file.rel.endswith("_test.go"):
+            return True
+        linked = self.test_binary_may_link(decl.file.package.dir)
+        return linked is not None and self.file.package not in linked
 
     def in_every_build(self, decl: FuncDecl) -> bool:
         """Whether the declaration is there in every build that has the call being resolved: a declaration in no
@@ -1789,18 +1792,22 @@ class Resolver:
             return True
         return file.tests_only and self.file is not None and self.file.tests_only and file.package.dir == self.file.package.dir
 
-    def imported_by(self, package: Package, with_tests: bool, main: GoMod) -> set[Package]:
+    def imported_by(self, package: Package, with_tests: bool, main: GoMod, every_file: bool = False) -> set[Package]:
         """The repo packages the files of a package that EVERY build of it has import, each import path read as a build whose
         main module is `main` reads it (the module that governs: its replaces decide, never the replaces of the module the
         importing file is in; see go_modules.py). For the package a test binary is built for, its plain _test.go files too:
         they are in that binary and in no other build. A file whose presence depends on the build (a build constraint, a
         platform file name, a file that imports "C", which CGO_ENABLED=0 leaves out) adds its imports to the builds that
         have it and not to the others, so none of them is counted: a package only such a file imports is not certain to be
-        linked."""
+        linked. With `every_file`, the other reading: every file a build may have counts (an upper bound of what is linked,
+        where the default is a lower one), a _test.go file only for the package a test binary is built for."""
         found: set[Package] = set()
         modules = self.program.modules
         for info in package.files:
-            if "C" in info.imports or (info.constrained and not (with_tests and info.tests_only)):
+            if every_file:
+                if info.rel.endswith("_test.go") and not with_tests:
+                    continue
+            elif "C" in info.imports or (info.constrained and not (with_tests and info.tests_only)):
                 continue
             imports = (*info.imports.values(), *info.dots, *info.blanks, *(i for each in info.guesses.values() for i in each))
             for path in {i.path for i in imports if i.kind != "cgo"}:
@@ -1812,15 +1819,15 @@ class Resolver:
                     found.add(self.unit_imports[key])
         return found
 
-    def closure(self, roots: list[Package], tests: bool, main: GoMod | None) -> set[Package]:
+    def closure(self, roots: list[Package], tests: bool, main: GoMod | None, every_file: bool = False) -> set[Package]:
         """The packages a program or test binary built from these roots links: the roots (with their plain _test.go files
         when it is a test binary) and what they import, transitively, every import path read as the build's main module
         (the module of the roots) reads it. A package main is nobody's import, so no program or test binary of another
-        package links one."""
+        package links one. With `every_file`, the packages SOME build of the roots may link (see imported_by)."""
         seen, stack = set(roots), [(r, tests) for r in roots]
         while stack and main is not None:
             package, is_root = stack.pop()
-            for imported in self.imported_by(package, is_root, main):
+            for imported in self.imported_by(package, is_root, main, every_file):
                 if imported not in seen:
                     seen.add(imported)
                     stack.append((imported, False))
@@ -1837,6 +1844,21 @@ class Resolver:
         key = ("test", directory)
         if key not in self.links:
             self.links[key] = self.closure([p for p in self.program.packages.values() if p.dir == directory], True, self.main_module(directory))
+        return self.links[key]
+
+    def test_binary_may_link(self, directory: str) -> set[Package] | None:
+        """The packages that SOME test binary of a directory may link, so that one outside this set is in none: the closure
+        over every file a build may have (a constrained test file, a platform file, a cgo file), where test_binary counts
+        only the files every build has. None when that cannot be told: the directory has no module, or a package of the
+        closure has a file ripple could not read, which may import anything."""
+        key = ("test may link", directory)
+        if key not in self.links:
+            roots = [p for p in self.program.packages.values() if p.dir == directory]
+            main = self.main_module(directory)
+            found = self.closure(roots, True, main, every_file=True) if main is not None and roots else None
+            if found is not None and (self.program.unread_text or any(p.unreadable for p in found)):
+                found = None
+            self.links[key] = found
         return self.links[key]
 
     def build_units(self) -> list[set[Package]]:

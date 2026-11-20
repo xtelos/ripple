@@ -380,10 +380,148 @@ def test_a_test_file_is_given_the_same_answer_whichever_call_was_resolved_before
     assert answers(graph, "TestE") == {"TestE": (["R1.N", "T.M"], [])}
 
 
+@pytest.mark.parametrize("library", ["e_linux.go", "z_linux.go"], ids=["library file first", "library file last"])
+def test_two_callers_given_different_declarations_do_not_share_an_answer_when_a_test_binary_links_the_library_file(tmp_path, library):
+    # d's external test imports e, so d's test binary links Lib (built against d WITH its test files: both variants of M, which
+    # is left open) while TestE, a test of e, never has d's test files. Both read the same first declaration of M.
+    root = variants_layout(tmp_path, library)
+    write(root, {"d/x_linux_test.go": 'package d_test\n\nimport (\n\t"testing"\n\n\t"m/e"\n)\n\nfunc TestX(t *testing.T) { e.Lib() }\n'})
+    graph = build_graph(root, GO)
+    assert answers(graph, "TestE", "Lib") == {"TestE": (["R1.N", "T.M"], []), "Lib": (["T.M", "T.M#2"], ["d.T{}.M().N"])}
+
+
 def test_a_library_call_is_given_the_same_answer_whichever_file_name_orders_it(tmp_path):
     first = answers(build_graph(variants_layout(tmp_path / "first", "e_linux.go"), GO), "Lib")
     last = answers(build_graph(variants_layout(tmp_path / "last", "z_linux.go"), GO), "Lib")
     assert first == last
+
+
+# ---- a library file of one directory and another directory's _test.go declarations -----------------------------------
+#
+# A declaration in a _test.go file of directory d is in no build of any file outside d: the test files of a package are
+# compiled into its own test binary and its external test package's, and into no other build. PR #40 left them out for a
+# caller that is itself a _test.go file; a library file of another directory has none of them either.
+
+
+def foreign_layout(root, library: bool = True, only_test: bool = False):
+    """`T.M` is `R1` for linux in a library file of d and `R2` in a windows-only test file of d (valid Go, a variant of the
+    method for each build). Callers: a library file and a test file of e, and d's own library file, tests and external tests.
+    With `only_test`, the method is declared in d's test file and nowhere else."""
+    files = {
+        "go.mod": GOMOD,
+        "d/t.go": """
+            package d
+
+            import "fmt"
+
+            type T struct{}
+
+            type R1 struct{}
+
+            func (R1) N() { fmt.Println("R1.N") }
+
+            type R2 struct{}
+
+            func (R2) N() { fmt.Println("R2.N") }
+            """,
+        "e/e_linux_test.go": 'package e\n\nimport (\n\t"testing"\n\n\t"m/d"\n)\n\nfunc TestE(t *testing.T) { d.T{}.M().N() }\n',
+        "d/in_linux_test.go": 'package d\n\nimport "testing"\n\nfunc TestIn(t *testing.T) { T{}.M().N() }\n',
+        "d/ext_linux_test.go": 'package d_test\n\nimport (\n\t"testing"\n\n\t"m/d"\n)\n\nfunc TestExt(t *testing.T) { d.T{}.M().N() }\n',
+    }
+    if only_test:
+        files["d/m_test.go"] = "package d\n\nfunc (T) M() R2 { return R2{} }\n"
+    else:
+        files["d/m_windows_test.go"] = "package d\n\nfunc (T) M() R2 { return R2{} }\n"
+        files["d/m_linux.go"] = "package d\n\nfunc (T) M() R1 { return R1{} }\n"
+        files["d/own.go"] = "package d\n\nfunc Own() { T{}.M().N() }\n"  # built for windows without d's M: go test only
+    if library:
+        files["e/e_linux.go"] = 'package e\n\nimport "m/d"\n\nfunc Lib() { d.T{}.M().N() }\n'
+    write(root, files)
+    return root
+
+
+def test_a_library_file_gets_no_edge_to_a_method_only_another_directorys_tests_declare(tmp_path):
+    # go build: Lib has d's linux M (R1); `GOOS=windows go test` of d has the other M, which e's build never has
+    graph = build_graph(foreign_layout(tmp_path), GO)
+    got = answers(graph, "Lib", "TestE")
+    assert got == {"Lib": (["R1.N", "T.M"], []), "TestE": (["R1.N", "T.M"], [])}, "no edge to T.M#2, the declaration in d/m_windows_test.go"
+
+
+def test_the_directory_that_declares_the_test_file_still_has_both_variants(tmp_path):
+    # d's library file (some builds have the windows test file), d's tests and d's external tests: both M, which is not settled
+    graph = build_graph(foreign_layout(tmp_path), GO)
+    for name in ("Own", "TestIn", "TestExt"):
+        assert answers(graph, name)[name] == (["T.M", "T.M#2"], ["T{}.M().N" if name != "TestExt" else "d.T{}.M().N"]), name
+
+
+def test_a_library_file_gets_no_edge_to_a_method_that_only_another_directorys_tests_declare_at_all(tmp_path):
+    # go vet ./e: d.T{}.M undefined (d is built without its test files)
+    graph = build_graph(foreign_layout(tmp_path, only_test=True), GO)
+    got = answers(graph, "Lib", "TestE")
+    assert got == {"Lib": ([], ["d.T{}.M", "d.T{}.M().N"]), "TestE": ([], ["d.T{}.M", "d.T{}.M().N"])}
+
+
+def linked_layout(root, how: str | None):
+    """b's test file overrides Conn.Close, which Conn otherwise promotes from Base. a's library file calls it. `how` says how
+    b's tests reach a: None (they do not), "plain" (a test file with no constraint imports a), "tagged" (only a linux test file does)."""
+    files = {
+        "go.mod": GOMOD,
+        "b/b.go": 'package b\n\ntype Base struct{}\n\nfunc (Base) Close() string { return "Base.Close" }\n\ntype Conn struct{ Base }\n',
+        "b/b_test.go": 'package b\n\nfunc (Conn) Close() string { return "Conn.Close" }\n',
+        "a/a.go": 'package a\n\nimport "m/b"\n\nfunc Direct(c b.Conn) string { return c.Close() }\n',
+    }
+    if how is not None:
+        name = "ext_test.go" if how == "plain" else "ext_linux_test.go"
+        files[f"b/{name}"] = 'package b_test\n\nimport (\n\t"testing"\n\n\t"m/a"\n\t"m/b"\n)\n\nfunc TestUse(t *testing.T) { t.Log("TestUse " + a.Direct(b.Conn{})) }\n'
+    write(root, files)
+    return root
+
+
+def test_a_library_file_is_left_open_when_the_test_binary_of_the_other_directory_may_link_it(tmp_path):
+    # go test ./b: TestUse runs Conn.Close (a is built against b with its test files); go build: Direct runs Base.Close
+    for how in ("plain", "tagged"):
+        graph = build_graph(linked_layout(tmp_path / how, how), GO)
+        assert answers(graph, "Direct")["Direct"] == ([], ["c.Close"]), how
+
+
+def test_a_library_file_gets_the_promoted_method_when_no_test_binary_links_it_with_the_other_directorys_tests(tmp_path):
+    # go test ./a and go build: Direct runs Base.Close; b's tests do not import a, so b's test binary never builds it
+    graph = build_graph(linked_layout(tmp_path, None), GO)
+    assert answers(graph, "Direct")["Direct"] == (["Base.Close"], [])
+
+
+def test_go_runs_the_override_in_the_binary_that_links_the_library_file_and_not_otherwise(tmp_path):
+    go = shutil.which("go")
+    if go is None:
+        pytest.skip("the go toolchain is not on PATH")
+    for how in ("plain", "tagged"):
+        root = linked_layout(tmp_path / how, how)
+        ran = printed(go, root, root)
+        assert any(line.endswith("TestUse Conn.Close") for line in ran["TestUse"]), ran
+    root = linked_layout(tmp_path / "none", None)
+    (root / "a" / "a_test.go").write_text('package a\n\nimport (\n\t"testing"\n\n\t"m/b"\n)\n\nfunc TestDirect(t *testing.T) { t.Log("TestDirect " + Direct(b.Conn{})) }\n')
+    ran = printed(go, root, root)
+    assert any(line.endswith("TestDirect Base.Close") for line in ran["TestDirect"]), ran
+
+
+def test_go_builds_the_library_caller_without_d_s_test_files(tmp_path):
+    go = shutil.which("go")
+    if go is None:
+        pytest.skip("the go toolchain is not on PATH")
+    root = foreign_layout(tmp_path / "both")
+    run = lambda *args, goos="linux": subprocess.run([go, *args], cwd=root, env={**go_env(root), "GOOS": goos}, capture_output=True, text=True)  # noqa: E731
+    assert run("build", "./...").returncode == 0, "linux: d has its linux M, e's Lib and d's Own build with it"
+    ran = printed(go, root, root)
+    assert "R1.N" in ran["TestE"] and "R1.N" in ran["TestIn"] and "R1.N" in ran["TestExt"], ran
+    # windows: d's own library file builds only together with d's test file (the method is the other one), e has no file at all
+    assert "T{}.M undefined" in run("build", "./d", goos="windows").stderr
+    assert run("test", "-c", "-o", "/dev/null", "./d", goos="windows").returncode == 0
+    # the method declared in d's test file and nowhere else: d's own tests have it, e's library file does not
+    only = foreign_layout(tmp_path / "only", only_test=True)
+    ran = printed(go, only, only)
+    assert "R2.N" in ran["TestIn"] and "R2.N" in ran["TestExt"], ran
+    vetted = subprocess.run([go, "vet", "./e"], cwd=only, env=go_env(only), capture_output=True, text=True)
+    assert vetted.returncode != 0 and "d.T{}.M undefined" in vetted.stderr, vetted.stderr
 
 
 # ---- the same answers from the toolchain itself ---------------------------------------------------------------------
