@@ -371,7 +371,7 @@ it a value of its own makes it that value (a parameter, `var`, `let`, `const`, `
 block around the call or at the top of the file): a bare assignment (`exports = new K()`) does not, since the name holds the
 module's own object until the assignment runs, a `var` at the top of the file does not for the same reason (in a CommonJS
 file it redeclares the parameter Node runs the file with), and at the top of the file an `enum`, a `namespace` and
-`import x = require()` do not either. Inside a function or block, what exists at run time decides: an `enum` and a `namespace` that holds a
+`import a = N.M` do not either (`import process = require('./x')` does, as `const process = require('./x')` does). Inside a function or block, what exists at run time decides: an `enum` and a `namespace` that holds a
 value are bindings of their block (or of the function, at its top level), so the call is unresolved with the reason that the name is
 declared there (a `const enum` is erased by tsc and kept by Node's transform and by esbuild, so that is not known either), while an
 `interface`, a type alias, anything after `declare` and a namespace of types only exist in no form, hide nothing, and leave the call a
@@ -385,6 +385,20 @@ from `process` or `node:process` reach the entry module. `globalThis.module`, `g
 reach anything in a file Node runs (they are parameters of the file's wrapper function, so the call throws) unless code of the repo stores a module
 object on the global object, so they are unresolved with a reason that says that. A `globalThis` or `global` that a declaration gives a
 value of its own (a parameter, `let`, `const`, a top-level `var`, an import) is that value, and the call is read as written.
+`process` that a repo module re-exports (`export { default } from 'process'`, `export { mainModule as pm } from 'process'`,
+`export * from 'process'`) reaches the importing file with the chain intact: when the chain ends at Node's `process` or its
+`mainModule` and the next step is `mainModule` or a member of it (`p.mainModule.exports.f()`, `pm.exports.f()`, which run the entry
+module's `f`), the call is unresolved, with a reason that says so; another member of `process` (`p.cwd()`) stays outside the repo, and
+a repo export that is merely called `mainModule` keeps its edge. `import a = N.M` binds
+`a`, so a call through it, even when `a` is called `process`, is unresolved and never outside the repo. So does an `enum`, or a namespace
+that holds a value, at the top of the file: `enum process {}` then `process.cwd()` is the repo's `process` (a namespace of types only and
+anything after `declare` emit nothing, and the name stays Node's). `import x = require('./x')` is read as `import * as x from './x'`
+is, a package stays a package, and `import process = require('process')` stays Node's `process`. It binds only at the top level of a
+TypeScript file: in a `.js` file, a namespace, a block or a function body the language rejects it, and nothing is bound. An
+`import globalThis = N.M` (or `global`) hides the global object, as a `var` of the name does. A class declared beside another
+declaration of its name in the same block, function, switch or file (a second class, `let`, `const`, a function, a `var` written in it
+or in a block of it, or a parameter) is a SyntaxError when Node runs it as JavaScript (tsc emits the same text, and reports most of
+these as a duplicate identifier), so a call through that name is unresolved and has no edge to the class. A class beside an interface, or one that a namespace of the same name follows, is a legal merge and is read as before.
 
 **The two languages do not follow each other.** A TypeScript file that imports a `.js` file (or the reverse, through a relative
 path, `baseUrl` or `paths`) has an unresolved call with the reason "names src/x.js, a JavaScript file, whose calls ripple does

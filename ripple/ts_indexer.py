@@ -103,6 +103,11 @@ ABSTRACT = "the receiver is an abstract member, which runs nothing and hides wha
 STATIC_AND_INSTANCE = "the receiver is a name that a static and an instance member of the class both declare"
 TYPE_DECLARED = "the receiver is named like an interface, type, enum or namespace declared here, which ripple does not follow"
 BLOCK_FUNCTION = "the receiver is named like a function declared in a block, which in code that is not strict is a variable of the function around it too"
+IMPORT_ALIAS = "the receiver is named like an import alias (`import a = N.M`) declared here, which ripple does not follow"
+REDECLARED = (
+    "the receiver is a name that a class and another declaration both declare in the same block, function or file, which the language "
+    "rejects, so what it names is not known"
+)
 OWN_NAME = "the receiver is the name of a function expression, which is the function itself"
 DESTRUCTURED = "the receiver is destructured from an object or array, whose type ripple does not follow"
 CALLBACK_PARAMETER = "the receiver is a parameter of an anonymous function, whose type ripple does not infer"
@@ -210,6 +215,7 @@ class _Frame(dict):
 
     erased: frozenset = frozenset()
     kind: str = "block"
+    redeclared: frozenset = frozenset()  # the names a class and another declaration of the frame both declare (see FileBuilder._redeclared)
 
 
 # What each kind of statement the grammar has does to the names around it, and so which frame (see `_Frame`) a name it declares belongs to.
@@ -226,8 +232,10 @@ class _Frame(dict):
 #   ambient         `declare ...`: no name at run time, and nothing ripple reads
 #   wrapper         holds the declaration in another node, which `declaration_of` looks through (see HOLDERS)
 #   import          an import statement: its `import` clause binds names ripple follows (`import x = require()` is the same kind of node and binds none)
-#   none            binds no name that ripple reads: a control statement (the statements inside are read where they stand), and `import a = N.M`,
-#                   which is wrongly answered as outside the repo (a KNOWN-WRONG row of the tests)
+#   alias           `import a = N.M`: the name belongs to the block it stands in (the namespace body, or the file) and holds what ripple does
+#                   not follow; at the top of the file it is left out of `_top_names`, as a `var` of a module name is (but not
+#                   one of `globalThis` and `global`, which no wrapper parameter has: they hide the global object, as a `var` does)
+#   none            binds no name that ripple reads: a control statement (the statements inside are read where they stand)
 STATEMENT_KINDS = {
     "export_statement": "wrapper",
     "expression_statement": "wrapper",  # the grammar holds `namespace N {}` in one
@@ -245,7 +253,7 @@ STATEMENT_KINDS = {
     "interface_declaration": "erased",
     "type_alias_declaration": "erased",
     "import_statement": "import",
-    "import_alias": "none",
+    "import_alias": "alias",
     "function_signature": "none",
     "statement_block": "none",
     "if_statement": "none",
@@ -263,6 +271,7 @@ STATEMENT_KINDS = {
     "throw_statement": "none",
     "empty_statement": "none",
 }
+CLASSES = ("class_declaration", "abstract_class_declaration")  # the statements of role "block" that are a class, which a redeclaration is read for
 NAMESPACES = tuple(kind for kind, role in STATEMENT_KINDS.items() if role == "namespace")
 TYPE_DECLARATIONS = tuple(kind for kind, role in STATEMENT_KINDS.items() if role in ("block type", "namespace", "erased"))
 
@@ -308,6 +317,9 @@ def declaration_of(node):
 
 def declared_name(node) -> str | None:
     """The name a declaration binds: `A` for `namespace A.B {}`, which declares `A`. None for what has no plain name."""
+    if node.type == "import_alias":  # `import a = N.M`: the grammar gives it no `name` field, and reads `import type a = N.M` as an error
+        kids = named(node)
+        return text(kids[0]) if kids and kids[0].type == "identifier" and not any(c.type == "ERROR" for c in node.children) else None
     name = field_of(node, "name")
     if name is not None and name.type == "nested_identifier":
         name = next(iter(named(name)), None)
@@ -579,6 +591,9 @@ class FileBuilder:
         self.process_imports = self._process_imports(root)  # local name -> how Node's `process` is imported under it (see _canonical)
         for node in named(root):
             self.visit(node)
+        for name in self._redeclared(named(root)):  # the file's own names have no frame: see _pop for a block's and a function's
+            self.module.names[name] = Binding("var", evidence=[unknown_ref(REDECLARED)])
+        self._bind_top_values(named(root))
         for exported, local in self.exports:
             if local in self.module.names:
                 self.module.exports[exported] = self.module.names[local]
@@ -618,16 +633,23 @@ class FileBuilder:
         self.counter += 1
         return f"{name}#{self.counter}"
 
-    def _push(self, names, fresh: bool, erased=(), kind: str = "block") -> None:
+    def _push(self, names, fresh: bool, erased=(), kind: str = "block", redeclared=()) -> None:
         """Open a frame for the names a block, a function or a clause declares. `erased` are the names among them that only an
-        interface, a type alias or a namespace of types declares: they are no value at run time (see `_declares`)."""
+        interface, a type alias or a namespace of types declares: they are no value at run time (see `_declares`). `redeclared` are the
+        names that a class and another declaration of the frame both declare (see `_redeclared`)."""
         frame = _Frame({n: (self._fresh(n) if fresh else n) for n in dict.fromkeys(names)})
         frame.erased = frozenset(erased)
         frame.kind = kind
+        frame.redeclared = frozenset(redeclared)
         self.frames.append(frame)
 
     def _pop(self) -> None:
-        self.frames.pop()
+        """Close the frame. A name that a class and another declaration both declare in it is bound to nothing known now, whatever the class
+        bound it to while the frame was read: the language rejects the program, so no call through the name runs, and an edge to the class
+        would say a function runs that Node never reaches. It is rebound here, after the class, so the later binding is the one kept."""
+        frame = self.frames.pop()
+        for name in frame.redeclared:
+            self.scope.names[frame[name]] = Binding("var", evidence=[unknown_ref(REDECLARED)])
 
     def _name(self, name: str) -> str:
         """The key a name written here (read or written) is bound under: the innermost frame that holds it as a value, else itself. A frame
@@ -717,6 +739,11 @@ class FileBuilder:
         for node in named(root):
             if node.type != "import_statement" or any(c.type == "type" for c in node.children):
                 continue
+            required = self._require_clause(node)
+            if required is not None:  # `import p = require("node:process")` is `const p = require("node:process")`: the process object, as a default import is
+                if not self.js and string_value(required[1]) in PROCESS_MODULES:
+                    found[required[0]] = "default"
+                continue
             source = field_of(node, "source")
             if source is None or string_value(source) not in PROCESS_MODULES:
                 continue
@@ -753,13 +780,18 @@ class FileBuilder:
         """The names of the module names (`exports`, `module`, `require`, `process`) that the file declares at its top level, wherever
         in the file, as a value of its own: `let`, `const`, `function`, `class` and an import. What ripple binds for none of these is
         left out on purpose, so a call through such a name stays unresolved: an `enum` or a `namespace` (a namespace of the name merges
-        with the module's own object where the file is CommonJS), an `import x = require()` (it binds nothing here), an `interface`,
-        a type alias, and everything after `declare`, which makes no value. A top-level `var` is left out as well: where the file is
+        with the module's own object where the file is CommonJS), an `import x = N.M`, an `interface`, a type alias, and everything after `declare`, which makes no value. A top-level `var` is left out as well: where the file is
         CommonJS it redeclares the parameter Node runs the file with, so the name holds the module's own object until the assignment
         runs, as it does for a bare assignment."""
         found = set(self._declared_names(named(root), types=False))  # let, const, class, function, not the type-only declarations
         for node in named(root):
             if node.type != "import_statement" or any(c.type == "type" for c in node.children):
+                continue
+            required = self._require_clause(node)
+            if required is not None:  # `import process = require("./x")` is `const process = require("./x")`; of a CommonJS file's own parameters
+                name, source = required  # a name here is a redeclaration (a SyntaxError), and Node's own `process` stays Node's
+                if not self.js and name not in MODULE_NAMES and string_value(source) not in PROCESS_MODULES:
+                    found.add(name)
                 continue
             clause = next((c for c in named(node) if c.type == "import_clause"), None)
             for part in named(clause) if clause is not None else ():
@@ -775,6 +807,10 @@ class FileBuilder:
         # `globalThis` and `global` are no parameters of the file: a top-level `var` of the name is an ordinary variable that hides the global
         # object (the `var` of a module name is not left out because of the parameter Node runs the file with, which these two are not)
         found |= set(self._var_names(root, namespaces=False)) & set(GLOBAL_OBJECTS)
+        # `import globalThis = N.M` is `var globalThis = N.M` (tsc), the same variable that hides the global object
+        for node, ambient in map(declaration_of, named(root)):
+            if not ambient and node.type == "import_alias" and declared_name(node) in GLOBAL_OBJECTS:
+                found.add(declared_name(node))
         return found & {*MODULE_ROOTS, *GLOBAL_OBJECTS}
 
     def _ref_text(self, dotted_name: str) -> str:
@@ -794,9 +830,32 @@ class FileBuilder:
                 continue
             if role in ("block", "block function"):
                 names += self._names_declared(node)
-            elif role in ("block type", "namespace", "erased") and types and (erased or not _erased(node)):
+            elif role in ("block type", "namespace", "erased", "alias") and types and (erased or not _erased(node)):
                 names += self._names_declared(node)
         return names
+
+    def _redeclared(self, statements, params=()) -> frozenset[str]:
+        """The names that a class declares and another declaration of the same frame declares too: a second class, a `let`, a `const`, a
+        function, a `var` (written in the frame or in a block of it, not in a function), or a parameter of the function. The language
+        rejects each of these (Node: SyntaxError, the file never runs), so no call through the name runs, and ripple does not answer one
+        with an edge to the class. Left out on purpose: a class beside an interface (a merge), beside a namespace (TypeScript merges a
+        namespace that follows the class, and Node runs it), an enum, and anything after `declare`, none of which is shown to be rejected."""
+        classes: list[str] = []
+        others: set[str] = set(params)
+        read = []
+        for statement in statements:
+            held, ambient = declaration_of(statement)
+            if ambient:
+                continue
+            role = STATEMENT_KINDS.get(held.type)
+            if role == "block" and held.type in CLASSES:
+                classes += self._names_declared(held)
+            elif role in ("block", "block function"):  # `let`, `const` and a function declaration; a `var` is read below, wherever it is written
+                others.update(self._names_declared(held))
+            read.append(statement)
+        if classes:
+            others.update(self._var_names(read, namespaces=False, annex_b=False))
+        return frozenset(name for name in classes if name in others or classes.count(name) > 1)
 
     def _names_declared(self, node) -> list[str]:
         """The names one declaration binds: what its declarators bind (`let`, `const`, `var`), or its own name."""
@@ -827,19 +886,31 @@ class FileBuilder:
                 for name in self._names_declared(node):
                     self.scope.bind(self._name(name), Binding("var", evidence=[unknown_ref(TYPE_DECLARED)]))
 
-    def _var_names(self, node, namespaces: bool = True) -> list[str]:
+    def _bind_top_values(self, nodes) -> None:
+        """An enum, or a namespace that holds a value, declared at the top of the file binds its name there (tsc emits a `var` of it): the name is
+        the repo's, not a builtin's, so `enum process {}` then `process.cwd()` is not a call of Node's. A namespace of types only and anything
+        after `declare` emit nothing and are left out (see `_erased`). A name that something else of the file already binds (a class or a
+        function that a namespace merges with) keeps that binding, so a merge is answered as it was."""
+        for node, ambient in map(declaration_of, nodes):
+            if ambient or STATEMENT_KINDS.get(node.type) not in ("block type", "namespace") or _erased(node):
+                continue
+            for name in self._names_declared(node):
+                if name not in self.module.names:
+                    self.module.bind(name, Binding("var", evidence=[unknown_ref(TYPE_DECLARED)]))
+
+    def _var_names(self, node, namespaces: bool = True, annex_b: bool = True) -> list[str]:
         """The names `var` declares anywhere in a function body (it is function scoped), not inside a nested function. With `namespaces`
         False not inside a namespace either, whose `var` is that namespace's own. A function declared in a block is a name of the
         function as well, where the code is not strict (Annex B), and which it is cannot be read: it is listed here when a module name
         can be spelled with it (see `_declares`), so the name after the block is not taken for the module's own."""
         names: list[str] = []
-        stack = list(node.named_children)
+        stack = list(node) if isinstance(node, (list, tuple)) else list(node.named_children)  # a list: the statements of a block, each read as a child
         while stack:
             child = stack.pop()
             role = STATEMENT_KINDS.get(child.type)
             if role == "function":  # `var`: the function's, whichever block it is written in and whatever else of that name is there
                 names += self._names_declared(child)
-            elif role == "block function" and declared_name(child) in TRACKED:
+            elif annex_b and role == "block function" and declared_name(child) in TRACKED:
                 names.append(declared_name(child))
             if child.type in FUNCTION_NODES or child.type in ("class_declaration", "abstract_class_declaration", "class"):
                 continue
@@ -878,11 +949,13 @@ class FileBuilder:
         own = self._own_name(node)
         names = ([own] if own else []) + self._param_names(node)
         erased: set[str] = set()
+        redeclared: frozenset = frozenset()
         if body is not None and body.type == "statement_block":
             variables = self._var_names(body)
             erased = self._erased_names(named(body)) - set(names) - set(variables)  # a parameter or a `var` of that name is a value
+            redeclared = self._redeclared(named(body), params=self._param_names(node))
             names += self._declared_names(named(body)) + variables
-        self._push(names, fresh, erased)
+        self._push(names, fresh, erased, redeclared=redeclared)
         self.frames[-1].kind = "function"
         if body is not None and body.type == "statement_block":
             self._bind_type_names(named(body))
@@ -1041,7 +1114,28 @@ class FileBuilder:
         else:
             self.module.bind(local, Binding("from", target, member))
 
+    @staticmethod
+    def _require_clause(node):
+        """(the name, the source node) of `import x = require("m")`, else None. `import type x = require("m")` binds no value."""
+        clause = next((c for c in node.named_children if c.type == "import_require_clause"), None)
+        if clause is None or any(c.type == "type" for c in node.children):
+            return None
+        name, source = next((c for c in named(clause) if c.type == "identifier"), None), field_of(clause, "source")
+        return (text(name), source) if name is not None and source is not None else None
+
+    def _requires_here(self) -> bool:
+        """Whether `import x = require("m")` is valid where the walk is: in a TypeScript file (a `.js` file is a SyntaxError to Node, TS8002 to tsc),
+        at its top level (in a namespace tsc says TS1147 and emits no require, in a function body or a block TS1232 and Node a SyntaxError)."""
+        return not self.js and not self.frames
+
     def visit_import_statement(self, node) -> None:
+        required = self._require_clause(node)
+        if required is not None:  # import x = require("m"): TypeScript emits `const x = require("m")`, so x is the module as `import * as x` is
+            if self._requires_here():  # in a .js file, a namespace, a block or a function body the language rejects it: no program runs, nothing is bound
+                name, source = required
+                target, spec = self._target(source)
+                self._imported(name, target, None, spec)
+            return
         source = field_of(node, "source")
         clause = next((c for c in node.named_children if c.type == "import_clause"), None)
         if source is None or clause is None:
@@ -1595,15 +1689,22 @@ class FileBuilder:
     # ---- statements that bind a name ------------------------------------------------------
 
     def visit_statement_block(self, node) -> None:
-        self._push(self._declared_names(named(node)), fresh=True, erased=self._erased_names(named(node)))
+        self._push(self._declared_names(named(node)), fresh=True, erased=self._erased_names(named(node)), redeclared=self._redeclared(named(node)))
         self._bind_type_names(named(node))
         self.generic(node)
         self._pop()
 
+    def visit_import_alias(self, node) -> None:
+        """`import a = N.M` binds `a` (TypeScript emits `var a = N.M`, a name of the namespace body or the file): what it holds is not followed, but
+        it is no builtin or global of that name, so a call through it is never outside the repo."""
+        name = declared_name(node)
+        if name is not None:
+            self.scope.bind(self._name(name), Binding("var", evidence=[unknown_ref(IMPORT_ALIAS)]))
+
     def visit_switch_body(self, node) -> None:
         """Every case of a switch shares one block."""
         statements = [stmt for case in named(node) for stmt in field_nodes(case, "body")]
-        self._push(self._declared_names(statements), fresh=True, erased=self._erased_names(statements))
+        self._push(self._declared_names(statements), fresh=True, erased=self._erased_names(statements), redeclared=self._redeclared(statements))
         self._bind_type_names(statements)
         self.generic(node)
         self._pop()
