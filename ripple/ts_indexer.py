@@ -80,6 +80,7 @@ from .facts import (
 from .jsx_facts import JsxElement, JsxModule, JsxScope, Placement
 from .model import DECORATOR_SCOPE, UNREAD_CLASS, Graph
 from .profile import TYPESCRIPT, LanguageProfile
+from .resolver import CONSTRUCTOR_RETURNS, OWN_ASSIGNED, OWN_PROPERTY, PROTOTYPE_SWAPPED
 from .ts_modules import (  # noqa: F401 (config_files, module_id, output_dirs, presence_files: the registry asks this module for them)
     JS_SUFFIXES,
     ModuleMap,
@@ -98,7 +99,7 @@ THIS_PLAIN = "the receiver is `this` in a function that is not a method, so its 
 DECORATED = "the receiver is a member that a decorator may replace"
 DECORATOR = "a decorator runs when the class is defined, and ripple does not follow what it does to the member"
 BAD_IMPORT = "the receiver comes from an import that does not name a file ripple reads"
-OWN_PROPERTY = "the receiver is a field or parameter property of the class, which hides what a base class defines"
+STATIC_PROPERTY = "the receiver is a static field of the class, which is a property of the class itself and hides what a base class defines there"
 ABSTRACT = "the receiver is an abstract member, which runs nothing and hides what a base class defines"
 STATIC_AND_INSTANCE = "the receiver is a name that a static and an instance member of the class both declare"
 TYPE_DECLARED = "the receiver is named like an interface, type, enum or namespace declared here, which ripple does not follow"
@@ -346,11 +347,6 @@ def field_nodes(node, name: str) -> list:
     return [child for i, child in enumerate(node.children) if child.is_named and node.field_name_for_child(i) == name]
 
 
-def member_name(member) -> str:
-    name = field_of(member, "name")
-    return text(name) if name is not None else ""
-
-
 def string_value(node) -> str | None:
     """The text of a string literal or of a template with no substitution, else None."""
     if node.type == "string":
@@ -358,6 +354,86 @@ def string_value(node) -> str | None:
     if node.type == "template_string" and not any(c.type == "template_substitution" for c in node.children):
         return "".join(text(c) for c in node.children if c.type in ("string_fragment", "escape_sequence"))
     return None
+
+
+_ESCAPE = re.compile(r"\\(u\{[0-9a-fA-F]+\}|u[0-9a-fA-F]{4}|x[0-9a-fA-F]{2}|\r\n|[\s\S])")
+_SIMPLE_ESCAPES = {"n": "\n", "r": "\r", "t": "\t", "b": "\b", "f": "\f", "v": "\v"}
+
+
+def unescape(raw: str) -> str | None:
+    """The characters the escape sequences in `raw` spell (a string literal's, a template's, an identifier's `\\u006d`), or None
+    when one is not decoded here: a malformed `\\u` or `\\x`, a legacy octal escape (`\\1`, `\\012`), a code point past U+10FFFF."""
+    out, at = [], 0
+    for found in _ESCAPE.finditer(raw):
+        out.append(raw[at : found.start()])
+        at = found.end()
+        body = found.group(1)
+        if body[0] == "u" and len(body) > 1:
+            code = int(body[2:-1] if body[1] == "{" else body[1:], 16)
+            if code > 0x10FFFF:
+                return None
+            out.append(chr(code))
+        elif body[0] == "x" and len(body) > 1:
+            out.append(chr(int(body[1:], 16)))
+        elif body in ("\r\n", "\n", "\r", "\u2028", "\u2029"):
+            pass  # a line continuation
+        elif body in _SIMPLE_ESCAPES:
+            out.append(_SIMPLE_ESCAPES[body])
+        elif body == "0" and not raw[at : at + 1].isdigit():
+            out.append("\0")
+        elif body.isdigit() or body in ("u", "x"):
+            return None
+        else:
+            out.append(body)  # `\'`, `\\`, and any character that needs no escape
+    out.append(raw[at:])
+    return "".join(out)
+
+
+def cooked(node) -> str | None:
+    """The text a string literal, or a template with no substitution, spells once its escapes are read, else None."""
+    if node.type not in ("string", "template_string") or any(c.type == "template_substitution" for c in node.children):
+        return None
+    parts = []
+    for child in node.children:
+        if child.type == "string_fragment":
+            parts.append(text(child))
+        elif child.type == "escape_sequence":
+            value = unescape(text(child))
+            if value is None:
+                return None
+            parts.append(value)
+    return "".join(parts)
+
+
+def property_key(node) -> str | None:
+    """The name a property key spells when it can be read from the source, else None: an identifier (with its `\\u006d` escapes
+    read), a string, a number, a private name, or a `[...]` holding a string or a template with no substitution. `m`, `'m'`,
+    `["m"]`, `[`m`]` and `\\u006d` are all the one name m. A `[...]` that holds anything else (a symbol, a variable) is not read."""
+    if node is None:
+        return None
+    kind = node.type
+    if kind in ("property_identifier", "private_property_identifier"):
+        raw = text(node)
+        return unescape(raw) if "\\" in raw else raw
+    if kind in ("string", "template_string"):
+        return cooked(node)
+    if kind == "number":
+        return text(node)
+    if kind == "computed_property_name":
+        kids = named(node)
+        value = inner(kids[0]) if len(kids) == 1 else None
+        return property_key(value) if value is not None and value.type in ("string", "template_string", "number") else None
+    return None
+
+
+def unwrap(node):
+    """The expression inside parentheses, a non-null assertion, `as`, `satisfies` or a `<T>` assertion, however deep: `(this as any)` is `this`."""
+    while node is not None and node.type in ("parenthesized_expression", "non_null_expression", "satisfies_expression", "as_expression", "type_assertion"):
+        kids = named(node)
+        if not kids:
+            return node
+        node = kids[-1] if node.type == "type_assertion" else kids[0]
+    return node
 
 
 def dotted(node) -> list | None:
@@ -512,6 +588,19 @@ TEST_MODIFIERS = {"only", "skip", "todo", "concurrent", "sequential"}
 FUNCTION_VALUES = ("arrow_function", "function_expression", "function", "generator_function")
 FUNCTION_DECLARATIONS = ("function_declaration", "generator_function_declaration")
 FUNCTION_NODES = FUNCTION_VALUES + FUNCTION_DECLARATIONS + ("method_definition",)
+CLASS_NODES = ("class_declaration", "class", "abstract_class_declaration")
+# Calls that write to the object they are given first (see FileBuilder._own_writes), and what a constructor may return without
+# handing `new C()` another object: `undefined`, `this` and anything that is a primitive whatever it is made of.
+WRITES_TO_AN_OBJECT = (
+    "Object.assign",
+    "Object.defineProperty",
+    "Object.defineProperties",
+    "Object.setPrototypeOf",
+    "Reflect.set",
+    "Reflect.defineProperty",
+    "Reflect.setPrototypeOf",
+)
+PRIMITIVE_VALUES = ("number", "string", "template_string", "true", "false", "null", "unary_expression")
 SKIPPED = {
     "interface_declaration",
     "type_alias_declaration",
@@ -1240,7 +1329,7 @@ class FileBuilder:
                 is_property = any(c.type in ("accessibility_modifier", "readonly", "override") for c in param.children)
                 if is_property and owner is not None and owner.kind == "class" and scope.id == self._child_id(owner, "constructor"):
                     owner.attr_types.setdefault(name, []).extend(evidence)  # constructor(private repo: Repo)
-                    self._own_property(owner, name)
+                    self._own_property(owner, name, assigned=True)
             elif pattern.type == "rest_pattern":
                 for name in self._pattern_names(pattern):
                     scope.bind(name, Binding("var", evidence=[unknown_ref(VARIADIC)]))
@@ -1412,9 +1501,9 @@ class FileBuilder:
                 self.visit(value)
         body = field_of(node, "body")
         members = named(body) if body is not None else []
-        constructor = next((m for m in members if m.type == "method_definition" and member_name(m) == "constructor"), None)
+        constructor = next((m for m in members if m.type == "method_definition" and self._member_key(m) == "constructor"), None)
         self.own_accessors[scope.id] = {
-            member_name(m)
+            self._member_key(m)
             for m in members
             if m.type in ("method_definition", "abstract_method_signature") and {"get", "set"} & {c.type for c in m.children}
         }
@@ -1441,11 +1530,12 @@ class FileBuilder:
         """One member of a class body."""
         t = member.type
         if t == "method_definition":
-            name_node = field_of(member, "name")
-            if name_node is None or name_node.type in ("computed_property_name",):
-                return  # [Symbol.iterator]() and the like: no name to give it
-            name = text(name_node)
             kids = {c.type for c in member.children}
+            if "static" not in kids:
+                self._own_writes(member, cls, constructor=self._member_key(member) == "constructor")
+            name = self._member_key(member)
+            if name is None:
+                return  # [Symbol.iterator]() and the like: no name to give it
             accessor = "get" if "get" in kids else "set" if "set" in kids else ""
             for d in [*decorators, *(c for c in member.children if c.type == "decorator")]:
                 self._decorator(d, cls)
@@ -1454,9 +1544,9 @@ class FileBuilder:
             if decorators or "decorator" in kids:
                 cls.names[name] = Binding("var", evidence=[unknown_ref(DECORATED)])
         elif t == "abstract_method_signature":
-            name_node = field_of(member, "name")
-            if name_node is not None and name_node.type != "computed_property_name":
-                cls.bind(text(name_node), Binding("var", evidence=[unknown_ref(ABSTRACT)]))
+            name = self._member_key(member)
+            if name is not None:
+                cls.bind(name, Binding("var", evidence=[unknown_ref(ABSTRACT)]))
         elif t == "public_field_definition":
             self._field(member, cls, decorators)
         elif t == "class_static_block":
@@ -1464,20 +1554,175 @@ class FileBuilder:
             self.generic(member)
             self.rebinds_this -= 1
 
-    def _own_property(self, cls: Scope, name: str) -> None:
+    def _own_property(self, cls: Scope, name: str, static: bool = False, assigned: bool = False) -> None:
         """A field, a static field, a parameter property or `this.x = ...` is the object's own property: a member
-        lookup stops at it and never reaches a method of that name further up."""
-        cls.bind(name, Binding("var", evidence=[unknown_ref(OWN_PROPERTY)]))
+        lookup stops at it and never reaches a method of that name further up. A static one is a property of the class
+        itself, so a class below it that has a method of that name is not hidden by it (see Resolver.own_property_above).
+        One that is `assigned` (`this.x = v`, a parameter property, `Object.assign`, `Reflect.set`) calls a setter that a
+        class below declares for the name, where a field or `Object.defineProperty` defines the property over it."""
+        reason = STATIC_PROPERTY if static else OWN_ASSIGNED if assigned else OWN_PROPERTY
+        cls.bind(name, Binding("var", evidence=[unknown_ref(reason)]))
+
+    def _member_key(self, member) -> str | None:
+        """The name a method, accessor or signature is declared under, else None (`[Symbol.iterator]`, `[k]`). `m`, `'m'`, `["m"]`
+        and `\\u006d` are the one name. A `["constructor"]` is a method of that name, never the constructor, so it has none here."""
+        name = field_of(member, "name")
+        key = property_key(name)
+        return None if key == "constructor" and name.type == "computed_property_name" else key
+
+    # ---- what a class body shows about the properties of its instances -----------------------------
+
+    def _this_aliases(self, root) -> set:
+        """The names that hold `this` somewhere under `root` (`const self = this`, `that = this`, `const alias = self`), whether
+        or not the write that makes them is ever reached: a name taken for `this` that is not only costs an answer."""
+        pairs, pending = [], list(root.children)
+        while pending:
+            node = pending.pop()
+            pending.extend(node.children)
+            if node.type == "variable_declarator":
+                name, value = field_of(node, "name"), field_of(node, "value")
+            elif node.type == "assignment_expression":
+                name, value = field_of(node, "left"), field_of(node, "right")
+            else:
+                continue
+            name, value = unwrap(name), unwrap(value)
+            if name is not None and name.type == "identifier" and value is not None:
+                pairs.append((text(name), value))
+        aliases: set = set()
+        grown = True
+        while grown:
+            grown = False
+            for name, value in pairs:
+                if name not in aliases and (value.type == "this" or (value.type == "identifier" and text(value) in aliases)):
+                    aliases.add(name)
+                    grown = True
+        return aliases
+
+    def _own_writes(self, root, cls: Scope, constructor: bool = False) -> None:
+        """Read a method, a constructor or an instance field's initializer for what it does to the instance's own properties,
+        and record it on the class: `this.k =` and `this['k'] =` (written through `this`, an arrow function's `this`, or a name
+        that holds `this`), `Object.assign(this, {k})`, `Object.defineProperty(this, 'k', ...)`, `Object.defineProperties`,
+        `Reflect.set` and `Reflect.defineProperty` are an own property k, which hides a method k that the class (or a class
+        below it) writes. A write that gives the instance another prototype (`Object.setPrototypeOf(this, ...)`,
+        `this.__proto__ = ...`) leaves no method of the class provable. A constructor that returns something other than `this`
+        or a primitive may hand `new C()` another object altogether.
+
+        What stays unread, because the name or the object is only known when the code runs or the write is in code that this
+        one hands `this` to: a key that is not a literal (`this[k] = v`, `Object.assign(this, options)`), a call that is
+        given `this` (`install(this)`), a `this` inside a function that is not an arrow, and a write through a destructuring
+        pattern. The answer for those is the one ripple always gave (see the README)."""
+        if constructor:
+            self._constructor_returns(root, cls)
+        if "this" not in text(root):
+            return
+        aliases = self._this_aliases(root)
+        accessors = self.own_accessors.get(cls.id, ())
+
+        def instance(node, here: bool) -> bool:
+            node = unwrap(node)
+            return node is not None and ((node.type == "this" and here) or (node.type == "identifier" and text(node) in aliases))
+
+        def own(key: str | None, assigned: bool) -> None:
+            # a write that is an assignment calls the setter when the class declares one, so it makes no own property
+            if key is not None and key != "__proto__" and not key.startswith("#") and not (assigned and key in accessors):
+                self._own_property(cls, key, assigned=assigned)
+
+        def written(target, here: bool) -> None:
+            """`target` of an assignment (or an update) is a member or subscript of the instance with a key that can be read."""
+            target = unwrap(target)
+            if target is None or target.type not in ("member_expression", "subscript_expression"):
+                return
+            if target.type == "member_expression":
+                prop = field_of(target, "property")
+                key = property_key(prop) if prop is not None and prop.type == "property_identifier" else None
+            else:
+                index = unwrap(field_of(target, "index"))
+                key = literal_key(index)
+            if instance(field_of(target, "object"), here):
+                if key == "__proto__":
+                    cls.names.setdefault(PROTOTYPE_SWAPPED, Binding("var", evidence=[unknown_ref(PROTOTYPE_SWAPPED)]))
+                else:
+                    own(key, True)
+
+        def literal_keys(argument) -> list:
+            argument = unwrap(argument)
+            keys = []
+            for child in named(argument) if argument is not None and argument.type == "object" else []:
+                if child.type == "pair":
+                    keys.append(property_key(field_of(child, "key")))
+                elif child.type == "shorthand_property_identifier":
+                    keys.append(text(child))
+                elif child.type == "method_definition":
+                    keys.append(property_key(field_of(child, "name")))
+            return keys
+
+        def literal_key(argument):
+            argument = unwrap(argument)
+            return property_key(argument) if argument is not None and argument.type in ("string", "template_string", "number") else None
+
+        stack = [(child, True) for child in (root.children if root.type in FUNCTION_NODES else [root])]
+        while stack:
+            node, here = stack.pop()
+            kind = node.type
+            if kind in ("assignment_expression", "augmented_assignment_expression"):
+                left, right = field_of(node, "left"), field_of(node, "right")
+                if kind == "augmented_assignment_expression" or not self._rebinds_itself(left, right):
+                    written(left, here)
+            elif kind == "update_expression":
+                written(field_of(node, "argument"), here)
+            elif kind == "call_expression":
+                function, arguments = field_of(node, "function"), field_of(node, "arguments")
+                callee = ".".join(dotted(function) or []) if function is not None else ""
+                args = named(arguments) if arguments is not None else []
+                if callee in WRITES_TO_AN_OBJECT and args and instance(args[0], here):
+                    if callee in ("Object.setPrototypeOf", "Reflect.setPrototypeOf"):
+                        cls.names.setdefault(PROTOTYPE_SWAPPED, Binding("var", evidence=[unknown_ref(PROTOTYPE_SWAPPED)]))
+                    elif callee == "Object.assign":
+                        for argument in args[1:]:
+                            for key in literal_keys(argument):
+                                own(key, True)
+                    elif callee == "Object.defineProperties" and len(args) > 1:
+                        for key in literal_keys(args[1]):
+                            own(key, False)
+                    elif len(args) > 1:  # Object.defineProperty, Reflect.defineProperty, Reflect.set
+                        own(literal_key(args[1]), callee == "Reflect.set")
+            if kind in FUNCTION_NODES:
+                inside = here if kind == "arrow_function" else False
+            else:
+                inside = here and kind not in CLASS_NODES
+            stack.extend((child, inside) for child in node.children)
+
+    def _constructor_returns(self, constructor, cls: Scope) -> None:
+        """Mark the class when its constructor has a `return` of something that is not `this` and not a primitive: `new C()` is then
+        that object, whatever the class writes. A `return` in a function or class inside the constructor is not the constructor's."""
+        pending = [field_of(constructor, "body")]
+        while pending:
+            node = pending.pop()
+            if node is None or node.type in FUNCTION_NODES or node.type in CLASS_NODES:
+                continue
+            if node.type == "return_statement":
+                value = next(iter(named(node)), None)
+                value = unwrap(value)
+                if value is not None and not (
+                    value.type in PRIMITIVE_VALUES or value.type == "this" or (value.type == "identifier" and text(value) == "undefined")
+                ):
+                    cls.names.setdefault(CONSTRUCTOR_RETURNS, Binding("var", evidence=[unknown_ref(CONSTRUCTOR_RETURNS)]))
+                    return
+                continue
+            pending.extend(node.children)
 
     def _field(self, member, cls: Scope, decorators: list) -> None:
         """A field. Its type is recorded for `this.field.method()`; its initializer runs when the class is
         constructed (or defined, for a static one), so its calls belong to the constructor or the scope around."""
         name_node, type_node, value = field_of(member, "name"), field_of(member, "type"), field_of(member, "value")
-        if name_node is None or name_node.type == "computed_property_name":
-            return
-        name = text(name_node)
         static = any(c.type == "static" for c in member.children)
-        self._own_property(cls, name)
+        if value is not None and not static:
+            self._own_writes(value, cls)
+        name = property_key(name_node)
+        if name is None:
+            return
+        if not any(c.type in ("declare", "abstract") for c in member.children):  # tsc emits no property for either
+            self._own_property(cls, name, static)
         for d in [*decorators, *(c for c in member.children if c.type == "decorator")]:
             self._decorator(d, cls)
         if decorators or any(c.type == "decorator" for c in member.children):
@@ -1747,7 +1992,7 @@ class FileBuilder:
         cls = self.scopes[scope.parent]
         cls.attr_types.setdefault(attr, []).extend(evidence)
         if own and attr not in self.own_accessors.get(cls.id, ()):  # this.x = v calls the setter when x is an accessor
-            self._own_property(cls, attr)
+            self._own_property(cls, attr, assigned=True)
 
     # ---- calls ----------------------------------------------------------------------------
 

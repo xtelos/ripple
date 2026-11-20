@@ -59,6 +59,19 @@ EXT_INHERITED = "a method inherited from a base class outside the repo"
 EXT_SUPER = "super() into a base class outside the repo"
 EXT_INSTANCE = "a method of an instance of a class outside the repo"
 
+# What a front end for a language whose objects have properties of their own (JavaScript) tells the resolver about a class body:
+#  * a `var` binding of a property's name whose evidence reason is OWN_PROPERTY (a field, `Object.defineProperty(this, ...)`) or
+#    OWN_ASSIGNED (`this.x = v`, a parameter property, `Object.assign`): every instance has an own property of that name, which
+#    hides a method of that name that a class below it writes. An assigned one calls a setter that the class below declares for the
+#    name instead, so it hides a method but not an accessor;
+#  * a binding in the class scope that no source name can have, named CONSTRUCTOR_RETURNS (a constructor of the class may return
+#    an object that is not an instance of it) or PROTOTYPE_SWAPPED (a method or constructor gives the instance another
+#    prototype), which make no method of the class, or of a class below it, provably what a call on an instance runs.
+OWN_PROPERTY = "the receiver is a field or parameter property of the class, which hides what a base class defines"
+OWN_ASSIGNED = "the receiver is a property that a method of the class assigns, which hides what a base class defines"
+CONSTRUCTOR_RETURNS = "<constructor may return another object>"
+PROTOTYPE_SWAPPED = "<instance may be given another prototype>"
+
 # RawCall.special values that are an edge only when proven (see facts.RawCall).
 EFFECT_SPECIALS = ("access", "assign", "callback")
 
@@ -389,7 +402,7 @@ class Resolver:
         owner = target.value.rsplit(".", 1)[0]
         for sub in self.all_subclasses(target.receiver):
             method = self.scopes[sub].names.get(name)
-            if sub != owner and method is not None and method.kind == "def":
+            if sub != owner and method is not None and method.kind == "def" and not self.own_property_above(sub, method.target, name):
                 found.append((method.target, "override"))
         return found
 
@@ -620,6 +633,8 @@ class Resolver:
         accessor = self.scopes[method] if method else None
         if accessor is None or accessor.kind != "method":
             return None
+        if receiver.kind == "instance" and (self.instance_replaced(cls, parts[-1]) or self.own_property_above(cls, method, parts[-1])):
+            return None  # an own property or another object comes first: the accessor is not what runs
         # A getter is a def that is_property. A setter is a def that is not a plain one (a property
         # setter in Python, the same facts), so a setter-only property has defs but no plain def.
         runs = accessor.is_property if call.special == "access" else accessor.defs > accessor.plain_defs
@@ -1320,7 +1335,16 @@ class Resolver:
             found = self.class_member(target.value, attr)
             return Target("symbol", found) if found else unknown(f"no '{attr}' on class {target.value}")
         if target.kind == "instance":
+            replaced = self.instance_replaced(target.value, attr)
+            if replaced:
+                return unknown(replaced)
             method = self.class_member(target.value, attr)
+            holder = self.own_property_above(target.value, method, attr) if method is not None else None
+            if holder:
+                return unknown(
+                    f"'{attr}' is hidden by an own property of base class {holder}: every instance has one (a field, a parameter "
+                    f"property or a write to it in a constructor), and a method of that name in a class below it does not replace it"
+                )
             if method is not None and self.scopes[method].is_property:
                 if self.return_type(method):
                     return self.value_of_type(self.return_type(method))
@@ -1370,6 +1394,41 @@ class Resolver:
             binding = self.scopes[klass].names.get(name)
             if binding is not None:
                 return binding.target if binding.kind == "def" else None
+        return None
+
+    def own_property_above(self, cls: str, method: str, name: str) -> str | None:
+        """The base class, above the class that writes `method`, whose instances have an own property of that name (a field, a
+        parameter property, a write to `this.name` in its constructor), else None.
+
+        class_member stops at the first class of the hierarchy that binds the name, so it finds a method of the derived class and
+        never looks at its bases. An instance's own property comes before every method of its prototype chain, so the method is
+        not what `instance.name` finds. Only a front end that records an instance's own properties this way (JavaScript) can make
+        this answer anything but None: a Python class attribute of a base is not an instance's own property."""
+        scope = self.scopes.get(method)
+        owner = scope.parent if scope is not None else None
+        accessor = scope is not None and (scope.is_property or scope.defs > scope.plain_defs)  # a setter that an assignment calls
+        passed = False
+        for klass in self.mro(cls):
+            if klass == owner:
+                passed = True
+            elif passed:
+                binding = self.scopes[klass].names.get(name)
+                if binding is not None and binding.kind == "var":
+                    reasons = {ref.expr for ref in binding.evidence if ref.kind == "unknown"}
+                    if OWN_PROPERTY in reasons or (OWN_ASSIGNED in reasons and not accessor):
+                        return klass
+        return None
+
+    def instance_replaced(self, cls: str, attr: str) -> str | None:
+        """Why an instance of cls may not be an object with the methods the class writes, or None when nothing in the hierarchy
+        says so: a constructor that may return another object (`return { m }`, `return new Proxy(this, ...)`), or a method that
+        gives the instance another prototype. Both are written in the class body (see CONSTRUCTOR_RETURNS, PROTOTYPE_SWAPPED)."""
+        for klass in self.mro(cls):
+            names = self.scopes[klass].names
+            if CONSTRUCTOR_RETURNS in names:
+                return f"'{attr}': the constructor of {klass} may return an object that is not an instance of {cls}, so a method of {cls} may not be what runs"
+            if PROTOTYPE_SWAPPED in names:
+                return f"'{attr}': {klass} may give an instance another prototype (Object.setPrototypeOf(this, ...) or this.__proto__ = ...), so a method of {cls} may not be what runs"
         return None
 
     def super_member(self, scope: Scope, name: str) -> Target:

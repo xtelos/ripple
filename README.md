@@ -319,6 +319,34 @@ its label (`TypeScript: 21 files`, `JavaScript: 1 file`).
 through one is unresolved with its reason, never an edge. That includes an ES import of a file that assigns
 `module.exports` or `exports.x` (Node gives it named exports), whose reason says the module is CommonJS.
 
+**An edge to an instance method means the class's own body gives that method.** `new C().m()`, a call on a value that is known to be
+a `C`, and `this.m()` are an edge to `C.m` when the class body in the file ripple reads says nothing else about `m`. When the body does,
+the call is unresolved, with the reason. The body says something else when the constructor or any method gives the instance its own
+`m` (`this.m = f`, `this['m'] = f`, `Object.assign(this, { m })`, `Object.defineProperty(this, 'm', ...)`, `Object.defineProperties`,
+`Reflect.set` and `Reflect.defineProperty`, written through `this`, through the `this` of an arrow function, or through a name that
+holds `this`), when a field is named `m` (`m = f`, `'m' = f`, `['m'] = f`), when a base class does either of those to every instance,
+when a constructor may return another object (`return { m }`, `return new Proxy(this, ...)`, any `return` that is not `this` or a
+primitive, in the class or in a base), and when a method gives the instance another prototype (`Object.setPrototypeOf(this, ...)`,
+`this.__proto__ = ...`). A member written `'m'() {}`, `['m']() {}` or `m() {}` is the member `m`. A key that is known only when
+the code runs (`this[k] = f`, `Object.assign(this, options)`, `[k]() {}`), a write inside a function that is not an arrow, and a write
+made by a function that is handed `this` (`install(this)`) are not read, so the edge stays.
+
+**Ripple does not detect a replacement from outside the class body.** An instance-method edge is drawn without proof that no other
+code replaces the method, and no rule looks for that code. In each of these families Node runs the replacement and ripple still draws the
+edge to `C.m`: the plain `C.prototype.m = f` written in another file is one of them.
+- Code ripple does not read: a file that is not indexed (a `.ts` file in a JavaScript repo, a preload given to `node --import`, a file
+  that nothing imports), a package that is handed the class or an instance, and a base class that comes from a package.
+- Names computed at run time and code built from strings: `proto[k] = f`, a loop over `Object.getOwnPropertyNames`, `eval`,
+  `new Function` and `x.constructor(...)`.
+- A prototype reached from a value or an alias: `Object.getPrototypeOf(o).m = f`, `o.constructor.prototype.m = f`, `o.__proto__.m = f`,
+  `const P = C.prototype; P.m = f`, and `K.prototype.m = f` where `K` is the class under another name.
+- An own property written on an instance outside its class: `o.m = f` on an instance made anywhere, `Object.assign(o, { m })`,
+  `Object.defineProperty(o, 'm', ...)`, and a function that is given the instance and does either.
+- Prototype swaps outside the class body: `Object.setPrototypeOf(o, ...)`, `o.__proto__ = ...` and
+  `Object.setPrototypeOf(C.prototype, ...)`.
+- Subclasses ripple cannot read: a class expression, an anonymous default export, the result of a mixin, and a class in a file that is
+  not read. Their override of `m` is not an `override` edge.
+
 **Which file an import names** is the TypeScript compiler's answer where Node and the bundlers agree with it, and
 unresolved, with the reason, where they do not. The compiler tries every TypeScript extension (`.ts`, `.tsx`, then the
 directory's `index`) across all the places an alias names, and only then the JavaScript ones (`.js`, `.jsx`), for a
