@@ -1467,7 +1467,7 @@ class Resolver:
             if name in UNIVERSE_TYPES:
                 return ("builtin", name)
             for dot in info.dots:
-                if dot.package is not None and name in dot.package.types and dot.package.types[name].declarations:
+                if dot.package is not None and name in dot.package.types and dot.package.types[name].declarations and not self.hidden_name(dot.package, name, info):
                     return self.named(dot.package.types[name])
             return None
         if kind == "qualified_type":
@@ -1476,8 +1476,8 @@ class Resolver:
             if entry is None:
                 return None
             if entry.kind == "repo":
-                declared = entry.package.types.get(name)
-                return self.named(declared) if declared is not None and declared.declarations else None
+                declared = entry.package.types.get(name)  # a type only another directory's tests declare is not in the build of `info`
+                return self.named(declared) if declared is not None and declared.declarations and not self.hidden_name(entry.package, name, info) else None
             if entry.kind in ("outside", "published", "cgo"):
                 return ("ext", f"{entry.path}.{name}")
         return None
@@ -1640,27 +1640,39 @@ class Resolver:
             return ("unknown", None)
         return self.walk([base[1]], name, set())
 
-    def in_another_test_build(self, decl: FuncDecl) -> bool:
-        """Whether no build the file being read is in has the declaration: it is in a _test.go file of another directory. A
-        package's test files are compiled into its own test binary (and its external test package's) and into no other, so
-        a call in a _test.go file never has them, whatever tags either file carries. A library file does, in one case: a
-        test binary links the packages the tests import, and builds every one of them against the package under test WITH
-        its test files, so a library file that a directory's tests may link (test_binary_may_link) has them there. Anything
-        that cannot be told is kept."""
-        if self.file is None or not decl.file.rel.endswith("_test.go") or decl.file.package.dir == self.file.package.dir:
+    def hidden_file(self, file: FileInfo, seen_from: FileInfo | None = None) -> bool:
+        """Whether no build the file being read (`seen_from`, the file of the call by default) is in has a declaration made in
+        `file`: it is a _test.go file of another directory. A package's test files are compiled into its own test binary (and
+        its external test package's) and into no other, so a call in a _test.go file never has them, whatever tags either
+        file carries. A library file does, in one case: a test binary links the packages the tests import, and builds every
+        one of them against the package under test WITH its test files, so a library file that a directory's tests may link
+        (test_binary_may_link) has them there. Anything that cannot be told is kept."""
+        seen_from = seen_from or self.file
+        if seen_from is None or not file.rel.endswith("_test.go") or file.package.dir == seen_from.package.dir:
             return False
-        if self.file.rel.endswith("_test.go"):
+        if seen_from.rel.endswith("_test.go"):
             return True
-        linked = self.test_binary_may_link(decl.file.package.dir)
-        return linked is not None and self.file.package not in linked
+        linked = self.test_binary_may_link(file.package.dir)
+        return linked is not None and seen_from.package not in linked
+
+    def in_another_test_build(self, decl: FuncDecl) -> bool:
+        """Whether the file being read has no build with the method or function declared: see hidden_file."""
+        return self.hidden_file(decl.file)
 
     def visible(self, decls: list[FuncDecl]) -> list[FuncDecl]:
         """The declarations of a package-level function of another package that some build of the file being read has: the
         rule of in_another_test_build, which the walk of a method applies, for a function a call names by its package
-        (`d.F()`, a dot import's `F()`, `d.F` as a value). Empty when the name is declared in _test.go files of another
-        directory alone: the caller then names nothing, and Go does not compile it. The list is what the caller reads, so
-        a memo of anything derived from it keys on the list (results_of does)."""
+        (`d.F()`, a dot import's `F()`, `d.F` as a value). The list is what the caller reads, so a memo of anything derived
+        from it keys on the list (results_of does). Empty only when every declaration is hidden: see hidden_name."""
         return [d for d in decls if not self.in_another_test_build(d)]
+
+    def hidden_name(self, package: Package, name: str, seen_from: FileInfo | None = None) -> bool:
+        """Whether a package-level name of another package is declared in _test.go files of another directory alone, so that
+        no build of the file being read has it and the file names nothing by it (Go reports it undefined): every file that
+        declares the name is hidden (hidden_file), whatever the name is (a function, a variable, a constant, a type). A name
+        that a file the caller does have declares too is not hidden, and one of a package the caller is in never is."""
+        files = package.declared_in.get(name)
+        return bool(files) and all(self.hidden_file(f, seen_from) for f in files)
 
     def in_every_build(self, decl: FuncDecl) -> bool:
         """Whether the declaration is there in every build that has the call being resolved: a declaration in no
@@ -2571,13 +2583,12 @@ class Resolver:
         if entry is not None:
             if entry.kind == "repo":
                 package = entry.package
-                if self.unsure(package, member):
+                if self.unsure(package, member) or self.hidden_name(package, member):
                     return None
                 if member in package.vars and len(package.names[member]) == 1:
                     return self.var_type(package, member)
                 if member in package.funcs and len(package.names[member]) == 1:
-                    found = self.visible(package.funcs[member])
-                    return ("func", self.results_of(found)) if found else None
+                    return ("func", self.results_of(self.visible(package.funcs[member])))
                 return None
             if entry.kind in ("outside", "published", "cgo"):
                 return ("ext", f"{entry.path}.{member}")
@@ -2629,17 +2640,15 @@ class Resolver:
         if env.info.package.unreadable and (name in UNIVERSE_FUNCTIONS | UNIVERSE_TYPES | UNIVERSE_INTERFACES | UNIVERSE_VALUES):
             return ("hidden", package)  # a declaration ripple could not read may shadow it
         for dot in env.info.dots:
-            if dot.package is not None and name in dot.package.names:
+            # a name that only another directory's tests declare is not bound by the dot import in any build of this file
+            if dot.package is not None and name in dot.package.names and not self.hidden_name(dot.package, name):
                 package = dot.package
                 if len(package.names[name]) > 1:
                     return ("conflict",)
                 if self.unsure(package, name):
                     return ("hidden", package)
                 if "func" in package.names[name]:
-                    found = self.visible(package.funcs[name])
-                    if not found:
-                        continue  # a function this file's builds do not have: the dot import binds nothing of that name
-                    return ("func", found)
+                    return ("func", self.visible(package.funcs[name]))
                 if "type" in package.names[name]:
                     return ("type", self.named(package.types[name]))
                 return ("var", package.vars.get(name))
@@ -2694,8 +2703,9 @@ class Resolver:
             and member in entry.package.funcs
             and len(entry.package.names[member]) == 1
             and not self.unsure(entry.package, member)
+            and not self.hidden_name(entry.package, member)
         ):
-            return self.visible(entry.package.funcs[member]) or None
+            return self.visible(entry.package.funcs[member])
         return None
 
     @staticmethod
@@ -2753,7 +2763,8 @@ class Resolver:
             return self.name_value(text(node), env)[0] == "type"
         if node.type == "selector_expression":
             entry = self.qualifier(field_of(node, "operand"), env)
-            return entry is not None and entry.kind == "repo" and "type" in entry.package.names.get(text(field_of(node, "field")), ())
+            member = text(field_of(node, "field"))
+            return entry is not None and entry.kind == "repo" and "type" in entry.package.names.get(member, ()) and not self.hidden_name(entry.package, member, env.info)
         return False
 
     def call_name(self, node, callee, written: str, env: Env, want_tuple: bool, argument_types: list):
@@ -2865,11 +2876,10 @@ class Resolver:
                 self.unresolved(node, written, CONFLICT)
             elif kinds and self.unsure(package, member):
                 self.unresolved(node, written, self.unread(package))
+            elif self.hidden_name(package, member):
+                self.unresolved(node, written, ONLY_IN_TESTS)  # a function, variable, constant or type that only another directory's tests declare
             elif "func" in kinds:
                 found = self.visible(package.funcs[member])
-                if not found:
-                    self.unresolved(node, written, ONLY_IN_TESTS)
-                    return None
                 self.edge(found, node)
                 return self.first(self.results_of(found), want_tuple)
             elif "type" in kinds:

@@ -312,8 +312,8 @@ def named_layout(root, how: str):
     )
 
 
-@pytest.mark.parametrize("how,only", [("dot", "Only"), ("generic", "d.H")], ids=["dot import", "generic function"])
-def test_a_function_named_without_a_qualifier_or_with_type_arguments_is_given_the_declaration_the_caller_has(tmp_path, how, only):
+@pytest.mark.parametrize("how", ["dot", "generic"], ids=["dot import", "generic function"])
+def test_a_function_named_without_a_qualifier_or_with_type_arguments_is_given_the_declaration_the_caller_has(tmp_path, how):
     # go build ./e: Lib and TestE run the linux declaration (`F linux`), and `Only` / `d.H` are undefined (d's test file is not in e's build)
     graph = build_graph(named_layout(tmp_path, how), GO)
     first = "F" if how == "dot" else "G"
@@ -340,3 +340,150 @@ def test_d_s_own_library_file_keeps_both_declarations(tmp_path):
     write(root, {"d/own.go": "package d\n\nfunc Own() string { return F() + G() }\n", "d/u.go": "package d\n\nfunc Via() string { return Own() }\n"})
     graph = build_graph(root, GO)
     assert answers(graph, "Own")["Own"] == (["F", "F#2", "G"], [])
+
+
+# ---- the other package-level names the same lookups serve: a variable, a constant, a type, a function value ---------------------
+#
+# One name d's test file declares and nothing else does. Go rejects `d.V`, `d.C`, `d.T` and `d.Only` in a library file of e and in
+# a test of e (`undefined: d.V`), so a call through them runs nothing a caller can name, and an edge to a method found through them
+# (R.N through the variable's type, Base.M through the type's embedded Base) is an edge from code that does not compile. The same
+# call in d's external test package compiles, and keeps the edge.
+
+D_LIB = """
+    package d
+
+    type Base struct{}
+
+    func (Base) M() string { return "Base.M" }
+
+    type R struct{}
+
+    func (R) N() string { return "R.N" }
+
+    type U struct{ Base }
+
+    type K int
+
+    func (K) N() string { return "K.N" }
+    """
+
+#           name: (the test file of d, what both callers run, what d's external test package's call is an edge to, what Go says)
+ONLY = {
+    "variable, method called": ("var V = R{}", "_ = d.V.N()", "R.N", "undefined: d.V"),
+    "variable, function value called": ("var V = func() string { return Base{}.M() }", "_ = d.V()", None, "undefined: d.V"),
+    "constant of a library type": ("const C K = 1", "_ = d.C.N()", None, "undefined: d.C"),
+    "type, literal": ("type T struct{ Base }", "_ = d.T{}.M()", "Base.M", "undefined: d.T"),
+    "type, variable": ("type T struct{ Base }", "var x d.T\n\t_ = x.M()", "Base.M", "undefined: d.T"),
+    "type, conversion": ("type T struct{ Base }", "_ = d.T(d.U{}).M()", "Base.M", "undefined: d.T"),
+    "function value": ("func Only() R { return R{} }", "f := d.Only\n\t_ = f().N()", "R.N", "undefined: d.Only"),
+}
+
+
+NAMED_IN_THE_CALL = {"variable, function value called": "d.V", "type, conversion": "d.T"}
+
+
+def names_layout(root, test_file: str, body: str, library: bool = True, test: bool = True, external: bool = False):
+    files = {"go.mod": GOMOD, "d/d.go": textwrap.dedent(D_LIB), "d/names_test.go": f"package d\n\n{test_file}\n"}
+    if library:
+        files["e/e.go"] = f'package e\n\nimport "m/d"\n\nfunc Lib() {{\n\t{body}\n}}\n'
+    if test:
+        files["e/e_test.go"] = f'package e\n\nimport (\n\t"testing"\n\n\t"m/d"\n)\n\nfunc TestE(t *testing.T) {{\n\t{body}\n}}\n'
+    if external:
+        files["d/ext_test.go"] = f'package d_test\n\nimport (\n\t"testing"\n\n\t"m/d"\n)\n\nfunc TestExt(t *testing.T) {{\n\t{body}\n}}\n'
+    return write(root, files)
+
+
+@pytest.mark.parametrize("case", ONLY, ids=list(ONLY))
+def test_a_name_only_another_directorys_test_file_declares_gives_no_edge_through_it(tmp_path, case):
+    test_file, body, _, _ = ONLY[case]
+    graph = build_graph(names_layout(tmp_path, test_file, body), GO)
+    for caller in ("Lib", "TestE"):
+        edges, open_ = answers(graph, caller)[caller]
+        assert edges == [] and open_, (caller, edges, open_)
+        assert not [e for e in graph.edges if e.caller.rpartition(":")[2] == caller and e.kind != "implements"], caller
+    if case in NAMED_IN_THE_CALL:  # the call names the variable or the type itself: the reason is that Go does not know it
+        for caller in ("Lib", "TestE"):
+            (reason,) = reasons(graph, caller, NAMED_IN_THE_CALL[case])
+            assert NOT_BUILT in reason, reason
+
+
+@pytest.mark.parametrize("case", [c for c in ONLY if ONLY[c][2]], ids=[c for c in ONLY if ONLY[c][2]])
+def test_the_external_test_package_of_d_keeps_the_edge_through_the_same_name(tmp_path, case):
+    test_file, body, callee, _ = ONLY[case]
+    graph = build_graph(names_layout(tmp_path, test_file, body, library=False, test=False, external=True), GO)
+    edges, _ = answers(graph, "TestExt")["TestExt"]
+    assert callee in edges, edges
+
+
+@pytest.mark.parametrize("case", ONLY, ids=list(ONLY))
+def test_go_rejects_every_caller_of_a_name_only_d_s_test_file_declares_and_compiles_d_s_own(tmp_path, case):
+    test_file, body, _, message = ONLY[case]
+    library = names_layout(tmp_path / "lib", test_file, body, test=False)
+    built = go("build", "./e", root=library)
+    assert built.returncode != 0 and message in built.stderr, built.stderr
+    tests = names_layout(tmp_path / "test", test_file, body, library=False)
+    vetted = go("vet", "./e", root=tests)
+    assert vetted.returncode != 0 and message in vetted.stderr, vetted.stderr
+    own = names_layout(tmp_path / "own", test_file, body, library=False, test=False, external=True)
+    assert go("vet", "./d", root=own).returncode == 0
+    assert "--- PASS: TestExt" in printed(own, "./d")
+
+
+def test_a_library_file_that_d_s_tests_link_keeps_the_edge_through_a_name_only_d_s_tests_declare(tmp_path):
+    # go test -v ./d: TestX logs `R.N` (x.Lib is built against d with its test file); go build ./x: undefined: d.V
+    root = names_layout(tmp_path, "var V = R{}", "_ = d.V.N()", library=False, test=False)
+    write(
+        root,
+        {
+            "x/x.go": 'package x\n\nimport "m/d"\n\nfunc Lib() string { return d.V.N() }\n',
+            "d/use_test.go": 'package d_test\n\nimport (\n\t"testing"\n\n\t"m/x"\n)\n\nfunc TestX(t *testing.T) { t.Log("TestX " + x.Lib()) }\n',
+        },
+    )
+    graph = build_graph(root, GO)
+    assert answers(graph, "Lib")["Lib"] == (["R.N"], [])
+    assert "TestX R.N" in printed(root, "./d")
+    assert go("build", "./x", root=root).returncode != 0
+
+
+def test_a_dot_import_binds_nothing_of_a_type_only_d_s_tests_declare(tmp_path):
+    # go vet ./e: undefined: T
+    root = names_layout(tmp_path, "type T struct{ Base }", "_ = 1", test=False)
+    write(root, {"e/e.go": 'package e\n\nimport . "m/d"\n\nfunc Lib() string { return T{}.M() }\n'})
+    graph = build_graph(root, GO)
+    assert answers(graph, "Lib")["Lib"][0] == []
+    vetted = go("vet", "./e", root=root)
+    assert vetted.returncode != 0 and "undefined: T" in vetted.stderr, vetted.stderr
+
+
+# ---- KNOWN-WRONG: a name declared in a library file of d and, as another kind, in d's test file --------------------------------
+#
+# The names of a package are one set per name (Package.names), so a function in d/f_linux.go beside a variable of the same name in
+# d/f_windows_test.go reads as a name with two meanings, whichever caller asks. Go compiles e against the library file alone. The
+# call stays unresolved, which is never wrong, but its reason ("which one wins is not known") is false for a caller that cannot
+# see the test file, and the edge Go proves is lost.
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN-WRONG: Package.names holds the kinds of every declaration of a name, whichever caller asks")
+def test_a_function_beside_a_variable_of_the_same_name_in_d_s_test_file_is_the_library_function_for_another_directory(tmp_path):
+    root = both_layout(tmp_path, lib=True, test=False)
+    write(root, {"d/f_windows_test.go": 'package d\n\nvar F = "F windows test"\n'})
+    assert go("build", "./e", root=root).returncode == 0, "go builds e against the library F"
+    graph = build_graph(root, GO)
+    assert answers(graph, "Lib")["Lib"] == (["F"], [])
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN-WRONG: a type declared twice is one ambiguous type, whichever caller asks")
+def test_a_type_beside_a_test_file_type_of_the_same_name_is_the_library_type_for_another_directory(tmp_path):
+    root = write(
+        tmp_path,
+        {
+            "go.mod": GOMOD,
+            "d/d.go": textwrap.dedent(D_LIB),
+            "d/t_linux.go": "package d\n\ntype T struct{ R }\n",
+            "d/t_windows_test.go": "package d\n\ntype T struct{ Base }\n",
+            "e/e.go": 'package e\n\nimport "m/d"\n\nfunc Lib() string { return d.T{}.N() }\n',
+        },
+    )
+    assert go("build", "./e", root=root).returncode == 0, "go builds e against the linux T, which embeds R"
+    graph = build_graph(root, GO)
+    assert answers(graph, "Lib")["Lib"] == (["R.N"], [])

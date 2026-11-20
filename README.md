@@ -601,8 +601,10 @@ link (a test binary builds every package its tests import together with the dire
 an import of the tests, any package may be linked, and the declarations are kept). A function a call names by its package (`d.F()`, a dot import's
 `F()`, `d.F` read as a value, `d.G[int, string](x)`) follows the same rule: a declaration in a `_test.go` file of another
 directory is not one of the callee's, so `d.F()` in `e` draws an edge to the library `F` alone, not to a windows-only test
-file's `F` beside it, and a function that only another directory's test files declare is left unresolved with that reason
-(Go does not compile the call). In a directory with a file ripple could not read, a name declared in one of its `_test.go` files (an alias,
+file's `F` beside it. A name that only another directory's test files declare (a function, a variable, a constant or a type,
+and so a method reached through its type) names nothing for that caller: the call is left unresolved with that reason, because Go
+does not compile it. A name declared as one kind in a library file and as another in a test file is still read as one name with
+two meanings, so a call through it stays unresolved. In a directory with a file ripple could not read, a name declared in one of its `_test.go` files (an alias,
 a helper that `export_test.go` exports) is as sure for the external test package as for the package's own tests, and not
 sure for a library file or another directory's tests. Every memo is keyed on what the calling file changes about its answer
 (the declarations its build has, how a name reads in it), so a call's answer does not depend on which call was resolved
