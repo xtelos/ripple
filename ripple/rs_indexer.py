@@ -191,6 +191,7 @@ BLOCK_MOD = "the path starts at a `mod` written inside a block, whose items ripp
 IMPLS_INCOMPLETE = "the impls ripple read may not be all there are: {}"
 INHERENT_NOT_VISIBLE = "the inherent function of that name is not visible here (it is private to its module), so a trait function may be the one called"
 INSTANTIATION = "an impl for other type arguments of the type defines the name, and the type arguments written here do not select one impl"
+IMPL_HEADER_UNREAD = "an impl has a header ripple's parser could not read whole (a generic parameter named like a primitive type, `impl<u8> W<[u8; 2]>`, is one), so which type arguments it is for, and which names in it are generic parameters, is not known"
 IMPL_MACRO = "the impl invokes a macro, which may define the function (an override of the trait's default)"
 
 # ---- why a call is outside the repo (Graph.external_reasons)
@@ -537,6 +538,7 @@ class Scope:
     glob_vis: list[tuple] = field(default_factory=list)  # the visibility of each glob
     use_cfg: dict[str, list[bool]] = field(default_factory=lambda: defaultdict(list))  # name -> whether each of its imports is under a #[cfg]
     glob_cfg: list[bool] = field(default_factory=list)  # whether each glob is under a #[cfg]
+    use_keys: dict[str, list[frozenset]] = field(default_factory=lambda: defaultdict(list))  # name -> the keys of the cfgs each import is under (empty when it is under none)
     anonymous: bool = False  # `use Trait as _`: a trait this scope has in scope without a name
     macro_calls: list[tuple[str, bool]] = field(default_factory=list)  # (last segment, path starts at std) of each macro invoked as an item or a statement
     attribute_macro: bool = False  # an attribute macro or a derive that is not the standard library's is written on an item here
@@ -676,6 +678,7 @@ class ImplSpec:
     rewritten: bool = False  # the impl is under an attribute macro, or inside an item that is
     macro_body: str | None = None  # a macro invoked in the body, which may define functions: its name
     via_alias: bool = False  # the self type is written through a type alias
+    header_unread: bool = False  # the parser could not read the impl's header whole (not its body): its generics may be other than ripple read, `impl<u8>` is no type_parameters
     lost: str | None = None  # why the header could not be resolved (set when it names a path ripple could not follow)
 
 
@@ -2172,7 +2175,7 @@ class Index:
                 self.macro_bodies[name].append(src[name_node.end_byte : item.end_byte])
                 scope.items[name].append(Def("macro", name, key, item, scope))
             elif t == "use_declaration":
-                self.collect_use(scope, item.child_by_field_name("argument"), [], src, vis, attrs.cfg)
+                self.collect_use(scope, item.child_by_field_name("argument"), [], src, vis, attrs.cfg, cfg_attribute_keys(rs_modules._attributes(item), scope.crate, m.file, src, scope.crate.tools)[0] if attrs.cfg else frozenset())
             elif t == "extern_crate_declaration":
                 crate_name = name_text(src, name_node)
                 alias = item.child_by_field_name("alias")
@@ -2820,7 +2823,7 @@ class Index:
         if attrs.macro:
             self.derives[d].add("*attribute")
 
-    def collect_use(self, scope: Scope, node, prefix: list[str], src: bytes, vis: tuple = PRIVATE, cfg: bool = False) -> None:
+    def collect_use(self, scope: Scope, node, prefix: list[str], src: bytes, vis: tuple = PRIVATE, cfg: bool = False, keys: frozenset = frozenset()) -> None:
         if node is None:
             return
         t = node.type
@@ -2833,11 +2836,13 @@ class Index:
             scope.uses[name].append(segs)
             scope.use_vis[name].append(vis)
             scope.use_cfg[name].append(cfg)
+            scope.use_keys[name].append(keys)
         elif t == "scoped_identifier":
             segs = prefix + path_segs(node, src)
             scope.uses[segs[-1]].append(segs)
             scope.use_vis[segs[-1]].append(vis)
             scope.use_cfg[segs[-1]].append(cfg)
+            scope.use_keys[segs[-1]].append(keys)
         elif t == "use_as_clause":
             segs = prefix + path_segs(node.child_by_field_name("path"), src)
             alias = name_text(src, node.child_by_field_name("alias"))
@@ -2849,6 +2854,7 @@ class Index:
                 scope.uses[alias].append(segs)
                 scope.use_vis[alias].append(vis)
                 scope.use_cfg[alias].append(cfg)
+                scope.use_keys[alias].append(keys)
         elif t == "use_wildcard":
             p = node.named_children[0] if node.named_children else None
             scope.globs.append(prefix + (path_segs(p, src) if p is not None else []))
@@ -2856,10 +2862,10 @@ class Index:
             scope.glob_cfg.append(cfg)
         elif t == "scoped_use_list":
             p = node.child_by_field_name("path")
-            self.collect_use(scope, node.child_by_field_name("list"), prefix + (path_segs(p, src) if p is not None else []), src, vis, cfg)
+            self.collect_use(scope, node.child_by_field_name("list"), prefix + (path_segs(p, src) if p is not None else []), src, vis, cfg, keys)
         elif t == "use_list":
             for child in node.named_children:
-                self.collect_use(scope, child, prefix, src, vis, cfg)
+                self.collect_use(scope, child, prefix, src, vis, cfg, keys)
 
     def collect_trait(self, d: Def, item, scope: Scope, m: Module, ctx: CrateCtx, owner_id: str | None, rw: bool = False) -> None:
         src = m.src
@@ -2873,6 +2879,9 @@ class Index:
                 sid = self.make_id(m, owner_id, d.name, fname)
                 fattrs = attrs_of(f, src, ctx.tools)
                 made = Def("decl", fname, key, f, scope, {"trait": d, "has_body": f.type == "function_item", "cfg": fattrs.cfg, "rw": rw or fattrs.macro})
+                # the attributes whose absence removes this declaration from the trait: its own (what encloses the trait is not here: an impl of the
+                # trait exists only where the trait does, and the impl's keys are the call's to share)
+                made.extra["cfg_keys"] = frozenset(header_keys(f, ctx, m.file, src, ctx.tools))
                 if fname in decls:
                     decls[fname].extra["twin"] = True  # the same declaration under different cfgs: which is built is not known
                     made.extra["twin"] = True
@@ -2903,6 +2912,10 @@ class Index:
         spec.cfg_keys = spec.header_keys | keys_above(item.parent, scope.crate, m.file, src, scope.crate.tools) | module_keys(scope)
         spec.rewritten = rw
         tnode, trnode = item.child_by_field_name("type"), item.child_by_field_name("trait")
+        # `impl<u8> W<[u8; 2]>` (a parameter named like a primitive, legal) is an ERROR node beside the type, with no type_parameters: the
+        # generics read above are then none, and `u8` would be read as the primitive. Anything of the header that did not parse is the same.
+        impl_body = item.child_by_field_name("body")
+        spec.header_unread = any(c.has_error for c in item.children if impl_body is None or c != impl_body)
         if tnode is not None:
             spec.tname = self.type_name(tnode, src)
         if trnode is not None:
@@ -2978,6 +2991,9 @@ class Index:
             shown = squash(text(spec.src, spec.node.child_by_field_name("trait"))) + " for " if trnode is not None else ""
             shown += squash(text(spec.src, tnode)) if tnode is not None else ""
             spec.lost = f"the impl `impl {shown}` in {spec.module.file} names a type or trait ripple could not resolve, so it may be an impl for any type"
+        elif spec.header_unread and (tnode is None or tnode.type not in ("generic_type", "scoped_type_identifier")):
+            # a bare name as the self type (`impl<u8> Tr for u8`, `impl<T: ~const X> Tr for T`) may be a parameter the header declares: a blanket impl
+            spec.lost = f"the impl in {spec.module.file} has a header ripple's parser could not read whole, and its self type may be a generic parameter it declares, so it may be an impl for any type"
 
     def through_alias(self, scope: Scope, tnode, src: bytes) -> bool:
         """Whether a written type names a type alias (so the arguments it is written with are not the type's)."""
@@ -3398,6 +3414,10 @@ class Index:
         if t == "identifier":
             return self.path_call(body, [name_text(src, fn)]), text(src, fn)
         if t == "scoped_identifier":
+            if body.impl is not None and body.impl.header_unread:
+                # `Self`, a type argument written here (`W::<[u8; 2]>::h()`), and the first segment of a path (it may be a generic parameter of the
+                # header) are read with the generics ripple found, and the header that did not parse may declare others (probe s1, s2 of the review)
+                return unresolved(IMPL_HEADER_UNREAD), short(src, fn)
             path = fn.child_by_field_name("path")
             if path is not None and path.type == "bracketed_type":
                 return self.qualified(body, path, name_text(src, fn.child_by_field_name("name"))), short(src, fn)
@@ -3533,7 +3553,7 @@ class Index:
             return False
         if target[0] == "def":
             td = target[1]
-            if body.trait is td or (body.impl is not None and body.impl.trait_target == target):
+            if self.written_trait(body, target):
                 return True
             return ("def", td) in self.lookup(body.scope, td.name, "type")
         return True  # a trait from outside the repo: a call that names its function compiles only with it in scope
@@ -3613,7 +3633,9 @@ class Index:
     def relation(self, spec: ImplSpec, tdef: Def, targs: tuple | None) -> str:
         """How an impl's type arguments stand to the ones a call is written with: `covers` (the impl is for every
         instantiation), `same` (both name the same primitive arguments), `disjoint` (different primitive arguments),
-        or `unknown`, where ripple cannot tell whether the impl applies."""
+        or `unknown`, where ripple cannot tell whether the impl applies (an impl whose header did not parse whole is always that)."""
+        if spec.header_unread:
+            return "unknown"
         if self.covers(spec, tdef):
             return "covers"
         mine = None if spec.via_alias else written_args_of(spec.node.child_by_field_name("type"), spec.src, spec.scope, spec.generics)
@@ -3664,15 +3686,18 @@ class Index:
         reaches or may reach (None when no inherent impl can be). Such an item is the target only when its impl is for the
         instantiation the call names, it is visible here, and it is a function that exists."""
         applicable: list[Def] = []
-        unsure = False
+        unsure = unread = False
         for d in self.inherent.get(tdef, {}).get(name, []):
             relation = self.relation(d.extra["impl"], tdef, targs)
             if relation in ("covers", "same"):
                 applicable.append(d)
             unsure |= relation == "unknown"
+            unread |= relation == "unknown" and d.extra["impl"].header_unread
         if len(applicable) > 1:
             return unresolved(SEVERAL_INHERENT)
         if not applicable:
+            if unread:
+                return unresolved(IMPL_HEADER_UNREAD)
             return unresolved(SEVERAL_INHERENT if len(self.inherent.get(tdef, {}).get(name, [])) > 1 else INSTANTIATION) if unsure else None
         d = applicable[0]
         if d.extra.get("rw"):
@@ -3714,12 +3739,97 @@ class Index:
         the method, its impl and what encloses them (Def.extra["cfg_keys"]) and of the type it is for is on the path of the call."""
         return cfg_covers(d.extra["cfg_keys"] | self.type_keys(tdef), self.call_cfg(body))
 
+    def unshared_cfg(self, d: Def, spec: ImplSpec, tdef: Def, body: Body) -> bool:
+        """Whether the function a trait impl gives may not exist where the call does, or the trait may not be in scope there: the function (a
+        method written in the impl), the impl, or what encloses them, is under a `#[cfg]` the call is not also under (shares_cfg), or the
+        trait is in scope here only through an import under one (import_unshared). A default the impl does not override is the trait's
+        declaration (kind "decl"): it may not exist either, and the impl that gives it to the type may not, so the keys of both, and the type's,
+        are the call's to share (every attribute that makes an item conditional has a key: Attrs.cfg is read from the same attributes)."""
+        if self.import_unshared(body, spec):
+            return True
+        if d.kind == "method":
+            return bool(d.extra.get("cfg")) and not self.shares_cfg(d, tdef, body)
+        if not (spec.cfg or d.extra.get("cfg")):
+            return False
+        return not cfg_covers(spec.cfg_keys | d.extra["cfg_keys"] | self.type_keys(tdef), self.call_cfg(body))
+
+    def import_unshared(self, body: Body, spec: ImplSpec) -> bool:
+        """Whether a repo trait of the impl is in scope here only through names that may not be there: the ways the scopes around the call bring
+        it in (reach_trait) all go through an import, a re-export or a glob that is under a `#[cfg]` the call is not also under, at some hop of
+        the chain from the call to the trait's declaration. Then with the cfg off the call finds whatever else gives the name, a foreign
+        extension trait for one, and trait_visible (which reads the conditional name as the trait: the lookup of a name only a conditional
+        import gives is that import) cannot say the trait is certainly in scope. A trait the call's own trait or impl writes is in scope by
+        being written; one declared in a scope is as present as the impls of it (the impl's own cfg is asked: unshared_cfg)."""
+        target = spec.trait_target
+        if target is None or target[0] != "def" or self.written_trait(body, target):
+            return False
+        return self.reach_trait(body.scope, target[1].name, target[1], self.call_cfg(body)) == "no"
+
+    def reach_trait(self, s: Scope, name: str, td: Def, held: frozenset, guard: tuple = ()) -> str:
+        """How a scope reaches the trait `td` by the name `name`, the way `lookup` looks the name up (the scope's own items and imports, else its
+        globs, else the scope around a block): "yes" when some way is certain (every hop is unconditional, or under a cfg the call is under: `held`,
+        cfg_covers), "no" when it is reached but only through a hop that is not certain, "none" when it is not reached here. The hops: an import
+        (its own cfg, then the name in the module its path goes to), a glob (the name in its module; one under a cfg of its own is refused by
+        the lookup before this point). A module a path goes through is not asked about its cfg: an import or a glob of a module that is absent is no program. A name
+        in the value namespace (`fn Tr`) does not stop the search, as in the lookup."""
+        if (id(s), name) in guard:
+            return "none"
+        guard = (*guard, (id(s), name))
+        items = [d for d in s.items.get(name, ()) if in_namespace(d, "type")]
+        if items:
+            return "yes" if any(d is td for d in items) else "none"
+        ways = []
+        for number, segs in enumerate(s.uses.get(name, ())):
+            if ("def", td) in self.resolve_path(s, segs, "type", is_use=True):
+                here = not s.use_cfg[name][number] or cfg_covers(s.use_keys[name][number], held)
+                modules, sure = self.module_hop(s, segs[:-1], held) if len(segs) > 1 else ([], False)
+                ways.append(here and sure and any(self.reach_trait(module, segs[-1], td, held, guard) == "yes" for module in modules))
+        if s.uses.get(name):  # an import of the name ends the search here, as in the lookup (one that gives no type is refused by it first)
+            return "none" if not ways else "yes" if any(ways) else "no"
+        brought = False
+        for number, segs in enumerate(s.globs):
+            modules, sure = self.module_hop(s, segs, held, (("glob", id(s), number),))  # as the lookup reads a glob's path: the glob itself is cut
+            for module in modules:
+                reached = self.reach_trait(module, name, td, held, guard)
+                if reached != "none":
+                    brought = True
+                    ways.append(sure and reached == "yes")
+        if brought:
+            return "yes" if any(ways) else "no"
+        return self.reach_trait(s.outer, name, td, held, guard) if s.outer is not None else "none"
+
+    def module_hop(self, s: Scope, segs: list[str], held: frozenset, guard: tuple = ()) -> tuple[list[Scope], bool]:
+        """(the scopes of the modules a path written in a scope may name, whether it certainly names the one it seems to): every module on the
+        way (`p`, `p::q`, ..) must be a module that is built wherever the call is: not under a `#[cfg]` that the call is not also under
+        (module_certain; twin modules are each under one, so neither is certain)."""
+        modules: list[Scope] = []
+        sure = True
+        for end in range(1, len(segs) + 1):
+            got = self.resolve_path(s, segs[:end], "type", guard, is_use=True)
+            defs = [x for kind, x in got if kind == "def" and x.kind == "mod"]
+            roots = [x.root for kind, x in got if kind == "crate" and x is not None]
+            modules = [d.extra["scope"] for d in defs] + roots
+            sure = sure and all(self.module_certain(d, held) for d in defs)
+        return modules, sure
+
+    @staticmethod
+    def module_certain(d: Def, held: frozenset) -> bool:
+        """Whether a module is built wherever the call is: its own `#[cfg]` (the `mod` declaration's, and a file's inner attribute) is one the
+        call is under too. Twin modules (`#[cfg(a)] mod r` and `#[cfg(not(a))] mod r`, or a `#[path]` pair) are each under a cfg, and the build has
+        only one of them: the call is under at most one of the two cfgs, so the other is never certain, and a path that names both is not."""
+        return not d.extra.get("cfg") or cfg_covers(d.extra["cfg_keys"], held)
+
+    @staticmethod
+    def written_trait(body: Body, target: tuple) -> bool:
+        """Whether the trait is the one of the trait or the impl the call is written in (rustc puts it in scope there)."""
+        return body.trait is target[1] or (body.impl is not None and body.impl.trait_target == target)
+
     def assoc_traits(self, body: Body, tdef: Def, name: str, targs: tuple | None) -> tuple:
         taint = self.impl_taint(body.ctx, tdef.scope.crate)
         if taint:  # an inherent item, an override or another impl the tables do not show may be what runs
             return unresolved(IMPLS_INCOMPLETE.format(taint))
         candidates: list[tuple[Def, ImplSpec]] = []
-        unsure = may_default = False
+        unsure = may_default = unread = False
         for spec in self.trait_impls.get(tdef, []):
             relation = self.relation(spec, tdef, targs)
             decl = self.trait_decl.get(spec.trait_target[1], {}).get(name) if spec.trait_target is not None and spec.trait_target[0] == "def" else None
@@ -3728,6 +3838,7 @@ class Index:
                 continue
             if relation == "unknown":
                 unsure = True
+                unread |= spec.header_unread
                 continue
             if name in spec.consts:
                 return unresolved(CALLS_CONST)
@@ -3739,7 +3850,7 @@ class Index:
                 candidates.append((decl, spec))
         derived = any(name in DERIVE_FNS.get(d, ()) for d in self.derives.get(tdef, ()))
         if unsure:
-            return unresolved(INSTANTIATION)
+            return unresolved(IMPL_HEADER_UNREAD if unread else INSTANTIATION)
         if may_default:
             return unresolved(CFG_UNKNOWN)
         if len(candidates) > 1:
@@ -3758,6 +3869,11 @@ class Index:
                 return unresolved(TRAIT_NOT_VISIBLE)
             if candidates[0][0].extra.get("rw") or spec.rewritten:
                 return unresolved(ATTR_MACRO)
+            if self.unshared_cfg(candidates[0][0], spec, tdef, body):
+                # The impl (or its method) may not exist where the call does, and then the call finds whatever else gives the name to the type:
+                # a foreign crate's extension trait, a provided method of a standard trait, a repo trait no impl written for the type shows.
+                # The inherent arm's rule (inherent_hit), for the same reason. Probe: a scratch crate, see tests/test_rs_trait_cfg.py.
+                return unresolved(CFG_UNKNOWN)
             return edge(candidates[0][0])
         if derived:
             return unresolved(EXT_TRAIT_SHADOW) if name in self.trait_fn_names else external(DERIVED)
