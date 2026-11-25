@@ -27,7 +27,7 @@ import importlib
 import re
 import warnings
 from collections import Counter
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 
 from .facts import (
     ASSIGNED_UNTYPED,
@@ -58,6 +58,33 @@ EXT_BUILTIN_VALUE = "a method of a builtin value (str, list, dict, ...)"
 EXT_INHERITED = "a method inherited from a base class outside the repo"
 EXT_SUPER = "super() into a base class outside the repo"
 EXT_INSTANCE = "a method of an instance of a class outside the repo"
+
+
+
+@dataclass
+class InstanceFacts:
+    """What a front end for a language whose objects have properties of their own (JavaScript) shows about the instances of one class,
+    kept on the class scope as `scope.instance_facts` (a plain attribute, so a name in the source can neither spell it nor have `bind`
+    overwrite it, as it can a binding in `names`). Python's scopes never have one.
+
+    own maps a property name to how the class body gives every instance an own property of it: a list of (defined, how), `defined`
+    for a field or `Object.defineProperty` and not for an assignment (`this.x = v`, a parameter property is a field), `how` in words.
+    An own property comes before every method of the prototype chain, so it hides a method of that name that a class below it writes
+    (an assigned one calls a setter that the class below declares instead, so it hides a method but not an accessor).
+    returns names who may return an object that is not an instance of the class ("the constructor"), and swapped who may give the
+    instance another prototype ("the method init()", "a static block"): either makes no method of the class, or of a class below it,
+    provably what a call on an instance runs.
+
+    proto maps a property name to where the class body writes it on the class's own prototype (`C.prototype.m = f`, `this.prototype.m`
+    in a static member): "the static block", "the constructor". Every instance of the class, and of a class below it that declares no
+    `m` of its own, finds that function and not a method that a base declares, so for a receiver that may be one of them the base's
+    method is not provably what runs. The class's own binding of the name is kept apart (it stops the class's own lookup)."""
+
+    own: dict = field(default_factory=dict)
+    returns: str = ""
+    swapped: str = ""
+    proto: dict = field(default_factory=dict)
+
 
 # Node's own `process` as the TypeScript and JavaScript front end names an import of it (`PACKAGE + specifier`, see ts_indexer.PACKAGE and
 # PROCESS_MODULES; a test keeps the two in step). A repo module that re-exports it passes it on to the files that import that module, and its
@@ -173,6 +200,8 @@ class Resolver:
         self._alias_pairs: list[tuple[str, str]] | None = None
         self._tables: dict[tuple[str, str], str | None] = {}
         self._replaced: dict[str, bool] = {}  # class id -> whether a decorator may have replaced it
+        self._replaced_below: dict[str, tuple[dict[str, str], str]] = {}  # class id -> what a class below it replaces (see replaced_below)
+        self._instance_facts: bool | None = None  # whether any scope has InstanceFacts
         self._external_base_index: dict[str, list[str]] | None = None  # dotted name of an external base -> repo classes with such a base
         self._base_proven: set[str] | None = None  # dotted names a repo class inherits from, so they are classes
         # Resolving a base (`class X(self.Attr)`) can look a member up before every
@@ -403,9 +432,21 @@ class Resolver:
         owner = target.value.rsplit(".", 1)[0]
         for sub in self.all_subclasses(target.receiver):
             method = self.scopes[sub].names.get(name)
-            if sub != owner and method is not None and method.kind == "def":
+            if (
+                sub != owner
+                and method is not None
+                and method.kind == "def"
+                and not self.setter_only(method.target)
+                and not self.own_property_above(sub, method.target, name)
+            ):
                 found.append((method.target, "override"))
         return found
+
+    def setter_only(self, method: str) -> bool:
+        """Whether every def of this name is an accessor that is not a getter (`set m(v) {}` alone, `@x.setter def y`): a call of the
+        name never runs the setter's body, so it is no call target. An assignment to it still runs it (see accessor_target)."""
+        scope = self.scopes[method]
+        return not scope.is_property and scope.plain_defs == 0 and scope.defs > 0
 
     # -- decorators ---------------------------------------------------------
     #
@@ -634,6 +675,8 @@ class Resolver:
         accessor = self.scopes[method] if method else None
         if accessor is None or accessor.kind != "method":
             return None
+        if receiver.kind == "instance" and (self.instance_replaced(cls, parts[-1]) or self.own_property_above(cls, method, parts[-1])):
+            return None  # an own property or another object comes first: the accessor is not what runs
         # A getter is a def that is_property. A setter is a def that is not a plain one (a property
         # setter in Python, the same facts), so a setter-only property has defs but no plain def.
         runs = accessor.is_property if call.special == "access" else accessor.defs > accessor.plain_defs
@@ -1350,7 +1393,28 @@ class Resolver:
             found = self.class_member(target.value, attr)
             return Target("symbol", found) if found else unknown(f"no '{attr}' on class {target.value}")
         if target.kind == "instance":
+            replaced = self.instance_replaced(target.value, attr)
+            if replaced:
+                return unknown(replaced)
             method = self.class_member(target.value, attr)
+            holder = self.own_property_above(target.value, method, attr) if method is not None else None
+            if holder:
+                return unknown(
+                    f"'{attr}' may be hidden by an own property of base class {holder[0]}: {holder[1]}, and a method of that name "
+                    f"in a class below it does not replace it"
+                )
+            if method is not None and not target.exact:
+                below = self.replaced_below(target.value, attr)
+                if below:
+                    return unknown(below)
+            if method is not None and self.setter_only(method):
+                # Worded to be true in both languages that reach it. JavaScript: `set m(v) {}` alone (or after a method it replaced) leaves
+                # the property no getter, so a call of it throws. Python: `@x.setter def y` under another name makes `y` a property with
+                # x's getter, so a call of it runs what that getter gives. Neither runs the setter's body.
+                return unknown(
+                    f"'{attr}' is declared only as a setter, so a call of it runs what a getter gives (and throws when there is none), "
+                    f"never the setter's body"
+                )
             if method is not None and self.scopes[method].is_property:
                 if self.return_type(method):
                     return self.value_of_type(self.return_type(method))
@@ -1401,6 +1465,79 @@ class Resolver:
             if binding is not None:
                 return binding.target if binding.kind == "def" else None
         return None
+
+    def own_property_above(self, cls: str, method: str, name: str) -> tuple[str, str] | None:
+        """(the base class, how its body gives every instance the property) for the nearest base class, above the class that writes
+        `method`, whose instances have an own property of that name (a field, a parameter property, a write to `this.name`), else None.
+
+        class_member stops at the first class of the hierarchy that binds the name, so it finds a method of the derived class and
+        never looks at its bases. An instance's own property comes before every method of its prototype chain, so the method is
+        not what `instance.name` finds. Only a front end that records InstanceFacts (JavaScript) can make this answer anything but
+        None: a Python class attribute of a base is not an instance's own property."""
+        scope = self.scopes.get(method)
+        owner = scope.parent if scope is not None else None
+        accessor = scope is not None and (scope.is_property or scope.defs > scope.plain_defs)  # a setter that an assignment calls
+        passed = False
+        for klass in self.mro(cls):
+            if klass == owner:
+                passed = True
+            elif passed:
+                facts = getattr(self.scopes[klass], "instance_facts", None)
+                for defined, how in facts.own.get(name, ()) if facts is not None else ():
+                    if defined or not accessor:
+                        return klass, how
+        return None
+
+    def instance_replaced(self, cls: str, attr: str) -> str | None:
+        """Why an instance of cls may not be an object with the methods the class writes, or None when nothing in the hierarchy
+        says so: a constructor that may return another object (`return { m }`, `return new Proxy(this, ...)`), or a method that
+        gives the instance another prototype. Both are written in the class body (see InstanceFacts)."""
+        for klass in self.mro(cls):
+            facts = getattr(self.scopes[klass], "instance_facts", None)
+            if facts is not None and facts.returns:
+                return f"'{attr}': {facts.returns} of {klass} may return an object that is not an instance, so a method of {cls} may not be what runs"
+            if facts is not None and facts.swapped:
+                return f"'{attr}': {facts.swapped} of {klass} may give an instance another prototype, so a method of {cls} may not be what runs"
+        return None
+
+    def replaced_below(self, cls: str, attr: str) -> str | None:
+        """Why a call of `attr` on a receiver that may be a subclass of cls is not known to run what cls (or its bases) write: a class
+        below cls (read in the repo) gives its instances an own property of that name, or may return another object or give the
+        instance another prototype. The runtime object may be one of them, which is why override edges exist: for a method the
+        subclass defines they are the answer, for one it replaces any other way the answer is unresolved, naming the subclass."""
+        if self._building or not self._any_instance_facts():
+            return None
+        cached = self._replaced_below.get(cls)
+        if cached is None:
+            names: dict[str, str] = {}
+            wide = ""
+            for sub in self.all_subclasses(cls):
+                facts = getattr(self.scopes[sub], "instance_facts", None)
+                if facts is None:
+                    continue
+                wide = wide or (
+                    f"{sub}, where {facts.returns} may return another object"
+                    if facts.returns
+                    else f"{sub}, where {facts.swapped} may give an instance another prototype"
+                    if facts.swapped
+                    else ""
+                )
+                for key, how in facts.own.items():
+                    names.setdefault(key, f"{sub}: {how[0][1]}")
+                for key, where in facts.proto.items():
+                    names.setdefault(key, f"{sub}: {where} writes it on the prototype")
+            cached = self._replaced_below[cls] = (names, wide)
+        names, wide = cached
+        if attr in names:
+            return f"'{attr}' may be replaced on an instance of subclass {names[attr]}, and this receiver may be one"
+        if wide:
+            return f"'{attr}' may not be what runs on an instance of subclass {wide}, and this receiver may be one"
+        return None
+
+    def _any_instance_facts(self) -> bool:
+        if self._instance_facts is None:
+            self._instance_facts = any(getattr(scope, "instance_facts", None) is not None for scope in self.scopes.values())
+        return self._instance_facts
 
     def super_member(self, scope: Scope, name: str) -> Target:
         cls = self.enclosing_class(scope)
