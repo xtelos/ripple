@@ -317,6 +317,32 @@ def test_a_test_task_that_executes_and_finds_no_test_is_a_problem_beside_a_proje
     assert ":web:test executed and ran no test" in text(result), result
 
 
+def _web_with(repo: Path, setting: str) -> None:
+    """:web gets JUnit 5 tests of which one fails, and `setting` in its test block: nothing in it may pass unseen."""
+    junit5 = "plugins { id 'java' }\nrepositories { mavenCentral() }\n" + JUNIT_DEPS.replace("dependencies {", "dependencies {\n  implementation project(':core')", 1)
+    write(repo / "web" / "build.gradle", junit5 + setting + "\n")
+    (repo / "web/src/test/java/com/acme/web/WebTest.java").unlink()  # the fixture's own passing test: web's only test is the slow one
+    write(repo / "web/src/test/java/com/acme/web/WebSlowTest.java", "package com.acme.web;\nimport org.junit.jupiter.api.*;\n@Tag(\"slow\")\nclass WebSlowTest { @Test void mustFail() { Assertions.fail(\"slow\"); } }\n")
+
+
+def test_a_module_whose_every_test_is_excluded_by_tag_is_a_note_and_the_other_modules_still_pass(tmp_path):
+    """Measured: Gradle 9.9.1 exits 0 when `excludeTags` leaves no test, so tags are the one narrowing that explains an empty task."""
+    repo = multi(tmp_path)
+    _web_with(repo, "test { useJUnitPlatform { excludeTags 'slow' } }")
+    result = check(repo)
+    assert result["passed"] is True and result["failures"] == [], result
+    assert ":web:test executed and ran no test, and the build narrows it by tags" in result["notes"], result["notes"]
+
+
+@pytest.mark.parametrize("setting", ["test { include '**/*Test.class' }", "test { filter { excludeTestsMatching '*IT' } }", "test { exclude '**/*IT.class' }"])
+def test_a_module_with_no_use_junit_platform_and_an_include_exclude_or_filter_is_not_a_pass(tmp_path, setting):
+    """On 9.9.1 Gradle fails these builds itself ("test sources present and no filters are applied", "No tests found"): include and exclude are not the reason a task ran nothing."""
+    repo = multi(tmp_path)
+    _web_with(repo, setting)
+    result = check(repo)
+    assert result["passed"] is False and result["exit_code"] != 0, result
+
+
 def test_another_test_task_is_not_run_by_test_and_is_named(tmp_path):
     build = BUILD + "\ntesting {\n  suites {\n    integrationTest(JvmTestSuite) {\n      useJUnitJupiter('5.11.3')\n      dependencies { implementation project() }\n    }\n  }\n}\n"
     repo = project(tmp_path, "shop", build=build)

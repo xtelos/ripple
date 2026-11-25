@@ -111,6 +111,17 @@ def test_a_module_with_junit_5_tests_and_no_use_junit_platform_is_not_a_pass_on_
     assert ":web:test executed and ran no test" in text(result), result
 
 
+def test_a_module_with_no_use_junit_platform_and_an_exclude_that_matches_nothing_is_not_a_pass_on_gradle_8(tmp_path):
+    """The common `test { exclude '**/*IT.class' }` beside the same misconfiguration: Gradle 8 exits 0, the task executes with 0 tests, a failing test never runs."""
+    repo = multi(tmp_path)
+    plain = "plugins { id 'java' }\nrepositories { mavenCentral() }\n" + JUNIT + "test { exclude '**/*IT.class' }\n"
+    write(repo / "web" / "build.gradle", plain.replace("dependencies {", "dependencies {\n  implementation project(':core')", 1))
+    write(repo / "web/src/test/java/com/acme/web/WebFailTest.java", "package com.acme.web;\nimport org.junit.jupiter.api.*;\nclass WebFailTest { @Test void mustFail() { Assertions.fail(\"never ran\"); } }\n")
+    result = check(repo)
+    assert result["exit_code"] == 0 and result["passed"] is False, result
+    assert ":web:test executed and ran no test" in " ".join(result["problems"]), result
+
+
 def test_ids_are_proved_on_gradle_8_by_the_filter_gradle_applied_and_the_names_it_gives(tmp_path):
     result = check(shop(tmp_path, DYN), ["com.acme.shop.CartTest2.discounts", "com.acme.shop.CartTest2.addsItems()"])
     assert result["passed"] is True and result["counts"]["passed"] == 3, result

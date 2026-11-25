@@ -246,6 +246,7 @@ class TestTask:
     classes_dirs: tuple[str, ...]
     narrowing: tuple[str, ...]  # what the build sets that can keep a test from running, named
     command_line: tuple[str, ...]  # the --tests patterns Gradle applied to the task
+    tags_only: bool = False  # the narrowing is includeTags/excludeTags and nothing else: the one kind Gradle 9 accepts as why a task ran no test
 
 
 @dataclass
@@ -349,6 +350,7 @@ def _task(project: str, raw: dict) -> TestTask | None:
     if not isinstance(path, str) or not isinstance(name, str):
         return None
     narrowing = []
+    other = False
     for key, text in (
         ("include", "includes"),
         ("exclude", "excludes"),
@@ -360,6 +362,7 @@ def _task(project: str, raw: dict) -> TestTask | None:
         found = _strings(raw.get(key))
         if found:
             narrowing.append(f"{text} {', '.join(found[:3])}")
+            other = other or key not in ("tagsIncluded", "tagsExcluded")
     return TestTask(
         path,
         name,
@@ -370,6 +373,7 @@ def _task(project: str, raw: dict) -> TestTask | None:
         _strings(raw.get("classesDirs")),
         tuple(narrowing),
         _strings(raw.get("commandLine")),
+        bool(narrowing) and not other,
     )
 
 
@@ -748,9 +752,12 @@ def _check_task(task: TestTask, run: Run, problems: list[str], notes: list[str])
     if task.narrowing:
         notes.append(f"{task.path} narrows its tests ({'; '.join(task.narrowing)}): the tests it leaves out did not run")
     if root.tests == 0:
-        # Gradle 9 fails a task that finds no test (failOnNoDiscoveredTests); before 9, and with the opt-out, it executes and says nothing
-        if task.narrowing:
-            notes.append(f"{task.path} executed and ran no test, and the build narrows it")
+        # Gradle 9 fails a task that finds no test (failOnNoDiscoveredTests); before 9, and with the opt-out, it executes and says nothing.
+        # Measured on 9.9.1: only includeTags/excludeTags leave it green. An include or exclude pattern or a filter does not explain it
+        # ("test sources present and no filters are applied", "No tests found"), and an exclude that removes every class makes the task
+        # NO-SOURCE, never an executed task with no test: so for those the problem stands.
+        if task.tags_only:
+            notes.append(f"{task.path} executed and ran no test, and the build narrows it by tags")
         else:
             problems.append(
                 f"{task.path} executed and ran no test: Gradle found none to run in it (a module with JUnit 5 tests and no `useJUnitPlatform()`, "

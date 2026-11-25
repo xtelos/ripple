@@ -1455,7 +1455,11 @@ newer, measured on 8.10.2 and 9.9.1 with JDK 21 (the exit shapes, the assumption
 both). `gradle --version` is asked first and an older Gradle is refused with the version found and the oldest supported. Gradle 8
 has no `TestResult.assumptionFailure`, so a skip is never known to be an assumption there; on 8.10.2 no ordinary shape needed it.
 A task that executes and runs no test (a JUnit 5 module with no `useJUnitPlatform()`, which Gradle 8 runs silently, or
-`failOnNoDiscoveredTests = false`) is a problem that names it, as Gradle 9's own default is. A failure of ripple's own init script is
+`failOnNoDiscoveredTests = false`) is a problem that names it, as Gradle 9's own default is. The one exception is a task the
+build narrows by tags alone (`includeTags`, `excludeTags`): Gradle 9.9.1 itself exits 0 when tags leave no test, so that is a note.
+An `include`, an `exclude` or a filter is not an exception, whatever else is recorded: Gradle 9 fails those builds ("test sources
+present and no filters are applied", "No tests found"), and an `exclude` that removes every class makes the task NO-SOURCE, never an
+executed task with no test. A failure of ripple's own init script is
 reported as that, with Gradle's text. JUnit 4 and TestNG run through the same listener and were not run (their jars are not in the
 offline Gradle cache). The live tests (`tests/test_check_gradle_live.py`, and `tests/test_check_gradle_live8.py` for a Gradle 8 at
 `RIPPLE_TEST_GRADLE8`) need a Gradle and a Gradle user home that has JUnit 5.11.3 (`RIPPLE_TEST_GRADLE_HOME`,

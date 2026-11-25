@@ -544,13 +544,40 @@ def test_a_test_task_that_executed_and_ran_zero_tests_is_a_problem_even_when_ano
     assert ":web:test executed and ran no test" in text(result) and ":core:test" not in " ".join(result["problems"])
 
 
-def test_a_narrowed_test_task_that_ran_zero_tests_is_a_note_not_a_problem(monkeypatch, tmp_path):
-    rows = lambda repo: [
-        init_line(), graph(repo, exclude=["**/*Nope*"]), *listener(":test", {}), task_line(":test"),
-    ]
+@pytest.mark.parametrize("narrowing", [{"tagsExcluded": ["slow"]}, {"tagsIncluded": ["fast"]}, {"tagsIncluded": ["fast"], "tagsExcluded": ["slow"]}])
+def test_a_task_that_ran_zero_tests_under_tags_alone_is_a_note_as_gradle_9_itself_accepts_it(monkeypatch, tmp_path, narrowing):
+    """Measured on Gradle 9.9.1: `excludeTags` and `includeTags` with no test left exit 0; they are the one narrowing that explains an empty task."""
+    rows = lambda repo: [init_line(), graph(repo, **narrowing), *listener(":test", {}), task_line(":test")]
     result = verdict(monkeypatch, tmp_path, rows)
-    assert ":test executed and ran no test" in " ".join(result["notes"]) and "narrows" in text(result), result
+    assert ":test executed and ran no test, and the build narrows it by tags" in result["notes"], result
     assert result["passed"] is False  # nothing ran anywhere, so still no pass
+
+
+@pytest.mark.parametrize(
+    "narrowing",
+    [{"exclude": ["**/*IT.class"]}, {"include": ["**/*Test.class"]}, {"filterIncludes": ["*Fast*"]}, {"filterExcludes": ["*IT"]}, {"exclude": ["**/*IT.class"], "tagsExcluded": ["slow"]}],
+)
+def test_a_task_that_executed_with_zero_tests_and_only_include_exclude_or_a_filter_is_a_problem(monkeypatch, tmp_path, narrowing):
+    """Gradle 9 fails these builds ("test sources present and no filters are applied", "No tests found"), and an `exclude` that removes every class makes the task NO-SOURCE, never an executed task with 0: so none of them explains an empty task. On Gradle 8 the build is green and web's tests never ran."""
+    repo = multi(tmp_path)
+
+    def script(argv, cwd, manifest):
+        both = {":core": "core", ":web": "web"}
+        data = json.loads(graph(cwd, {":core": "core"}))
+        data["projects"].append(json.loads(graph(cwd, {":web": "web"}, **narrowing))["projects"][0])
+        lines(
+            manifest, init_line(), json.dumps(data),
+            *listener(":core:test", {"com.acme.core.CoreTest": [("works()", "SUCCESS")]}), task_line(":core:test"),
+            *listener(":web:test", {}), task_line(":web:test"),
+        )
+        assert both
+        return 0, OK_CONSOLE
+
+    install(monkeypatch, script)
+    result = checker.run_check(repo, tests=[], timeout=60, profile=JAVA)
+    assert result["exit_code"] == 0 and result["passed"] is False, result
+    assert ":web:test executed and ran no test" in " ".join(result["problems"]), result
+    assert "the build narrows it" not in text(result)
 
 
 def test_a_second_test_task_the_build_wired_in_counts_like_the_first(monkeypatch, tmp_path):
