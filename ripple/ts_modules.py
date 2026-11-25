@@ -94,6 +94,9 @@ DECLARATIONS = (".d.ts", ".d.mts", ".d.cts")
 # the one file Node's require adds: where they name another file than the compiler does, which one runs is not known.
 BUNDLER_ORDER = (".mjs", ".js", ".mts", ".ts", ".jsx", ".tsx")
 NODE_ORDER = (".js",)
+# esbuild's resolveExtensions (its default): no .mjs, .mts, .cjs or .cts, and .css before .json
+ESBUILD_ORDER = (".tsx", ".ts", ".jsx", ".js", ".css", ".json")
+ADDED = "extension"  # the second item of an `_unread` answer that names a file only by the extension a resolver adds (`.json`)
 # The extensions of a same-named file that keep a file out of a wildcard include (the compiler's extension priority:
 # m.ts beside m.js holds m.ts only; a declaration file does not outrank a .js).
 OUTRANKED_BY = {".tsx": (".ts",), ".js": (".ts", ".tsx"), ".jsx": (".ts", ".tsx", ".js"), ".mjs": (".mts",), ".cjs": (".cts",)}
@@ -683,6 +686,13 @@ def _candidates(base: str, js: bool, directory: bool = False) -> list[str]:
     return written + [b + ext for b in plain for ext in GUESSES] + [f"{pre}index{ext}" for ext in GUESSES]
 
 
+def _runs_as_code(rel: str) -> bool:
+    """Whether a file of this name is code to the tools whatever it holds: one of the languages' extensions (or a component's), or
+    none at all (Node's require, esbuild and Vite load a file with no extension as JavaScript). `rel` is the path a link leads to when
+    it is one: the tools load a link by its real path."""
+    return rel.endswith(CODE) or not posixpath.splitext(posixpath.basename(rel))[1]
+
+
 def file_state(root: Path, rel: str) -> list:
     """What the file system holds at the repo-relative path `rel` (`root` is the repo's real path), as one short token the
     resolver's answers depend on: `[]` for nothing, `["!"]` for a path it cannot read (a link loop, a name too long), else
@@ -870,7 +880,7 @@ class ModuleMap:
             if unread is not None and unread[0] == "unresolved":
                 return unread
             governor = self.governor(importer)
-            if unread is None and governor is not None and governor.root_dirs:
+            if (unread is None or unread[1] == ADDED) and governor is not None and governor.root_dirs:
                 return "unresolved", f"{governor.path} sets rootDirs, so `{specifier}` may name a file in another of the roots, which ripple does not follow"
             return ("package", specifier) if unread is not None else ("missing", specifier)
         if specifier.startswith("/"):
@@ -933,24 +943,64 @@ class ModuleMap:
 
         ("unresolved", why) when a place, or a place with an extension a resolver adds (or `/index`), is a file of the repo that
         holds code ripple does not read (a declaration file, a component, source the walk skips); ("file", "") when something is
-        written there that holds none (data, a package's file, a link out of the repo); None when nothing is. Only the first kind is
-        a file the import may name: JSON, CSS and a package's file are outside the repo's code, as `./data.json` always was."""
-        found = False
+        written there that holds none (data, a package's file, a link out of the repo); ("file", ADDED) when the only such file is the
+        place with `.json` added (`./data` beside data.json: Node's require, Vite and esbuild load it); None when nothing is. Only the
+        first kind is a file the import may name: JSON, CSS and a package's file are outside the repo's code, as `./data.json` always was."""
+        found = None
         for place in places:
             if above_root(place):
                 continue
             if self._exists(place):
                 if place.endswith(DECLARATIONS) or self._repo_source(place):
                     return "unresolved", self._unread_reason(specifier, place)
-                found = True
+                found = ""
                 continue
             hit = self._on_disk(place, directory, self._holds_code)
             if hit is not None:
                 return "unresolved", self._unread_reason(specifier, hit)
-        return ("file", "") if found else None
+            if directory:
+                continue
+            if self._twin(place, ".json"):
+                found = ADDED if found is None else found
+                continue
+            # Node's require loads x.node (a native addon) and esbuild bundles x.css, where the other tool resolves nothing: the path
+            # is no missing one, and the file is not one ripple reads
+            other = self._twin(place, ".node") or self._twin(place, ".css")
+            if other is not None:
+                return "unresolved", self._unread_reason(specifier, other)
+        return None if found is None else ("file", found)
 
     def _holds_code(self, rel: str) -> bool:
         return rel.endswith(DECLARATIONS) or self._repo_source(rel)
+
+    def _earlier_file(self, place: str) -> str | None:
+        """The first file a bundler may take at a `paths` target before the one that holds the file found: anything `_on_disk` finds for the place
+        (as written, with an extension a resolver adds, or as a directory's index) or `_data_at` does; None when the place holds nothing
+        else. A file the walk reads is left to the compiler's own order (`_first`: its TypeScript pass runs over every place before its
+        JavaScript one), so only a file the walk does not see counts here. Every question goes through `_probe`, so nothing the walk skips
+        escapes the cache record."""
+        return self._data_at(place) or self._on_disk(place, False, lambda name: not self._has(name))
+
+    def _data_at(self, place: str) -> str | None:
+        """The file a bundler takes at a `paths` target that holds no code ripple reads: the target itself (a.json), the target with
+        `.json` or `.css` added, or the `index.json` or `index.css` of the directory of that name; else None."""
+        return (
+            self._twin(place, "")
+            or self._twin(place, ".json")
+            or self._twin(place, ".css")
+            or self._twin(f"{place}/index", ".json")
+            or self._twin(f"{place}/index", ".css")
+        )
+
+    def _twin(self, place: str, ext: str) -> str | None:
+        """`place` with `ext` added when that is a file (a link out of the repo counts: the tools load it), else None. Node's require
+        (.js, .json, .node), Vite and Rollup (.json) and esbuild (.css, .json) add the extension to a path with no extension and take
+        that file before the directory of the name; tsc adds no extension for any of them."""
+        if place == "." or above_root(place):
+            return None
+        twin = place + ext
+        state = self._probe(twin)
+        return twin if state and state[0] == "f" else None
 
     @staticmethod
     def _spellings(base: str, directory: bool) -> tuple[list[str], list[str]]:
@@ -975,13 +1025,45 @@ class ModuleMap:
         return next((name for name in [*files, *indexes] if not above_root(name) and self._is_file(name) and keep(name)), None)
 
     def _unread_reason(self, specifier: str, path: str) -> str:
-        """Why an import that names the file `path` of the repo, which ripple does not read as a module, is left unresolved."""
+        """Why an import that names the file `path` of the repo, which ripple does not read as a module, is left unresolved. Every reason
+        names only tools that load the file for this specifier: a relative path is read by all of them, a bare name only through the config
+        (esbuild and the compiler read baseUrl and paths, Vite needs a plugin, Node's require reaches the file only through NODE_PATH, which
+        it searches after node_modules), and a Node builtin is what Node loads whatever the repo holds."""
+        bare = not specifier.startswith(".")
+        if bare and (specifier in NODE_BUILTINS or specifier.startswith("node:")):
+            return (
+                f"`{specifier}` is a Node builtin, which Node loads before any path, and {path} is a file of the repo that a bundler or the "
+                "compiler may take for it, so which one a tool takes is not known"
+            )
         if path.endswith(DECLARATIONS):
             return f"`{specifier}` names {path}, a declaration file: it holds types and no code, so what a name from it runs is not known"
         if self._has(path):
-            return f"`{specifier}` names {path} once an extension is added, which Vite and Rollup do and Node's require does not, so which file it names is not known"
+            reader = "a bundler that reads the config does" if bare else "Vite and Rollup do"
+            return f"`{specifier}` names {path} once an extension is added, which {reader} and Node's require does not, so which file it names is not known"
+        state = self._probe(path)
+        if len(state) > 1 and state[1] and state[1] != path and self._repo_source(path):
+            loader = "a tool that reaches the link (a bundler or the compiler through the config)" if bare else "Node's require and the bundlers"
+            return f"`{specifier}` names {path}, a link to {state[1]}, which holds code that {loader} loads by its real path, so what it does is not known"
+        if path.endswith(".node"):
+            if bare:
+                return (
+                    f"`{specifier}` names {path}, a native addon: Node's require loads one only when NODE_PATH reaches it (it searches that after "
+                    "node_modules) and a bundler does not resolve it, so which file it names is not known"
+                )
+            return (
+                f"`{specifier}` names {path}, a native addon: Node's require may load it (it adds .node to a path) and a bundler does not "
+                "resolve it, so which file it names is not known"
+            )
+        if path.endswith(".css"):
+            return (
+                f"`{specifier}` names {path}, a stylesheet: esbuild may bundle it (it adds .css to a path) and Node's require and Vite do "
+                "not, so which file it names is not known"
+            )
         if path.endswith(COMPONENTS):
             return f"`{specifier}` names {path}, a component file of this repo that ripple does not read (a .vue, .svelte or .astro file), so what it does is not known"
+        if not path.endswith(CODE) and self._repo_source(path):
+            loader = "esbuild loads as JavaScript (Node's require and Vite do when they reach the path)" if bare else "Node's require, esbuild and Vite load as JavaScript"
+            return f"`{specifier}` names {path}, a file with no extension, which {loader}, so what it does is not known"
         if self._repo_source(path):
             return (
                 f"`{specifier}` names {path}, a source file of this repo that ripple does not read (it is in a hidden directory, "
@@ -1170,6 +1252,18 @@ class ModuleMap:
         for earlier in places[: places.index(place)]:
             if self._directory(earlier) and self._has_package_json(earlier):
                 return None, self._directory_reason(specifier, earlier)
+        # a file at a place tried before: a bundler takes the first place that holds a file for the path (the path itself, with an extension
+        # added, or the index of a directory of that name), wherever the walk skips it (node_modules, dist, a hidden directory) and whatever it
+        # holds (data the compiler adds no extension for, code the walk does not read), and the compiler may go on to the file found later.
+        # A place that holds nothing for the path, or the very file found, is no rival
+        if not directory:
+            for earlier in places[: places.index(place)]:
+                rival = self._earlier_file(earlier)
+                if rival is not None:
+                    return None, (
+                        f"`{specifier}` names {file}, but {rival} is at an earlier place and a bundler takes the first place that has a "
+                        "file for the path, so which file it names is not known"
+                    )
         # the file was reached through a directory (its index), or beside a directory that the compiler's TypeScript pass
         # enters first: either way the directory's package.json (`main`, `types`, `module`, `exports`) picks the file
         if self._directory(place) and self._has_package_json(place) and not (hit is ts_hit and not self._is_index_of(file, place)):
@@ -1238,16 +1332,42 @@ class ModuleMap:
 
     def _disagreement(self, file: str, base: str, directory: bool, js: bool, specifier: str) -> str:
         """Why an extensionless import that reaches `file` is not known to name it: Vite and Rollup try .mjs first and .js
-        before .ts, and for a JavaScript importer Node's require tries .js, so they may name another file the repo has."""
-        tried = {"Vite and Rollup": BUNDLER_ORDER, **({"Node's require": NODE_ORDER} if js else {})}
+        before .ts, esbuild tries .tsx, .ts, .jsx, .js, .css and .json (so a lib.jsx beats a lib.js, and a lib.css a lib/index.js), and
+        for a JavaScript importer Node's require tries .js, .json and .node, so they may name another file the repo has. Each tries its
+        extensions after the path as written and before the directory of the name, and then in the directory's index: a lib.json beside
+        lib/index.js is the file they name (the compiler adds no extension for JSON), and so is an index.json beside index.jsx for
+        Node's require. A file at the path as written, with no extension, comes first for Node's require, esbuild and Vite (they load it as
+        JavaScript), where the compiler adds an extension."""
+        written = None if directory or base == "." else self._twin(base, "")
+        if written is not None and written != file:
+            return (
+                f"`{specifier}` names {file} to the compiler, which adds an extension, and {written}, the path as written, to a resolver that "
+                "tries the path as written first (esbuild does, and Node's require and Vite when they reach the path), so which file it names "
+                "is not known"
+            )
+        tried = {
+            "Vite and Rollup": (*BUNDLER_ORDER, ".json"),
+            "esbuild": ESBUILD_ORDER,
+            **({"Node's require": (*NODE_ORDER, ".json", ".node")} if js else {}),
+        }
         pre = "" if base == "." else base + "/"
         for who, order in tried.items():
-            pick = None if directory or base == "." else next((base + ext for ext in order if self._has(base + ext)), None)
-            pick = pick or next((f"{pre}index{ext}" for ext in order if self._has(f"{pre}index{ext}")), None)
+            pick = None if directory or base == "." else next((base + ext for ext in order if self._named(base + ext)), None)
+            pick = pick or next((f"{pre}index{ext}" for ext in order if self._named(f"{pre}index{ext}")), None)
             # for a TypeScript importer a .js file of the same name is what the build makes of the source, not a rival to it
             if pick is not None and pick != file and (js or not pick.endswith(JS_SUFFIXES)):
+                if not specifier.startswith("."):
+                    # a bare name reaches the repo through the config: esbuild and the compiler read baseUrl and paths, Vite does with a
+                    # plugin, and Node's require only through NODE_PATH
+                    who = {"Vite and Rollup": "Vite and Rollup (with a plugin that reads them)", "Node's require": "Node's require (when NODE_PATH reaches it)"}.get(who, who)
                 return f"`{specifier}` names {file} to the compiler and {pick} to {who}, so which file it names is not known"
         return ""
+
+    def _named(self, rel: str) -> bool:
+        """Whether a resolver that adds this extension finds a file: one the walk finds (see `_has`), or a JSON file, a stylesheet or a
+        native addon, which no index reads."""
+        stem, dot, ext = rel.rpartition(".")
+        return self._has(rel) or (ext in ("json", "node", "css") and self._twin(stem, dot + ext) is not None)
 
     def _has(self, rel: str) -> bool:
         """Whether the repo-relative path is a file the walk finds, of either language: one ripple reads here (in
@@ -1274,10 +1394,10 @@ class ModuleMap:
         extensions (or a component's), really inside the repo (a link into it from node_modules counts), and not in a directory of a
         package. What the walk skips (a hidden directory, the root dist, build or env) is not outside the repo for being skipped. A file
         that is not source (JSON, CSS, an image) holds no code to follow, and a package's file is outside it as it was."""
-        if not base.endswith(CODE):
-            return False
         state = self._probe(base)
         if not state or state[0] != "f" or not self._within(state):
             return False
         where = base if len(state) < 2 else state[1]
+        if not (base.endswith(CODE) or _runs_as_code(where)):
+            return False
         return not any(part in IMPLICIT_EXCLUDES for part in where.split("/"))

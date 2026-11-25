@@ -66,11 +66,13 @@ probe("twin-ts-js", {"x.ts": "", "x.js": ""}, across(ALL, ["./x", "./x.js", "./x
       | {f"{i}|./x": "Vite orders .js before .ts" for i in JSI})
 probe("twin-ts-tsx-js-jsx-dts", {"x.ts": "", "x.tsx": "", "x.js": "", "x.jsx": "", "x.d.ts": ""}, across(ALL, ["./x", "./x.js", "./x.jsx", "./x.ts", "./x.tsx"]),
       unresolved={f"{i}|./x": "Vite orders .js before .ts" for i in JSI}
+      | {f"{i}|./x": "esbuild orders .tsx before .ts" for i in ["a.ts", "b.tsx"]}
       | {f"{i}|./x.js": "compiler reads x.ts, runtime runs x.js" for i in ["c.js", "d.jsx", "e.mjs", "f.cjs"]}
       | {f"{i}|./x.jsx": "compiler reads x.tsx, runtime runs x.jsx" for i in ["c.js", "d.jsx", "e.mjs", "f.cjs"]})
 probe("twin-tsx-jsx", {"x.tsx": "", "x.jsx": ""}, across(ALL, ["./x", "./x.jsx", "./x.js", "./x.tsx"]),
       unresolved={f"{i}|./x": "Vite orders .jsx before .tsx" for i in JSI} | {f"{i}|./x.jsx": "compiler reads x.tsx, runtime runs x.jsx" for i in ["c.js", "d.jsx", "e.mjs", "f.cjs"]})
-probe("twin-js-jsx", {"x.js": "", "x.jsx": ""}, across(ALL, ["./x", "./x.js", "./x.jsx"]))
+probe("twin-js-jsx", {"x.js": "", "x.jsx": ""}, across(ALL, ["./x", "./x.js", "./x.jsx"]),
+      unresolved={f"{i}|./x": "esbuild orders .jsx before .js" for i in JSI})
 probe("twin-ts-mts", {"x.ts": "", "x.mts": ""}, across(ALL, ["./x", "./x.ts", "./x.mjs", "./x.mts"]),
       unresolved={f"{i}|./x": "Vite orders .mts before .ts" for i in ALL})
 probe("dts-only", {"x.d.ts": "", "y.d.ts": "", "y.js": ""}, across(ALL, ["./x", "./x.js", "./x.d", "./x.d.ts", "./y", "./y.js"]),

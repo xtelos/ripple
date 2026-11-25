@@ -50,8 +50,12 @@ def test_mjs_and_cjs_are_never_guessed_for_an_import_with_no_extension(make_repo
 
 
 def test_js_is_tried_before_jsx_when_a_name_has_both(make_repo):
+    """The compiler, Node and Vite take Badge.js for `./ui/Badge`; esbuild tries .jsx first, so the extensionless import is unresolved
+    (see test_js_resolver_twins.py), and the written `./ui/Badge.js` names the file."""
     modules, _ = mapper(make_repo, ["main.js", "ui/Badge.js", "ui/Badge.jsx"])
-    assert modules.resolve("./ui/Badge", "main.js") == ("repo", "ui/Badge")
+    kind, why = modules.resolve("./ui/Badge", "main.js")
+    assert kind == "unresolved" and "ui/Badge.js" in why and "ui/Badge.jsx" in why, (kind, why)
+    assert modules.resolve("./ui/Badge.js", "main.js") == ("repo", "ui/Badge")
     assert modules.modules["ui/Badge.js"] == "ui/Badge" and modules.modules["ui/Badge.jsx"] == "ui/Badge.jsx"
     assert modules.resolve("./ui/Badge.jsx", "main.js") == ("repo", "ui/Badge.jsx")
 
