@@ -331,8 +331,9 @@ the call is unresolved, with the reason. The body says something else when:
   written beside a block that declares `const a = this`);
 - a field is named `m` (`m = f`, `'m' = f`, `['m'] = f`). A TypeScript `declare` or `abstract` field and a static field are no instance
   property, and a parameter property is a field;
-- a base class does either of those to every instance, whether or not it also declares `m` itself. The reason says what the base's body
-  shows: a field, or the constructor or a method that writes it;
+- a base class that ripple resolves (a class in the repo that `extends` names, through an import or a re-export) does either of those to
+  every instance, whether or not it also declares `m` itself. The reason says what the base's body shows: a field, or the constructor or a
+  method that writes it. A base that ripple cannot resolve is not read, and the call keeps its edge (see the limits below);
 - the class writes `m` on its own prototype: `C.prototype.m = f`, with `C` the class's own name, anywhere in its body, or
   `this.prototype.m = f` in a static method, a static block or a static field initializer (also `Object.defineProperty`, `Object.assign`,
   `Reflect.set` and `Reflect.defineProperty` on either);
@@ -367,11 +368,18 @@ and a write to a prototype that is not `C.prototype` with the class's own name o
 member redeclares between the write and the class body (a parameter, a variable, a function or a class of that name) is not the class, so
 `C.prototype.m = f` through it is not read.
 
+"Declared twice" is counted over the whole member, so it also covers two blocks that each declare `const self = this`: with
+`{ const self = this; self.m = f; } { const self = this; }` the name is not read as the instance in either block, Node replaces `m`, and
+ripple still draws the edge to `C.m`. That is a wrong edge, not a lost one, and it is a known limit.
+
 **Ripple does not detect a replacement from outside the class body.** An instance-method edge is drawn without proof that no other
 code replaces the method, and no rule looks for that code. In each of these families Node runs the replacement and ripple still draws the
 edge to `C.m`: the plain `C.prototype.m = f` written in another file is one of them.
 - Code ripple does not read: a file that is not indexed (a `.ts` file in a JavaScript repo, a preload given to `node --import`, a file
   that nothing imports), a package that is handed the class or an instance, and a base class that comes from a package.
+- A base class ripple cannot resolve: its field, or what its constructor writes, is not seen, so a subclass's `m` keeps its edge though Node finds the base's own `m`.
+  The base comes through a TypeScript namespace member (`class D extends N.B`), a mixin's result
+  (`class D extends Mix(A)`), a class expression (`const K = class { m = f }; class D extends K`), or a class that `require` returns.
 - Names computed at run time and code built from strings: `proto[k] = f`, a loop over `Object.getOwnPropertyNames`, `eval`,
   `new Function` and `x.constructor(...)`.
 - A prototype reached from a value or an alias: `Object.getPrototypeOf(o).m = f`, `o.constructor.prototype.m = f`, `o.__proto__.m = f`,
@@ -380,8 +388,9 @@ edge to `C.m`: the plain `C.prototype.m = f` written in another file is one of t
   `Object.defineProperty(o, 'm', ...)`, and a function that is given the instance and does either.
 - Prototype swaps outside the class body: `Object.setPrototypeOf(o, ...)`, `o.__proto__ = ...` and
   `Object.setPrototypeOf(C.prototype, ...)`.
-- Subclasses ripple cannot read: a class expression, an anonymous default export, the result of a mixin, and a class in a file that is
-  not read. Their override of `m` is not an `override` edge.
+- Subclasses ripple cannot read: a class expression, an anonymous default export, the result of a mixin, a class in a file that is
+  not read, and a class whose `extends` ripple cannot resolve (a CommonJS `class D extends B` with `B` from `require` is not known to be a
+  subclass of `B`, so a field `m` of `D` is not seen from a call on a `B`). Their override of `m` is not an `override` edge.
 
 **Which file an import names** is the TypeScript compiler's answer where Node and the bundlers agree with it, and
 unresolved, with the reason, where they do not. The compiler tries every TypeScript extension (`.ts`, `.tsx`, then the

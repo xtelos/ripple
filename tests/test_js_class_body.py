@@ -517,6 +517,55 @@ def test_accepted_limit_a_computed_key_in_the_class_body_keeps_the_edge(make_rep
     assert_edge(class_answer(make_repo, f"[kName]() {{ return 1; }} {M}", prefix="const kName = 'm';\n"))
 
 
+MAIN_D = MAIN.replace("{ C }", "{ D }").replace("new C()", "new D()")
+UNREADABLE_BASES = {
+    # Node prints, for `new D().m()`: FIELD, MIXED, FIELD, FIELD
+    "u01 a TypeScript namespace member": (
+        {"c.ts": "export namespace N { export class B { m = () => 'FIELD'; } }\nexport class D extends N.B { m() { return 'D'; } }\n",
+         "main.ts": "import { D } from './c.ts';\nconsole.log(new D().m()); // CALL\n"}, "main.ts", TYPESCRIPT, "c:D.m"),
+    "u02 the result of a mixin": (
+        {"c.js": "const Mix = (K) => class extends K { constructor() { super(); this.m = () => 'MIXED'; } };\nclass A {}\n"
+                 "export class D extends Mix(A) { m() { return 'D'; } }\n", "main.js": MAIN_D}, "main.js", JAVASCRIPT, "c:D.m"),
+    "u03 a class expression": (
+        {"c.js": "const K = class { m = () => 'FIELD'; };\nexport class D extends K { m() { return 'D'; } }\n", "main.js": MAIN_D},
+        "main.js", JAVASCRIPT, "c:D.m"),
+    "a class that require returns": (
+        {"b.js": "class B { m = () => 'FIELD'; }\nmodule.exports = { B };\n",
+         "d.js": "const { B } = require('./b.js');\nclass D extends B { m() { return 'D'; } }\nconsole.log(new D().m()); // CALL\n",
+         "package.json": '{"type": "commonjs"}'}, "d.js", JAVASCRIPT, "d:D.m"),
+}
+
+
+@pytest.mark.parametrize("case", list(UNREADABLE_BASES.values()), ids=list(UNREADABLE_BASES))
+def test_accepted_limit_a_base_ripple_cannot_resolve_gives_no_own_property_the_subclass_edge_stays(make_repo, case):
+    # ACCEPTED-LIMIT: Node prints the base's own `m` in each (the reviewer's u01, u02, u03, and the `require` shape), and ripple draws the
+    # subclass's method: the base cannot be resolved, so what its body gives every instance is not read. Not the right answer; main draws
+    # the same edge. The README lists these bases (a TypeScript namespace member, a mixin's result, a class expression, a `require`d class).
+    files, main, profile, callee = case
+    assert_edge(answer(make_repo, files, main=main, profile=profile), callee)
+
+
+def test_accepted_limit_a_subclass_whose_base_comes_from_require_is_not_known_as_a_subclass(make_repo):
+    # ACCEPTED-LIMIT: Node prints F for `new D().go()` (the reviewer's o03): D has a field `m` and extends a `B` that `require` returned,
+    # so `this.m()` in B runs the field. D is not read as a subclass of B, so there is no flag and the call keeps its edge to B.m. Not the
+    # right answer. (With an `import`, D is read and the call is unresolved naming c:D: see the n-cases above.)
+    files = {
+        "b.js": "class B { go() { return this.m(); } // CALL\n  m() { return 'B'; } }\nmodule.exports = { B };\n",
+        "d.js": "const { B } = require('./b.js');\nclass D extends B { m = () => 'F'; }\nmodule.exports = { D };\n",
+        "main.js": "const { D } = require('./d.js');\nconsole.log(new D().go());\n",
+        "package.json": '{"type": "commonjs"}',
+    }
+    assert_edge(answer(make_repo, files, main="b.js"), "b:B.m")
+
+
+def test_accepted_limit_two_blocks_that_each_declare_the_alias_keep_the_edge(make_repo):
+    # ACCEPTED-LIMIT: Node prints REPLACED (the reviewer's m2c). `self` is declared twice in the constructor, so neither declaration is
+    # read as the instance and the write `self.m = f` is missed; ripple draws C.m. A wrong edge, not the right answer. The README lists
+    # "declared twice" and says this shape plainly.
+    body = "constructor() { { const self = this; self.m = () => 'REPLACED'; } { const self = this; void self; } } " + M
+    assert_edge(class_answer(make_repo, body))
+
+
 # ---- the class rules beside what main's module-name rules do (a merge of two branches) ----------------------------------------------
 # Every case below was run in Node 24 (tsc transpileModule to CommonJS); the output is in the comment.
 
