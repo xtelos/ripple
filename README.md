@@ -1440,6 +1440,13 @@ Gradle said, and still names what the task narrows), `ignoreFailures` (the failu
 which `test` does not run, as `mvn test` does not run failsafe), and init scripts in `$GRADLE_USER_HOME/init.d` or
 `GRADLE_OPTS`/`JAVA_TOOL_OPTIONS` (named, not read). **Not the repo's tests:** the init script does nothing in a build whose
 `gradle.parent` is set, so `buildSrc` and `includeBuild` builds (a convention-plugin build) neither add to nor change the verdict.
+**Test files Gradle never runs get one note each, and the verdict stays Gradle's** (`gradle test` runs the `test` tasks of the projects of
+the build, so a pass says nothing about the rest, and the note says so). Read from the task graph and the file system, never from a
+test: a `src/test/{java,kotlin,groovy}` that holds source files and that no project of the graph owns (a project missing from
+`settings.gradle`, a sample, `buildSrc`, which is a build of its own); a project with such a directory and no `test` task; the names
+of `gradle.includedBuilds`; and a `test` source set that reads its classes from somewhere other than a `src/test/java` that holds
+test files. Each list is capped at five names with a count of the rest, the scan skips `build`, `.gradle`, `node_modules`, `target`,
+`vendor`, `third_party`, `.git` and `resources` and stops after 20,000 directories (and says so), and an ordinary project gets none.
 Costs: a `test` task left out of the graph is a problem, and so is a run in which no test ran anywhere (every task disabled or every
 test skipped); a retry plugin that reports more tests than Gradle counts makes the record disagree with its totals. The
 build under test is arbitrary code ripple runs, and it can append to the record: nothing here defends against a build that means to

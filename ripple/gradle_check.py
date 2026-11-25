@@ -181,7 +181,8 @@ if (gradle.parent == null) {
             }
             projects << [path: p.path, dir: p.projectDir.path, sourceSets: sets, tests: tests]
         }
-        emit([event: 'graph', gradle: gradle.gradleVersion, projects: projects])
+        def included = safe { gradle.includedBuilds.collect { [name: it.name, dir: it.projectDir.path] } } ?: []
+        emit([event: 'graph', gradle: gradle.gradleVersion, projects: projects, includedBuilds: included])
     } }
 
     gradle.taskGraph.afterTask { Task task, TaskState state -> guard {
@@ -322,6 +323,7 @@ class Manifest:
     oversize: bool = False  # the file is over the cap: only its start was read
     garbled: int = 0  # whole lines that are not a JSON object
     listener_errors: list[str] = field(default_factory=list)  # what ripple's own init script said it failed at
+    included: list[tuple[str, str]] = field(default_factory=list)  # (name, directory) of each `gradle.includedBuilds`: their tests are not this build's
 
     def task(self, path: str) -> TestTask | None:
         return next((t for p in self.projects for t in p.tests if t.path == path), None)
@@ -413,6 +415,9 @@ def read_manifest(path: Path) -> Manifest:
         elif kind == "graph" and not manifest.graph and isinstance(raw.get("projects"), list):
             manifest.graph = True
             manifest.version = raw["gradle"] if isinstance(raw.get("gradle"), str) else None
+            for entry in raw.get("includedBuilds") if isinstance(raw.get("includedBuilds"), list) else []:
+                if isinstance(entry, dict) and isinstance(entry.get("name"), str) and isinstance(entry.get("dir"), str):
+                    manifest.included.append((entry["name"], entry["dir"]))
             for item in raw["projects"]:
                 if not isinstance(item, dict) or not isinstance(item.get("path"), str) or not isinstance(item.get("dir"), str):
                     continue
@@ -477,6 +482,15 @@ def _rel(repo: Path, absolute: str) -> str | None:
     return "" if rel == "." else rel
 
 
+def _test_roots(repo: Path, project: Project, task: TestTask) -> list[str]:
+    """The repo-relative Java source directories of the source set whose classes `task` runs (Gradle's own answer), or [] when no source set owns them."""
+    roots: list[str] = []
+    for _name, java, classes in project.source_sets:
+        if task.classes_dirs and set(task.classes_dirs) <= set(classes):
+            roots.extend(r for r in (_rel(repo, d) for d in java) if r is not None)
+    return roots
+
+
 def build_project(repo: Path, manifest: Manifest) -> tuple[jc.Project, dict[str, str]]:
     """The modules of the build as java_check.py reads them (a project with a `test` task, inside the repo), and each one's project path.
 
@@ -491,10 +505,7 @@ def build_project(repo: Path, manifest: Manifest) -> tuple[jc.Project, dict[str,
         rel = _rel(repo, project.dir)
         if task is None or rel is None:
             continue
-        roots: list[str] = []
-        for _name, java, classes in project.source_sets:
-            if task.classes_dirs and set(task.classes_dirs) <= set(classes):
-                roots.extend(r for r in (_rel(repo, d) for d in java) if r is not None)
+        roots = _test_roots(repo, project, task)
         uncertain = not roots
         default = f"{rel}/src/test/java".strip("/")
         module = jc.Module(rel, project.path, tuple(dict.fromkeys(roots)) or (default,), (), uncertain)
@@ -807,6 +818,98 @@ def _check_tasks(run: Run, problems: list[str], notes: list[str]) -> list[Result
     return checked
 
 
+# ---- test files Gradle never runs: notes, never a verdict input ---------------------------------------------
+#
+# The verdict is Gradle's, and Gradle runs only the `test` tasks of the projects of the build. A directory of test files outside that
+# is not the repo's tests as `gradle test` means them, and a pass that said nothing about it would read as "the repo's tests pass".
+# So each shape is named once, from the task graph and the file system, with no reading of any test and no effect on `passed`.
+
+MAX_LISTED = 5
+MAX_DIRS_SCANNED = 20_000
+TEST_LANGUAGES = ("java", "kotlin", "groovy")
+SOURCE_SUFFIXES = (".java", ".kt", ".groovy", ".scala")
+# trees that hold other projects' files, build output or tools, never this repo's test directories
+SKIPPED_TREES = {".git", ".gradle", ".idea", "node_modules", "build", "target", "out", "dist", "vendor", "third_party", "resources"}
+
+
+def _holds_sources(directory: Path) -> bool:
+    for seen, (_root, dirs, files) in enumerate(os.walk(directory)):
+        if any(f.endswith(SOURCE_SUFFIXES) for f in files):
+            return True
+        dirs[:] = [d for d in dirs if d not in SKIPPED_TREES]
+        if seen >= 500:
+            break
+    return False
+
+
+def _test_directories(repo: Path) -> tuple[list[str], bool]:
+    """Every `src/test/{java,kotlin,groovy}` below the repo that holds source files, repo-relative, and whether the scan was cut short."""
+    found: list[str] = []
+    scanned = 0
+    for current, dirs, _files in os.walk(repo):
+        scanned += 1
+        if scanned > MAX_DIRS_SCANNED:
+            return found, True
+        parts = Path(current).relative_to(repo).parts
+        if len(parts) >= 3 and parts[-3:-1] == ("src", "test") and parts[-1] in TEST_LANGUAGES:
+            if _holds_sources(Path(current)):
+                found.append("/".join(parts))
+            dirs[:] = []
+            continue
+        dirs[:] = sorted(d for d in dirs if d not in SKIPPED_TREES)
+    return found, False
+
+
+def _named(project_path: str) -> str:
+    return "the root project" if project_path == ":" else project_path
+
+
+def _listed(names: list[str]) -> str:
+    return ", ".join(names[:MAX_LISTED]) + (f" and {len(names) - MAX_LISTED} more" if len(names) > MAX_LISTED else "")
+
+
+def unrun_notes(repo: Path, manifest: Manifest) -> list[str]:
+    """One note per shape of test files that `gradle test` does not run: see the comment above. Bounded, and nothing for an ordinary build."""
+    notes: list[str] = []
+    dirs = {rel: project for project in manifest.projects if (rel := _rel(repo, project.dir)) is not None}
+    included = [(name, rel) for name, d in manifest.included if (rel := _rel(repo, d)) is not None]
+    if manifest.included:
+        names = [name for name, _ in manifest.included]
+        notes.append(f"the build includes {_listed(names)} (includeBuild): their tests are not run by this build, and this verdict says nothing about them")
+    found, cut = _test_directories(repo)
+    strangers: list[str] = []
+    for directory in found:
+        owner_dir = max((rel for rel in dirs if rel == "" or directory == rel or directory.startswith(rel + "/")), key=len, default=None)
+        if any(directory.startswith(rel + "/") for _, rel in included if rel):
+            continue  # an included build's tests: named above
+        if owner_dir is None:
+            continue
+        project = dirs[owner_dir]
+        language = directory.rsplit("/", 1)[1]
+        own = f"{owner_dir}/src/test/{language}".lstrip("/")
+        if directory != own:
+            strangers.append(directory.split("/", 1)[0] + "/" if directory.startswith("buildSrc/") else directory)
+            continue
+        task = next((t for t in project.tests if t.name == "test"), None)
+        if task is None:
+            notes.append(f"{_named(project.path)} has a test directory ({directory}) and no `test` task, so none of its tests ran")
+        elif language == "java":
+            roots = _test_roots(repo, project, task)
+            if roots and directory not in roots:
+                notes.append(
+                    f"{_named(project.path)} reads its test classes from {_listed(roots)}, not from {directory}, which holds test files: they did not run"
+                )
+    if strangers:
+        strangers = list(dict.fromkeys(strangers))
+        notes.append(
+            f"{_listed(strangers)} hold{'s' if len(strangers) == 1 else ''} test files that no project of this build owns "
+            "(a project missing from settings.gradle, a sample or a build of its own such as buildSrc): Gradle did not run them as this build's tests"
+        )
+    if cut:
+        notes.append(f"test directories were looked for in the first {MAX_DIRS_SCANNED} directories only")
+    return notes
+
+
 def _check_want(want: jc.Want, results: list[Result], paths: dict[str, str], problems: list[str], notes: list[str]) -> None:
     """What was asked for must have a test of its own that ran: another class's or another project's does not stand in."""
     task = task_path(paths[want.module]) if want.module in paths else None
@@ -912,6 +1015,8 @@ def judge(
         for want in invocation.wants:
             _check_want(want, results, paths, problems, notes)
     notes.extend(n for n in environment_notes(environ) if n not in notes)
+    if manifest.graph:
+        notes.extend(unrun_notes(repo, manifest))
     ran = counts["passed"] + counts["failed"]
     if run.started and manifest.graph and not run.timed_out and ran == 0 and counts["skipped"] == 0 and len(problems) == explained:
         problems.append("no tests ran: Gradle's listener recorded no test")

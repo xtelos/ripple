@@ -344,6 +344,9 @@ def test_buildsrc_tests_that_run_do_not_change_the_verdict_of_the_root_build(tmp
     result = check(with_build_src(tmp_path, BUILDSRC_TEST))
     assert result["passed"] is True and result["counts"] == {"passed": 5, "failed": 0, "errored": 0, "skipped": 0, "classes": 3, "flaky": 0}, result
     assert "HelperTest" not in text(result)
+    assert [n for n in result["notes"] if "hold" in n and "test files" in n] == [
+        "buildSrc/ holds test files that no project of this build owns (a project missing from settings.gradle, a sample or a build of its own such as buildSrc): Gradle did not run them as this build's tests"
+    ]
 
 
 def test_a_failing_root_test_is_the_verdict_whatever_buildsrcs_tests_say(tmp_path):
@@ -375,6 +378,61 @@ def test_a_sample_project_among_the_test_resources_is_not_the_repos_tests(tmp_pa
     write(repo / "src/test/resources/samples/hello/src/test/java/HelloTest.java", "import org.junit.jupiter.api.*;\nclass HelloTest { @Test void hi() { Assertions.fail(\"a sample, never compiled\"); } }\n")
     result = check(repo)
     assert result["passed"] is True and result["counts"]["passed"] == 5, result
+
+
+# ---- test files Gradle never runs: PASS, and one note each -----------------------------------------------------------
+
+FAILING_TEST = "package {pkg};\nimport org.junit.jupiter.api.*;\nclass {cls} {{ @Test void mustFail() {{ Assertions.fail(\"never runs\"); }} }}\n"
+UNRUN = ("holds test files", "hold test files", "no `test` task", "reads its test classes", "(includeBuild)")
+
+
+def unrun(result: dict) -> list[str]:
+    return [n for n in result.get("notes", []) if any(word in n for word in UNRUN)]
+
+
+def test_a_project_missing_from_settings_with_a_failing_test_is_a_pass_with_a_note_naming_it(tmp_path):
+    repo = multi(tmp_path)
+    write(repo / "legacy" / "build.gradle", BUILD)
+    write(repo / "legacy/src/test/java/com/acme/legacy/LegacyTest.java", FAILING_TEST.format(pkg="com.acme.legacy", cls="LegacyTest"))
+    result = check(repo)
+    assert result["passed"] is True and result["failures"] == [], result
+    [note] = unrun(result)
+    assert note.startswith("legacy/src/test/java holds test files that no project of this build owns"), note
+
+
+def test_a_project_with_a_test_directory_and_no_test_task_is_a_pass_with_a_note_naming_it(tmp_path):
+    repo = multi(tmp_path)
+    write(repo / "web" / "build.gradle", "")  # no java plugin: no `test` task
+    result = check(repo)
+    assert result["passed"] is True, result
+    assert ":web has a test directory (web/src/test/java) and no `test` task, so none of its tests ran" in result["notes"], result["notes"]
+
+
+def test_an_included_build_with_a_failing_test_is_a_pass_with_a_note_naming_the_build(tmp_path):
+    repo = shop(tmp_path, settings="rootProject.name = 'shop'\nincludeBuild 'lib'\n")
+    write(repo / "lib" / "settings.gradle", "rootProject.name = 'lib'\n")
+    write(repo / "lib" / "build.gradle", BUILD)
+    write(repo / "lib/src/test/java/com/acme/lib/LibTest.java", FAILING_TEST.format(pkg="com.acme.lib", cls="LibTest"))
+    result = check(repo)
+    assert result["passed"] is True and result["failures"] == [], result
+    assert unrun(result) == ["the build includes lib (includeBuild): their tests are not run by this build, and this verdict says nothing about them"], result["notes"]
+
+
+def test_a_test_source_set_pointed_away_from_a_directory_of_test_files_is_a_pass_with_a_note_naming_both(tmp_path):
+    repo = multi(tmp_path)
+    web = (repo / "web" / "build.gradle").read_text()
+    write(repo / "web" / "build.gradle", web + "\nsourceSets { test { java { srcDirs = ['src/unit/java'] } } }\n")
+    write(repo / "web/src/test/java/com/acme/web/WebFailTest.java", FAILING_TEST.format(pkg="com.acme.web", cls="WebFailTest"))
+    result = check(repo)
+    assert result["passed"] is True and result["failures"] == [], result
+    assert ":web reads its test classes from web/src/unit/java, not from web/src/test/java, which holds test files: they did not run" in result["notes"], result["notes"]
+    assert "Gradle found no test classes for :web:test (NO-SOURCE), so no test ran in it" in result["notes"]
+
+
+def test_an_ordinary_project_gets_none_of_these_notes(tmp_path):
+    for name, repo in (("one", project(tmp_path / "one", "shop")), ("many", multi(tmp_path / "many"))):
+        result = check(repo)
+        assert result["passed"] is True and unrun(result) == [], (name, result.get("notes"))
 
 
 # ---- the launcher ----------------------------------------------------------------------------------------

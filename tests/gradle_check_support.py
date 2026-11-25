@@ -180,7 +180,7 @@ DYN = {"CartTest2.java": (
 # ---- the record, as the init script writes it -----------------------------------------------------------
 
 
-def graph(repo: Path, projects: dict[str, str] | None = None, scheduled=True, extra_tasks: list[dict] | None = None, **task) -> str:
+def graph(repo: Path, projects: dict[str, str] | None = None, scheduled=True, extra_tasks: list[dict] | None = None, included: list[dict] | None = None, **task) -> str:
     """The `graph` line for a build whose projects are {path: relative dir} (default: the root alone)."""
     projects = projects or {":": ""}
     items = []
@@ -214,7 +214,7 @@ def graph(repo: Path, projects: dict[str, str] | None = None, scheduled=True, ex
                 "tests": [entry] + (extra_tasks or []),
             }
         )
-    return json.dumps({"event": "graph", "gradle": "9.9.1", "projects": items})
+    return json.dumps({"event": "graph", "gradle": "9.9.1", "projects": items, "includedBuilds": included or []})
 
 
 def init_line() -> str:

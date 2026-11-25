@@ -9,6 +9,7 @@ never reads a test source; and anything the record cannot prove is not a pass.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 from gradle_check_support import (
@@ -602,6 +603,127 @@ def test_init_scripts_of_the_gradle_home_and_jvm_options_are_named_not_read(monk
     assert result["passed"] is True, result
     assert any("init.d holds init scripts (ci.gradle)" in n for n in result["notes"])
     assert any("$JAVA_TOOL_OPTIONS is set" in n for n in result["notes"])
+
+
+# ---- test files Gradle never runs: one note each, never the verdict --------------------------------------------------
+
+UNRUN = ("test director", "holds test files", "hold test files", "no `test` task", "reads its test classes", "(includeBuild)")
+
+
+def unrun(result: dict) -> list[str]:
+    return [n for n in result.get("notes", []) if any(word in n for word in UNRUN)]
+
+
+def sources(repo: Path, *dirs: str, name: str = "T.java") -> None:
+    for d in dirs:
+        (repo / d).mkdir(parents=True, exist_ok=True)
+        (repo / d / name).write_text("class T {}\n")
+
+
+def test_an_ordinary_single_project_and_an_ordinary_multi_project_build_get_no_such_note(monkeypatch, tmp_path):
+    assert unrun(run_with(monkeypatch, tmp_path / "one", lambda cwd: record(cwd))) == []
+    many = multi(tmp_path / "many")
+
+    def script(argv, cwd, manifest):
+        both = {":core": "core", ":web": "web"}
+        lines(manifest, init_line(), graph(cwd, both), *listener(":core:test", {"com.acme.core.CoreTest": [("works()", "SUCCESS")]}), task_line(":core:test"),
+              *listener(":web:test", {"com.acme.web.WebTest": [("works()", "SUCCESS")]}), task_line(":web:test"))
+        return 0, OK_CONSOLE
+
+    install(monkeypatch, script)
+    result = checker.run_check(many, tests=[], timeout=60, profile=JAVA)
+    assert result["passed"] is True and unrun(result) == [], result
+
+
+def test_test_directories_no_project_owns_are_one_bounded_note_and_never_change_the_verdict(monkeypatch, tmp_path):
+    def rows(repo):
+        sources(repo, *[f"legacy{i}/src/test/java" for i in range(7)])
+        return record(repo)
+
+    result = run_with(monkeypatch, tmp_path, rows)
+    assert result["passed"] is True and result["problems"] == [], result
+    [note] = [n for n in result["notes"] if "hold test files" in n]
+    assert note.count("/src/test/java") == 5 and "and 2 more" in note, note
+
+
+def test_the_scan_does_not_walk_into_build_output_caches_or_vendored_trees(monkeypatch, tmp_path):
+    def rows(repo):
+        sources(repo, "build/x/src/test/java", ".gradle/x/src/test/java", "node_modules/pkg/src/test/java", "vendor/lib/src/test/java",
+                "third_party/lib/src/test/java", "src/test/resources/samples/hello/src/test/java", ".git/x/src/test/java", "target/x/src/test/java")
+        return record(repo)
+
+    result = run_with(monkeypatch, tmp_path, rows)
+    assert result["passed"] is True and unrun(result) == [], result
+
+
+def test_a_test_directory_with_no_source_file_in_it_is_not_noted(monkeypatch, tmp_path):
+    def rows(repo):
+        (repo / "empty" / "src" / "test" / "java").mkdir(parents=True)
+        return record(repo)
+
+    assert unrun(run_with(monkeypatch, tmp_path, rows)) == []
+
+
+def test_a_kotlin_or_groovy_test_directory_no_project_owns_is_noted_and_a_projects_own_is_not_guessed_at(monkeypatch, tmp_path):
+    def rows(repo):
+        sources(repo, "legacy/src/test/kotlin", "other/src/test/groovy", "src/test/kotlin", name="T.kt")
+        return record(repo)
+
+    result = run_with(monkeypatch, tmp_path, rows)
+    [note] = unrun(result)
+    assert "legacy/src/test/kotlin" in note and "other/src/test/groovy" in note and "\nsrc/test/kotlin" not in note and ", src/test/kotlin" not in note, note
+    assert result["passed"] is True
+
+
+def test_included_builds_are_named_once_and_their_test_directories_are_not_noted_twice(monkeypatch, tmp_path):
+    def rows(repo):
+        sources(repo, "lib/src/test/java", "libtwo/src/test/java")
+        included = [{"name": "lib", "dir": str(repo / "lib")}, {"name": "libtwo", "dir": str(repo / "libtwo")}]
+        return [init_line(), graph(repo, included=included), *listener(":test", SHOP), task_line(":test")]
+
+    result = run_with(monkeypatch, tmp_path, rows)
+    assert result["passed"] is True, result
+    assert unrun(result) == ["the build includes lib, libtwo (includeBuild): their tests are not run by this build, and this verdict says nothing about them"]
+
+
+def test_a_project_with_a_test_directory_and_no_test_task_is_named(monkeypatch, tmp_path):
+    def rows(repo):
+        sources(repo, "web/src/test/java")
+        data = json.loads(graph(repo, {":": ""}))
+        web = json.loads(graph(repo, {":web": "web"}))["projects"][0]
+        web["tests"] = []
+        data["projects"].append(web)
+        return [init_line(), json.dumps(data), *listener(":test", SHOP), task_line(":test")]
+
+    result = run_with(monkeypatch, tmp_path, rows)
+    assert result["passed"] is True, result
+    assert unrun(result) == [":web has a test directory (web/src/test/java) and no `test` task, so none of its tests ran"], result["notes"]
+
+
+def test_a_test_source_set_that_reads_another_directory_than_the_one_holding_test_files_is_named(monkeypatch, tmp_path):
+    def rows(repo):
+        sources(repo, "src/test/java")
+        data = json.loads(graph(repo))
+        for source_set in data["projects"][0]["sourceSets"]:
+            if source_set["name"] == "test":
+                source_set["java"] = [str(repo / "src/unit/java")]
+        return [init_line(), json.dumps(data), *listener(":test", SHOP), task_line(":test")]
+
+    result = run_with(monkeypatch, tmp_path, rows)
+    assert result["passed"] is True, result
+    assert unrun(result) == ["the root project reads its test classes from src/unit/java, not from src/test/java, which holds test files: they did not run"], result["notes"]
+
+
+def test_the_scan_stops_at_its_bound_and_says_so(monkeypatch, tmp_path):
+    monkeypatch.setattr(gradle_check, "MAX_DIRS_SCANNED", 3)
+
+    def rows(repo):
+        for i in range(10):
+            (repo / f"d{i}").mkdir()
+        return record(repo)
+
+    result = run_with(monkeypatch, tmp_path, rows)
+    assert "test directories were looked for in the first 3 directories only" in result["notes"] and result["passed"] is True
 
 
 # ---- what was asked for ---------------------------------------------------------------------------------------
