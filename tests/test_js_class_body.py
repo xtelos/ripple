@@ -621,3 +621,188 @@ def test_process_main_module_in_a_member_and_a_write_that_replaces_that_member(m
     graph = ts_graph(make_repo, {"c.ts": source, "main.ts": main})
     assert [e for e in graph.edges if e.file == "main.ts" and e.kind != "constructor"] == []
     assert any(u.file == "main.ts" and "run" in u.reason for u in graph.unresolved)
+
+
+# ---- review round 1: bases that declare and write, aliases, the class body's own prototype writes, reasons -----------------------
+# Node 24 ran every case (the reviewer's b01 to b09, a01 to a07, d18 to d22, w01 to w08, s05, s06, p01, p02 and k02, and the neighbours).
+
+D_MAIN = "import { D } from './c.js';\nconsole.log(new D().m()); // CALL\n"
+FN = "function () { return 'REPLACED'; }"
+
+BASE_THAT_DECLARES_AND_WRITES = {
+    "b01 this.m = f beside a method m": f"class B {{ constructor() {{ this.m = {FN}; }} m() {{ return 'B'; }} }}",  # Node: REPLACED
+    "b03 this['m'] = f beside a method m": f"class B {{ constructor() {{ this['m'] = {FN}; }} m() {{ return 'B'; }} }}",  # REPLACED
+    "b07 Object.assign(this, { m }) beside a method m": f"class B {{ constructor() {{ Object.assign(this, {{ m: {FN} }}); }} m() {{ return 'B'; }} }}",
+    "b06 a field m beside a method m": "class B { m = () => 'FIELD'; m() { return 'B'; } }",  # FIELD
+    "b09 the throttle shape: this.m = wrap(this.m)": "const wrap = (f) => function () { return 'WRAPPED'; };\nclass B { constructor() { this.m = wrap(this.m); } m() { return 'B'; } }",
+    "b04 a getter and setter m and this.m = f": f"class B {{ constructor() {{ this.m = {FN}; }} set m(v) {{ this._m = v; }} get m() {{ return this._m; }} }}",  # REPLACED
+    "b08 a static getter m and this.m = f": f"class B {{ static get m() {{ return 1; }} constructor() {{ this.m = {FN}; }} }}",  # REPLACED
+}
+
+
+@pytest.mark.parametrize("base", list(BASE_THAT_DECLARES_AND_WRITES.values()), ids=list(BASE_THAT_DECLARES_AND_WRITES))
+def test_a_base_that_declares_m_and_also_gives_every_instance_its_own_m_hides_the_derived_method(make_repo, base):
+    # the base's binding of m is one thing after `Scope.bind` merged a def and a var, so the own-property fact is kept apart (InstanceFacts)
+    files = {"c.js": base + "\nexport class D extends B { m() { return 'D'; } }\n", "main.js": D_MAIN}
+    assert_unresolved(answer(make_repo, files), "base class c:B")
+
+
+def test_a_base_that_rebinds_its_own_method_or_declares_m_without_writing_it_keeps_the_derived_edge(make_repo):
+    derived = "\nexport class D extends B { m() { return 'D'; } }\n"
+    # Node: D. `this.m = this.m.bind(this)` binds what `this.m` finds, which is D's m, and the own property is that function
+    assert_edge(answer(make_repo, {"c.js": "class B { constructor() { this.m = this.m.bind(this); } m() { return 'B'; } }" + derived, "main.js": D_MAIN}), "c:D.m")
+    # Node: D, a base that only declares a getter and a setter of m
+    assert_edge(answer(make_repo, {"c.js": "class B { set m(v) {} get m() { return 1; } }" + derived, "main.js": D_MAIN}), "c:D.m")
+
+
+def test_the_reason_says_what_the_base_body_shows(make_repo):
+    files = {"c.js": f"class B {{ reset() {{ this.m = {FN}; }} }}\nexport class D extends B {{ m() {{ return 'D'; }} }}\n", "main.js": D_MAIN}
+    result = answer(make_repo, files)  # Node: D, because reset() was never called; the write is in a method, so the instance only may have it
+    assert_unresolved(result, "base class c:B", "the method reset() writes it on the instance")
+    assert "every instance has one" not in result[1] and "constructor" not in result[1]
+    files = {"c.js": f"class B {{ constructor() {{ this.m = {FN}; }} }}\nexport class D extends B {{ m() {{ return 'D'; }} }}\n", "main.js": D_MAIN}
+    assert_unresolved(answer(make_repo, files), "the constructor writes it on the instance")
+    files = {"c.js": "class B { m = () => 1; }\nexport class D extends B { m() { return 'D'; } }\n", "main.js": D_MAIN}
+    assert_unresolved(answer(make_repo, files), "it is a field")
+
+
+# ---- the alias of `this`: one name, declared from the instance, never another value -------------------------------------------------
+
+NOT_THE_INSTANCE = {
+    "a01 reassigned to another object": f"let self = this; self = other; self.m = {FN};",
+    "a02 an arrow parameter named like the alias": f"const self = this; const f = (self) => {{ self.m = {FN}; }}; f(other);",
+    "a03 the this of an inner function": f"function f() {{ const that = this; that.m = {FN}; }} f.call(other);",
+    "a06 a block that shadows the alias": f"const self = this; {{ const self = other; self.m = {FN}; }}",
+    "a07 the this of a nested class": "class I { constructor() { const s = this; s.m = 1; } } new I();",
+    "an alias read outside the block that declares it": f"{{ const other = this; }} other.m = {FN};",  # `other` there is the module's
+    "a catch parameter of the same name": f"const self = this; try {{}} catch (self) {{ self.m = {FN}; }}",
+    "an alias destructured into": f"let self = this; [self] = [other]; self.m = {FN};",
+    "an alias that a for loop assigns": f"let self = this; for (self of [other]) self.m = {FN};",
+}
+
+
+@pytest.mark.parametrize("body", list(NOT_THE_INSTANCE.values()), ids=list(NOT_THE_INSTANCE))
+def test_a_write_through_a_name_that_may_not_be_the_instance_is_not_a_write_to_the_instance(make_repo, body):
+    # Node: ORIGINAL in each, and main drew the right edge, so an unresolved here would be a lost right edge with an untrue reason
+    source = f"const other = {{}};\nexport class C {{ constructor() {{ {body} }} m() {{ return 'ORIGINAL'; }} }}\n"
+    assert_edge(answer(make_repo, {"c.js": source, "main.js": MAIN}))
+
+
+def test_a_name_that_is_the_instance_and_nothing_else_still_is(make_repo):
+    # Node: REPLACED in each
+    for body in (
+        f"const self = this; self.m = {FN};",
+        f"let self = this; self.m = {FN};",
+        f"var self = this; self.m = {FN};",
+        f"let that; that = this; that.m = {FN};",
+        f"const self = this; function f() {{ self.m = {FN}; }} f();",
+        f"const self = this, other = 1; self.m = {FN};",
+        f"const a = this; const b = a; b.m = {FN};",
+        f"const self = this; Object.assign(self, {{ m: {FN} }});",
+    ):
+        assert_unresolved(class_answer(make_repo, f"constructor() {{ {body} }} {M}"))
+
+
+def test_a_bound_method_through_an_alias_hides_nothing_as_through_this(make_repo):
+    # Node: ORIGINAL; `self.m = self.m.bind(self)` is the method itself, bound
+    assert_edge(class_answer(make_repo, f"constructor() {{ const self = this; self.m = self.m.bind(self); }} {M}"))
+    assert_edge(class_answer(make_repo, f"constructor() {{ this['m'] = this['m'].bind(this); }} {M}"))
+    # ACCEPTED-LIMIT: a write through a name that is not a plain `const x = this` (a destructured or defaulted one) is not read, so the
+    # edge stays; Node prints REPLACED for both (the reviewer's w07 and w08). Not the right answer.
+    assert_edge(class_answer(make_repo, f"constructor() {{ const [self] = [this]; self.m = {FN}; }} {M}"))
+    assert_edge(class_answer(make_repo, f"constructor(self = this) {{ self.m = {FN}; }} {M}"))
+
+
+# ---- writes in the class body that Node shows replace the method --------------------------------------------------------------------
+
+BODY_WRITES = {
+    "d18 static { this.prototype.m = f }": f"static {{ this.prototype.m = {FN}; }}",
+    "d19 static { C.prototype.m = f }": f"static {{ C.prototype.m = {FN}; }}",
+    "d19 C.prototype['m'] in a static block": f"static {{ C.prototype['m'] = {FN}; }}",
+    "d22 static { Object.defineProperty(this.prototype, 'm') }": "static { Object.defineProperty(this.prototype, 'm', { value() { return 'REPLACED'; } }); }",
+    "Object.assign(this.prototype, { m }) in a static block": f"static {{ Object.assign(this.prototype, {{ m: {FN} }}); }}",
+    "Reflect.set(C.prototype, 'm', f) in a static block": f"static {{ Reflect.set(C.prototype, 'm', {FN}); }}",
+    "d20 C.prototype.m = f in the constructor": f"constructor() {{ C.prototype.m = {FN}; }}",
+    "C.prototype.m = f in an instance method": f"init() {{ C.prototype.m = {FN}; }}",
+    "d21 a static method writing this.prototype.m": f"static patch() {{ this.prototype.m = {FN}; }}",
+    "a static field initializer": f"static x = (C.prototype.m = {FN});",
+    "this.prototype.m = f in an arrow in a static block": f"static {{ const f = () => {{ this.prototype.m = {FN}; }}; f(); }}",
+    "w01 ({ m: this.m } = o)": f"constructor() {{ ({{ m: this.m }} = {{ m: {FN} }}); }}",
+    "w01 a rest element and a default": f"constructor() {{ ({{ k = 1, ...this.m }} = {{ a: 1 }}); }}",
+    "w02 [this.m] = [f]": f"constructor() {{ [this.m] = [{FN}]; }}",
+    "w02 [, this.m = 1] = []": "constructor() { [, this.m = 1] = []; }",
+    "w03 for (this.m of [f]) ;": f"constructor() {{ for (this.m of [{FN}]); }}",
+    "w03 for (this.m in o) ;": "constructor() { for (this.m in { a: 1 }); }",
+    "this.m += 1": "constructor() { this.m += 1; }",
+    "this.m++": "constructor() { this.m++; }",
+    "w06 Object.assign(this, { ...{ m: f } })": f"constructor() {{ Object.assign(this, {{ ...{{ m: {FN} }} }}); }}",
+    "a destructuring write through an alias": f"constructor() {{ const self = this; [self.m] = [{FN}]; }}",
+}
+
+
+@pytest.mark.parametrize("member", list(BODY_WRITES.values()), ids=list(BODY_WRITES))
+def test_a_write_inside_the_class_body_that_replaces_the_method_is_not_an_edge(make_repo, member):
+    # Node: `new C().m()` prints REPLACED, or throws because m is now a string, a number or an object (the `+=`, `++`, rest, default
+    # and `for (... in ...)` forms), once the member has run (a constructor, a static block and a static field run at once; `init()`
+    # and `patch()` when called). Either way the declared method is not what runs.
+    assert_unresolved(class_answer(make_repo, f"{M} {member}"))
+    assert_unresolved(class_answer(make_repo, f"{member} {M}"))
+
+
+def test_super_m_assigned_in_the_constructor_is_a_write_on_the_instance(make_repo):
+    # Node: REPLACED (w05). `super.m = f` sets m on `this`
+    files = {"c.js": f"class B {{}}\nexport class C extends B {{ constructor() {{ super(); super.m = {FN}; }} {M} }}\n", "main.js": MAIN}
+    assert_unresolved(answer(make_repo, files))
+
+
+def test_the_prototype_rules_read_only_this_in_a_static_member_and_the_class_own_name(make_repo):
+    # Node: ORIGINAL in each. A prototype of another class, a value, a name other than the class's own, a function with a `this` of
+    # its own, a different property name and a static write that is not on the prototype are not a write to the class's own prototype.
+    # (`this.prototype.m = f` in an instance member throws in Node: the instance has no `prototype`, so it is no replacement either.)
+    for member in (
+        f"constructor() {{ Other.prototype.m = {FN}; }}",
+        f"static patch() {{ this.other.prototype.m = {FN}; }}",
+        f"static {{ this.prototype.q = {FN}; C.prototype.q = {FN}; }}",
+        f"constructor() {{ function f() {{ this.prototype.m = {FN}; }} }}",
+        f"static patch() {{ function f() {{ this.prototype.m = {FN}; }} }}",
+        f"static {{ this.m = {FN}; }}",
+    ):
+        assert_edge(class_answer(make_repo, f"{M} {member}", prefix="class Other {}\n"))
+
+
+def test_a_prototype_write_in_the_body_is_the_prototype_the_subclass_inherits(make_repo):
+    # Node: REPLACED for `new D().m()` where D inherits it; D's own m runs when D declares one
+    base = f"class C {{ {M} static {{ C.prototype.m = {FN}; }} }}\n"
+    assert_unresolved(answer(make_repo, {"c.js": base + "export class D extends C {}\n", "main.js": D_MAIN}))
+    assert_edge(answer(make_repo, {"c.js": base + "export class D extends C { m() { return 'D'; } }\n", "main.js": D_MAIN}), "c:D.m")
+
+
+def test_a_static_block_that_gives_the_prototype_another_prototype_leaves_no_inherited_method_provable(make_repo):
+    # Node: `new C().m()` prints SWAP, for the m that C inherits from B (`Object.setPrototypeOf(this.prototype, ...)` swaps what C
+    # inherits). A method C declares itself keeps running (Node: ORIGINAL), and ripple still says unresolved for it: the flag is
+    # class-wide, so that is a lost right edge, not a correct answer.
+    source = f"class B {{ {M} }}\nexport class C extends B {{ static {{ Object.setPrototypeOf(this.prototype, {{ m() {{ return 'SWAP'; }} }}); }} }}\n"
+    assert_unresolved(answer(make_repo, {"c.js": source, "main.js": MAIN}), "a static block")
+    assert_unresolved(class_answer(make_repo, f"{M} static {{ Object.setPrototypeOf(this.prototype, {{ m: {FN} }}); }}"), "a static block")
+
+
+# ---- the names the facts are kept under cannot be spelled by the source -------------------------------------------------------------
+
+def test_a_member_named_like_an_internal_flag_is_only_a_member(make_repo):
+    # Node: ORIGINAL (s05, s06): these were the keys of the flags that `names` once held
+    assert_edge(class_answer(make_repo, f"'<constructor may return another object>' = 1; {M}"))
+    assert_edge(class_answer(make_repo, f"'<instance may be given another prototype>'() {{}} {M}"))
+
+
+# ---- the parameter property is a field at ES2022, and a field hides a derived accessor ---------------------------------------------
+
+def test_a_typescript_parameter_property_hides_a_derived_accessor_as_a_field_does(make_repo):
+    # Node (--experimental-transform-types) and tsc at ES2022 emit `m;` and then `this.m = m`: a defined own property, so the derived
+    # getter never runs (p01: PARAM). tsc below ES2022 emits only the assignment, which calls the setter: that target would keep its
+    # edge, and here it is unresolved, the safe direction.
+    main = "import { D } from './c';\nconst d = new D();\nconsole.log(d.m.go()); // CALL\n"
+    for base in ("class B { constructor(public m: any = { go: () => 'PARAM' }) {} }", "class B { m: any = { go: () => 'FIELD' }; }"):
+        source = f"class H {{ go() {{ return 'HELPER'; }} }}\n{base}\nexport class D extends B {{ get m(): H {{ return new H(); }} set m(v: any) {{}} }}\n"
+        graph = ts_graph(make_repo, {"c.ts": source, "main.ts": main})
+        assert not [e for e in graph.edges if e.callee in ("c:D.m", "c:H.go")]
+        assert any(u.file == "main.ts" and "may be hidden by an own property of base class c:B" in u.reason for u in graph.unresolved)

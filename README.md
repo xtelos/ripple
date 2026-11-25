@@ -321,17 +321,34 @@ through one is unresolved with its reason, never an edge. That includes an ES im
 
 **An edge to an instance method means the class's own body gives that method.** `new C().m()`, a call on a value that is known to be
 a `C`, and `this.m()` are an edge to `C.m` when the class body in the file ripple reads says nothing else about `m`. When the body does,
-the call is unresolved, with the reason. The body says something else when the constructor or any method gives the instance its own
-`m` (`this.m = f`, `this['m'] = f`, `Object.assign(this, { m })`, `Object.defineProperty(this, 'm', ...)`, `Object.defineProperties`,
-`Reflect.set` and `Reflect.defineProperty`, written through `this`, through the `this` of an arrow function, or through a name that
-holds `this`), when a field is named `m` (`m = f`, `'m' = f`, `['m'] = f`), when a base class does either of those to every instance,
-when a constructor may return another object (`return { m }`, `return new Proxy(this, ...)`, any `return` that is not `this` or a
-primitive, in the class or in a base), and when a method gives the instance another prototype (`Object.setPrototypeOf(this, ...)`,
-`this.__proto__ = ...`). A member written `'m'() {}`, `['m']() {}` or `\u006d() {}` is the member `m`. When a class declares one name twice, the last declaration is the method, as in Node: it is the symbol `C.m`, with its own
-lines and its own calls, and each earlier one is a symbol of its own (`C.m#replaced1`) that nothing calls and that makes no calls, so a change to
-it selects no test. A getter and a setter of one name are one accessor, and a static `m` beside an instance `m` stays unresolved. A key that is known only when
-the code runs (`this[k] = f`, `Object.assign(this, options)`, `[k]() {}`), a write inside a function that is not an arrow, and a write
-made by a function that is handed `this` (`install(this)`) are not read, so the edge stays.
+the call is unresolved, with the reason. The body says something else when:
+- the constructor, a method, an accessor or a field initializer gives the instance its own `m`: `this.m = f`, `this['m'] = f`, `this.m += 1`,
+  `this.m++`, a destructuring assignment into `this.m` (`({ m: this.m } = o)`, `[this.m] = xs`), `for (this.m of xs)`, `super.m = f`,
+  `Object.assign(this, { m })` (also `{ ...{ m } }`), `Object.defineProperty(this, 'm', ...)`, `Object.defineProperties`, `Reflect.set` and
+  `Reflect.defineProperty`, written through `this`, through the `this` of an arrow function, or through a name that is the instance's
+  `this` and nothing else (one `const`, `let` or `var` that only ever holds `this`, read inside its own scope);
+- a field is named `m` (`m = f`, `'m' = f`, `['m'] = f`). A TypeScript `declare` or `abstract` field and a static field are no instance
+  property, and a parameter property is a field;
+- a base class does either of those to every instance, whether or not it also declares `m` itself. The reason says what the base's body
+  shows: a field, or the constructor or a method that writes it;
+- the class writes `m` on its own prototype: `C.prototype.m = f`, with `C` the class's own name, anywhere in its body, or
+  `this.prototype.m = f` in a static method, a static block or a static field initializer (also `Object.defineProperty`, `Object.assign`,
+  `Reflect.set` and `Reflect.defineProperty` on either);
+- a constructor may return another object (`return { m }`, `return new Proxy(this, ...)`, any `return` that is not `this` or a
+  primitive), in the class or in a base;
+- a method, the constructor or a static block gives the instance, or the class's own prototype, another prototype
+  (`Object.setPrototypeOf(this, ...)`, `this.__proto__ = ...`, `Object.setPrototypeOf(this.prototype, ...)`).
+
+A member written `'m'() {}`, `['m']() {}` or `\u006d() {}` is the member `m`. When a class declares one name twice, the last declaration is
+what the class ends up with, as in Node: a later method replaces everything before it, and a later getter replaces an earlier method and an
+earlier getter. The last one is the symbol `C.m`, with its own lines and its own calls, and each earlier one is a symbol of its own
+(`C.m#replaced1`) that nothing calls and that makes no calls, so a change to it selects no test. A getter and a setter of one name are one
+accessor, and a static `m` beside an instance `m` stays unresolved.
+
+Not read, so the edge stays: a key that is known only when the code runs (`this[k] = f`, `Object.assign(this, options)`, `[k]() {}`), a
+write inside a function that is not an arrow, a write through a name that is not one plain `const x = this` (a destructured or defaulted
+name, one that is declared twice, written another value or shadowed), a write made by a function that is handed `this` (`install(this)`),
+and a write to a prototype that is not `C.prototype` with the class's own name or `this.prototype` in a static member.
 
 **Ripple does not detect a replacement from outside the class body.** An instance-method edge is drawn without proof that no other
 code replaces the method, and no rule looks for that code. In each of these families Node runs the replacement and ripple still draws the
