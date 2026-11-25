@@ -1185,9 +1185,14 @@ def test_a_file_that_clashes_by_extension_gets_an_id_of_its_own_and_is_listed(ma
             "a.ts": "export function foo() {}\n",
             "a.tsx": "export function foo() {}\n",
             "main.ts": "import { foo } from './a';\nexport function m() { foo(); }\n",
+            "named.ts": "import { foo } from './a.ts';\nexport function n() { foo(); }\n",
         },
     )
-    assert edges(graph) == {("main:m", "a:foo")}
+    # `./a` is unresolved: tsc and Vite take a.ts, esbuild (.tsx before .ts) takes a.tsx. `./a.ts` names the file in every tool, so
+    # the edge to the id the clash left to a.ts is shown through it
+    assert edges(graph) == {("named:n", "a:foo")}
+    reasons = [u.reason for u in graph.unresolved if u.file == "main.ts"]
+    assert len(reasons) == 1 and "`./a` names a.ts to the compiler and a.tsx to esbuild" in reasons[0], reasons
     assert graph.symbols["a:foo"].file == "a.ts" and graph.symbols["a.tsx:foo"].file == "a.tsx"
     assert graph.parse_errors == ["a.tsx"]
 
