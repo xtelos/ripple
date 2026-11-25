@@ -8,8 +8,9 @@ directory (GRADLE_USER_HOME is set for every run) and no daemon is started (the 
 KNOWN TO PASS ON: Gradle 9.9.1 with JDK 21.0.13. Nothing here has run on another Gradle: the listener API and the way
 Gradle ends a suite when the test JVM stops were read from 9.9.1.
 
-RIPPLE_REQUIRE_LIVE_GRADLE=1 turns the skip into a failure, for a job that is meant to run these (no CI job sets it: whether
-live Gradle tests run in CI costs minutes per job and is not decided here).
+RIPPLE_REQUIRE_LIVE_GRADLE=1 turns the skip into a failure, for a job that is meant to run these: the CI jobs that install the
+java extra set it, after ci/warm-gradle.sh installed the Gradles and the homes (see .github/workflows/ci.yml). The one test that
+points a wrapper at a distribution takes the zip from RIPPLE_TEST_GRADLE_DIST, else gradle-*-bin.zip under /tmp/gradle-toolchain/dl.
 
 What these pin, each against real Gradle: a test JVM that stops (every shape measured) is never a pass; the suites a real
 project is made of (parameterized, nested, inherited, dynamic, templated, display-named, disabled and assumed tests, a base
@@ -514,9 +515,9 @@ def test_an_ordinary_project_gets_none_of_these_notes(tmp_path):
 
 def test_the_repos_own_wrapper_is_preferred_and_runs(tmp_path):
     repo = project(tmp_path, "shop")
-    dist = next(iter(sorted(glob.glob("/tmp/gradle-toolchain/dl/gradle-*-bin.zip"))), None)
+    dist = os.environ.get("RIPPLE_TEST_GRADLE_DIST") or next(iter(sorted(glob.glob("/tmp/gradle-toolchain/dl/gradle-*-bin.zip"))), None)
     if dist is None and REQUIRED:
-        pytest.fail("RIPPLE_REQUIRE_LIVE_GRADLE=1 but there is no Gradle distribution zip (gradle-*-bin.zip under /tmp/gradle-toolchain/dl) to point a wrapper at")
+        pytest.fail("RIPPLE_REQUIRE_LIVE_GRADLE=1 but there is no Gradle distribution zip (set RIPPLE_TEST_GRADLE_DIST, or gradle-*-bin.zip under /tmp/gradle-toolchain/dl) to point a wrapper at")
     if dist is None:
         pytest.skip("no Gradle distribution zip to point a wrapper at")
     made = subprocess.run(
