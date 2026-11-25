@@ -28,8 +28,10 @@ outside the repo) is a note that names it, unless it was asked for by name. Two 
 
 This is a runner for checker.py: `run(repo, tests, timeout)` returns the keys of the generic check (passed,
 exit_code, timed_out, duration_s, command, summary, failures, failure_count) plus `problems` (why a run is
-not a clean pass), `counts` and `notes`. checker.RUNNERS names it. Gradle is not read here (see
-`choose_tool`): a repo with only Gradle files is refused with the command to pass instead.
+not a clean pass), `counts` and `notes`. checker.RUNNERS names it. Which build tool a repo has is
+decided once, by `build_tool`: a repo with only Gradle files at the root goes to gradle_check.py (same contract, the
+verdict read from what Gradle's own test listener records), one with a pom.xml and Gradle files both is refused (ripple does not
+guess which build is the repo's), and one with a pom.xml (or none: refused for that) is run here.
 """
 
 from __future__ import annotations
@@ -954,19 +956,32 @@ def choose_tool(repo: Path) -> list[str]:
     return [found]
 
 
+GRADLE_FILES = ("build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts")
+
+
+def gradle_files(repo: Path) -> list[str]:
+    """The Gradle build files at the repository root, by name."""
+    return [n for n in GRADLE_FILES if (repo / n).exists()]
+
+
 def check_build_files(repo: Path) -> None:
-    """Refuse a repo ripple cannot tell how to run: both Maven and Gradle at the root, or Gradle alone."""
-    gradle = [n for n in ("build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts") if (repo / n).exists()]
+    """Refuse a repo ripple cannot tell how to run: both Maven and Gradle at the root."""
+    gradle = gradle_files(repo)
     if (repo / "pom.xml").exists() and gradle:
         raise ValueError(
             f"pom.xml and {gradle[0]} are both at the repository root, so ripple cannot tell which build is the repo's: "
             "pass the command that runs the tests (`--test-command`, for example `mvn -B test` or `./gradlew test`)"
         )
-    if gradle:
-        raise ValueError(
-            f"{gradle[0]} is at the repository root but ripple runs only Maven for Java: pass the command that "
-            "runs the tests (`--test-command`, for example `./gradlew test`)"
-        )
+
+
+def build_tool(repo: Path) -> str:
+    """"gradle" for a root with Gradle files and no pom.xml, else "maven". A root with both is refused (check_build_files).
+
+    The one place that decides, so `normalize` and `run` can never disagree about it: Maven's own rules (a pom.xml at
+    the root, or the refusal that says there is none) apply to everything that is not a Gradle-only root.
+    """
+    check_build_files(repo)
+    return "gradle" if gradle_files(repo) else "maven"
 
 
 def hazards(repo: Path, environ: dict[str, str] | None = None) -> list[str]:
@@ -1039,6 +1054,10 @@ def normalize(repo: Path, tests: list[str]) -> list[str]:
     is left for the checks that follow to refuse or accept. An id that is Java-shaped and does not resolve, or
     is malformed, or matches two files (the same class in two modules), is refused here with the reason.
     """
+    if tests and build_tool(repo) == "gradle":
+        from . import gradle_check
+
+        return gradle_check.normalize(repo, tests)
     result = []
     project = None
     for given in tests:
@@ -1834,7 +1853,7 @@ def _check_extra(invocation: Invocation, run: Run, notes: list[str], label: str)
 
 
 @contextlib.contextmanager
-def repo_lock(repo: Path, timeout: float):
+def repo_lock(repo: Path, timeout: float, builds: str = "Maven runs in one target/"):
     """Hold the repository's check lock, waiting up to `timeout` seconds for it. Raises ValueError when another check holds it.
 
     Two Maven runs writing one target/ at once cannot be told apart by the snapshot that picks a run's reports out, so
@@ -1863,7 +1882,7 @@ def repo_lock(repo: Path, timeout: float):
                 if time.monotonic() >= deadline:
                     raise ValueError(
                         "another check is running in this repository (ripple runs one at a time per repository, "
-                        "because two Maven runs in one target/ cannot be told apart): try again when it is done"
+                        f"because two {builds} cannot be told apart): try again when it is done"
                     ) from None
                 time.sleep(0.05)
         yield
@@ -1875,7 +1894,10 @@ def run(repo: Path, tests: list[str] | None, timeout: float) -> dict:
     """Run the Java tests asked for (or the whole build's), and judge the reports. Raises ValueError for a request it cannot make."""
     repo = repo.resolve()
     check_tests(repo, tests or [])
-    check_build_files(repo)
+    if build_tool(repo) == "gradle":
+        from . import gradle_check
+
+        return gradle_check.run(repo, tests, timeout)
     project = find_project(repo)
     wants = parse_wants(repo, project, tests or [])
     invocations = plan(project, wants)

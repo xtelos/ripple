@@ -1,0 +1,27 @@
+{
+  "request": [
+    "com.acme.shop.CartTest2.discounts",
+    "com.acme.shop.CartTest2.refunds"
+  ],
+  "calls": [
+    {
+      "kind": "model",
+      "exit": 0
+    },
+    {
+      "kind": "run",
+      "exit": 0
+    }
+  ],
+  "recorded_verdict": {
+    "passed": false,
+    "summary": "2 passed, 0 failed, 2 skipped in 1 test class",
+    "problems": [
+      "src/test/java/com/acme/shop/CartTest2.java::CartTest2.refunds: skipped or disabled, so it did not run"
+    ],
+    "failures": [],
+    "notes": [
+      "2 tests skipped or disabled, so not run"
+    ]
+  }
+}

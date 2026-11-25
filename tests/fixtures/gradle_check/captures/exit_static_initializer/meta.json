@@ -1,0 +1,18 @@
+{
+  "request": [],
+  "calls": [
+    {
+      "kind": "run",
+      "exit": 0
+    }
+  ],
+  "recorded_verdict": {
+    "passed": false,
+    "summary": "0 passed, 0 failed, 0 skipped in 0 test classes",
+    "problems": [
+      ":test: Gradle ended 2 suites SKIPPED without finishing it (com.acme.shop.AaaExitTest, Gradle Test Executor 1): the test JVM stopped there (System.exit, Runtime.halt), so what ran after it never ran",
+      ":test executed and ran no test: Gradle found none to run in it (a module with JUnit 5 tests and no `useJUnitPlatform()`, or `failOnNoDiscoveredTests = false`), so nothing in it was checked"
+    ],
+    "failures": []
+  }
+}

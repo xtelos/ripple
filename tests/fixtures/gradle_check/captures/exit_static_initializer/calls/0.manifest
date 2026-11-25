@@ -1,0 +1,12 @@
+{"event":"init","gradle":"9.9.1"}
+{"event":"graph","gradle":"9.9.1","projects":[{"path":":","dir":"@REPO@","sourceSets":[{"name":"main","java":["@REPO@/src/main/java"],"classes":["@REPO@/build/classes/java/main"]},{"name":"test","java":["@REPO@/src/test/java"],"classes":["@REPO@/build/classes/java/test"]}],"tests":[{"name":"test","path":":test","enabled":true,"ignoreFailures":false,"scheduled":true,"include":[],"exclude":[],"filterIncludes":[],"filterExcludes":[],"commandLine":[],"classesDirs":["@REPO@/build/classes/java/test"],"tagsIncluded":[],"tagsExcluded":[]}]}]}
+{"event":"task","path":":compileJava","test":false,"executed":true,"skipMessage":null,"failure":null}
+{"event":"task","path":":processResources","test":false,"executed":true,"skipMessage":"NO-SOURCE","failure":null}
+{"event":"task","path":":classes","test":false,"executed":true,"skipMessage":null,"failure":null}
+{"event":"task","path":":compileTestJava","test":false,"executed":true,"skipMessage":null,"failure":null}
+{"event":"task","path":":processTestResources","test":false,"executed":true,"skipMessage":"NO-SOURCE","failure":null}
+{"event":"task","path":":testClasses","test":false,"executed":true,"skipMessage":null,"failure":null}
+{"event":"suite","task":":test","name":"com.acme.shop.AaaExitTest","cls":"com.acme.shop.AaaExitTest","level":2,"result":"SKIPPED","tests":0,"ok":0,"failed":0,"skipped":0,"ms":424,"assumed":false,"error":null}
+{"event":"suite","task":":test","name":"Gradle Test Executor 1","cls":null,"level":1,"result":"SKIPPED","tests":0,"ok":0,"failed":0,"skipped":0,"ms":1027,"assumed":false,"error":null}
+{"event":"suite","task":":test","name":"Gradle Test Run :test","cls":null,"level":0,"result":"SUCCESS","tests":0,"ok":0,"failed":0,"skipped":0,"ms":2340,"assumed":false,"error":null}
+{"event":"task","path":":test","test":true,"executed":true,"skipMessage":null,"failure":null}
