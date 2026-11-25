@@ -363,7 +363,29 @@ and a specifier written with an escape sequence (not decoded: `'\x2fabs/x'` is `
 TypeScript alike, because where the repo is on a machine is not known. A bare alias with a trailing slash (`import 'lib/'`
 under `baseUrl: "src"`) names the directory to the compiler and to Node's require (its index file) and the file of that name to
 a bundler (esbuild), so it is unresolved when `lib.js`, `lib.json` or another file a resolver adds an extension to is there, and
-keeps the index edge when only `lib/index.js` is. A call through `exports`, `module` or `require` followed by a member (`exports.f()`, `module.exports.f()`,
+keeps the index edge when only `lib/index.js` is. Without the slash (`lib` or `./lib`) a `lib.json` beside `lib/index.js` is
+the file Node's require, Vite and esbuild take (they add `.json` before they enter the directory, and tsc adds no extension for
+JSON), so the import is unresolved with a reason that names `lib.json`. A `paths` list is read the same way: a bundler takes the first target that holds a file for the path, so when an earlier target
+holds one that the walk does not read (code in `node_modules`, `dist` or a hidden directory: `"*": ["node_modules/*", "src/*"]` with
+`node_modules/foo/index.js` and `src/foo.js`), or a file a bundler takes and the compiler does not (`x.json` or `x.css` beside it, the target
+itself written as `a/x.json`, or an `index.json` or `index.css` in a directory of that name), and a later one holds the code, the import is
+unresolved and its reason names the earlier file. An earlier target that holds nothing for the path keeps the later edge, and a file the
+walk reads is left to the compiler's order (its TypeScript pass runs over every target before its JavaScript one). `./data` beside `data.json` and nothing else is the data file, a package as `./data.json` is, not a missing path; a `data.json` that is a
+link to code of the repo is the code it leads to (Node, esbuild and Vite load it by the real path), so it is unresolved, as is a file with no
+extension (`./data` where `data` is a file: Node, esbuild and Vite load it as JavaScript, which webpack's asset rule does not). Two more
+files a resolver adds an extension to leave the answer open: `./x` beside `x.node` (Node's require may load the native addon, a bundler
+cannot resolve it, and it is beside `x/index.js` too) and `./data` beside `data.css` (esbuild may bundle it, Node throws) are unresolved
+with a reason that names the file, never missing; `x.json` beside `x.node` is the data file, a package. For a bare name that is a Node
+builtin (`events`) every reason says only that a file of the repo may be taken for it (Node loads the builtin), and for any bare name a
+reason names only tools that reach the file through the config (esbuild and the compiler read `baseUrl` and `paths`, Vite needs a plugin,
+Node's require reaches it only through `NODE_PATH`, which it searches after `node_modules`). A file with no extension beside a code file of
+its name (`src/data` and `src/data.js`) is unresolved too: Node's require, esbuild and Vite take the path as written, tsc the code file. An
+extensionless import is unresolved when the
+tools name different code files: Vite and Rollup try `.mjs .js .mts .ts .jsx .tsx .json`, esbuild `.tsx .ts .jsx .js .css .json`, and Node's
+require (for a JavaScript importer, in the file and in the directory's index alike) `.js .json .node`, so `lib.jsx` beside `lib.js` (esbuild
+takes `lib.jsx`), `lib.ts` beside `lib.tsx` (esbuild takes `lib.tsx`) and `index.jsx` beside `index.json` (Node's require takes the JSON) name
+no one file. Not modelled: esbuild's refusal to add `.mjs`, `.mts`, `.cjs` and `.cts` (`lib.mjs` alone), and Node's require loading any
+other extension (`./data.txt`) as JavaScript, which keeps a written file of an extension no tool reads as code a package. A call through `exports`, `module` or `require` followed by a member (`exports.f()`, `module.exports.f()`,
 `require.main.exports.f()`, `new exports.C()`, `<exports.C />`, `process.mainModule.exports.f()`, `require.resolve(...)`)
 reaches the modules' own objects (this file's exports, the loader, the entry module), which ripple does not follow, so in a
 JavaScript or TypeScript file it is unresolved and never counted as outside the repo. Only a declaration of the name that gives
@@ -371,7 +393,7 @@ it a value of its own makes it that value (a parameter, `var`, `let`, `const`, `
 block around the call or at the top of the file): a bare assignment (`exports = new K()`) does not, since the name holds the
 module's own object until the assignment runs, a `var` at the top of the file does not for the same reason (in a CommonJS
 file it redeclares the parameter Node runs the file with), and at the top of the file an `enum`, a `namespace` and
-`import x = require()` do not either. Inside a function or block, what exists at run time decides: an `enum` and a `namespace` that holds a
+`import a = N.M` do not either (`import process = require('./x')` does, as `const process = require('./x')` does). Inside a function or block, what exists at run time decides: an `enum` and a `namespace` that holds a
 value are bindings of their block (or of the function, at its top level), so the call is unresolved with the reason that the name is
 declared there (a `const enum` is erased by tsc and kept by Node's transform and by esbuild, so that is not known either), while an
 `interface`, a type alias, anything after `declare` and a namespace of types only exist in no form, hide nothing, and leave the call a
@@ -385,6 +407,20 @@ from `process` or `node:process` reach the entry module. `globalThis.module`, `g
 reach anything in a file Node runs (they are parameters of the file's wrapper function, so the call throws) unless code of the repo stores a module
 object on the global object, so they are unresolved with a reason that says that. A `globalThis` or `global` that a declaration gives a
 value of its own (a parameter, `let`, `const`, a top-level `var`, an import) is that value, and the call is read as written.
+`process` that a repo module re-exports (`export { default } from 'process'`, `export { mainModule as pm } from 'process'`,
+`export * from 'process'`) reaches the importing file with the chain intact: when the chain ends at Node's `process` or its
+`mainModule` and the next step is `mainModule` or a member of it (`p.mainModule.exports.f()`, `pm.exports.f()`, which run the entry
+module's `f`), the call is unresolved, with a reason that says so; another member of `process` (`p.cwd()`) stays outside the repo, and
+a repo export that is merely called `mainModule` keeps its edge. `import a = N.M` binds
+`a`, so a call through it, even when `a` is called `process`, is unresolved and never outside the repo. So does an `enum`, or a namespace
+that holds a value, at the top of the file: `enum process {}` then `process.cwd()` is the repo's `process` (a namespace of types only and
+anything after `declare` emit nothing, and the name stays Node's). `import x = require('./x')` is read as `import * as x from './x'`
+is, a package stays a package, and `import process = require('process')` stays Node's `process`. It binds only at the top level of a
+TypeScript file: in a `.js` file, a namespace, a block or a function body the language rejects it, and nothing is bound. An
+`import globalThis = N.M` (or `global`) hides the global object, as a `var` of the name does. A class declared beside another
+declaration of its name in the same block, function, switch or file (a second class, `let`, `const`, a function, a `var` written in it
+or in a block of it, or a parameter) is a SyntaxError when Node runs it as JavaScript (tsc emits the same text, and reports most of
+these as a duplicate identifier), so a call through that name is unresolved and has no edge to the class. A class beside an interface, or one that a namespace of the same name follows, is a legal merge and is read as before.
 
 **The two languages do not follow each other.** A TypeScript file that imports a `.js` file (or the reverse, through a relative
 path, `baseUrl` or `paths`) has an unresolved call with the reason "names src/x.js, a JavaScript file, whose calls ripple does
@@ -581,8 +617,24 @@ wins. Build constraints are never evaluated: a function defined under several ha
 type, a result that the variants read differently, a method that only some builds declare (a `//go:build` line, a `_linux.go`
 name, a `_test.go` file) while another is promoted, or a method declared on an alias that is itself declared twice, is
 unresolved. A `_test.go` method counts only for a call in a `_test.go` file of the same directory (its package and its
-external `_test` package); a call in another directory's tests, whose binary links the package without its test files, runs
-the promoted method.
+external `_test` package); a call in another directory, in its tests or in a library file, whose build has the package without
+its test files, never sees it and runs the promoted method, except for a library file that a test binary of that directory may
+link (a test binary builds every package its tests import together with the directory's test files; when ripple cannot place
+an import of the tests, any package may be linked, and the declarations are kept). A function a call names by its package (`d.F()`, a dot import's
+`F()`, `d.F` read as a value, `d.G[int, string](x)`) follows the same rule: a declaration in a `_test.go` file of another
+directory is not one of the callee's, so `d.F()` in `e` draws an edge to the library `F` alone, not to a windows-only test
+file's `F` beside it. A name that only another directory's test files declare (a function, a variable, a constant or a type,
+and so a method reached through its type) names nothing for that caller: the call is left unresolved with that reason, because Go
+does not compile it. That holds on every way of writing the call: `d.Only(x)`, a dot import's `Only(x)`, a generic call
+(`Only[int](x)`, `d.Only[int](x)`), a conversion to the type (`d.T(x)`, `(*d.T)(x)`, `Box[int](x)`). It is not said when a file
+ripple could not read may declare the name, or when a dot import of a package outside the repo may bind it: the call is then
+unresolved for another reason, except that a generic call or conversion a library file writes through the name of a package with
+an unreadable file is, as before, not recorded at all. A name declared as one kind in a library file and as another in a test file is still read as one name with
+two meanings, so a call through it stays unresolved. In a directory with a file ripple could not read, a name declared in one of its `_test.go` files (an alias,
+a helper that `export_test.go` exports) is as sure for the external test package as for the package's own tests, and not
+sure for a library file or another directory's tests. Every memo is keyed on what the calling file changes about its answer
+(the declarations its build has, how a name reads in it), so a call's answer does not depend on which call was resolved
+before it.
 
 **Interface implementers, the `implements` edge.** A call `v.M()` through a repo interface stays unresolved, and also gets an
 edge of a kind of its own, `implements`, to `T.M` for each repo type `T` that provably satisfies the whole interface (`*T`'s
@@ -907,7 +959,34 @@ which impl applies), a repo trait (a blanket impl too), a provided method of a s
 with the function off, so no edge is lost that a build with the call has; on ripgrep, clap, serde, mini-redis, fd and bat no site changes. Before,
 the edge was drawn when no trait impl written for the type gave the name, which is wrong for each of those (probes `path_self_cfg` groups A and D
 and `path_self_cfg_ext`, compiled and run under each feature setting; their oracle is rust-analyzer's). The call and the function under one
-predicate, and an unconditional function, stay edges (group B). CACHE_FORMAT -42.
+predicate, and an unconditional function, stay edges (group B).
+The same rule holds for a path call into a trait impl (`assoc_traits`): the impl, or a method written in it, under a `#[cfg]` the call is not also under
+is never an edge (`CFG_UNKNOWN`). Where the impl is off the call finds another giver of the name, a foreign extension trait for one: compiled and run, a
+`#[cfg(feature = "a")] impl Tr for S` called as `S::g()` runs the impl with `a` on and `extblanket::Ext::g` (imported under `not(feature = "a")`) with it off.
+An impl with no cfg, and one the call shares its cfg with, keep the edge. The same holds for the trait's own default method that the impl does not
+override: a `#[cfg(feature = "a")]` on `fn g` in the trait, called as `S::g()` where the impl writes no `g`, is no edge (cargo: `ext-blanket` with `a` off,
+the default with it on), and is one for a call under the same cfg or an identical predicate. A conditional trait (`#[cfg] trait Tr`) is no separate path: its
+impl is conditional too, and the impl's cfg refuses the call. A trait is certainly in scope at the call only if some way to it has no hop the call can
+exist without (`Index.reach_trait`): the ways are the name's own imports in the nearest scope that has a type of that name, else its globs, else the scope
+around a block, and each hop is an import (its own `#[cfg]`, then the name in the module its path goes to, recursively, so a `pub use` re-export in
+another module is read), or a glob (then the name in its module; a glob under a `#[cfg]` is refused by the lookup before this point). A hop under a `#[cfg]` is certain only if the
+call is under the same attribute or an identical predicate. A trait that is not certainly in scope is no edge (`CFG_UNKNOWN`; the lookup of the name reads a
+conditional import as the trait, which says what the name means, not that the trait is in scope). Compiled and run: `#[cfg(feature = "a")] use m::Tr;`
+with `S::g()` runs `Tr::g` with `a` on and the foreign `Ext::g` with it off, and so do the same re-export in a prelude behind an unconditional `use
+prelude::*;` and an unconditional `use r::Tr;` of a module that re-exports `Tr` under `a` and `Ext as Tr` under `not(a)`. A value item of the trait's name
+(`fn Tr() {}` in the calling function) is not a hop: the search goes on to the scope around it. Kept edges: an unconditional `use` or glob, however many
+unconditional re-exports it goes through; a conditional hop the call is under too; one whole way that is unconditional (two globs, or an explicit `use`
+beside a glob); the trait an enclosing impl writes. Every module a path goes through is a hop too (`Index.module_hop`, each prefix of the path): one
+under a `#[cfg]` that the call is not also under is not certain, so twin modules (`#[cfg(a)] mod r` with `#[cfg(not(a))] mod r`, also by `#[path]`
+files, also nested in a conditional module) make `use r::*;` and `use r::Tr;` refused (cargo: the foreign trait runs with `a` off), and so does a single
+conditional module (an edge lost where no build without it is a program). A glob under a `#[cfg]` is refused by the lookup before this point. What is
+not read: the visibility of a re-export, and the cfg of an ancestor of a module that the path does not name.
+An impl whose header the parser could not read whole is read as unknown everywhere (`IMPL_HEADER_UNREAD`): `impl<u8> W<[u8; 2]>` declares a parameter named
+`u8`, which tree-sitter parses as an error with no generics, so ripple read `u8` as the primitive and `W::<[u16; 2]>::f()` got an edge to a trait impl where
+the inherent function runs. As a candidate, such an impl is compared with no type arguments; in its own body every path call is refused (`Self::f()`, a type
+argument written there, a first segment that may be a parameter of the header; a one-segment call to a function is not); a method call there is refused as in any
+file the parser read with errors; and an impl whose self type is a bare name (`impl<u8> Tr for u8`, a blanket impl in disguise) taints the crate's impl tables
+like an impl ripple cannot resolve. It costs the edges of an impl whose header merely has a missing node (`impl W<u8> where u8:`). CACHE_FORMAT -47.
 The type arguments of an impl and of a call are compared as the type they name (`canonical_type`): `(u8)` is `u8`, `& u8` is `&u8`, and `[u8; 4usize]`,
 `[u8; 0x4]` and `[u8; 04]` are `[u8; 4]`. Compared as written, a trait impl for `W<(u8)>` was another type than `W<u8>`, so `W::<(u8)>::f()` got an edge to
 the trait impl where the inherent function of `W<u8>` runs (group E). A type argument that is not built of primitives, tuples, arrays and references
