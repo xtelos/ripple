@@ -983,6 +983,20 @@ def test_a_subclass_that_returns_or_swaps_costs_every_this_call_in_the_base(make
 
 # ---- a setter with no getter and no method is no call target (review round 1, d06 and s01) --------------------------------------------
 
+def test_a_subclass_member_that_is_only_a_setter_is_no_override_edge(make_repo):
+    # o06. Node: `new D().go()` THROWS ("this.m is not a function"): D's `m` is an accessor with no getter, so it hides B's method, and
+    # a call of it is no call of the setter's body. The base's own m stays for a B; the setter body is no `override` target.
+    # (A getter beside the setter is not a setter alone: its def is the override edge it was.)
+    for member, overrides in (("set m(v) {}", []), ("m() { return 'D'; } set m(v) {}", []), ("set m(v) {} m() { return 'D'; }", ["c:D.m"])):
+        files = {"c.js": B_THAT_CALLS_M + f"export class D extends B {{ {member} }}\n", "main.js": "import { D } from './c.js';\nnew D().go();\n"}
+        graph = build_graph(make_repo(files), JAVASCRIPT)
+        assert sorted(e.callee for e in graph.edges if e.file == "c.js" and e.line == 1 and e.kind == "override") == overrides, member
+        assert [e.callee for e in graph.edges if e.file == "c.js" and e.line == 1 and e.kind == "call"] == ["c:B.m"], member
+    files = {"c.js": B_THAT_CALLS_M + "export class D extends B { get m() { return () => 'G'; } set m(v) {} }\n", "main.js": "import { D } from './c.js';\nnew D().go();\n"}
+    graph = build_graph(make_repo(files), JAVASCRIPT)
+    assert [e.callee for e in graph.edges if e.file == "c.js" and e.line == 1 and e.kind == "override"] == ["c:D.m"]
+
+
 def test_a_setter_alone_or_last_is_not_called_and_still_runs_on_assignment(make_repo):
     # Node: `new C().m()` throws "is not a function" for `m(){} set m(v){}` and for `set m(v){}` alone: the property has no getter
     for body in ("m() { return 'M'; } set m(v) { this._v = v; }", "set m(v) { this._v = v; }"):

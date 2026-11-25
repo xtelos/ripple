@@ -356,6 +356,9 @@ earlier getter. The last one is the symbol `C.m`, with its own lines and its own
 accessor, and a static `m` beside an instance `m` stays unresolved (Node runs the instance one, so that is a lost edge, not a right
 answer). A field of the name, before or after a method, is an own property and makes the call unresolved. A setter with no getter and no
 method (alone, or after a method it replaced) is never a call target: a call of it throws in Node, and an assignment to it still runs it.
+That holds for a subclass's member too: a subclass whose `m` is only a setter draws no `override` edge to the setter's body. The same
+rule reads Python's `@x.setter def y` under another name (a property with `x`'s getter, so `self.y()` runs what that getter gives): no edge
+to the setter's body there either, and the reason says "declared only as a setter" so that it is true in both languages.
 
 Not read, so the edge stays: a key that is known only when the code runs (`this[k] = f`, `Object.assign(this, options)`, `[k]() {}`), a
 write inside a function that is not an arrow, a write through a name that is not one plain `const x = this` (a destructured or defaulted

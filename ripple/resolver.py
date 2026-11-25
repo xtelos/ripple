@@ -432,9 +432,21 @@ class Resolver:
         owner = target.value.rsplit(".", 1)[0]
         for sub in self.all_subclasses(target.receiver):
             method = self.scopes[sub].names.get(name)
-            if sub != owner and method is not None and method.kind == "def" and not self.own_property_above(sub, method.target, name):
+            if (
+                sub != owner
+                and method is not None
+                and method.kind == "def"
+                and not self.setter_only(method.target)
+                and not self.own_property_above(sub, method.target, name)
+            ):
                 found.append((method.target, "override"))
         return found
+
+    def setter_only(self, method: str) -> bool:
+        """Whether every def of this name is an accessor that is not a getter (`set m(v) {}` alone, `@x.setter def y`): a call of the
+        name never runs the setter's body, so it is no call target. An assignment to it still runs it (see accessor_target)."""
+        scope = self.scopes[method]
+        return not scope.is_property and scope.plain_defs == 0 and scope.defs > 0
 
     # -- decorators ---------------------------------------------------------
     #
@@ -1395,9 +1407,14 @@ class Resolver:
                 below = self.replaced_below(target.value, attr)
                 if below:
                     return unknown(below)
-            if method is not None and not self.scopes[method].is_property and self.scopes[method].plain_defs == 0 and self.scopes[method].defs:
-                # `set m(v) {}` alone (or after a method it replaced): the property has no getter, so reading or calling it gives undefined
-                return unknown(f"'{attr}' is a setter with no getter or method, so a call of it throws and a read gives undefined")
+            if method is not None and self.setter_only(method):
+                # Worded to be true in both languages that reach it. JavaScript: `set m(v) {}` alone (or after a method it replaced) leaves
+                # the property no getter, so a call of it throws. Python: `@x.setter def y` under another name makes `y` a property with
+                # x's getter, so a call of it runs what that getter gives. Neither runs the setter's body.
+                return unknown(
+                    f"'{attr}' is declared only as a setter, so a call of it runs what a getter gives (and throws when there is none), "
+                    f"never the setter's body"
+                )
             if method is not None and self.scopes[method].is_property:
                 if self.return_type(method):
                     return self.value_of_type(self.return_type(method))
