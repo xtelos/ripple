@@ -1547,10 +1547,24 @@ reported as that, with Gradle's text. JUnit 4 runs through the same listener and
 a `Parameterized` class and method, and JUnit 4 tests under `useJUnitPlatform()` with no vintage engine, which is not a pass). A
 method asked for by id is passed to Gradle as `Class.method` and `Class.method[*]`, because JUnit 4 names a `Parameterized`
 invocation `method[1]` and Gradle's `--tests Class.method` does not match it. TestNG, Kotlin and Spock were not run (no jars offline). The live tests
-(`tests/test_check_gradle_live.py`, `tests/test_check_gradle_live8.py` for a Gradle 8 at `RIPPLE_TEST_GRADLE8`, and
-`tests/test_check_gradle_live_junit4.py` on both, with `RIPPLE_TEST_M2` holding JUnit 4.13.2) need a Gradle and a Gradle user home
-that has JUnit 5.11.3 (`RIPPLE_TEST_GRADLE_HOME`, `RIPPLE_TEST_GRADLE8_HOME`) and skip, with the reason, without them;
-`RIPPLE_REQUIRE_LIVE_GRADLE=1` turns that skip into a failure. No CI job runs them yet.
+(`tests/test_check_gradle_live.py` on Gradle 9.9.1, `tests/test_check_gradle_live8.py` on Gradle 8.10.2, and
+`tests/test_check_gradle_live_junit4.py` on both: 98 tests) need a JDK (17 or later), the two Gradles, a Gradle user home for
+each that has JUnit 5.11.3, and a Maven repository with JUnit 4.13.2 and hamcrest-core 1.3. Without them they skip, with the
+reason; `RIPPLE_REQUIRE_LIVE_GRADLE=1` turns that skip into a failure.
+
+`sh ci/warm-gradle.sh <install-dir> [<maven-repo-dir>]` installs all of it, and prints the variables to set: `PATH` with
+`<install-dir>/gradle-9.9.1/bin` first (the Gradle 9 modules use the `gradle` they find on `PATH`), `RIPPLE_TEST_GRADLE_HOME`,
+`RIPPLE_TEST_GRADLE8` (a `gradle` binary), `RIPPLE_TEST_GRADLE8_HOME`, `RIPPLE_TEST_M2`, and `RIPPLE_TEST_GRADLE_DIST` (the
+9.9.1 zip, which the one wrapper test points a wrapper at). Each distribution is downloaded from `services.gradle.org` and
+checked against its pinned SHA-256 before it is unpacked, and the JUnit 4 jars against theirs; a mismatch stops the script.
+The user homes are filled by one online build each, and the tests then run `--offline`. Nothing else is fetched.
+
+CI runs all of them in the jobs that install the java extra (`.github/workflows/ci.yml`), with `RIPPLE_REQUIRE_LIVE_GRADLE=1`,
+so those jobs fail if they ever skip again; the other jobs skip them. The install is a cache keyed on the versions and on the
+contents of `ci/warm-gradle.sh` and `ci/warm-gradle/`, saved right after it is filled (the tests write into the homes, so a cache
+saved after them would be large). Measured on a 16-core machine with the install already in place, the three modules take about
+20 minutes in a row (58 tests in 11.6 minutes, 22 in 3.8, 18 in 4.4); every check runs Gradle with `--no-daemon`, and a runner
+with fewer cores will take longer; `ci/warm-gradle.sh` itself takes under 2 minutes with the network on. Not run by anything: TestNG, Kotlin, Spock and the retry plugin (no jars offline, as above).
 
 Java is read by tree-sitter too, as its own optional extra (`tree-sitter` and `tree-sitter-java`):
 
