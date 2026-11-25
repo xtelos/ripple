@@ -264,6 +264,39 @@ def test_a_record_that_disagrees_with_a_nonzero_exit_is_not_a_pass(monkeypatch, 
     assert "gradle exited 1 but its record shows no failing test" in text(result)
 
 
+@pytest.mark.parametrize("code", [1, 2, 126, 137, 143, 255])
+def test_whatever_nonzero_exit_gradle_gave_a_green_record_is_not_a_pass_and_the_code_is_reported(monkeypatch, tmp_path, code):
+    """The final formula asks only for no problem and no failure, so each way of not passing has to be one: this is the exit status."""
+    result = verdict(monkeypatch, tmp_path, lambda repo: record(repo), exit_code=code, console="BUILD FAILED\n")
+    assert result["passed"] is False and result["exit_code"] == code, result
+    assert f"gradle exited {code} but its record shows no failing test" in text(result)
+
+
+def judged(tmp_path, **run_options) -> dict:
+    """gradle_check.judge on a green, whole record, with the Run altered the way a caller of `judge` can alter it."""
+    repo = project(tmp_path, "shop")
+    path = tmp_path / "record.jsonl"
+    path.write_text("\n".join(record(repo)) + "\n")
+    manifest = gradle_check.read_manifest(path)
+    run = gradle_check.Run(gradle_check.plan({}, []), "", **{"exit_code": 0, **run_options}, manifest=manifest)
+    return gradle_check.judge(repo, jc.Project([]), {}, run, "gradle test", 1.0, 60)
+
+
+def test_a_run_that_never_started_is_not_a_pass_whatever_record_is_beside_it(tmp_path):
+    result = judged(tmp_path, started=False, exit_code=None)
+    assert result["passed"] is False and "not run: the 60s limit was used up" in text(result), result
+
+
+def test_a_run_killed_for_its_time_is_not_a_pass_whatever_record_and_exit_it_has(tmp_path):
+    for code in (None, 0, -9):
+        result = judged(tmp_path / str(code), timed_out=True, exit_code=code)
+        assert result["passed"] is False and "timed out after 60s" in text(result), result
+
+
+def test_the_green_record_judged_directly_is_a_pass(tmp_path):
+    assert judged(tmp_path)["passed"] is True
+
+
 def test_a_record_with_a_failing_test_and_exit_zero_is_a_failure_with_the_failure_listed(monkeypatch, tmp_path):
     """`ignoreFailures`: Gradle says BUILD SUCCESSFUL, and the listener saw the test fail."""
     classes = {"com.acme.shop.CartTest": [("a()", "SUCCESS"), ("b()", "FAILURE")]}
@@ -324,6 +357,22 @@ def test_gradles_own_what_went_wrong_reaches_the_problems_when_a_test_task_is_th
     rows = lambda repo: [init_line(), graph(repo), task_line(":test", failure="Execution failed for task ':test'. <- Could not start Gradle Test Executor 1: out of memory")]
     result = verdict(monkeypatch, tmp_path, rows, exit_code=1, console=console)
     assert result["passed"] is False and "Could not start Gradle Test Executor 1: out of memory" in " ".join(result["problems"]), result
+
+
+def test_gradles_text_is_added_when_other_problems_exist_and_none_of_them_has_it(monkeypatch, tmp_path):
+    """A test task left out of the graph is a problem on its own; the build's failure that Gradle explains in its console is another, and is not lost behind it."""
+    repo = multi(tmp_path)
+    console = "* What went wrong:\nCould not resolve all files for configuration ':web:testRuntimeClasspath'.\n> Cannot resolve org.example:missing:1.0\n"
+
+    def script(argv, cwd, manifest):
+        lines(manifest, init_line(), core_runs_web_does_not(cwd), *listener(":core:test", {"com.acme.core.CoreTest": [("works()", "SUCCESS")]}), task_line(":core:test"))
+        return 1, console
+
+    install(monkeypatch, script)
+    result = checker.run_check(repo, tests=[], timeout=60, profile=JAVA)
+    assert result["passed"] is False, result
+    assert ":web:test was left out of the task graph" in text(result)
+    assert "gradle said: Could not resolve all files for configuration ':web:testRuntimeClasspath'" in text(result), result
 
 
 @pytest.mark.parametrize("version", ["7.6.4", "8.9", "8.0.2", "6.9"])

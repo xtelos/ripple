@@ -921,17 +921,11 @@ def judge(
         notes.append(f"{jc._plural(counts['skipped'], 'test')} skipped or disabled, so not run")
     if counts["skipped"] and not ran:
         problems.append("every test that ran was skipped, so nothing was checked")
-    passed = (
-        not problems
-        and not failures
-        and counts["failed"] == 0
-        and run.started
-        and run.exit_code == 0
-        and ran > 0
-        and manifest.graph
-        and manifest.init
-        and not run.timed_out
-    )
+    # Every way of not passing is a problem or a failure listed above, so that is all the formula asks (a term for each, such as
+    # `run.exit_code == 0` or `ran > 0`, was a check no input could reach: tests/test_check_gradle_record.py walks each
+    # one, and removing the problem it stands for fails a test). The init line is the exception: a record with no init line
+    # is a record the init script did not write, and nothing else says so.
+    passed = not problems and not failures and manifest.init
     summary = f"{counts['passed']} passed, {counts['failed']} failed, {counts['skipped']} skipped in {jc._plural(counts['classes'], 'test class')}"
     summary += "; timed out" if run.timed_out else ""
     result = {
