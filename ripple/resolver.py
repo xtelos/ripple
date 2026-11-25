@@ -59,6 +59,20 @@ EXT_INHERITED = "a method inherited from a base class outside the repo"
 EXT_SUPER = "super() into a base class outside the repo"
 EXT_INSTANCE = "a method of an instance of a class outside the repo"
 
+# Node's own `process` as the TypeScript and JavaScript front end names an import of it (`PACKAGE + specifier`, see ts_indexer.PACKAGE and
+# PROCESS_MODULES; a test keeps the two in step). A repo module that re-exports it passes it on to the files that import that module, and its
+# `mainModule` is the entry module, whose exports and loader are code of the repo: a member of it is not known to be outside the repo.
+NODE_PROCESS = ("pkg:process", "pkg:node:process")
+PROCESS_MAIN = "mainModule"
+PROCESS_REEXPORT = (
+    "the callee goes through `mainModule` of Node's `process`, reached through a re-export in a repo module: it is the entry module, whose "
+    "exports and loader are code of the repo, so it is not known to be outside the repo"
+)
+PROCESS_STAR = (
+    "`mainModule` may come from an `export *` of Node's `process` (a re-export in module {module}): it is the entry module, whose exports and "
+    "loader are code of the repo, so it is not known to be outside the repo"
+)
+
 # RawCall.special values that are an edge only when proven (see facts.RawCall).
 EFFECT_SPECIALS = ("access", "assign", "callback")
 
@@ -1290,12 +1304,26 @@ class Resolver:
             if found_here:
                 return unknown(f"'{name}' is exported by more than one `export *` of module {module}, so it is ambiguous")
             if from_package:
+                if name == PROCESS_MAIN and any(star in NODE_PROCESS for star in scope.star_imports):
+                    return unknown(PROCESS_STAR.format(module=module))  # `export * from 'process'` provides Node's mainModule
                 return external(full, EXT_IMPORT)
         if getattr(scope, "commonjs", False):
             return unknown(f"module {module} is CommonJS (it assigns module.exports or exports), which ripple does not model, so what '{name}' is there is not known")
         return unknown(f"'{name}' is not exported by module {module}")
 
     # -- attributes --------------------------------------------------------
+
+    @staticmethod
+    def is_process_main(value: str, attr: str) -> bool:
+        """Whether `value.attr` is Node's `process.mainModule` or a member of it, where `value` is a name imported from outside the repo
+        (a re-export in a repo module ends the chain there): the chain ends at Node's `process` (or its default export) and `attr` is
+        `mainModule`, or it already ends at `mainModule` and any member follows."""
+        for process in NODE_PROCESS:
+            if value in (process, f"{process}.default"):
+                return attr == PROCESS_MAIN
+            if value in (f"{process}.{PROCESS_MAIN}", f"{process}.default.{PROCESS_MAIN}"):
+                return True
+        return False
 
     def member(self, target: Target, attr: str) -> Target:
         if target.kind == "module":
@@ -1305,6 +1333,8 @@ class Resolver:
                 # x.a.b() with x from outside the repo: x.a is whatever was stored on x, which may be
                 # a repo object (threading.local holds anything), so only x.a() itself is outside.
                 return unknown("an attribute of an object from outside the repo may hold anything")
+            if target.reason == EXT_IMPORT and self.is_process_main(target.value, attr):
+                return unknown(PROCESS_REEXPORT)
             return external(f"{target.value}.{attr}", target.reason)
         if target.kind == "foreign":
             if self._building:
