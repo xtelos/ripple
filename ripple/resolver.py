@@ -1516,9 +1516,9 @@ class Resolver:
                 if facts is None:
                     continue
                 wide = wide or (
-                    f"{sub}, whose {facts.returns} may return another object"
+                    f"{sub}, where {facts.returns} may return another object"
                     if facts.returns
-                    else f"{sub}, whose {facts.swapped} may give an instance another prototype"
+                    else f"{sub}, where {facts.swapped} may give an instance another prototype"
                     if facts.swapped
                     else ""
                 )

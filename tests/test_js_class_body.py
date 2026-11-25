@@ -956,6 +956,21 @@ def test_a_subclass_that_replaces_m_makes_this_m_in_the_base_unresolved_naming_t
     assert any("subclass c:D" in u.reason for u in graph.unresolved if u.file == "c.js" and u.line == 1), graph.unresolved
 
 
+def test_the_reason_for_a_subclass_that_returns_or_swaps_reads_in_plain_words(make_repo):
+    # the flag names where the subclass does it ("the constructor", "the method init()", "a static block"), and the reason says so in a
+    # sentence that parses: "subclass c:D, where the constructor may return another object"
+    for member, words in (
+        ("constructor() { super(); return { go: B.prototype.go }; }", "subclass c:D, where the constructor may return another object"),
+        ("constructor() { super(); Object.setPrototypeOf(this, {}); }", "subclass c:D, where the constructor may give an instance another prototype"),
+        ("init() { Object.setPrototypeOf(this, {}); }", "subclass c:D, where the method init() may give an instance another prototype"),
+        ("static { Object.setPrototypeOf(this.prototype, {}); }", "subclass c:D, where a static block may give an instance another prototype"),
+    ):
+        files = {"c.js": B_THAT_CALLS_M + f"export class D extends B {{ {member} }}\n", "main.js": "import { D } from './c.js';\nnew D().go();\n"}
+        graph = build_graph(make_repo(files), JAVASCRIPT)
+        reasons = [u.reason for u in graph.unresolved if u.file == "c.js" and u.line == 1]
+        assert len(reasons) == 1 and words in reasons[0] and "whose" not in reasons[0], (member, reasons)
+
+
 def test_a_subclass_two_levels_down_and_one_in_another_file_count_too(make_repo):
     files = {
         "c.js": B_THAT_CALLS_M + "export class D extends B {}\n",
