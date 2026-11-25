@@ -823,6 +823,13 @@ SUBCLASS_REPLACES = {
     "a destructuring write": "constructor() { super(); [this.m] = [() => 'OWN']; }",
     "n03 a constructor that returns another object": "constructor() { super(); return { go: B.prototype.go, m: () => 'OTHER' }; }",  # OTHER
     "n04 a constructor that swaps the prototype": "constructor() { super(); Object.setPrototypeOf(this, { go: B.prototype.go, m: () => 'SWAP' }); }",  # SWAP
+    "n10 static { this.prototype.m = f }": "static { this.prototype.m = function () { return 'PROTO'; }; }",  # PROTO
+    "n11 declares m and writes D.prototype.m": "m() { return 'D'; } static { D.prototype.m = function () { return 'PROTO'; }; }",  # PROTO, D.m is dead
+    "n12 D.prototype.m = f in the constructor": "constructor() { super(); D.prototype.m = () => 'PROTO'; }",  # PROTO
+    "n13 Object.defineProperty(this.prototype, 'm') in a static block": "static { Object.defineProperty(this.prototype, 'm', { value: () => 'PROTO' }); }",  # PROTO
+    "Object.assign(this.prototype, { m }) in a static block": "static { Object.assign(this.prototype, { m() { return 'PROTO'; } }); }",  # PROTO
+    "a static method that writes this.prototype.m": "static patch() { this.prototype.m = () => 'PROTO'; }",  # PROTO once D.patch() has run
+    "an instance method that writes D.prototype.m": "init() { D.prototype.m = () => 'PROTO'; }",  # PROTO once init() has run
 }
 
 
@@ -845,9 +852,38 @@ def test_a_subclass_two_levels_down_and_one_in_another_file_count_too(make_repo)
     assert any("subclass e:E" in u.reason for u in graph.unresolved if u.file == "c.js")
 
 
+def test_a_prototype_write_of_a_subclass_reaches_a_sub_of_it_and_a_typed_receiver_and_names_the_subclass(make_repo):
+    # Node: PROTO for `new E().go()` (E inherits D's patched prototype) and for `f(new D())` with `f(b: B)`
+    files = {"c.js": B_THAT_CALLS_M + "export class D extends B { static { this.prototype.m = () => 'PROTO'; } }\nexport class E extends D {}\n",
+             "main.js": "import { E } from './c.js';\nnew E().go();\n"}
+    graph = build_graph(make_repo(files), JAVASCRIPT)
+    assert [e for e in graph.edges if e.callee.endswith(".m")] == []
+    assert any("subclass c:D: a static block writes it on the prototype" in u.reason for u in graph.unresolved if u.file == "c.js" and u.line == 1)
+    source = "export class B { m() { return 'B'; } }\nexport class D extends B { static { D.prototype.m = () => 'PROTO'; } }\n"
+    main = "import { B } from './c';\nexport function f(x: B) { return x.m(); } // CALL\n"
+    graph = ts_graph(make_repo, {"c.ts": source, "main.ts": main})
+    assert [e for e in graph.edges if e.file == "main.ts" and e.callee.endswith(".m")] == []
+    assert any("subclass c:D" in u.reason for u in graph.unresolved if u.file == "main.ts")
+
+
+def test_a_prototype_write_of_a_subclass_of_another_name_or_in_another_function_keeps_the_base_edge(make_repo):
+    # Node: B in each. A write to `q`, to a prototype that is not D's own (a function with a `this` of its own, another class's) is no
+    # replacement of `m`
+    for member in (
+        "static { this.prototype.q = () => 'Q'; D.prototype.q = () => 'Q'; }",
+        "static patch() { function f() { this.prototype.m = () => 'X'; } }",
+        "constructor() { super(); Other.prototype.m = () => 'X'; }",
+    ):
+        graph = build_graph(make_repo({"c.js": B_THAT_CALLS_M + f"class Other {{}}\nexport class D extends B {{ {member} }}\n", "main.js": "import { D } from './c.js';\nnew D().go();\n"}), JAVASCRIPT)
+        assert [e.callee for e in graph.edges if e.file == "c.js" and e.line == 1] == ["c:B.m"], member
+
+
 def test_an_exact_receiver_keeps_its_edge_whatever_a_subclass_does(make_repo):
     # `new B()` is a B and not a D: Node prints B
     files = {"c.js": "export class B { m() { return 'B'; } }\nexport class D extends B { m = () => 'FIELD'; }\n", "main.js": "import { B } from './c.js';\nconsole.log(new B().m()); // CALL\n"}
+    assert_edge(answer(make_repo, files), "c:B.m")
+    # and a subclass that writes its own prototype does not take it away (Node: B)
+    files = {"c.js": "export class B { m() { return 'B'; } }\nexport class D extends B { static { D.prototype.m = () => 'PROTO'; } }\n", "main.js": "import { B } from './c.js';\nconsole.log(new B().m()); // CALL\n"}
     assert_edge(answer(make_repo, files), "c:B.m")
 
 

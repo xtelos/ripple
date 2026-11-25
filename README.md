@@ -341,9 +341,11 @@ the call is unresolved, with the reason. The body says something else when:
 
 A call on a receiver that may be a subclass (`this.m()` in a base class, a value annotated with the base) is the base's `m` plus the
 subclasses' overrides, as before. A readable subclass that gives its instances an own `m` (a field such as `m = () => ...`, `this.m = f`),
-or whose constructor may return another object or give the instance another prototype, replaces `m` without declaring a method: the call is
-unresolved and the reason names the subclass. A subclass's flag of the second kind is class-wide, so it makes every `this.x()` call in its
-bases unresolved. A receiver that is exactly the base (`new B().m()`) is not affected.
+that writes `m` on its own prototype (`D.prototype.m = f` anywhere in D, `this.prototype.m = f` in a static member of D, whether or not D also
+declares an `m`), or whose constructor may return another object or give the instance another prototype, replaces `m` without declaring a
+method that runs: the call is unresolved and the reason names the subclass. A subclass that may return another object or swap the
+prototype is flagged for the whole class, so it makes every `this.x()` call in its bases unresolved. A receiver that is exactly the base
+(`new B().m()`) is not affected.
 
 A member written `'m'() {}`, `['m']() {}` or `\u006d() {}` is the member `m`. When a class declares one name twice, the last declaration is
 what the class ends up with, as in Node: a later method replaces everything before it, and a later getter replaces an earlier method and an

@@ -73,11 +73,17 @@ class InstanceFacts:
     (an assigned one calls a setter that the class below declares instead, so it hides a method but not an accessor).
     returns names who may return an object that is not an instance of the class ("the constructor"), and swapped who may give the
     instance another prototype ("the method init()", "a static block"): either makes no method of the class, or of a class below it,
-    provably what a call on an instance runs."""
+    provably what a call on an instance runs.
+
+    proto maps a property name to where the class body writes it on the class's own prototype (`C.prototype.m = f`, `this.prototype.m`
+    in a static member): "the static block", "the constructor". Every instance of the class, and of a class below it that declares no
+    `m` of its own, finds that function and not a method that a base declares, so for a receiver that may be one of them the base's
+    method is not provably what runs. The class's own binding of the name is kept apart (it stops the class's own lookup)."""
 
     own: dict = field(default_factory=dict)
     returns: str = ""
     swapped: str = ""
+    proto: dict = field(default_factory=dict)
 
 
 # Node's own `process` as the TypeScript and JavaScript front end names an import of it (`PACKAGE + specifier`, see ts_indexer.PACKAGE and
@@ -1501,6 +1507,8 @@ class Resolver:
                 )
                 for key, how in facts.own.items():
                     names.setdefault(key, f"{sub}: {how[0][1]}")
+                for key, where in facts.proto.items():
+                    names.setdefault(key, f"{sub}: {where} writes it on the prototype")
             cached = self._replaced_below[cls] = (names, wide)
         names, wide = cached
         if attr in names:

@@ -1713,10 +1713,13 @@ class FileBuilder:
             if (not assigned, how) not in entries:
                 entries.append((not assigned, how))
 
-    def _proto_write(self, cls: Scope, name: str) -> None:
+    def _proto_write(self, cls: Scope, name: str, where: str = "") -> None:
         """The class body writes `name` on its own prototype (`C.prototype.m = f`, `this.prototype.m = f` in a static member): the
-        method of that name is not the one declared, for this class and every class below it that does not declare its own."""
+        method of that name is not the one declared, for this class and every class below it that does not declare its own. A class
+        above it that declares `name` is not what a receiver that may be this class runs either, which a binding cannot say (it
+        is read from this class down), so the write is also kept as an InstanceFacts of the class (see Resolver.replaced_below)."""
         cls.bind(name, Binding("var", evidence=[unknown_ref(PROTOTYPE_WRITE)]))
+        self._facts(cls).proto.setdefault(name, where)
 
     def _replaced_members(self, members: list) -> set:
         """The tree-sitter ids of the methods and accessors of a class body that a later member of the same name (and the same
@@ -1941,7 +1944,7 @@ class FileBuilder:
             if key == "__proto__":
                 swapped()
             elif key is not None and not key.startswith("#"):
-                self._proto_write(cls, key)
+                self._proto_write(cls, key, where)
 
         def written(target, here: bool) -> None:
             target = unwrap(target)
