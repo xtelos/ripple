@@ -1011,8 +1011,33 @@ def test_a_setter_alone_or_last_is_not_called_and_still_runs_on_assignment(make_
 
 def test_a_static_accessor_is_no_setter_for_this_m_in_an_instance(make_repo):
     # Node: `new B().m()` throws "is not a function": `this.m = f` in the constructor makes an own property m (a static getter is a
-    # property of B, not of its prototype), and calling the getter's value is no call of it. The static getter must not exempt the write
-    # as an instance accessor does, or B's own m stays the static getter's def and the call is an edge to it.
+    # property of B, not of its prototype), and calling the getter's value is no call of it. This shape is unresolved with or without
+    # the guard that keeps a static accessor out of `own_accessors` (the getter has no return annotation to follow), so it does not
+    # test the guard: the next test does.
     source = f"export class B {{ static get m() {{ return 1; }} constructor() {{ this.m = {FN}; }} }}\n"
     result = answer(make_repo, {"c.js": source, "main.js": "import { B } from './c.js';\nconsole.log(new B().m()); // CALL\n"})
     assert_unresolved(result)
+
+
+STATIC_GET_M_TYPED = (
+    "export class Foo { run() { return 'FOO'; } }\n"
+    "export class C { static get m(): Foo { return new Foo(); } constructor() { this.m = { run: () => 'OWN' }; } %s}\n"
+)
+
+
+@pytest.mark.parametrize(
+    ("extra", "main"),
+    [
+        ("", "import { C } from './c.ts';\nconsole.log(new C().m.run()); // CALL\n"),  # m1g
+        ("go() { return this.m.run(); } ", "import { C } from './c.ts';\nconsole.log(new C().go());\n"),  # m1h
+    ],
+    ids=["m1g new C().m.run()", "m1h this.m.run() in a method"],
+)
+def test_a_typed_static_getter_is_not_the_instances_m_when_the_constructor_writes_this_m(make_repo, extra, main):
+    # Node (--experimental-transform-types): OWN, from the instance's own `m` that the constructor wrote. The static getter `m: Foo` is a
+    # property of the class, not of its instances. If it counted as an instance accessor, the write `this.m = ...` would be taken for a
+    # call of a setter that the class declares, no own property would be recorded, and `.m` would be read as the getter, a Foo: edges
+    # to `C.m` and `Foo.run`, both wrong. This is the input where the static guard is the only thing between that and the answer.
+    graph = ts_graph(make_repo, {"c.ts": STATIC_GET_M_TYPED % extra, "main.ts": main})
+    assert not [e for e in graph.edges if e.callee in ("c:C.m", "c:Foo.run")], [(e.file, e.line, e.callee) for e in graph.edges]
+    assert [u for u in graph.unresolved if u.text.endswith(".run")], graph.unresolved
