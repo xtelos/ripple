@@ -1638,16 +1638,34 @@ returns not passed, with Gradle's own `Unsupported class file major version 69` 
 `RIPPLE_TEST_GRADLE_DIST` (the 9.9.1 zip, which the one wrapper test points a wrapper at). The script builds with Gradle 8 on
 `RIPPLE_TEST_GRADLE8_JAVA_HOME` when it is set, refuses a Gradle 8 JDK newer than 23 before it starts, and prints `java -version`
 before each build. Each distribution is downloaded from `services.gradle.org` and
-checked against its pinned SHA-256 before it is unpacked, and the JUnit 4 jars against theirs; a mismatch stops the script.
+checked against its pinned SHA-256 before it is unpacked, and the JUnit 4 jars (into `<maven-repo-dir>`, default `<install-dir>/m2`)
+against theirs; a mismatch stops the script.
 The user homes are filled by one online build each, and the tests then run `--offline`. Nothing else is fetched.
 
-CI runs all of them in the jobs that install the java extra (`.github/workflows/ci.yml`), with `RIPPLE_REQUIRE_LIVE_GRADLE=1`,
-so those jobs fail if they ever skip again; the other jobs skip them. The install is a cache keyed on the versions and on the
-contents of `ci/warm-gradle.sh` and `ci/warm-gradle/`, saved right after it is filled (the tests write into the homes, so a cache
-saved after them would be large). Measured on a 16-core machine with the install in place, run one module after the other with
-the default JDK 25 and Gradle 8 on JDK 21 (one pytest run each, wall times from their logs): 58 tests in 718 s, 22 in 265 s, 18 in
-269 s, 21 minutes in all. Every check runs Gradle with `--no-daemon`, and a runner with fewer cores will take longer.
-`ci/warm-gradle.sh` into an empty directory took between 32 s and 114 s over three runs, with the network on. Not run by anything: TestNG, Kotlin, Spock and the retry plugin (no jars offline, as above).
+CI runs all 98 in a job of their own, `gradle-live` (`.github/workflows/ci.yml`), on Python 3.12 with the `dev` extra only (the
+three modules passed all 98 on an interpreter with no tree-sitter package), beside the test matrix
+and not inside it. The job has no `if`, no path filter and no `continue-on-error`, so the workflow is not
+green unless it ran them; it sets `RIPPLE_REQUIRE_LIVE_GRADLE=1`, so a skip of any of the 98 is an error, and a step before the
+tests fails if fewer than 98 are collected from the three modules, so a module that is renamed, emptied or deleted cannot shrink
+it to nothing (when tests are added, the number may stay: it is a minimum). It prints `java -version` for the default JDK and for
+the JDK 21 Gradle 8 gets, and `--durations=15`, the slowest tests. It does not run `ci/warm-maven.sh`: `ci/warm-gradle.sh` puts
+the JUnit 4 jars into an `m2` directory inside its own install, which is cached with it. The install is a cache keyed on the versions
+and on the contents of `ci/warm-gradle.sh` and `ci/warm-gradle/`, saved right after it is filled (the tests write into the homes,
+so a cache saved after them would be large).
+
+The matrix jobs set no Gradle variable and install no Gradle, so the Gradle tests skip there, with one exception that was already
+true before the `gradle-live` job: the Gradle 9 half of the JUnit 4 module (9 tests) needs only a JDK, a `gradle` on `PATH` and the
+Maven repository the java entries fill, so it runs in them against the Gradle the runner image has (89 of the 98 skipped in the
+3.12 java job of run 45662198279 on main).
+
+What it costs. Measured on a 16-core machine with the install in place, one module after the other with the default JDK 25 and
+Gradle 8 on JDK 21 (one pytest run each, wall times from their logs): 58 tests in 718 s, 22 in 265 s, 18 in 269 s, 21 minutes
+in all. Every check runs Gradle with `--no-daemon`. `ci/warm-gradle.sh` into an empty directory took between 32 s and 114 s over
+three runs, with the network on. In CI, when the same tests ran inside the four java matrix runs (runs 45675599185 and 45675587901),
+those jobs took 1844 to 2339 s (31 to 39 minutes) against 814 s and 824 s on main (run 45662198279): the `Tests` step took 1785 to
+2265 s and the fill step 25 to 38 s on a cache miss, so the live Gradle tests added 17 to 25 minutes to each java job. They now run once,
+in `gradle-live`; the time of that job is not known until it has run. Not run by anything: TestNG, Kotlin, Spock and the retry
+plugin (no jars offline, as above).
 
 Java is read by tree-sitter too, as its own optional extra (`tree-sitter` and `tree-sitter-java`):
 

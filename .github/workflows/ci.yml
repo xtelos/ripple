@@ -41,19 +41,46 @@ jobs:
       - name: Fill the live Maven cache (only on a cache miss)
         if: contains(matrix.extras, 'java') && steps.m2.outputs.cache-hit != 'true'
         run: sh ci/warm-maven.sh "${{ runner.temp }}/ripple-m2"
-      # The live Gradle tests (tests/test_check_gradle_live.py on Gradle 9.9.1, test_check_gradle_live8.py on 8.10.2 and
-      # test_check_gradle_live_junit4.py on both) run a real `gradle --offline`. ci/warm-gradle.sh installs both Gradles (from
-      # services.gradle.org, each checked against its pinned SHA-256 before it is unpacked), a Gradle user home for each that
-      # holds JUnit 5.11.3, and JUnit 4.13.2 with hamcrest-core into the Maven repository above (RIPPLE_TEST_M2, which the
-      # live Maven tests share). The install is cached right after it is filled, not at the end of the job: the tests write
-      # into these homes (a wrapper unpacks a distribution there), and a cache saved after them would be gigabytes.
-      # Gradle 9.9.1 and the Maven tests run on the job's default JDK (the failed first run of this wiring showed it is JDK 25 on
-      # the current image). Gradle 8.10.2 dies on a JDK newer than 23 ("Unsupported class file major version 69"), so its builds
-      # and tests run on the image's JDK 21. The runner exports it as JAVA_HOME_21_X64 (images: Ubuntu 24.04 and 26.04 list it);
-      # the environment variables of the image are not in the `env` context, so a step copies it into GITHUB_ENV, and fails here,
-      # by name, if the image ever lacks it. The java -version lines say which JDK each build uses.
+      # RIPPLE_REQUIRE_LIVE_MAVEN=1 makes the live Maven tests fail, instead of skip, when no JDK, Maven or cache is found.
+      # It is set only in the jobs that install the java extra, so the other four skip them as before.
+      - name: Tests
+        run: python -m pytest -q -rs
+        env:
+          RIPPLE_TEST_M2: ${{ runner.temp }}/ripple-m2
+          RIPPLE_REQUIRE_LIVE_MAVEN: ${{ contains(matrix.extras, 'java') && '1' || '' }}
+      - name: Benchmark (fails if precision or recall drops below bench/baseline.json)
+        run: python -m bench
+      - name: TypeScript benchmark (fails if below bench/baseline_ts.json; needs the typescript extra)
+        if: contains(matrix.extras, 'typescript')
+        run: python -m bench.ts_score
+
+  # The live Gradle tests (98 of them, in three modules) run a real `gradle --offline`, which takes about as long as the rest of
+  # the suite, so they have a job of their own and run once, beside the matrix, instead of in every java entry. The job has no
+  # `if`, no path filter and no continue-on-error: the workflow is not green unless it ran all of them. RIPPLE_REQUIRE_LIVE_GRADLE=1
+  # turns a skip of any of the 98 into an error, and the step before the tests fails if fewer than 98 are collected, so a
+  # module that is renamed, emptied or deleted cannot shrink this job to nothing. The matrix jobs keep what main gives them: they
+  # set no Gradle variable, install no Gradle, and the Gradle tests skip there.
+  gradle-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      RIPPLE_REQUIRE_LIVE_GRADLE: "1"
+      LIVE_GRADLE_TESTS: tests/test_check_gradle_live.py tests/test_check_gradle_live8.py tests/test_check_gradle_live_junit4.py
+      LIVE_GRADLE_MIN_TESTS: "98"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      # The dev extra is enough: the three modules passed all 98 on an interpreter with no tree-sitter package installed.
+      - name: Install
+        run: python -m pip install -e ".[dev]"
+      # Gradle 9.9.1 runs on the job's default JDK (JDK 25 on the current image). Gradle 8.10.2 dies on a JDK newer than 23
+      # ("Unsupported class file major version 69"), so its builds and tests run on the image's JDK 21. The runner exports it as
+      # JAVA_HOME_21_X64 (the Ubuntu 24.04 and 26.04 image lists both name it); the environment variables of the image are not in
+      # the `env` context, so a step copies it into GITHUB_ENV, and fails here, by name, if the image ever lacks it. The
+      # java -version lines say which JDK each build uses.
       - name: JDKs for the live Gradle tests (Gradle 8 gets JDK 21)
-        if: contains(matrix.extras, 'java')
         run: |
           echo "default JDK: JAVA_HOME=${JAVA_HOME:-unset}"
           java -version
@@ -65,45 +92,47 @@ jobs:
           echo "Gradle 8 JDK: JAVA_HOME_21_X64=${JAVA_HOME_21_X64}"
           "${JAVA_HOME_21_X64}/bin/java" -version
           echo "RIPPLE_TEST_GRADLE8_JAVA_HOME=${JAVA_HOME_21_X64}" >> "$GITHUB_ENV"
+      # ci/warm-gradle.sh installs both Gradles (from services.gradle.org, each checked against its pinned SHA-256 before it is
+      # unpacked), a Gradle user home for each that holds JUnit 5.11.3, and, into its own m2 directory inside the install, JUnit
+      # 4.13.2 with hamcrest-core. This job never runs ci/warm-maven.sh and does not need it: the JUnit 4 jars come from the
+      # Gradle install and are cached with it. The install is cached right after it is filled, not at the end of the job: the
+      # tests write into these homes (a wrapper unpacks a distribution there), and the homes grow from 9 MB to about 675 MB.
       - name: Live Gradle cache
         id: gradle
-        if: contains(matrix.extras, 'java')
         uses: actions/cache/restore@v6
         with:
           path: ${{ runner.temp }}/ripple-gradle
           key: ripple-gradle-${{ runner.os }}-gradle9.9.1-gradle8.10.2-junit5.11.3-junit4.13.2-${{ hashFiles('ci/warm-gradle.sh', 'ci/warm-gradle/**') }}
       - name: Fill the live Gradle install (only on a cache miss)
-        if: contains(matrix.extras, 'java') && steps.gradle.outputs.cache-hit != 'true'
-        run: sh ci/warm-gradle.sh "${{ runner.temp }}/ripple-gradle" "${{ runner.temp }}/ripple-m2"
+        if: steps.gradle.outputs.cache-hit != 'true'
+        run: sh ci/warm-gradle.sh "${{ runner.temp }}/ripple-gradle"
       - name: Save the live Gradle install (only on a cache miss, only after it was filled)
-        if: contains(matrix.extras, 'java') && steps.gradle.outputs.cache-hit != 'true'
+        if: steps.gradle.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
         with:
           path: ${{ runner.temp }}/ripple-gradle
           key: ${{ steps.gradle.outputs.cache-primary-key }}
-      # The Gradle 9 modules take the `gradle` on PATH, and the runner image ships one: ours goes first.
+      # The Gradle 9 modules take the `gradle` on PATH, and the runner image may ship one: ours goes first.
       - name: Put the live Gradle 9.9.1 first on PATH
-        if: contains(matrix.extras, 'java')
         run: |
           echo "${{ runner.temp }}/ripple-gradle/gradle-9.9.1/bin" >> "$GITHUB_PATH"
           "${{ runner.temp }}/ripple-gradle/gradle-9.9.1/bin/gradle" --version
           JAVA_HOME="${RIPPLE_TEST_GRADLE8_JAVA_HOME}" "${{ runner.temp }}/ripple-gradle/gradle-8.10.2/bin/gradle" --version
-      # RIPPLE_REQUIRE_LIVE_MAVEN=1 and RIPPLE_REQUIRE_LIVE_GRADLE=1 make the live Maven and Gradle tests fail, instead of skip,
-      # when no JDK, build tool or cache is found. They are set only in the jobs that install the java extra, so the other
-      # four skip them as before (the paths below do not exist there). RIPPLE_TEST_GRADLE8_JAVA_HOME (JDK 21, set above through
-      # GITHUB_ENV) is what the Gradle 8 tests run on; the other Gradle tests use the default JDK.
-      - name: Tests
-        run: python -m pytest -q -rs
+      - name: The three live Gradle modules still hold the tests they held (fails below the minimum)
+        run: |
+          count=$(python -m pytest --collect-only -q -p no:cacheprovider $LIVE_GRADLE_TESTS | grep -c '^tests/.*::')
+          echo "collected $count live Gradle tests, at least $LIVE_GRADLE_MIN_TESTS are required"
+          if [ "$count" -lt "$LIVE_GRADLE_MIN_TESTS" ]; then
+            echo "::error::only $count live Gradle tests are collected from $LIVE_GRADLE_TESTS, fewer than $LIVE_GRADLE_MIN_TESTS: a module was renamed, emptied or deleted"
+            exit 1
+          fi
+      # -rs lists every skip and RIPPLE_REQUIRE_LIVE_GRADLE=1 turns each into an error; --durations=15 prints the slowest tests,
+      # which is where the minutes go.
+      - name: Live Gradle tests
+        run: python -m pytest -q -rs --durations=15 $LIVE_GRADLE_TESTS
         env:
-          RIPPLE_TEST_M2: ${{ runner.temp }}/ripple-m2
-          RIPPLE_REQUIRE_LIVE_MAVEN: ${{ contains(matrix.extras, 'java') && '1' || '' }}
           RIPPLE_TEST_GRADLE_HOME: ${{ runner.temp }}/ripple-gradle/home9
           RIPPLE_TEST_GRADLE8: ${{ runner.temp }}/ripple-gradle/gradle-8.10.2/bin/gradle
           RIPPLE_TEST_GRADLE8_HOME: ${{ runner.temp }}/ripple-gradle/home8
           RIPPLE_TEST_GRADLE_DIST: ${{ runner.temp }}/ripple-gradle/dl/gradle-9.9.1-bin.zip
-          RIPPLE_REQUIRE_LIVE_GRADLE: ${{ contains(matrix.extras, 'java') && '1' || '' }}
-      - name: Benchmark (fails if precision or recall drops below bench/baseline.json)
-        run: python -m bench
-      - name: TypeScript benchmark (fails if below bench/baseline_ts.json; needs the typescript extra)
-        if: contains(matrix.extras, 'typescript')
-        run: python -m bench.ts_score
+          RIPPLE_TEST_M2: ${{ runner.temp }}/ripple-gradle/m2
