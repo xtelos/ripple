@@ -160,9 +160,9 @@ def test_no_request_is_every_projects_test_task():
 @pytest.mark.parametrize(
     "tests,tail",
     [
-        (["com.acme.shop.CartTest.addsItems()"], [":test", "--tests", "com.acme.shop.CartTest.addsItems"]),
-        (["com.acme.shop.CartTest.discounts(int)"], [":test", "--tests", "com.acme.shop.CartTest.discounts"]),
-        (["com.acme.shop.CartTest.Receipts.receiptHasTotal()"], [":test", "--tests", "com.acme.shop.CartTest$Receipts.receiptHasTotal"]),
+        (["com.acme.shop.CartTest.addsItems()"], [":test", "--tests", "com.acme.shop.CartTest.addsItems", "--tests", "com.acme.shop.CartTest.addsItems[*]"]),
+        (["com.acme.shop.CartTest.discounts(int)"], [":test", "--tests", "com.acme.shop.CartTest.discounts", "--tests", "com.acme.shop.CartTest.discounts[*]"]),
+        (["com.acme.shop.CartTest.Receipts.receiptHasTotal()"], [":test", "--tests", "com.acme.shop.CartTest$Receipts.receiptHasTotal", "--tests", "com.acme.shop.CartTest$Receipts.receiptHasTotal[*]"]),
         ([CART], [":test", "--tests", "com.acme.shop.CartTest"]),
         ([f"{CART}::CartTest.Receipts"], [":test", "--tests", "com.acme.shop.CartTest$Receipts"]),
         ([".", CART], [":test"]),
@@ -170,7 +170,10 @@ def test_no_request_is_every_projects_test_task():
         ([CART, "com.acme.shop.CartTest.addsItems()"], [":test", "--tests", "com.acme.shop.CartTest"]),
         (
             ["com.acme.shop.CartTest.addsItems()", "com.acme.shop.CartTests.extraWorks()"],
-            [":test", "--tests", "com.acme.shop.CartTest.addsItems", "--tests", "com.acme.shop.CartTests.extraWorks"],
+            [
+                ":test", "--tests", "com.acme.shop.CartTest.addsItems", "--tests", "com.acme.shop.CartTest.addsItems[*]",
+                "--tests", "com.acme.shop.CartTests.extraWorks", "--tests", "com.acme.shop.CartTests.extraWorks[*]",
+            ],
         ),
     ],
 )
@@ -185,10 +188,19 @@ def test_two_projects_are_two_tasks_each_with_its_own_filters(tmp_path):
     repo = multi(tmp_path)
     modules = {"core": ":core", "web": ":web"}
     one = wants_of(repo, ["com.acme.core.CoreTest.works()", "com.acme.web.WebTest.works()"], modules)
-    assert one.tasks == ((":core:test", ("com.acme.core.CoreTest.works",)), (":web:test", ("com.acme.web.WebTest.works",)))
+    assert one.tasks == ((":core:test", ("com.acme.core.CoreTest.works", "com.acme.core.CoreTest.works[*]")), (":web:test", ("com.acme.web.WebTest.works", "com.acme.web.WebTest.works[*]")))
     assert wants_of(repo, ["core"], modules).tasks == ((":core:test", ()),)
     assert wants_of(repo, ["."], modules).tasks == ((":core:test", ()), (":web:test", ()))
     assert wants_of(repo, ["web/src/test/java/com/acme/web/WebTest.java"], modules).tasks == ((":web:test", ("com.acme.web.WebTest",)),)
+
+
+def test_a_method_is_asked_for_by_its_name_and_by_its_name_with_an_invocation_suffix(tmp_path):
+    """JUnit 4 names a Parameterized invocation `positive[1]`, and Gradle's `--tests Class.positive` does not match it (measured on 9.9.1: "No tests found"): `Class.positive[*]` beside it does, and Gradle ORs the patterns."""
+    repo = project(tmp_path, "shop")
+    invocation = wants_of(repo, ["com.acme.shop.CartTest.addsItems()"])
+    assert invocation.tasks == ((":test", ("com.acme.shop.CartTest.addsItems", "com.acme.shop.CartTest.addsItems[*]")),)
+    # a class, which Gradle matches by its name and its nested classes, gets no suffix pattern
+    assert wants_of(repo, [CART]).tasks == ((":test", ("com.acme.shop.CartTest",)),)
 
 
 def test_a_project_path_that_cannot_be_a_task_name_is_refused():

@@ -1460,11 +1460,14 @@ build narrows by tags alone (`includeTags`, `excludeTags`): Gradle 9.9.1 itself 
 An `include`, an `exclude` or a filter is not an exception, whatever else is recorded: Gradle 9 fails those builds ("test sources
 present and no filters are applied", "No tests found"), and an `exclude` that removes every class makes the task NO-SOURCE, never an
 executed task with no test. A failure of ripple's own init script is
-reported as that, with Gradle's text. JUnit 4 and TestNG run through the same listener and were not run (their jars are not in the
-offline Gradle cache). The live tests (`tests/test_check_gradle_live.py`, and `tests/test_check_gradle_live8.py` for a Gradle 8 at
-`RIPPLE_TEST_GRADLE8`) need a Gradle and a Gradle user home that has JUnit 5.11.3 (`RIPPLE_TEST_GRADLE_HOME`,
-`RIPPLE_TEST_GRADLE8_HOME`) and skip, with the reason, without them; `RIPPLE_REQUIRE_LIVE_GRADLE=1` turns that skip into a failure.
-No CI job runs them yet.
+reported as that, with Gradle's text. JUnit 4 runs through the same listener and was run on both Gradles from a local Maven repository (green, a failure, an exit, `@Ignore`,
+a `Parameterized` class and method, and JUnit 4 tests under `useJUnitPlatform()` with no vintage engine, which is not a pass). A
+method asked for by id is passed to Gradle as `Class.method` and `Class.method[*]`, because JUnit 4 names a `Parameterized`
+invocation `method[1]` and Gradle's `--tests Class.method` does not match it. TestNG, Kotlin and Spock were not run (no jars offline). The live tests
+(`tests/test_check_gradle_live.py`, `tests/test_check_gradle_live8.py` for a Gradle 8 at `RIPPLE_TEST_GRADLE8`, and
+`tests/test_check_gradle_live_junit4.py` on both, with `RIPPLE_TEST_M2` holding JUnit 4.13.2) need a Gradle and a Gradle user home
+that has JUnit 5.11.3 (`RIPPLE_TEST_GRADLE_HOME`, `RIPPLE_TEST_GRADLE8_HOME`) and skip, with the reason, without them;
+`RIPPLE_REQUIRE_LIVE_GRADLE=1` turns that skip into a failure. No CI job runs them yet.
 
 Java is read by tree-sitter too, as its own optional extra (`tree-sitter` and `tree-sitter-java`):
 

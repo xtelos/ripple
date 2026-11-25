@@ -783,7 +783,24 @@ def test_a_method_asked_for_is_proved_by_a_test_gradle_names_after_that_method(m
     classes = {"com.acme.shop.CartTest": [("addsItems()", "SUCCESS")]}
     result, calls = asked(monkeypatch, tmp_path, ["com.acme.shop.CartTest.addsItems()"], asked_rows(classes))
     assert result["passed"] is True, result
-    assert calls[-1][-3:] == [":test", "--tests", "com.acme.shop.CartTest.addsItems"]
+    assert calls[-1][-5:] == [":test", "--tests", "com.acme.shop.CartTest.addsItems", "--tests", "com.acme.shop.CartTest.addsItems[*]"]
+
+
+def test_a_junit_4_parameterized_method_is_proved_by_its_invocations_named_with_a_suffix(monkeypatch, tmp_path):
+    """JUnit 4 names them `discounts[1]`, `discounts[2]` (no parentheses): the method is the name with the `[n]` cut."""
+    classes = {"com.acme.shop.CartTest": [("discounts[1]", "SUCCESS"), ("discounts[2]", "SUCCESS")]}
+    result, calls = asked(monkeypatch, tmp_path, ["com.acme.shop.CartTest.discounts(int)"], asked_rows(classes))
+    assert result["passed"] is True and result["counts"]["passed"] == 2, result
+    assert calls[-1][-5:] == [":test", "--tests", "com.acme.shop.CartTest.discounts", "--tests", "com.acme.shop.CartTest.discounts[*]"]
+
+
+def test_an_id_that_gradle_matched_no_test_to_says_the_filter_matched_none_and_not_a_missing_junit_platform(monkeypatch, tmp_path):
+    """With `failOnNoMatchingTests = false` a filter that selects nothing executes the task with 0 tests: that is the filter's doing, not `useJUnitPlatform()`'s."""
+    result, _ = asked(monkeypatch, tmp_path, ["com.acme.shop.CartTest.addsItems()"], asked_rows({}))
+    assert result["passed"] is False, result
+    problem = next(p for p in result["problems"] if ":test executed and ran no test" in p)
+    assert "Gradle matched no test to the `--tests` filter" in problem and "com.acme.shop.CartTest.addsItems" in problem, problem
+    assert "useJUnitPlatform" not in problem
 
 
 def test_a_method_with_a_display_name_is_still_found_by_its_method_name(monkeypatch, tmp_path):
@@ -835,7 +852,7 @@ def test_a_class_asked_for_whose_tests_were_all_skipped_is_not_a_pass(monkeypatc
 def test_the_filter_gradle_applied_must_be_the_one_asked_for(monkeypatch, tmp_path):
     classes = {"com.acme.shop.CartTest": [("addsItems()", "SUCCESS")]}
     result, _ = asked(monkeypatch, tmp_path, ["com.acme.shop.CartTest.addsItems()"], asked_rows(classes, patterns=["com.acme.shop.Other"]))
-    assert result["passed"] is False and "Gradle applied the filter ['com.acme.shop.Other'], not the ['com.acme.shop.CartTest.addsItems'] asked for" in text(result), result
+    assert result["passed"] is False and "Gradle applied the filter ['com.acme.shop.Other'], not the ['com.acme.shop.CartTest.addsItems', 'com.acme.shop.CartTest.addsItems[*]'] asked for" in text(result), result
 
 
 def test_an_overload_asked_for_by_its_types_must_be_the_one_that_ran(monkeypatch, tmp_path):

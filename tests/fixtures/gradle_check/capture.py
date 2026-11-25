@@ -45,6 +45,8 @@ def main(name: str, source: str, tests: list[str]) -> dict:
     real = checker.run_process
 
     def recording(argv, cwd, timeout, merge_stderr=True):
+        if argv[-1] == "--version":  # asked before anything runs; the replay answers it itself
+            return real(argv, cwd, timeout, merge_stderr)
         init = Path(argv[argv.index("-I") + 1])
         manifest = Path(re.search(r"def sink = '(.*)'", init.read_text()).group(1))
         kind = "model" if "help" in argv else "run"

@@ -71,7 +71,8 @@ SUPPORTED GRADLE: 8.10 and newer. Measured with real runs on 8.10.2 and 9.9.1 (J
 suites of a real project give the same record on both, except that Gradle 8 has no `TestResult.assumptionFailure`, so a skip is
 never known to be an assumption there (and on 8.10.2 no ordinary shape needed it: their suites end SUCCESS). `gradle --version` is
 asked first, and an older Gradle is refused with the version found and the oldest supported, before anything runs. Not measured and
-so not claimed: Gradle older than 8.10, and Kotlin, Groovy and Spock tests, TestNG and JUnit 4 (the same listener sees them).
+so not claimed: Gradle older than 8.10, and Kotlin, Groovy and Spock tests and TestNG (the same listener sees them). JUnit 4 was run
+on both (tests/test_check_gradle_live_junit4.py).
 """
 
 from __future__ import annotations
@@ -630,7 +631,9 @@ def plan(paths: dict[str, str], wants: list[jc.Want]) -> Invocation:
                 if want.module == module and want.method is not None and not any(
                     want.cls == c or want.cls.startswith(c + "$") for c in classes
                 ):
-                    patterns.append(f"{want.cls}.{want.method}")
+                    # JUnit 4 names a Parameterized invocation `method[1]`, which `--tests Class.method` does not match (measured on 9.9.1:
+                    # "No tests found"); `Class.method[*]` beside it does, and Gradle ORs the patterns. A pattern that matches nothing is fine.
+                    patterns.extend((f"{want.cls}.{want.method}", f"{want.cls}.{want.method}[*]"))
         tasks.append((task_path(project), tuple(dict.fromkeys(patterns))))
     label = ", ".join(sorted(w.module or "the root" for w in wants))
     return Invocation(tuple(tasks), tuple(wants), label)
@@ -756,8 +759,14 @@ def _check_task(task: TestTask, run: Run, problems: list[str], notes: list[str])
         # Measured on 9.9.1: only includeTags/excludeTags leave it green. An include or exclude pattern or a filter does not explain it
         # ("test sources present and no filters are applied", "No tests found"), and an exclude that removes every class makes the task
         # NO-SOURCE, never an executed task with no test: so for those the problem stands.
+        asked = dict(run.invocation.tasks).get(task.path)
         if task.tags_only:
             notes.append(f"{task.path} executed and ran no test, and the build narrows it by tags")
+        elif asked:
+            problems.append(
+                f"{task.path} executed and ran no test: Gradle matched no test to the `--tests` filter ({', '.join(asked[:4])}), "
+                "so nothing that was asked for was checked"
+            )
         else:
             problems.append(
                 f"{task.path} executed and ran no test: Gradle found none to run in it (a module with JUnit 5 tests and no `useJUnitPlatform()`, "
