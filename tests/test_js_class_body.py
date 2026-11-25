@@ -891,3 +891,12 @@ def test_a_setter_alone_or_last_is_not_called_and_still_runs_on_assignment(make_
     assert [e.callee for e in graph.edges if e.file == "main.js" and e.callee.endswith(".m")] == ["c:C.m"]
     # a getter is still a property read, and a getter and a setter together are not a setter alone
     assert_unresolved(class_answer(make_repo, "get m() { return 1; } set m(v) {}"), "property")
+
+
+def test_a_static_accessor_is_no_setter_for_this_m_in_an_instance(make_repo):
+    # Node: `new B().m()` throws "is not a function": `this.m = f` in the constructor makes an own property m (a static getter is a
+    # property of B, not of its prototype), and calling the getter's value is no call of it. The static getter must not exempt the write
+    # as an instance accessor does, or B's own m stays the static getter's def and the call is an edge to it.
+    source = f"export class B {{ static get m() {{ return 1; }} constructor() {{ this.m = {FN}; }} }}\n"
+    result = answer(make_repo, {"c.js": source, "main.js": "import { B } from './c.js';\nconsole.log(new B().m()); // CALL\n"})
+    assert_unresolved(result)
