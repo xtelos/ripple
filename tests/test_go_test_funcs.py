@@ -335,12 +335,112 @@ def test_go_builds_the_declaration_the_library_has_and_rejects_the_one_only_d_s_
     assert ran in printed(root, "./e")
 
 
-@pytest.mark.xfail(strict=True, reason="KNOWN-WRONG: a generic call of one argument through a package name that names nothing is no outcome at all")
-def test_a_one_argument_generic_call_of_a_name_only_d_s_tests_declare_is_left_open(tmp_path):
-    # The grammar reads `d.H[int, string](1)` as a conversion, and `conversion` records a call only for a function it found. Before the
-    # fix this was an edge to d's test file H; now it is no record at all, as it is on main for a name nobody declares (`d.NoSuch[...]`).
-    graph = build_graph(named_layout(tmp_path, "conversion"), GO)
-    assert answers(graph, "Uses")["Uses"][1] != [], "the call is neither an edge nor left open"
+# ---- every route into a name only d's test files declare says so: generic calls, generic and pointer conversions ---------------
+#
+# The grammar reads `Only[int](1)` and `d.Only[int](1)` (one value argument) as a conversion, `(*d.T)(nil)` as a conversion
+# through a pointer type, and a call with a type-argument list as an index expression or a generic type. Each route used to answer
+# for a name that is not there with a reason that is not true ("looked up by index", "the callee is computed") or with no record.
+# Go reports every one of them undefined, so each is recorded, unresolved, with the reason that no build of the caller has the name.
+
+#           name: (the import, what both callers run, what Go says of it)
+ROUTES = {
+    "dot import, generic function, one argument": ('import . "m/d"', "_ = Only[int](1)", "undefined: Only"),
+    "dot import, generic function, two type arguments": ('import . "m/d"', "_ = Two[int, string](1)", "undefined: Two"),
+    "dot import, generic function, two arguments": ('import . "m/d"', '_ = Three[int, string](1, "x")', "undefined: Three"),
+    "dot import, generic function, one type argument, two arguments": ('import . "m/d"', "_ = Four[int](1, 2)", "undefined: Four"),
+    "dot import, generic type conversion": ('import . "m/d"', "_ = Box[int](Box[int]{})", "undefined: Box"),
+    "dot import, pointer conversion": ('import . "m/d"', "_ = (*T)(nil)", "undefined: T"),
+    "dot import, plain call": ('import . "m/d"', "_ = Plain()", "undefined: Plain"),
+    "qualified, generic function, one argument": ('import "m/d"', "_ = d.Only[int](1)", "undefined: d.Only"),
+    "qualified, generic function, two type arguments": ('import "m/d"', "_ = d.Two[int, string](1)", "undefined: d.Two"),
+    "qualified, generic function, two arguments": ('import "m/d"', '_ = d.Three[int, string](1, "x")', "undefined: d.Three"),
+    "qualified, generic function, one type argument, two arguments": ('import "m/d"', "_ = d.Four[int](1, 2)", "undefined: d.Four"),
+    "qualified, generic type conversion": ('import "m/d"', "_ = d.Box[int](d.Box[int]{})", "undefined: d.Box"),
+    "qualified, pointer conversion": ('import "m/d"', "_ = (*d.T)(nil)", "undefined: d.T"),
+}
+ROUTE_NAMES = """
+    package d
+
+    func Only[A any](a A) string { return "Only" }
+
+    func Two[A, B any](a A) string { return "Two" }
+
+    func Three[A, B any](a A, b B) string { return "Three" }
+
+    func Four[A any](a A, b int) string { return "Four" }
+
+    func Plain() string { return "Plain" }
+
+    type T struct{}
+
+    type Box[A any] struct{}
+    """
+
+
+def routes_layout(root, case: str, library: bool = True, test: bool = True):
+    spec, body, _ = ROUTES[case]
+    files = {"go.mod": GOMOD, "d/d.go": "package d\n", "d/names_test.go": textwrap.dedent(ROUTE_NAMES)}
+    if library:
+        files["e/e.go"] = f"package e\n\n{spec}\n\nfunc Lib() {{\n\t{body}\n}}\n"
+    if test:
+        files["e/e_test.go"] = f'package e\n\nimport (\n\t"testing"\n\n\t{spec.removeprefix("import ")}\n)\n\nfunc TestE(t *testing.T) {{\n\t{body}\n}}\n'
+    return write(root, files)
+
+
+@pytest.mark.parametrize("case", ROUTES, ids=list(ROUTES))
+def test_every_route_into_a_name_only_d_s_test_files_declare_is_left_open_for_that_reason(tmp_path, case):
+    graph = build_graph(routes_layout(tmp_path, case), GO)
+    for caller in ("Lib", "TestE"):
+        assert not [e for e in graph.edges if e.caller.rpartition(":")[2] == caller and e.kind != "implements"], caller
+        said = [u.reason for u in graph.unresolved if u.caller.rpartition(":")[2] == caller]
+        assert said and all(NOT_BUILT in reason for reason in said), (caller, said)
+
+
+@pytest.mark.parametrize("case", ROUTES, ids=list(ROUTES))
+def test_go_reports_every_route_into_a_name_only_d_s_test_files_declare_undefined(tmp_path, case):
+    message = ROUTES[case][2]
+    library = go("build", "./e", root=routes_layout(tmp_path / "lib", case, test=False))
+    assert library.returncode != 0 and message in library.stderr, library.stderr
+    tests = go("vet", "./e", root=routes_layout(tmp_path / "test", case, library=False))
+    assert tests.returncode != 0 and message in tests.stderr, tests.stderr
+
+
+@pytest.mark.parametrize("case", ROUTES, ids=list(ROUTES))
+def test_a_file_ripple_cannot_read_may_declare_the_name_and_the_call_is_not_called_undefined(tmp_path, case):
+    # d has a file with a parse error after the package clause: it may declare the name in a build of e, so Go may compile the call
+    root = routes_layout(tmp_path, case)
+    write(root, {"d/bad.go": "package d\n\nfunc ( {\n"})
+    graph = build_graph(root, GO)
+    for caller in ("Lib", "TestE"):
+        said = [u.reason for u in graph.unresolved if u.caller.rpartition(":")[2] == caller]
+        assert not any(NOT_BUILT in reason for reason in said), (caller, said)
+    said = [u.reason for u in graph.unresolved if u.caller.rpartition(":")[2] == "TestE"]
+    assert said, "a test of another directory has no build with d's test files, and the name is open for the file ripple could not read"
+
+
+SILENT = [c for c in ROUTES if c.startswith("qualified") and "plain" not in c and "two arguments" not in c]
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN-WRONG: a generic call or conversion written through a package whose directory has an unreadable file is no record for a library caller")
+@pytest.mark.parametrize("case", SILENT, ids=SILENT)
+def test_a_library_caller_of_a_qualified_generic_name_in_a_directory_with_an_unreadable_file_is_recorded(tmp_path, case):
+    # Not the fault of the name being only in tests: ripple cannot show a library file lacks d's test files when a file of d is unreadable
+    # (test_binary_may_link is unknown), so the name is kept, and function_named refuses a name that file may declare another way,
+    # which leaves `d.X[int](1)` and `(*d.T)(nil)` with no outcome, as on main for any name of such a package.
+    root = routes_layout(tmp_path, case, test=False)
+    write(root, {"d/bad.go": "package d\n\nfunc ( {\n"})
+    graph = build_graph(root, GO)
+    assert [u for u in graph.unresolved if u.caller.endswith(":Lib")], "the call has no record"
+
+
+def test_a_name_that_a_second_dot_import_may_bind_is_not_called_undefined(tmp_path):
+    # `Only` is test-only in d, and w is a dot import ripple cannot read a package of (an outside module): w may declare it, so the
+    # call keeps the reason of any name no file ripple read declares, and does not say that Go reports it undefined.
+    root = routes_layout(tmp_path, "dot import, generic function, one argument", test=False)
+    write(root, {"e/e.go": 'package e\n\nimport (\n\t. "m/d"\n\t. "example.com/lib/w"\n)\n\nfunc Lib() { _ = Only[int](1) }\n'})
+    graph = build_graph(root, GO)
+    said = [u.reason for u in graph.unresolved if u.caller.endswith(":Lib")]
+    assert said and not any(NOT_BUILT in reason for reason in said), said
 
 
 # ---- the rule for a library file of d's own directory and the names of d the lookups also serve ------------------------------
@@ -490,19 +590,25 @@ def perspective_layout(root, library: str):
     )
 
 
-@pytest.mark.parametrize("library", ["e_linux.go", "z_linux.go"], ids=["library file first", "library file last"])
-def test_a_result_type_is_read_for_the_file_that_writes_it_whichever_caller_is_resolved_first(tmp_path, library):
-    graph = build_graph(perspective_layout(tmp_path, library), GO)
-    assert answers(graph, "Lib")["Lib"] == (["Base.M", "Mk"], []), "x's test binary links e and d, built against x with its test file"
-    edges = {name: answers(graph, name)[name] for name in ("Lib", "TestE")}
-    assert edges["Lib"] == edges["TestE"], "both read one result type for d.Mk"
+def test_a_result_type_is_read_for_the_file_that_writes_it_whichever_caller_is_resolved_first(tmp_path):
+    # An ORDER-INDEPENDENCE GUARD, and it asserts nothing about which edges exist. No program Go builds separates the two views of
+    # the type (the caller's file and the file that writes `x.T`): d compiles only in builds that have x's test file, so every
+    # build of a caller of d is x's test binary, and a caller in it has x's tests whichever file it is in. `go vet ./e` on this layout
+    # fails (`undefined: x.T`), so TestE is no program, and its edges are not an answer anyone should read. What must hold is that the
+    # resolution order, which the file name sets (the library file sorts before or after the test file), changes no answer.
+    first = build_graph(perspective_layout(tmp_path / "first", "e_linux.go"), GO)
+    last = build_graph(perspective_layout(tmp_path / "last", "z_linux.go"), GO)
+    for name in ("Lib", "TestE"):
+        assert answers(first, name) == answers(last, name), name
 
 
 def test_go_runs_x_s_test_file_type_through_the_library_file_x_s_tests_link(tmp_path):
     root = perspective_layout(tmp_path, "e_linux.go")
-    assert "TestUse Base.M" in printed(root, "./x")
+    assert "TestUse Base.M" in printed(root, "./x"), "Lib is a program: x's test binary links it"
     built = go("build", "./d", root=root)
     assert built.returncode != 0 and "undefined: x.T" in built.stderr, built.stderr
+    vetted = go("vet", "./e", root=root)
+    assert vetted.returncode != 0 and "undefined: x.T" in vetted.stderr, "TestE is in no build that compiles: " + vetted.stderr
 
 
 # ---- KNOWN-WRONG: a name declared in a library file of d and, as another kind, in d's test file --------------------------------

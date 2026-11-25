@@ -2622,7 +2622,8 @@ class Resolver:
 
     def name_value(self, name: str, env: Env):
         """What a bare name is when no local binds it: ("func", decls) ("type", ty) ("var", VarInfo) ("const",)
-        ("universe", name) ("dot", imports) ("conflict",) ("hidden", package whose unreadable file may declare it) ("missing",)."""
+        ("universe", name) ("dot", imports) ("conflict",) ("hidden", package whose unreadable file may declare it)
+        ("tests_only",) (a dot-imported package declares it in _test.go files of another directory alone) ("missing",)."""
         package = env.info.package
         kinds = package.names.get(name, set())
         if len(kinds) > 1:
@@ -2639,9 +2640,15 @@ class Resolver:
             return ("const",)
         if env.info.package.unreadable and (name in UNIVERSE_FUNCTIONS | UNIVERSE_TYPES | UNIVERSE_INTERFACES | UNIVERSE_VALUES):
             return ("hidden", package)  # a declaration ripple could not read may shadow it
+        only_in_tests = False
         for dot in env.info.dots:
-            # a name that only another directory's tests declare is not bound by the dot import in any build of this file
-            if dot.package is not None and name in dot.package.names and not self.hidden_name(dot.package, name):
+            if dot.package is not None and name in dot.package.names and self.hidden_name(dot.package, name):
+                # a name that only another directory's tests declare is not bound by the dot import in any build of this file
+                if self.unsure(dot.package, name):
+                    return ("hidden", dot.package)  # a file ripple could not read may declare it
+                only_in_tests = True
+                continue
+            if dot.package is not None and name in dot.package.names:
                 package = dot.package
                 if len(package.names[name]) > 1:
                     return ("conflict",)
@@ -2658,6 +2665,8 @@ class Resolver:
             return ("type", ("builtin", name))
         if name in UNIVERSE_VALUES:
             return ("const",)
+        if only_in_tests and all(dot.package is not None for dot in env.info.dots):
+            return ("tests_only",)  # every dot import is a package ripple read, and none of them has the name in a build of this file
         if env.info.dots:
             return ("dot", env.info.dots)
         return ("missing",)
@@ -2675,12 +2684,44 @@ class Resolver:
             if found is not None:
                 self.edge(found, node)
                 return self.first(self.results_of(found), want_tuple)
+            reason = self.only_in_tests(function, env)
+            if reason is not None:
+                self.unresolved(node, shown(ty), reason)  # a generic function or type that no build of this file has
+                return None
             if function.type in ("type_identifier", "identifier") and not self.is_type_expression(function, env):
                 # `fns[k](x)` with a name as the index reads the same as `G[T](x)`: a value that is not a type is a
                 # map or slice of functions, called by index.
                 self.unresolved(node, shown(ty), INDEXED_FUNCTION)
                 return None
         return self.type_node(ty, env)
+
+    def only_in_tests(self, node, env: Env) -> str | None:
+        """The reason a call is left open when the name it is written with (a generic function or a type, `Only`, `d.Only`, `d.T`) is
+        declared in _test.go files of another directory alone, so that no build of the file being read has it and Go reports it
+        undefined: ONLY_IN_TESTS, for the dot-imported name of name_value or a qualified one that hidden_name says no file of the
+        caller's builds declares. When a file ripple could not read may declare the name, the call is open for that reason instead,
+        and every other name is None (the caller reads it as it always did)."""
+        node = unwrap(node, ("parenthesized_expression",))
+        if node.type in ("identifier", "type_identifier"):
+            name = text(node)
+            if env.local(name) is not None:
+                return None
+            found = self.name_value(name, env)
+            if found[0] == "tests_only":
+                return ONLY_IN_TESTS
+            if found[0] == "hidden" and found[1] is not env.info.package and self.hidden_name(found[1], name):
+                return self.unread(found[1])
+            return None
+        entry = None
+        if node.type == "selector_expression":
+            entry = self.qualifier(field_of(node, "operand"), env)
+            member = text(field_of(node, "field"))
+        elif node.type == "qualified_type":
+            entry = self.import_entry(env.info, text(field_of(node, "package")))
+            member = text(field_of(node, "name"))
+        if entry is None or entry.kind != "repo" or not self.hidden_name(entry.package, member):
+            return None
+        return self.unread(entry.package) if self.unsure(entry.package, member) else ONLY_IN_TESTS
 
     def function_named(self, node, env: Env) -> list[FuncDecl] | None:
         """The declarations of the repo function a bare or imported name denotes, None when it is not one."""
@@ -2725,6 +2766,11 @@ class Resolver:
             imported = operand.type == "selector_expression" and self.qualifier(field_of(operand, "operand"), env) is not None
             if imported or self.function_named(operand, env) is not None:
                 callee = operand
+            else:
+                reason = self.only_in_tests(operand, env)
+                if reason is not None:
+                    self.unresolved(node, written, reason)  # `Only[int](x, y)` through a dot import that no build of this file has
+                    return None
         if callee.type == "generic_type":
             callee = field_of(callee, "type")
         if callee.type == "identifier":
@@ -2732,6 +2778,10 @@ class Resolver:
         if callee.type == "selector_expression":
             return self.call_selector(node, callee, written, env, want_tuple)
         if callee.type == "unary_expression" and callee.child(0).type == "*":
+            reason = self.only_in_tests(field_of(callee, "operand"), env)
+            if reason is not None:
+                self.unresolved(node, written, reason)  # `(*d.T)(x)` for a type that no build of this file has
+                return None
             return self.type_node(callee, env) if self.is_type_expression(field_of(callee, "operand"), env) else self.computed(node, callee, written, env)
         if callee.type == "func_literal":
             self.expr(callee, env)
@@ -2763,8 +2813,7 @@ class Resolver:
             return self.name_value(text(node), env)[0] == "type"
         if node.type == "selector_expression":
             entry = self.qualifier(field_of(node, "operand"), env)
-            member = text(field_of(node, "field"))
-            return entry is not None and entry.kind == "repo" and "type" in entry.package.names.get(member, ()) and not self.hidden_name(entry.package, member, env.info)
+            return entry is not None and entry.kind == "repo" and "type" in entry.package.names.get(text(field_of(node, "field")), ())
         return False
 
     def call_name(self, node, callee, written: str, env: Env, want_tuple: bool, argument_types: list):
@@ -2799,6 +2848,8 @@ class Resolver:
             return None
         if kind == "hidden":
             self.unresolved(node, written, self.unread(found[1]))
+        elif kind == "tests_only":
+            self.unresolved(node, written, ONLY_IN_TESTS)
         else:
             self.unresolved(node, written, CONFLICT if kind == "conflict" else UNDECLARED)
         return None

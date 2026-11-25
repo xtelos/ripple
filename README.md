@@ -603,7 +603,11 @@ an import of the tests, any package may be linked, and the declarations are kept
 directory is not one of the callee's, so `d.F()` in `e` draws an edge to the library `F` alone, not to a windows-only test
 file's `F` beside it. A name that only another directory's test files declare (a function, a variable, a constant or a type,
 and so a method reached through its type) names nothing for that caller: the call is left unresolved with that reason, because Go
-does not compile it. A name declared as one kind in a library file and as another in a test file is still read as one name with
+does not compile it. That holds on every way of writing the call: `d.Only(x)`, a dot import's `Only(x)`, a generic call
+(`Only[int](x)`, `d.Only[int](x)`), a conversion to the type (`d.T(x)`, `(*d.T)(x)`, `Box[int](x)`). It is not said when a file
+ripple could not read may declare the name, or when a dot import of a package outside the repo may bind it: the call is then
+unresolved for another reason, except that a generic call or conversion a library file writes through the name of a package with
+an unreadable file is, as before, not recorded at all. A name declared as one kind in a library file and as another in a test file is still read as one name with
 two meanings, so a call through it stays unresolved. In a directory with a file ripple could not read, a name declared in one of its `_test.go` files (an alias,
 a helper that `export_test.go` exports) is as sure for the external test package as for the package's own tests, and not
 sure for a library file or another directory's tests. Every memo is keyed on what the calling file changes about its answer
