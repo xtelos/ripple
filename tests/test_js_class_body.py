@@ -680,6 +680,9 @@ NOT_THE_INSTANCE = {
     "a catch parameter of the same name": f"const self = this; try {{}} catch (self) {{ self.m = {FN}; }}",
     "an alias destructured into": f"let self = this; [self] = [other]; self.m = {FN};",
     "an alias that a for loop assigns": f"let self = this; for (self of [other]) self.m = {FN};",
+    "a17 an alias's value read outside the block that declares it": f"let b; {{ const other = this; void other; }} b = other; b.m = {FN};",
+    "a18 a const initialised before the block that declares the alias": f"const b = other; {{ const other = this; void other; }} b.m = {FN};",
+    "an alias's value read in a function the alias is not in scope of": f"{{ const other = this; void other; }} const f = () => {{ const b = other; b.m = {FN}; }}; f();",
 }
 
 
@@ -701,6 +704,17 @@ def test_a_name_that_is_the_instance_and_nothing_else_still_is(make_repo):
         f"const self = this, other = 1; self.m = {FN};",
         f"const a = this; const b = a; b.m = {FN};",
         f"const self = this; Object.assign(self, {{ m: {FN} }});",
+    ):
+        assert_unresolved(class_answer(make_repo, f"constructor() {{ {body} }} {M}"))
+
+
+def test_an_alias_of_an_alias_inside_the_block_that_declares_it_still_is_the_instance(make_repo):
+    # Node: REPLACED in each. The value `a` is read inside the scope of the alias `a`, so it is the instance
+    for body in (
+        f"{{ const a = this; const b = a; b.m = {FN}; }}",
+        f"{{ const a = this; let b; b = a; b.m = {FN}; }}",
+        f"const a = this; {{ const b = a; b.m = {FN}; }}",
+        f"const a = this; const f = () => {{ const b = a; b.m = {FN}; }}; f();",
     ):
         assert_unresolved(class_answer(make_repo, f"constructor() {{ {body} }} {M}"))
 

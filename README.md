@@ -326,7 +326,9 @@ the call is unresolved, with the reason. The body says something else when:
   `this.m++`, a destructuring assignment into `this.m` (`({ m: this.m } = o)`, `[this.m] = xs`), `for (this.m of xs)`, `super.m = f`,
   `Object.assign(this, { m })` (also `{ ...{ m } }`), `Object.defineProperty(this, 'm', ...)`, `Object.defineProperties`, `Reflect.set` and
   `Reflect.defineProperty`, written through `this`, through the `this` of an arrow function, or through a name that is the instance's
-  `this` and nothing else (one `const`, `let` or `var` that only ever holds `this`, read inside its own scope);
+  `this` and nothing else (one `const`, `let` or `var` that only ever holds `this`, or another such name read inside that name's scope,
+  and is itself read inside its own scope: `const a = this; const b = a; b.m = f`, but not a `b = a` where that `a` is a module's `a`
+  written beside a block that declares `const a = this`);
 - a field is named `m` (`m = f`, `'m' = f`, `['m'] = f`). A TypeScript `declare` or `abstract` field and a static field are no instance
   property, and a parameter property is a field;
 - a base class does either of those to every instance, whether or not it also declares `m` itself. The reason says what the base's body

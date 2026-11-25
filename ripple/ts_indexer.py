@@ -1956,8 +1956,16 @@ class FileBuilder:
 
     @staticmethod
     def _holds_this(value, here: bool, aliases: dict) -> bool:
+        """Whether `value`, the right side of a write to a name, is the instance: `this` where it is the instance's, or the name of an
+        alias read inside the scope of that alias's own declaration (the same test `instance` makes of a read: a module's `a` read
+        beside a block that declares `const a = this` is not that alias)."""
         value = unwrap(value)
-        return value is not None and ((value.type == "this" and here) or (value.type == "identifier" and text(value) in aliases))
+        if value is None:
+            return False
+        if value.type == "this":
+            return here
+        scope = aliases.get(text(value)) if value.type == "identifier" else None
+        return scope is not None and scope.start_byte <= value.start_byte and value.end_byte <= scope.end_byte
 
     def _own_writes(self, root, cls: Scope, constructor: bool = False, static: bool = False, where: str = "") -> None:
         """Read a member of a class body (a method, a constructor, an accessor, a field initializer, a static block) for what it
