@@ -1867,6 +1867,93 @@ class FileBuilder:
                     grown = True
         return aliases
 
+    def _hoisted_vars(self, root) -> list:
+        """The names a `var` declares anywhere under the function (or static block) `root`, not inside a function, class or static block
+        of its own: a `var` is the function's, wherever in it the declaration is written."""
+        names: list = []
+        pending = list(root.children)
+        while pending:
+            node = pending.pop()
+            if node.type in FUNCTION_NODES or node.type in CLASS_NODES or node.type == "class_static_block":
+                continue
+            if node.type == "variable_declaration":
+                for declarator in named(node):
+                    target = field_of(declarator, "name") if declarator.type == "variable_declarator" else None
+                    if target is not None:
+                        names += self._pattern_names(target, visit_defaults=False)
+            elif node.type == "for_in_statement" and field_of(node, "kind") is not None and text(field_of(node, "kind")) == "var":
+                left = field_of(node, "left")
+                if left is not None:
+                    names += self._pattern_names(left, visit_defaults=False)
+            pending.extend(node.children)
+        return names
+
+    def _node_declares(self, node, name: str) -> bool:
+        """Whether this one node declares `name` for the code inside it: a function's parameters, its own name and its `var`s, a block's
+        `let`, `const`, class and function declarations (wherever in the block they are written), a `for` or `catch` clause's
+        declaration, the name of a class that is written inside. A static block is a block with `var`s of its own."""
+        kind = node.type
+        names: list = []
+        if kind in FUNCTION_NODES:
+            single = field_of(node, "parameter")
+            if single is not None:
+                names.append(text(single))
+            params = field_of(node, "parameters")
+            for param in named(params) if params is not None else []:
+                pattern = field_of(param, "pattern") if param.type in ("required_parameter", "optional_parameter") else None
+                if pattern is not None and pattern.type != "this":
+                    names += self._pattern_names(pattern, visit_defaults=False)
+            own = field_of(node, "name")
+            if own is not None and kind != "method_definition":
+                names.append(text(own))
+            names += self._hoisted_vars(node)
+        elif kind in CLASS_NODES:
+            own = field_of(node, "name")
+            if own is not None:
+                names.append(text(own))
+        elif kind in ("statement_block", "class_static_block", "switch_body", "program"):
+            statements = [c for case in node.children for c in (case.children if case.type in ("switch_case", "switch_default") else [case])]
+            for statement in statements:
+                if statement.type == "lexical_declaration":
+                    for declarator in named(statement):
+                        target = field_of(declarator, "name") if declarator.type == "variable_declarator" else None
+                        if target is not None:
+                            names += self._pattern_names(target, visit_defaults=False)
+                elif statement.type in (*CLASS_NODES, *FUNCTION_DECLARATIONS, "enum_declaration"):
+                    own = field_of(statement, "name")
+                    if own is not None:
+                        names.append(text(own))
+            if kind == "class_static_block":
+                names += self._hoisted_vars(node)
+        elif kind == "for_statement":
+            initializer = field_of(node, "initializer")
+            if initializer is not None and initializer.type == "lexical_declaration":
+                for declarator in named(initializer):
+                    target = field_of(declarator, "name") if declarator.type == "variable_declarator" else None
+                    if target is not None:
+                        names += self._pattern_names(target, visit_defaults=False)
+        elif kind == "for_in_statement":
+            left = field_of(node, "left")
+            if left is not None and field_of(node, "kind") is not None:
+                names += self._pattern_names(left, visit_defaults=False)
+        elif kind == "catch_clause":
+            parameter = field_of(node, "parameter")
+            if parameter is not None:
+                names += self._pattern_names(parameter, visit_defaults=False)
+        return name in names
+
+    def _declared_between(self, node, root, name: str) -> bool:
+        """Whether `name`, read at `node` inside the member `root`, is declared between the two (`root` included): a parameter, a
+        variable, a function or a class of that name is another `name`, whatever the class is called."""
+        scope = node.parent
+        while scope is not None:
+            if self._node_declares(scope, name):
+                return True
+            if scope.id == root.id:
+                return False
+            scope = scope.parent
+        return False
+
     @staticmethod
     def _holds_this(value, here: bool, aliases: dict) -> bool:
         value = unwrap(value)
@@ -1886,7 +1973,8 @@ class FileBuilder:
 
         On the prototype: the same writes through `C.prototype`, with `C` the class's own name, anywhere in its body, and through
         `this.prototype` in a static member or a static block, where `this` is the class. The method of that name is then not the one
-        the class declares. A prototype reached any other way (a value, an alias, another file) is not read.
+        the class declares. A prototype reached any other way (a value, an alias, another file) is not read, and neither is a `C`
+        that the member redeclares between the write and the class body (a parameter, a variable, a function or a class of that name).
 
         What stays unread, because the name or the object is only known when the code runs or the write is in code that this
         one hands `this` to: a key that is not a literal (`this[k] = v`, `Object.assign(this, options)`), a call that is
@@ -1919,7 +2007,9 @@ class FileBuilder:
             prop, obj = field_of(node, "property"), unwrap(field_of(node, "object"))
             if prop is None or prop.type != "property_identifier" or text(prop) != "prototype" or obj is None:
                 return False
-            return (obj.type == "this" and here and static) or (obj.type == "identifier" and text(obj) in class_names)
+            return (obj.type == "this" and here and static) or (
+                obj.type == "identifier" and text(obj) in class_names and not self._declared_between(obj, root, text(obj))
+            )
 
         def literal_key(argument):
             argument = unwrap(argument)

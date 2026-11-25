@@ -772,6 +772,58 @@ def test_the_prototype_rules_read_only_this_in_a_static_member_and_the_class_own
         assert_edge(class_answer(make_repo, f"{M} {member}", prefix="class Other {}\n"))
 
 
+NOT_THE_CLASS = {
+    "p10 a method parameter named C": f"k(C) {{ C.prototype.m = {FN}; }}",
+    "p11 a class C declared in the method": f"k() {{ class C {{ m() {{}} }} C.prototype.m = {FN}; }}",
+    "p22 an arrow parameter C in a static block": f"static {{ const f = (C) => {{ C.prototype.m = {FN}; }}; f(class {{}}); }}",
+    "a block-scoped const C": f"k() {{ {{ const C = {{ prototype: {{}} }}; C.prototype.m = {FN}; }} }}",
+    "a var C declared in a nested block (hoisted)": f"k() {{ if (true) {{ var C = {{ prototype: {{}} }}; }} C.prototype.m = {FN}; }}",
+    "a function C declared in the method": f"k() {{ function C() {{}} C.prototype.m = {FN}; }}",
+    "a catch parameter C": f"k() {{ try {{ throw {{ prototype: {{}} }}; }} catch (C) {{ C.prototype.m = {FN}; }} }}",
+    "a for-of const C": f"k() {{ for (const C of [{{ prototype: {{}} }}]) {{ C.prototype.m = {FN}; }} }}",
+    "a destructured parameter C": f"k({{ C = {{ prototype: {{}} }} }}) {{ C.prototype.m = {FN}; }}",
+    "a parameter C with a default": f"k(C = {{ prototype: {{}} }}) {{ C.prototype.m = {FN}; }}",
+    "a rest parameter C": f"k(...C) {{ C.prototype = {{}}; C.prototype.m = {FN}; }}",
+    "a function expression named C": f"k() {{ (function C() {{ C.prototype.m = {FN}; }})(); }}",
+    "a class expression named C": f"k() {{ const K = class C {{ static {{ C.prototype.m = {FN}; }} }}; }}",
+    "a C declared in an enclosing function": f"k() {{ const f = (C) => () => {{ C.prototype.m = {FN}; }}; f({{ prototype: {{}} }})(); }}",
+    "Object.assign onto a C that is a parameter": f"k(C) {{ Object.assign(C.prototype, {{ m: {FN} }}); }}",
+    "Object.defineProperty onto a C that is a parameter": f"k(C) {{ Object.defineProperty(C.prototype, 'm', {{ value: {FN} }}); }}",
+}
+
+
+@pytest.mark.parametrize("member", list(NOT_THE_CLASS.values()), ids=list(NOT_THE_CLASS))
+def test_a_name_the_body_redeclares_is_not_the_class_so_its_prototype_is_not_the_class_prototype(make_repo, member):
+    # Node: ORIGINAL in each (`k` was called with an object that has a `prototype` where the case needs one), and main drew the right
+    # edge. `C.prototype` is the class's own only where `C` is the class: a parameter, a variable, a function or a class that the
+    # member declares between the use and the class body is another `C`.
+    assert_edge(answer(make_repo, {"c.js": cls(f"{M} {member}"), "main.js": MAIN_INIT.replace("c.init()", "c.k?.({ prototype: {} })")}))
+
+
+def test_a_typed_parameter_or_a_typed_arrow_parameter_named_like_the_class_is_not_the_class_in_typescript(make_repo):
+    # Node (--experimental-transform-types): ORIGINAL for both
+    for member in (f"k(C: any) {{ C.prototype.m = {FN}; }}", f"static {{ const f = (C: any): void => {{ C.prototype.m = {FN}; }}; f({{ prototype: {{}} }}); }}"):
+        source = f"export class C {{ {M} {member} }}\n"
+        graph = ts_graph(make_repo, {"c.ts": source, "main.ts": "import { C } from './c.ts';\nconsole.log(new C().m()); // CALL\n"})
+        assert [e.callee for e in graph.edges if e.file == "main.ts" and e.callee.endswith(".m")] == ["c:C.m"], member
+
+
+STILL_THE_CLASS = {
+    "a const C in a sibling block": f"k() {{ {{ const C = 1; void C; }} C.prototype.m = {FN}; }}",
+    "an arrow parameter C that the write is not inside": f"k() {{ const f = (C) => C; f(1); C.prototype.m = {FN}; }}",
+    "a var C in another function": f"k() {{ function g() {{ var C = 1; return C; }} g(); C.prototype.m = {FN}; }}",
+    "a for-of const C that ended": f"k() {{ for (const C of [1]) void C; C.prototype.m = {FN}; }}",
+    "a catch parameter C that ended": f"k() {{ try {{}} catch (C) {{}} C.prototype.m = {FN}; }}",
+}
+
+
+@pytest.mark.parametrize("member", list(STILL_THE_CLASS.values()), ids=list(STILL_THE_CLASS))
+def test_a_declaration_of_the_class_name_that_does_not_reach_the_write_does_not_hide_it(make_repo, member):
+    # Node: REPLACED in each once k() has run. A `C` declared in a sibling block, or in a function or clause that the write is not
+    # inside, is not in scope there, so the write is still the class's own
+    assert_unresolved(answer(make_repo, {"c.js": cls(f"{M} {member}"), "main.js": MAIN_INIT.replace("c.init()", "c.k?.()")}))
+
+
 def test_a_prototype_write_in_the_body_is_the_prototype_the_subclass_inherits(make_repo):
     # Node: REPLACED for `new D().m()` where D inherits it; D's own m runs when D declares one
     base = f"class C {{ {M} static {{ C.prototype.m = {FN}; }} }}\n"

@@ -358,7 +358,9 @@ method (alone, or after a method it replaced) is never a call target: a call of 
 Not read, so the edge stays: a key that is known only when the code runs (`this[k] = f`, `Object.assign(this, options)`, `[k]() {}`), a
 write inside a function that is not an arrow, a write through a name that is not one plain `const x = this` (a destructured or defaulted
 name, one that is declared twice, written another value or shadowed), a write made by a function that is handed `this` (`install(this)`),
-and a write to a prototype that is not `C.prototype` with the class's own name or `this.prototype` in a static member.
+and a write to a prototype that is not `C.prototype` with the class's own name or `this.prototype` in a static member. A `C` that the
+member redeclares between the write and the class body (a parameter, a variable, a function or a class of that name) is not the class, so
+`C.prototype.m = f` through it is not read.
 
 **Ripple does not detect a replacement from outside the class body.** An instance-method edge is drawn without proof that no other
 code replaces the method, and no rule looks for that code. In each of these families Node runs the replacement and ripple still draws the
