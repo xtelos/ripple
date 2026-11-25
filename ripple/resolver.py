@@ -194,6 +194,8 @@ class Resolver:
         self._alias_pairs: list[tuple[str, str]] | None = None
         self._tables: dict[tuple[str, str], str | None] = {}
         self._replaced: dict[str, bool] = {}  # class id -> whether a decorator may have replaced it
+        self._replaced_below: dict[str, tuple[dict[str, str], str]] = {}  # class id -> what a class below it replaces (see replaced_below)
+        self._instance_facts: bool | None = None  # whether any scope has InstanceFacts
         self._external_base_index: dict[str, list[str]] | None = None  # dotted name of an external base -> repo classes with such a base
         self._base_proven: set[str] | None = None  # dotted names a repo class inherits from, so they are classes
         # Resolving a base (`class X(self.Attr)`) can look a member up before every
@@ -1383,6 +1385,10 @@ class Resolver:
                     f"'{attr}' may be hidden by an own property of base class {holder[0]}: {holder[1]}, and a method of that name "
                     f"in a class below it does not replace it"
                 )
+            if method is not None and not target.exact:
+                below = self.replaced_below(target.value, attr)
+                if below:
+                    return unknown(below)
             if method is not None and self.scopes[method].is_property:
                 if self.return_type(method):
                     return self.value_of_type(self.return_type(method))
@@ -1467,6 +1473,43 @@ class Resolver:
             if facts is not None and facts.swapped:
                 return f"'{attr}': {facts.swapped} of {klass} may give an instance another prototype, so a method of {cls} may not be what runs"
         return None
+
+    def replaced_below(self, cls: str, attr: str) -> str | None:
+        """Why a call of `attr` on a receiver that may be a subclass of cls is not known to run what cls (or its bases) write: a class
+        below cls (read in the repo) gives its instances an own property of that name, or may return another object or give the
+        instance another prototype. The runtime object may be one of them, which is why override edges exist: for a method the
+        subclass defines they are the answer, for one it replaces any other way the answer is unresolved, naming the subclass."""
+        if self._building or not self._any_instance_facts():
+            return None
+        cached = self._replaced_below.get(cls)
+        if cached is None:
+            names: dict[str, str] = {}
+            wide = ""
+            for sub in self.all_subclasses(cls):
+                facts = getattr(self.scopes[sub], "instance_facts", None)
+                if facts is None:
+                    continue
+                wide = wide or (
+                    f"{sub}, whose {facts.returns} may return another object"
+                    if facts.returns
+                    else f"{sub}, whose {facts.swapped} may give an instance another prototype"
+                    if facts.swapped
+                    else ""
+                )
+                for key, how in facts.own.items():
+                    names.setdefault(key, f"{sub}: {how[0][1]}")
+            cached = self._replaced_below[cls] = (names, wide)
+        names, wide = cached
+        if attr in names:
+            return f"'{attr}' may be replaced on an instance of subclass {names[attr]}, and this receiver may be one"
+        if wide:
+            return f"'{attr}' may not be what runs on an instance of subclass {wide}, and this receiver may be one"
+        return None
+
+    def _any_instance_facts(self) -> bool:
+        if self._instance_facts is None:
+            self._instance_facts = any(getattr(scope, "instance_facts", None) is not None for scope in self.scopes.values())
+        return self._instance_facts
 
     def super_member(self, scope: Scope, name: str) -> Target:
         cls = self.enclosing_class(scope)

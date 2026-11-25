@@ -371,8 +371,10 @@ def test_the_override_of_a_class_whose_ancestor_has_an_own_m_is_not_an_edge(make
     }
     graph = build_graph(make_repo(files), JAVASCRIPT)
     calls = sorted((e.callee, e.kind) for e in graph.edges if e.file == "c.js" and e.line == 1)
-    assert ("c:A.m", "call") in calls  # an A instance runs A.m
     assert ("c:D.m", "override") not in calls  # a D instance has B's own m (Node: REPLACED), so D.m never runs
+    # the receiver is `this` in A, so it may be a B or a D, which have B's own m: A.m is not known to be what runs either
+    assert ("c:A.m", "call") not in calls
+    assert any("subclass c:B" in u.reason for u in graph.unresolved if u.file == "c.js" and u.line == 1)
 
 
 def test_an_override_whose_ancestors_have_other_own_properties_stays(make_repo):
@@ -806,3 +808,72 @@ def test_a_typescript_parameter_property_hides_a_derived_accessor_as_a_field_doe
         graph = ts_graph(make_repo, {"c.ts": source, "main.ts": main})
         assert not [e for e in graph.edges if e.callee in ("c:D.m", "c:H.go")]
         assert any(u.file == "main.ts" and "may be hidden by an own property of base class c:B" in u.reason for u in graph.unresolved)
+
+
+
+# ---- a subclass that replaces m, for a call on a receiver that may be that subclass (review round 1, n01 to n05) ------------------------
+
+B_THAT_CALLS_M = "export class B { go() { return this.m(); } // CALL\n  m() { return 'B'; } }\n"
+SUBCLASS_REPLACES = {
+    "n01 an arrow function field": "m = () => 'FIELD';",  # Node: new D().go() prints FIELD
+    "n02 this.m = f in the constructor": "constructor() { super(); this.m = () => 'OWN'; }",  # OWN
+    "a defineProperty in the constructor": "constructor() { super(); Object.defineProperty(this, 'm', { value: () => 'OWN' }); }",
+    "a field with no initializer": "m;",  # an own property m = undefined: new D().go() throws
+    "a write through an alias": "constructor() { super(); const self = this; self['m'] = () => 'OWN'; }",
+    "a destructuring write": "constructor() { super(); [this.m] = [() => 'OWN']; }",
+    "n03 a constructor that returns another object": "constructor() { super(); return { go: B.prototype.go, m: () => 'OTHER' }; }",  # OTHER
+    "n04 a constructor that swaps the prototype": "constructor() { super(); Object.setPrototypeOf(this, { go: B.prototype.go, m: () => 'SWAP' }); }",  # SWAP
+}
+
+
+@pytest.mark.parametrize("member", list(SUBCLASS_REPLACES.values()), ids=list(SUBCLASS_REPLACES))
+def test_a_subclass_that_replaces_m_makes_this_m_in_the_base_unresolved_naming_the_subclass(make_repo, member):
+    files = {"c.js": B_THAT_CALLS_M + f"export class D extends B {{ {member} }}\n", "main.js": "import { D } from './c.js';\nnew D().go();\n"}
+    graph = build_graph(make_repo(files), JAVASCRIPT)
+    assert [e for e in graph.edges if e.line == 1 and e.file == "c.js" and e.callee.endswith(".m")] == []
+    assert any("subclass c:D" in u.reason for u in graph.unresolved if u.file == "c.js" and u.line == 1), graph.unresolved
+
+
+def test_a_subclass_two_levels_down_and_one_in_another_file_count_too(make_repo):
+    files = {
+        "c.js": B_THAT_CALLS_M + "export class D extends B {}\n",
+        "e.js": "import { D } from './c.js';\nexport class E extends D { m = () => 'FIELD'; }\n",
+        "main.js": "import { E } from './e.js';\nnew E().go();\n",
+    }
+    graph = build_graph(make_repo(files), JAVASCRIPT)
+    assert [e for e in graph.edges if e.callee.endswith(".m")] == []
+    assert any("subclass e:E" in u.reason for u in graph.unresolved if u.file == "c.js")
+
+
+def test_an_exact_receiver_keeps_its_edge_whatever_a_subclass_does(make_repo):
+    # `new B()` is a B and not a D: Node prints B
+    files = {"c.js": "export class B { m() { return 'B'; } }\nexport class D extends B { m = () => 'FIELD'; }\n", "main.js": "import { B } from './c.js';\nconsole.log(new B().m()); // CALL\n"}
+    assert_edge(answer(make_repo, files), "c:B.m")
+
+
+def test_a_subclass_that_replaces_something_else_or_declares_a_method_keeps_the_base_edges(make_repo):
+    for member in ("q = () => 'OTHER';", "static m = () => 'STATIC';", "constructor() { super(); this.q = 1; }"):  # Node: B
+        graph = build_graph(make_repo({"c.js": B_THAT_CALLS_M + f"export class D extends B {{ {member} }}\n", "main.js": "import { D } from './c.js';\nnew D().go();\n"}), JAVASCRIPT)
+        assert [e.callee for e in graph.edges if e.file == "c.js" and e.line == 1] == ["c:B.m"], member
+    # a method the subclass declares is the existing override edge (Node: D)
+    graph = build_graph(make_repo({"c.js": B_THAT_CALLS_M + "export class D extends B { m() { return 'D'; } }\n", "main.js": "import { D } from './c.js';\nnew D().go();\n"}), JAVASCRIPT)
+    assert sorted((e.callee, e.kind) for e in graph.edges if e.file == "c.js" and e.line == 1) == [("c:B.m", "call"), ("c:D.m", "override")]
+
+
+def test_a_typed_receiver_may_be_the_subclass_too(make_repo):
+    source = "export class B { m() { return 'B'; } }\nexport class D extends B { m = () => 'FIELD'; }\n"
+    main = "import { B } from './c';\nexport function f(x: B) { return x.m(); } // CALL\n"
+    graph = ts_graph(make_repo, {"c.ts": source, "main.ts": main})
+    assert [e for e in graph.edges if e.file == "main.ts" and e.callee.endswith(".m")] == []
+    assert any("subclass c:D" in u.reason for u in graph.unresolved if u.file == "main.ts")
+
+
+def test_a_subclass_that_returns_or_swaps_costs_every_this_call_in_the_base(make_repo):
+    # COST, pinned and not claimed correct: a flag of the subclass is class-wide, so `this.q()` in B is unresolved though a singleton
+    # constructor hands back a D that has B's q (Node: new D().go() prints B-q). Measured on the seven corpora against main: 0 edges.
+    files = {"c.js": "export class B { go() { return this.q(); } // CALL\n  q() { return 'B'; } }\n"
+                     "export class D extends B { static i; constructor() { super(); if (D.i) return D.i; D.i = this; } }\n",
+             "main.js": "import { D } from './c.js';\nnew D().go();\n"}
+    graph = build_graph(make_repo(files), JAVASCRIPT)
+    assert [e for e in graph.edges if e.callee.endswith(".q")] == []
+    assert any("subclass c:D" in u.reason for u in graph.unresolved if u.file == "c.js")
