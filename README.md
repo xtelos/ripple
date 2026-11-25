@@ -1453,8 +1453,9 @@ Read its unresolved reasons, and report an edge that javac would not make.
 Maven's exit status and against what was asked for, never from the exit code alone or the log text. `mvnw` in the repo is
 preferred to `mvn` on `PATH` (it is the Maven version the repo pins, and a Maven that is too old or too new fails a build
 for no fault of its tests; it may download a distribution on first use, which is the repo's own build, and a `mvnw` that is
-a link to a file outside the repo is refused, never run). It needs a `pom.xml` at the root, and a root with both a `pom.xml`
-and a Gradle file, or Gradle alone, is refused with the command to pass instead. With no arguments it runs
+a link to a file outside the repo is refused, never run). It needs a `pom.xml` at the root (a root with Gradle files and no `pom.xml` is run as Gradle, see below), and a root with
+both a `pom.xml` and a Gradle file is refused: ripple does not guess which build is the repo's, and the refusal names the command to
+pass instead. With no arguments it runs
 `mvn -B --fail-at-end test` (every module of the reactor; `--fail-at-end` so an independent module still runs after a
 failure). The arguments:
 
@@ -1548,9 +1549,81 @@ names the overload that failed, and fails when only other overloads ran. A param
 `@TestFactory` report as `name()[1]`, `name()[2]`: the method name is what is matched, and the verdict says how many invocations
 ran. The
 result has the usual keys plus `problems`, `counts` and `notes`; failures read `FAILED file.java::Class.method: message`.
-What it does not read: Gradle, TestNG, a build whose reports are written outside the repo (nothing is found, so it is not
+What it does not read: TestNG, a build whose reports are written outside the repo (nothing is found, so it is not
 passed), failsafe integration tests (`verify`, not `test`: named in `notes`, never expected), and Kotlin tests. `--test-command` still means exactly that command.
 Java's profile is untouched (its fields are hashed into the cache key).
+
+**`check` for Java on Gradle** (`ripple/gradle_check.py`) is the same check for a root with `build.gradle`, `build.gradle.kts` or
+`settings.gradle*` and no `pom.xml`. The verdict is what Gradle itself reports, not ripple's reading of the tests: ripple's init
+script puts a test listener on every `Test` task and records, one JSON line each, every test (class, name, outcome, time) and every
+suite (the whole run, each test JVM, each class and parameterized method, with Gradle's own totals), then the task graph and the
+outcome of every task, to a file named inside the script. The init script is ripple's, written outside the repo and deleted
+afterwards; it also makes every `Test` task out of date and uncacheable so a build that already ran is run again. Nothing in the
+verdict reads a test source (a source is read only to turn an id you wrote into the class and `--tests` pattern Gradle is asked
+for), so parameterized, nested, inherited, dynamic, templated, display-named, disabled and assumed tests are what Gradle says they
+are. `gradlew` in the repo is preferred to `gradle` on `PATH` under the same policy as `mvnw` (it runs the repo's own script and jar
+and may download a distribution, and a `gradlew` that links outside the repo is refused, never run). With no arguments it runs
+`gradle --no-daemon --console=plain --no-build-cache --no-configuration-cache --no-configure-on-demand --continue -I <init script> test`,
+and for ids and paths `:proj:test --tests <pattern> ...` per project (a class is its binary name and takes its `@Nested` classes
+with it, a method is `Class.method`, a method of a nested class is `'Outer$Inner.method'`). The ids are the ones the Maven runner
+takes, so they do not depend on the build tool.
+
+**A pass is the one claim made**, and needs all of these: Gradle exited 0 in time; the record is whole (no cut-off last line, under
+the size cap) and names the root build's task graph; every `test` task of the build was EXECUTED in this run (a task that was
+UP-TO-DATE, FROM-CACHE, never reached or left out of the task graph by a `-x`, a script or an init script is a problem; one the build
+skips itself, `enabled = false` or an `onlyIf`, or that has no classes, NO-SOURCE, is a note, unless it was asked for by name; UP-TO-DATE and
+FROM-CACHE cannot come out of ripple's own invocation); every executed task has its closing record and the tests recorded add up to the totals Gradle
+gave for it; no suite ended SKIPPED without an assumption; at least one test ran and none failed; and what was asked for ran
+(a class by a test of it, a method by a test whose name Gradle gives as that method, `addsItems()` or `discounts(int)[1]`).
+Anything else is not a pass: a failing test is a failure, and what ripple cannot prove is listed under `problems` (unverified).
+
+**A test JVM that stops.** Gradle calls a JVM that exits with status 0 (`System.exit(0)` in a test, `Runtime.halt(0)`, an exit in a
+static initializer or `@AfterAll`) a normal end: `BUILD SUCCESSFUL`, the later tests never run. Measured on Gradle 9.9.1 in 14
+shapes (meta-annotated and inherited tests, interface defaults, conditions, nested classes, repeated and dynamic tests, forks), plus a
+non-zero exit and a `kill -9`: Gradle ends the test JVM's own suite (`Gradle Test Executor N`) and the class it stopped in SKIPPED, and
+a skipped parameterized method's own container is SKIPPED too and is an ordinary skip, so those two kinds of suite are the ones read.
+A skipped test with a time above 0 and no assumption is not read as an exit on its own: a `@Disabled` test took 1 ms, and an assumption
+in `@BeforeAll` skips every test of the class with 0 and 1 ms, both in suites Gradle ended normally. An exit in `@AfterAll` loses only
+the cleanup and still ends the suite SKIPPED, so it is refused too.
+
+**Not refusals, notes:** tests the build's own `test` task deselects (`excludeTags`, `exclude`, a filter: the note says what it
+narrows), a `test` task the build disables (`enabled = false`), skips by `onlyIf` or leaves with no classes (the note says what
+Gradle said, and still names what the task narrows), `ignoreFailures` (the failure is real and listed), other `Test` tasks (`integrationTest`,
+which `test` does not run, as `mvn test` does not run failsafe), and init scripts in `$GRADLE_USER_HOME/init.d` or
+`GRADLE_OPTS`/`JAVA_TOOL_OPTIONS` (named, not read). **Not the repo's tests:** the init script does nothing in a build whose
+`gradle.parent` is set, so `buildSrc` and `includeBuild` builds (a convention-plugin build) neither add to nor change the verdict.
+**Test files Gradle never runs get one note each, and the verdict stays Gradle's** (`gradle test` runs the `test` tasks of the projects of
+the build, so a pass says nothing about the rest, and the note says so). Read from the task graph and the file system, never from a
+test: a `src/test/{java,kotlin,groovy}` that holds source files and that no project of the graph owns (a project missing from
+`settings.gradle`, a sample, `buildSrc`, which is a build of its own); a project with such a directory and no `test` task; the names
+of `gradle.includedBuilds`; and a `test` source set that reads its classes from somewhere other than a `src/test/java` that holds
+test files. Each list is capped at five names with a count of the rest, the scan skips `build`, `.gradle`, `.idea`, `node_modules`, `target`,
+`vendor`, `third_party`, `.git`, `resources`, and `out` and `dist` unless they hold a `build.gradle` or `build.gradle.kts` (a module can be
+called that), and stops after 20,000 directories (and says so), and an ordinary project gets none.
+A `Test` task is judged whatever its name: one that the run schedules (a `test` that is a lifecycle task over `unitTest`, as
+Android's is) has its tests counted, and a failing one is a failure; the "no `test` task" note is not made for a directory such a
+task reads. Ids into such a project are refused (ripple resolves them against the project's `test` task).
+Costs: a `test` task left out of the graph is a problem, and so is a run in which no test ran anywhere (every task disabled or every
+test skipped); a retry plugin that reports more tests than Gradle counts makes the record disagree with its totals. The
+build under test is arbitrary code ripple runs, and it can append to the record: nothing here defends against a build that means to
+forge a pass (the first record of a task wins, which only guards against a build that is merely wrong). Supported Gradle: 8.10 and
+newer, measured on 8.10.2 and 9.9.1 with JDK 21 (the exit shapes, the assumption shapes and a real suite give the same verdicts on
+both). `gradle --version` is asked first and an older Gradle is refused with the version found and the oldest supported. Gradle 8
+has no `TestResult.assumptionFailure`, so a skip is never known to be an assumption there; on 8.10.2 no ordinary shape needed it.
+A task that executes and runs no test (a JUnit 5 module with no `useJUnitPlatform()`, which Gradle 8 runs silently, or
+`failOnNoDiscoveredTests = false`) is a problem that names it, as Gradle 9's own default is. The one exception is a task the
+build narrows by tags alone (`includeTags`, `excludeTags`): Gradle 9.9.1 itself exits 0 when tags leave no test, so that is a note.
+An `include`, an `exclude` or a filter is not an exception, whatever else is recorded: Gradle 9 fails those builds ("test sources
+present and no filters are applied", "No tests found"), and an `exclude` that removes every class makes the task NO-SOURCE, never an
+executed task with no test. A failure of ripple's own init script is
+reported as that, with Gradle's text. JUnit 4 runs through the same listener and was run on both Gradles from a local Maven repository (green, a failure, an exit, `@Ignore`,
+a `Parameterized` class and method, and JUnit 4 tests under `useJUnitPlatform()` with no vintage engine, which is not a pass). A
+method asked for by id is passed to Gradle as `Class.method` and `Class.method[*]`, because JUnit 4 names a `Parameterized`
+invocation `method[1]` and Gradle's `--tests Class.method` does not match it. TestNG, Kotlin and Spock were not run (no jars offline). The live tests
+(`tests/test_check_gradle_live.py`, `tests/test_check_gradle_live8.py` for a Gradle 8 at `RIPPLE_TEST_GRADLE8`, and
+`tests/test_check_gradle_live_junit4.py` on both, with `RIPPLE_TEST_M2` holding JUnit 4.13.2) need a Gradle and a Gradle user home
+that has JUnit 5.11.3 (`RIPPLE_TEST_GRADLE_HOME`, `RIPPLE_TEST_GRADLE8_HOME`) and skip, with the reason, without them;
+`RIPPLE_REQUIRE_LIVE_GRADLE=1` turns that skip into a failure. No CI job runs them yet.
 
 Java is read by tree-sitter too, as its own optional extra (`tree-sitter` and `tree-sitter-java`):
 
@@ -1614,8 +1687,7 @@ JDK class: it is final in every JDK (`String`), or it is a class with no public 
 every non-final table type below it (`java.util.Arrays`, which is final from JDK 21 only).
 
 Not followed, and never an edge: method references (`this::show` names a method, it does not call it), reflection,
-Lombok and annotation-processor output, qualified inner-class creation (`outer.new Inner()`), `check` for Gradle (a Gradle
-repo has no default test command yet: pass `--test-command`; no Java test is collected, see `check` for Java), and JDK 25 syntax the grammar does not
+Lombok and annotation-processor output, qualified inner-class creation (`outer.new Inner()`), and JDK 25 syntax the grammar does not
 know (those files are listed with the ones that could not be parsed, and read as far as the parser recovers).
 A file whose directory does not end in its `package` path is not indexed and is listed with the reason (a Java file a test
 compiles as data), and two files that define one fully qualified name (Android product flavours) are indexed as neither:
@@ -1696,8 +1768,8 @@ names in a script outside ISO-8859-1 in UTF-16 or UTF-32 with no byte-order mark
 `java.compiler` only: a type from any other JDK module (`java.desktop`,
 `java.sql`) or from a library is unknown, so a call that a supertype of that kind could answer stays unresolved. A name that
 an on-demand import supplies has no package in ripple's reading, so it is unknown, whatever the table holds.
-The table is read for a name only through a single-type import, a fully written name, or java.lang. `check` has no
-default test command for Gradle, and no Java test is collected: `impact` lists a test method among the callers.
+The table is read for a name only through a single-type import, a fully written name, or java.lang. No Java test is
+collected: `impact` lists a test method among the callers.
 
 **Checked against the compiler.** `bench/fixtures/java/probes` holds 195 small legal Java programs, each with `javac.json`:
 every invoke instruction javac wrote for it (`bench/java_probes.py`, run by hand with a JDK). Five of them depend on the JDK

@@ -1,0 +1,3 @@
+{"event":"init","gradle":"9.9.1"}
+{"event":"graph","gradle":"9.9.1","projects":[{"path":":","dir":"@REPO@","sourceSets":[{"name":"main","java":["@REPO@/src/main/java"],"classes":["@REPO@/build/classes/java/main"]},{"name":"test","java":["@REPO@/src/test/java"],"classes":["@REPO@/build/classes/java/test"]}],"tests":[{"name":"test","path":":test","enabled":true,"ignoreFailures":false,"scheduled":false,"include":[],"exclude":[],"filterIncludes":[],"filterExcludes":[],"commandLine":[],"classesDirs":["@REPO@/build/classes/java/test"],"tagsIncluded":[],"tagsExcluded":[]}]}],"includedBuilds":[]}
+{"event":"task","path":":help","test":false,"executed":true,"skipMessage":null,"failure":null}

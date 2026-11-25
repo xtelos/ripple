@@ -1,0 +1,22 @@
+{
+  "request": [
+    "com.acme.shop.CartTest2.discounts",
+    "com.acme.shop.CartTest2.addsItems()"
+  ],
+  "calls": [
+    {
+      "kind": "model",
+      "exit": 0
+    },
+    {
+      "kind": "run",
+      "exit": 0
+    }
+  ],
+  "recorded_verdict": {
+    "passed": true,
+    "summary": "3 passed, 0 failed, 0 skipped in 1 test class",
+    "problems": [],
+    "failures": []
+  }
+}

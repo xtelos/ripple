@@ -1,0 +1,18 @@
+{
+  "request": [],
+  "calls": [
+    {
+      "kind": "run",
+      "exit": 0
+    }
+  ],
+  "recorded_verdict": {
+    "passed": true,
+    "summary": "26 passed, 0 failed, 10 skipped in 15 test classes",
+    "problems": [],
+    "failures": [],
+    "notes": [
+      "10 tests skipped or disabled, so not run"
+    ]
+  }
+}

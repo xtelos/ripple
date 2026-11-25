@@ -1,0 +1,14 @@
+
+Welcome to Gradle 9.9.1.
+
+To run a build, run gradle <task> ...
+
+To see a list of available tasks, run gradle tasks
+
+To see more detail about a task, run gradle help --task <task>
+
+To see a list of command-line options, run gradle --help
+
+For more detail on using Gradle, see https://docs.gradle.org/9.9.1/userguide/command_line_interface.html
+
+For troubleshooting, visit https://help.gradle.org

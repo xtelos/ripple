@@ -1,0 +1,18 @@
+{"event":"init","gradle":"9.9.1"}
+{"event":"graph","gradle":"9.9.1","projects":[{"path":":","dir":"@REPO@","sourceSets":[{"name":"main","java":["@REPO@/src/main/java"],"classes":["@REPO@/build/classes/java/main"]},{"name":"test","java":["@REPO@/src/test/java"],"classes":["@REPO@/build/classes/java/test"]}],"tests":[{"name":"test","path":":test","enabled":true,"ignoreFailures":false,"scheduled":true,"include":[],"exclude":[],"filterIncludes":[],"filterExcludes":[],"commandLine":["com.acme.shop.CartTest2.discounts[*]","com.acme.shop.CartTest2.discounts","com.acme.shop.CartTest2.refunds[*]","com.acme.shop.CartTest2.refunds"],"classesDirs":["@REPO@/build/classes/java/test"],"tagsIncluded":[],"tagsExcluded":[]}]}],"includedBuilds":[]}
+{"event":"task","path":":compileJava","test":false,"executed":true,"skipMessage":null,"failure":null}
+{"event":"task","path":":processResources","test":false,"executed":true,"skipMessage":"NO-SOURCE","failure":null}
+{"event":"task","path":":classes","test":false,"executed":true,"skipMessage":null,"failure":null}
+{"event":"task","path":":compileTestJava","test":false,"executed":true,"skipMessage":null,"failure":null}
+{"event":"task","path":":processTestResources","test":false,"executed":true,"skipMessage":"NO-SOURCE","failure":null}
+{"event":"task","path":":testClasses","test":false,"executed":true,"skipMessage":null,"failure":null}
+{"event":"test","task":":test","cls":"com.acme.shop.CartTest2","name":"discounts(int)[1]","result":"SUCCESS","ms":21,"assumed":false,"error":null}
+{"event":"test","task":":test","cls":"com.acme.shop.CartTest2","name":"discounts(int)[2]","result":"SUCCESS","ms":1,"assumed":false,"error":null}
+{"event":"suite","task":":test","name":"discounts(int)","cls":"com.acme.shop.CartTest2","level":3,"result":"SUCCESS","tests":2,"ok":2,"failed":0,"skipped":0,"ms":57,"assumed":false,"error":null}
+{"event":"test","task":":test","cls":"com.acme.shop.CartTest2","name":"refunds(int)[1]","result":"SKIPPED","ms":12,"assumed":true,"error":null}
+{"event":"test","task":":test","cls":"com.acme.shop.CartTest2","name":"refunds(int)[2]","result":"SKIPPED","ms":3,"assumed":true,"error":null}
+{"event":"suite","task":":test","name":"refunds(int)","cls":"com.acme.shop.CartTest2","level":3,"result":"SUCCESS","tests":2,"ok":0,"failed":0,"skipped":2,"ms":21,"assumed":false,"error":null}
+{"event":"suite","task":":test","name":"com.acme.shop.CartTest2","cls":"com.acme.shop.CartTest2","level":2,"result":"SUCCESS","tests":4,"ok":2,"failed":0,"skipped":2,"ms":91,"assumed":false,"error":null}
+{"event":"suite","task":":test","name":"Gradle Test Executor 1","cls":null,"level":1,"result":"SUCCESS","tests":4,"ok":2,"failed":0,"skipped":2,"ms":329,"assumed":false,"error":null}
+{"event":"suite","task":":test","name":"Gradle Test Run :test","cls":null,"level":0,"result":"SUCCESS","tests":4,"ok":2,"failed":0,"skipped":2,"ms":916,"assumed":false,"error":null}
+{"event":"task","path":":test","test":true,"executed":true,"skipMessage":null,"failure":null}
