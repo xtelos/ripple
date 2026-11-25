@@ -97,12 +97,15 @@ jobs:
       # 4.13.2 with hamcrest-core. This job never runs ci/warm-maven.sh and does not need it: the JUnit 4 jars come from the
       # Gradle install and are cached with it. The install is cached right after it is filled, not at the end of the job: the
       # tests write into these homes (a wrapper unpacks a distribution there), and the homes grow from 9 MB to about 675 MB.
+      # The key hashes this workflow file as well as the script: what an install holds depends on how the script is called
+      # (with one argument the JUnit 4 jars go inside the install, with two they go elsewhere), so a cache filled by an
+      # earlier shape of this job must not be taken for a complete one.
       - name: Live Gradle cache
         id: gradle
         uses: actions/cache/restore@v6
         with:
           path: ${{ runner.temp }}/ripple-gradle
-          key: ripple-gradle-${{ runner.os }}-gradle9.9.1-gradle8.10.2-junit5.11.3-junit4.13.2-${{ hashFiles('ci/warm-gradle.sh', 'ci/warm-gradle/**') }}
+          key: ripple-gradle-${{ runner.os }}-gradle9.9.1-gradle8.10.2-junit5.11.3-junit4.13.2-${{ hashFiles('ci/warm-gradle.sh', 'ci/warm-gradle/**', '.github/workflows/ci.yml') }}
       - name: Fill the live Gradle install (only on a cache miss)
         if: steps.gradle.outputs.cache-hit != 'true'
         run: sh ci/warm-gradle.sh "${{ runner.temp }}/ripple-gradle"
