@@ -513,3 +513,111 @@ def test_accepted_limit_a_computed_key_in_the_class_body_keeps_the_edge(make_rep
     assert_edge(class_answer(make_repo, f"constructor(k) {{ this[k] = {R}; }} {M}", MAIN))
     assert_edge(class_answer(make_repo, f"constructor(o) {{ Object.assign(this, o); }} {M}", MAIN))
     assert_edge(class_answer(make_repo, f"[kName]() {{ return 1; }} {M}", prefix="const kName = 'm';\n"))
+
+
+# ---- the class rules beside what main's module-name rules do (a merge of two branches) ----------------------------------------------
+# Every case below was run in Node 24 (tsc transpileModule to CommonJS); the output is in the comment.
+
+CALL_TS = "import { C } from './c';\nconsole.log(new C().m()); // CALL\n"
+
+
+def ts_graph(make_repo, files):
+    return build_graph(make_repo(files), TYPESCRIPT)
+
+
+def to_class_m(graph):
+    return [e for e in graph.edges if e.callee.endswith(".m") and e.kind != "constructor"]
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        f"class C {{ constructor() {{ this['m'] = {R}; }} {M} }}\nclass C {{}}\nexport {{ C }};\n",  # Node: SyntaxError, C declared twice
+        "class C { m() { return 'F'; } m() { return 'L'; } }\nlet C = 1;\nexport { C };\n",  # SyntaxError
+        f"class C {{ {M} }}\nfunction C() {{}}\nexport {{ C }};\n",  # SyntaxError
+    ],
+    ids=["redeclared class with an own write", "redeclared by a let, with a duplicate member", "redeclared by a function"],
+)
+def test_a_redeclared_class_is_not_given_an_edge_back_by_the_member_rules(make_repo, source):
+    # the name is rebound to unknown (the program is rejected, so no call runs); the own-property and duplicate rules add nothing back
+    graph = ts_graph(make_repo, {"c.ts": source, "main.ts": CALL_TS})
+    assert to_class_m(graph) == []
+    assert any("both declare" in u.reason for u in graph.unresolved if u.file == "main.ts")
+    control = ts_graph(make_repo, {"c.ts": f"class C {{ {M} }}\nexport {{ C }};\n", "main.ts": CALL_TS})
+    assert [e.callee for e in to_class_m(control)] == ["c:C.m"]  # Node: ORIGINAL, the same class not redeclared
+
+
+@pytest.mark.parametrize(
+    "body, node_prints",
+    [
+        (f"{M}", "ORIGINAL"),
+        (f"constructor() {{ this['m'] = {R}; }} {M}", "REPLACED"),
+        ("m() { return 'F'; } 'm'() { return 'L'; }", "L"),
+    ],
+    ids=["plain", "own write", "duplicate"],
+)
+def test_a_class_in_a_namespace_or_behind_an_import_alias_stays_unresolved_whatever_the_body_says(make_repo, body, node_prints):
+    # ripple does not follow `N.C` or `import A = N.C` (main: "'N' is not exported", "named like an import alias"), before and after this
+    # branch, so no body rule can draw an edge here; the test pins that none does. Node prints node_prints in each.
+    namespace = f"export namespace N {{ export class C {{ {body} }} }}\n"
+    through_the_namespace = ts_graph(make_repo, {"c.ts": namespace, "main.ts": "import { N } from './c';\nconsole.log(new N.C().m()); // CALL\n"})
+    assert to_class_m(through_the_namespace) == []
+    through_an_alias = ts_graph(make_repo, {"c.ts": namespace, "main.ts": "import { N } from './c';\nimport A = N.C;\nconsole.log(new A().m()); // CALL\n"})
+    assert to_class_m(through_an_alias) == []
+    assert any("import alias" in u.reason for u in through_an_alias.unresolved if u.file == "main.ts")
+
+
+def test_an_instance_call_through_a_re_exported_name_follows_the_class_body_rules(make_repo):
+    barrel = "export { C as D } from './c';\n"
+    call = "import { D } from './barrel';\nconsole.log(new D().m()); // CALL\n"
+    plain = ts_graph(make_repo, {"c.ts": f"export class C {{ {M} }}\n", "barrel.ts": barrel, "main.ts": call})
+    assert [e.callee for e in to_class_m(plain)] == ["c:C.m"]  # Node: ORIGINAL
+    written = ts_graph(make_repo, {"c.ts": f"export class C {{ constructor() {{ this['m'] = {R}; }} {M} }}\n", "barrel.ts": barrel, "main.ts": call})
+    assert to_class_m(written) == []  # REPLACED
+    in_base = ts_graph(make_repo, {"c.ts": f"class B {{ m = {R}; }}\nexport class C extends B {{ {M} }}\n", "barrel.ts": barrel, "main.ts": call})
+    assert to_class_m(in_base) == []  # REPLACED
+    star = ts_graph(make_repo, {"c.ts": "export class C { m() { return 'F'; } 'm'() { return 'L'; } }\n", "barrel.ts": "export * from './c';\n",
+                                "main.ts": "import { C } from './barrel';\nconsole.log(new C().m()); // CALL\n"})
+    assert [e.callee for e in to_class_m(star)] == ["c:C.m"]  # L, the last member, which is C.m
+
+
+def test_an_external_base_named_through_import_require_follows_the_class_body_rules(make_repo):
+    head = "import x = require('pkg');\n"
+    plain = ts_graph(make_repo, {"c.ts": head + f"export class C extends x.Base {{ {M} }}\n", "main.ts": CALL_TS})
+    assert [e.callee for e in to_class_m(plain)] == ["c:C.m"]  # Node: ORIGINAL
+    written = ts_graph(make_repo, {"c.ts": head + f"export class C extends x.Base {{ constructor() {{ super(); this['m'] = {R}; }} {M} }}\n", "main.ts": CALL_TS})
+    assert to_class_m(written) == []  # REPLACED
+    duplicate = ts_graph(make_repo, {"c.ts": head + "export class C extends x.Base { m() { return 'F'; } 'm'() { return 'L'; } }\n", "main.ts": CALL_TS})
+    assert [e.callee for e in to_class_m(duplicate)] == ["c:C.m"]  # L
+    escaped = ts_graph(make_repo, {"c.ts": head + f"export class C extends x.Base {{ {M} }}\n",
+                                   "main.ts": "import { C } from './c';\nconst c = new C();\nconsole.log(c.\\u006d()); // CALL\n"})
+    assert [e.callee for e in to_class_m(escaped)] == ["c:C.m"]  # ORIGINAL, and never "inherited from outside the repo"
+    assert "a method inherited from a base class outside the repo" not in escaped.external_reasons
+
+
+@pytest.mark.parametrize(
+    "files",
+    [
+        {"c.ts": "export class C { run() { return process.mainModule!.exports.f(); } }\n"},  # Node: F
+        {"p.ts": "export { default as proc } from 'node:process';\n",
+         "c.ts": "import { proc } from './p';\nexport class C { run() { return proc.mainModule!.exports.f(); } }\n"},  # F, through a re-export
+    ],
+    ids=["process.mainModule in a member", "a re-exported process in a member"],
+)
+def test_process_main_module_inside_a_class_member_is_unresolved_and_not_outside_the_repo(make_repo, files):
+    main = "export function f() { return 'F'; }\nimport { C } from './c';\nconsole.log(new C().run()); // CALL\n"
+    graph = ts_graph(make_repo, {**files, "main.ts": main})
+    assert [e.callee for e in graph.edges if e.file == "main.ts" and e.kind != "constructor"] == ["c:C.run"]
+    inside = [u for u in graph.unresolved if u.file == "c.ts"]
+    assert len(inside) == 1 and "mainModule" in inside[0].reason
+    assert not [e for e in graph.edges if e.caller == "c:C.run"]  # nothing proves it runs main's f
+    assert graph.external_calls == 1  # only console.log
+
+
+def test_process_main_module_in_a_member_and_a_write_that_replaces_that_member(make_repo):
+    # Node: REPLACED (the own `run` is called, the member never is); the member's call stays unresolved as above
+    source = f"export class C {{ constructor() {{ this['run'] = {R}; }} run() {{ return process.mainModule!.exports.f(); }} }}\n"
+    main = "export function f() { return 'F'; }\nimport { C } from './c';\nconsole.log(new C().run()); // CALL\n"
+    graph = ts_graph(make_repo, {"c.ts": source, "main.ts": main})
+    assert [e for e in graph.edges if e.file == "main.ts" and e.kind != "constructor"] == []
+    assert any(u.file == "main.ts" and "run" in u.reason for u in graph.unresolved)
