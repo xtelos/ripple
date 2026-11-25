@@ -43,7 +43,11 @@ dir=$(cd "$1" && pwd)
 mkdir -p "${2:-$dir/m2}"
 m2=$(cd "${2:-$dir/m2}" && pwd)
 root=$(cd "$(dirname "$0")/.." && pwd)
-work=$(mktemp -d)
+# Everything is staged inside <install-dir> (the work directory here, "<file>.part" beside a downloaded file) so that the last step
+# of each install is a rename on one filesystem, never a copy that an interruption can cut short. What a killed run left behind
+# is cleared first.
+rm -rf "$dir"/.work.*
+work=$(mktemp -d "$dir/.work.XXXXXX")
 trap 'rm -rf "$work"' EXIT
 mkdir -p "$dir/dl"
 
@@ -54,19 +58,21 @@ fetch() { curl --fail --silent --show-error --location --retry 3 --proto '=https
 install_gradle() { # version sha256 keep-zip
     version=$1 want=$2 keep=$3
     zip="$dir/dl/gradle-$version-bin.zip"
+    # "installed" means a complete install: the marker is the last file written, inside the work copy, before the rename
     installed=no
-    if [ -x "$dir/gradle-$version/bin/gradle" ]; then installed=yes; fi
+    if [ -f "$dir/gradle-$version/.ripple-installed" ]; then installed=yes; fi
     if [ "$installed" = no ] || [ "$keep" = keep ]; then
         if [ ! -f "$zip" ] || [ "$(sha_of "$zip")" != "$want" ]; then
             rm -f "$zip"
             echo "gradle $version: downloading $GRADLE_URL/gradle-$version-bin.zip"
-            fetch "$GRADLE_URL/gradle-$version-bin.zip" "$work/gradle-$version-bin.zip"
-            got=$(sha_of "$work/gradle-$version-bin.zip")
+            fetch "$GRADLE_URL/gradle-$version-bin.zip" "$zip.part"
+            got=$(sha_of "$zip.part")
             if [ "$got" != "$want" ]; then
+                rm -f "$zip.part"
                 echo "gradle $version: SHA-256 mismatch, nothing unpacked (wanted $want, got $got)" >&2
                 exit 1
             fi
-            mv "$work/gradle-$version-bin.zip" "$zip"
+            mv "$zip.part" "$zip"
         fi
     fi
     if [ "$installed" = yes ]; then
@@ -78,6 +84,7 @@ install_gradle() { # version sha256 keep-zip
         # python, not unzip: it is on every runner that ran setup-python, and it is the one extractor tried here
         python3 -I -c 'import sys, zipfile; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])' "$zip" "$work/unpack-$version"
         chmod +x "$work/unpack-$version/gradle-$version/bin/gradle"
+        : > "$work/unpack-$version/gradle-$version/.ripple-installed"
         rm -rf "$dir/gradle-$version"
         mv "$work/unpack-$version/gradle-$version" "$dir/gradle-$version"
     fi
@@ -96,14 +103,15 @@ install_artifact() { # path-under-the-repository sha256
         return 0
     fi
     echo "maven: downloading $rel"
-    fetch "$MAVEN_URL/$rel" "$work/artifact"
-    got=$(sha_of "$work/artifact")
+    mkdir -p "$(dirname "$dest")"
+    fetch "$MAVEN_URL/$rel" "$dest.part"
+    got=$(sha_of "$dest.part")
     if [ "$got" != "$want" ]; then
+        rm -f "$dest.part"
         echo "$rel: SHA-256 mismatch, not installed (wanted $want, got $got)" >&2
         exit 1
     fi
-    mkdir -p "$(dirname "$dest")"
-    mv "$work/artifact" "$dest"
+    mv "$dest.part" "$dest"
 }
 
 # the user home of one Gradle, filled by one online build of the warm project, on the JDK given (else the one in JAVA_HOME or on PATH)
