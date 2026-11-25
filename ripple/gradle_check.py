@@ -1098,13 +1098,25 @@ def _write_init(directory: Path, name: str) -> tuple[str, Path]:
     return str(path), manifest
 
 
+def _what_happened(output: str) -> str:
+    """The lines of a failed `--version` that say why, not the stack frames under them: a `Downloading` line, then the first line that names an exception or error, else the first line."""
+    lines = [x.strip() for x in output.splitlines() if x.strip() and not x.lstrip().startswith("at ")]
+    if not lines:
+        return "no output"
+    said = [x for x in lines if x.startswith("Downloading")][:1]
+    said += [x for x in lines if ("Exception" in x or "Error" in x) and x not in said][:1]
+    return clip("; ".join(said or lines[:1]), 300)
+
+
 def check_version(repo: Path, tool: list[str], timeout: float) -> str:
     """Ask the Gradle that will run for its version and refuse one older than MIN_GRADLE, naming both. Returns the version text."""
     outcome = run_process(list(tool) + ["--version"], repo, max(timeout, 1.0))
     found = re.search(r"^Gradle (\d+)\.(\d+)(?:\.(\d+))?\S*", outcome.stdout, re.MULTILINE)
     if outcome.timed_out or found is None:
-        tail = clip(outcome.stdout.strip().splitlines()[-1], 160) if outcome.stdout.strip() else "no output"
-        raise ValueError(f"could not read the Gradle version from `{shlex.join(tool)} --version` ({'timed out' if outcome.timed_out else tail}): ripple will not run tests with an unknown Gradle")
+        raise ValueError(
+            f"could not read the Gradle version from `{shlex.join(tool)} --version` "
+            f"({'timed out' if outcome.timed_out else _what_happened(outcome.stdout)}): ripple will not run tests with an unknown Gradle"
+        )
     if (int(found.group(1)), int(found.group(2))) < MIN_GRADLE:
         raise ValueError(
             f"Gradle {found.group(0)[7:]} is older than {MIN_GRADLE[0]}.{MIN_GRADLE[1]}, the oldest Gradle ripple has measured: "

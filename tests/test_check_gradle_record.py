@@ -392,6 +392,35 @@ def test_a_gradle_of_the_measured_range_is_run(monkeypatch, tmp_path, version):
     assert checker.run_check(repo, tests=[], timeout=60, profile=JAVA)["passed"] is True
 
 
+WRAPPER_OUTPUT = (
+    "Downloading file:/srv/dists/gradle-8.5-bin.zip\n\n"
+    'Exception in thread "main" java.io.FileNotFoundException: /srv/dists/gradle-8.5-bin.zip (No such file or directory)\n'
+    "\tat java.base/java.io.FileInputStream.open0(Native Method)\n\tat org.gradle.wrapper.Install.forceFetch(SourceFile:2)\n"
+    "\tat org.gradle.wrapper.GradleWrapperMain.main(SourceFile:67)\n"
+)
+
+
+def test_a_wrapper_that_cannot_fetch_its_distribution_is_refused_with_the_line_that_says_what_happened(monkeypatch, tmp_path):
+    repo = project(tmp_path, "shop")
+    fake = install(monkeypatch, lambda argv, cwd, manifest: (_ for _ in ()).throw(AssertionError("no build may run")))
+    fake.version_output = WRAPPER_OUTPUT
+    with pytest.raises(ValueError) as refused:
+        checker.run_check(repo, tests=[], timeout=60, profile=JAVA)
+    message = str(refused.value)
+    assert "Downloading file:/srv/dists/gradle-8.5-bin.zip" in message, message
+    assert "FileNotFoundException: /srv/dists/gradle-8.5-bin.zip (No such file or directory)" in message, message
+    assert "GradleWrapperMain.main" not in message and "SourceFile" not in message, message
+    assert [c[-1] for c in fake.calls] == ["--version"]
+
+
+def test_a_version_output_with_only_stack_frames_still_gives_a_reason(monkeypatch, tmp_path):
+    repo = project(tmp_path, "shop")
+    fake = install(monkeypatch, lambda argv, cwd, manifest: (0, ""))
+    fake.version_output = "something went wrong\n\tat a.B.c(B.java:1)\n"
+    with pytest.raises(ValueError, match="something went wrong"):
+        checker.run_check(repo, tests=[], timeout=60, profile=JAVA)
+
+
 def test_a_gradle_whose_version_cannot_be_read_is_refused(monkeypatch, tmp_path):
     repo = project(tmp_path, "shop")
     install(monkeypatch, lambda argv, cwd, manifest: (0, ""), version="not a version")

@@ -282,10 +282,13 @@ class Fake:
     def __init__(self, script, version: str = "9.9.1"):
         self.script = script
         self.version = version
+        self.version_output: str | None = None  # what `--version` prints instead, with exit 1 (a wrapper that cannot fetch its distribution)
         self.calls: list[list[str]] = []
 
     def __call__(self, argv, cwd, timeout, merge_stderr=True):
         self.calls.append(list(argv))
+        if argv[-1] == "--version" and self.version_output is not None:
+            return checker.Process(self.version_output, "", 1, False)
         if argv[-1] == "--version":  # the first thing a check asks Gradle
             return checker.Process(f"\n------------------------------------------------------------\nGradle {self.version}\n------------------------------------------------------------\n", "", 0, False)
         init = Path(argv[argv.index("-I") + 1])  # the record is named inside the init script, not passed on the command line
