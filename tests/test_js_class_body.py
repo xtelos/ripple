@@ -877,3 +877,17 @@ def test_a_subclass_that_returns_or_swaps_costs_every_this_call_in_the_base(make
     graph = build_graph(make_repo(files), JAVASCRIPT)
     assert [e for e in graph.edges if e.callee.endswith(".q")] == []
     assert any("subclass c:D" in u.reason for u in graph.unresolved if u.file == "c.js")
+
+
+# ---- a setter with no getter and no method is no call target (review round 1, d06 and s01) --------------------------------------------
+
+def test_a_setter_alone_or_last_is_not_called_and_still_runs_on_assignment(make_repo):
+    # Node: `new C().m()` throws "is not a function" for `m(){} set m(v){}` and for `set m(v){}` alone: the property has no getter
+    for body in ("m() { return 'M'; } set m(v) { this._v = v; }", "set m(v) { this._v = v; }"):
+        assert_unresolved(class_answer(make_repo, body), "setter")
+    # an assignment calls the setter (Node: the setter runs), so that edge stays
+    graph = build_graph(make_repo({"c.js": cls("set m(v) { helper(); }", "function helper() {}\n"),
+                                   "main.js": "import { C } from './c.js';\nconst c = new C();\nc.m = 1;\n"}), JAVASCRIPT)
+    assert [e.callee for e in graph.edges if e.file == "main.js" and e.callee.endswith(".m")] == ["c:C.m"]
+    # a getter is still a property read, and a getter and a setter together are not a setter alone
+    assert_unresolved(class_answer(make_repo, "get m() { return 1; } set m(v) {}"), "property")

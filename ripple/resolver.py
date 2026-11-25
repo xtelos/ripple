@@ -1389,6 +1389,9 @@ class Resolver:
                 below = self.replaced_below(target.value, attr)
                 if below:
                     return unknown(below)
+            if method is not None and not self.scopes[method].is_property and self.scopes[method].plain_defs == 0 and self.scopes[method].defs:
+                # `set m(v) {}` alone (or after a method it replaced): the property has no getter, so reading or calling it gives undefined
+                return unknown(f"'{attr}' is a setter with no getter or method, so a call of it throws and a read gives undefined")
             if method is not None and self.scopes[method].is_property:
                 if self.return_type(method):
                     return self.value_of_type(self.return_type(method))
