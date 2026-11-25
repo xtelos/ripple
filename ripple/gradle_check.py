@@ -66,9 +66,12 @@ policy as `mvnw` in java_check.py). It runs repo-provided code (a shell script a
 distribution on first use, which is the repo's own build. A `gradlew` that is a link to a file outside the repo, or is not a
 file, is refused and never run.
 
-Verified on Gradle 9.9.1 with JDK 21 only (the listener API and the way Gradle ends a suite when the JVM exits were read
-from it); `--no-configuration-cache` makes 6.6 the oldest the flags allow. Kotlin, Groovy and Spock tests, TestNG and
-JUnit 4 go through the same listener and are not exercised here.
+SUPPORTED GRADLE: 8.10 and newer. Measured with real runs on 8.10.2 and 9.9.1 (JDK 21): the exit shapes, the assumption shapes
+(`assumeTrue(false)` in a test, in `@BeforeAll`, in a nested class, a disabled class, a disabled parameterized method) and the
+suites of a real project give the same record on both, except that Gradle 8 has no `TestResult.assumptionFailure`, so a skip is
+never known to be an assumption there (and on 8.10.2 no ordinary shape needed it: their suites end SUCCESS). `gradle --version` is
+asked first, and an older Gradle is refused with the version found and the oldest supported, before anything runs. Not measured and
+so not claimed: Gradle older than 8.10, and Kotlin, Groovy and Spock tests, TestNG and JUnit 4 (the same listener sees them).
 """
 
 from __future__ import annotations
@@ -87,6 +90,7 @@ from . import java_check as jc
 from .checker import MAX_COMMAND, MAX_FAILURES, check_tests, clip, run_process
 
 MAX_PROBLEMS = 10
+MIN_GRADLE = (8, 10)  # the oldest Gradle whose runs were measured (see the docstring)
 MAX_NAMES = 5
 MAX_RECORD_BYTES = 96_000_000
 MAX_RECORD_LINES = 400_000
@@ -120,6 +124,14 @@ if (gradle.parent == null) {
         n
     }
     emit([event: 'init', gradle: gradle.gradleVersion])
+    // a failure of this script is a fact about the script, never about the tests: it is written down, not thrown
+    def guard = { Closure c ->
+        try { c() } catch (Throwable e) {
+            try { emit([event: 'listener_error', message: why(e)]) } catch (Throwable ignored) { }
+        }
+    }
+    // `TestResult.assumptionFailure` is not there before Gradle 9: absent, nothing is read as skipped by an assumption
+    def assumed = { TestResult r -> safe { r.assumptionFailure != null } == true }
 
     gradle.allprojects { Project p ->
         p.tasks.withType(Test).configureEach { Test t ->
@@ -129,23 +141,27 @@ if (gradle.parent == null) {
                 void beforeSuite(TestDescriptor d) { }
                 void beforeTest(TestDescriptor d) { }
                 void afterSuite(TestDescriptor d, TestResult r) {
-                    emit([event: 'suite', task: t.path, name: d.name, cls: d.className, level: depth(d),
-                          result: r.resultType.name(), tests: r.testCount, ok: r.successfulTestCount,
-                          failed: r.failedTestCount, skipped: r.skippedTestCount, ms: r.endTime - r.startTime,
-                          assumed: r.assumptionFailure != null,
-                          error: r.exceptions ? why(r.exceptions[0]) : null])
+                    guard {
+                        emit([event: 'suite', task: t.path, name: d.name, cls: d.className, level: depth(d),
+                              result: r.resultType.name(), tests: r.testCount, ok: r.successfulTestCount,
+                              failed: r.failedTestCount, skipped: r.skippedTestCount, ms: r.endTime - r.startTime,
+                              assumed: assumed(r),
+                              error: r.exceptions ? why(r.exceptions[0]) : null])
+                    }
                 }
                 void afterTest(TestDescriptor d, TestResult r) {
-                    emit([event: 'test', task: t.path, cls: d.className, name: d.name,
-                          result: r.resultType.name(), ms: r.endTime - r.startTime,
-                          assumed: r.assumptionFailure != null,
-                          error: r.exceptions ? why(r.exceptions[0]) : null])
+                    guard {
+                        emit([event: 'test', task: t.path, cls: d.className, name: d.name,
+                              result: r.resultType.name(), ms: r.endTime - r.startTime,
+                              assumed: assumed(r),
+                              error: r.exceptions ? why(r.exceptions[0]) : null])
+                    }
                 }
             })
         }
     }
 
-    gradle.taskGraph.whenReady { graph ->
+    gradle.taskGraph.whenReady { graph -> guard {
         def projects = []
         gradle.rootProject.allprojects.each { Project p ->
             def sets = []
@@ -166,12 +182,12 @@ if (gradle.parent == null) {
             projects << [path: p.path, dir: p.projectDir.path, sourceSets: sets, tests: tests]
         }
         emit([event: 'graph', gradle: gradle.gradleVersion, projects: projects])
-    }
+    } }
 
-    gradle.taskGraph.afterTask { Task task, TaskState state ->
+    gradle.taskGraph.afterTask { Task task, TaskState state -> guard {
         emit([event: 'task', path: task.path, test: task instanceof Test, executed: state.executed,
               skipMessage: state.skipMessage, failure: state.failure ? why(state.failure) : null])
-    }
+    } }
 }
 """
 
@@ -305,6 +321,7 @@ class Manifest:
     truncated: bool = False  # the file ends inside a line
     oversize: bool = False  # the file is over the cap: only its start was read
     garbled: int = 0  # whole lines that are not a JSON object
+    listener_errors: list[str] = field(default_factory=list)  # what ripple's own init script said it failed at
 
     def task(self, path: str) -> TestTask | None:
         return next((t for p in self.projects for t in p.tests if t.path == path), None)
@@ -390,6 +407,9 @@ def read_manifest(path: Path) -> Manifest:
         kind = raw.get("event")
         if kind == "init":
             manifest.init = True
+        elif kind == "listener_error":
+            if len(manifest.listener_errors) < 5:
+                manifest.listener_errors.append(clip(str(raw.get("message")), 300))
         elif kind == "graph" and not manifest.graph and isinstance(raw.get("projects"), list):
             manifest.graph = True
             manifest.version = raw["gradle"] if isinstance(raw.get("gradle"), str) else None
@@ -837,6 +857,8 @@ def judge(
         problems.append("the record of the test run is over the size ripple reads, so it is not all read")
     if manifest.garbled:
         problems.append(f"{jc._plural(manifest.garbled, 'line')} of the record of the test run could not be read")
+    for message in manifest.listener_errors:
+        problems.append(f"ripple's own init script failed inside Gradle ({message}): its record is incomplete, which says nothing about the tests")
     explained = len(problems)
     if run.started and not manifest.graph and not run.timed_out:
         problems.append(
@@ -847,9 +869,14 @@ def judge(
     for error in console.compile_errors[:3]:
         problems.append(f"compilation failed: {error}")
     for path, event in manifest.events.items():
-        if event.failure is None or event.test:
+        if event.failure is None:
             continue
-        if console.compile_errors and "compile" in path.lower():
+        if event.test:
+            # a Test task fails for its failing tests, and for its JVM (said by its closing record); any other reason is Gradle's to say here
+            root = manifest.root(path)
+            if any(r.task == path and r.outcome == "FAILURE" for r in manifest.results) or (root is not None and root.error):
+                continue
+        elif console.compile_errors and "compile" in path.lower():
             continue
         problems.append(f"build failed: task {path}: {_reason(event.failure)}")
 
@@ -857,9 +884,12 @@ def judge(
     if manifest.graph:
         results = _check_tasks(run, problems, notes)
     failing = [r for r in results if r.outcome == "FAILURE"]
-    if run.exit_code not in (0, None) and len(problems) == explained and not failing and not run.timed_out and run.started:
+    if run.exit_code not in (0, None) and not failing and not run.timed_out and run.started:
         tail = "; ".join(console.went_wrong[:2])
-        problems.append(f"gradle exited {run.exit_code} but its record shows no failing test" + (f": {tail}" if tail else ""))
+        if len(problems) == explained:
+            problems.append(f"gradle exited {run.exit_code} but its record shows no failing test" + (f": {tail}" if tail else ""))
+        elif tail and not any(x.level == 0 and x.error for x in manifest.suites) and not any(tail[:60] in p for p in problems):
+            problems.append(f"gradle said: {tail}")
     if run.exit_code == 0 and failing:
         notes.append("gradle exited 0 although tests failed (ignoreFailures or the like): the failures are real")
 
@@ -935,6 +965,21 @@ def _write_init(directory: Path, name: str) -> tuple[str, Path]:
     return str(path), manifest
 
 
+def check_version(repo: Path, tool: list[str], timeout: float) -> str:
+    """Ask the Gradle that will run for its version and refuse one older than MIN_GRADLE, naming both. Returns the version text."""
+    outcome = run_process(list(tool) + ["--version"], repo, max(timeout, 1.0))
+    found = re.search(r"^Gradle (\d+)\.(\d+)(?:\.(\d+))?\S*", outcome.stdout, re.MULTILINE)
+    if outcome.timed_out or found is None:
+        tail = clip(outcome.stdout.strip().splitlines()[-1], 160) if outcome.stdout.strip() else "no output"
+        raise ValueError(f"could not read the Gradle version from `{shlex.join(tool)} --version` ({'timed out' if outcome.timed_out else tail}): ripple will not run tests with an unknown Gradle")
+    if (int(found.group(1)), int(found.group(2))) < MIN_GRADLE:
+        raise ValueError(
+            f"Gradle {found.group(0)[7:]} is older than {MIN_GRADLE[0]}.{MIN_GRADLE[1]}, the oldest Gradle ripple has measured: "
+            "pass the command that runs the tests (`--test-command`, for example `./gradlew test`)"
+        )
+    return found.group(0)[7:]
+
+
 def discover(repo: Path, tool: list[str], directory: Path, timeout: float) -> Manifest:
     """Ask Gradle for the build's projects and `Test` tasks (the task graph of `help`), so a path or id can be put in a task name."""
     init, manifest = _write_init(directory, "model")
@@ -960,6 +1005,7 @@ def run(repo: Path, tests: list[str] | None, timeout: float) -> dict:
     with tempfile.TemporaryDirectory(prefix="ripple-gradle-") as scratch_name:
         scratch = Path(scratch_name)
         with jc.repo_lock(repo, timeout, "Gradle runs in one build/ directory"):
+            check_version(repo, tool, timeout - (time.monotonic() - started))
             if tests:
                 model = discover(repo, tool, scratch, timeout - (time.monotonic() - started))
                 project, paths = build_project(repo, model)

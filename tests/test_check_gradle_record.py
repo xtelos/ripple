@@ -301,6 +301,54 @@ def test_a_compile_error_is_named_and_is_not_a_pass(monkeypatch, tmp_path):
     assert "did not run" in text(result)
 
 
+# ---- Gradle's own words, a failure of ripple's init script, and the Gradle that runs ---------------------------------
+
+
+def test_a_failure_of_the_init_script_is_said_as_that_and_never_as_a_dead_jvm(monkeypatch, tmp_path):
+    """Gradle 8 has no TestResult.assumptionFailure: the listener used to throw on every test and the problem blamed the test JVM."""
+    console = "> Task :test FAILED\n* What went wrong:\nExecution failed for task ':test'.\n> No such property: assumptionFailure for class: DefaultTestResult\n"
+    rows = lambda repo: [
+        init_line(), graph(repo),
+        json.dumps({"event": "listener_error", "message": "No such property: assumptionFailure for class: DefaultTestResult"}),
+        task_line(":test", failure="Execution failed for task ':test'. <- No such property: assumptionFailure"),
+    ]
+    result = verdict(monkeypatch, tmp_path, rows, exit_code=1, console=console)
+    assert result["passed"] is False, result
+    assert "ripple's own init script failed inside Gradle (No such property: assumptionFailure" in text(result)
+    assert "says nothing about the tests" in text(result) and "test JVM" not in " ".join(result["problems"][:1])
+    assert "No such property: assumptionFailure" in " ".join(result["problems"][1:]), "Gradle's own text reaches the problems"
+
+
+def test_gradles_own_what_went_wrong_reaches_the_problems_when_a_test_task_is_the_one_that_failed(monkeypatch, tmp_path):
+    console = "> Task :test FAILED\n* What went wrong:\nExecution failed for task ':test'.\n> Could not start Gradle Test Executor 1: out of memory\n"
+    rows = lambda repo: [init_line(), graph(repo), task_line(":test", failure="Execution failed for task ':test'. <- Could not start Gradle Test Executor 1: out of memory")]
+    result = verdict(monkeypatch, tmp_path, rows, exit_code=1, console=console)
+    assert result["passed"] is False and "Could not start Gradle Test Executor 1: out of memory" in " ".join(result["problems"]), result
+
+
+@pytest.mark.parametrize("version", ["7.6.4", "8.9", "8.0.2", "6.9"])
+def test_a_gradle_older_than_the_oldest_measured_is_refused_up_front_naming_both(monkeypatch, tmp_path, version):
+    repo = project(tmp_path, "shop")
+    fake = install(monkeypatch, lambda argv, cwd, manifest: (_ for _ in ()).throw(AssertionError("no build may run on a Gradle that is refused")), version=version)
+    with pytest.raises(ValueError, match=rf"Gradle {version} is older than 8\.10, the oldest Gradle ripple has measured"):
+        checker.run_check(repo, tests=[], timeout=60, profile=JAVA)
+    assert [c[-1] for c in fake.calls] == ["--version"]
+
+
+@pytest.mark.parametrize("version", ["8.10", "8.10.2", "8.14.3", "9.9.1", "9.0.0-rc-1"])
+def test_a_gradle_of_the_measured_range_is_run(monkeypatch, tmp_path, version):
+    repo = project(tmp_path, "shop")
+    install(monkeypatch, lambda argv, cwd, manifest: (lines(manifest, *record(cwd)), (0, OK_CONSOLE))[1], version=version)
+    assert checker.run_check(repo, tests=[], timeout=60, profile=JAVA)["passed"] is True
+
+
+def test_a_gradle_whose_version_cannot_be_read_is_refused(monkeypatch, tmp_path):
+    repo = project(tmp_path, "shop")
+    install(monkeypatch, lambda argv, cwd, manifest: (0, ""), version="not a version")
+    with pytest.raises(ValueError, match="could not read the Gradle version"):
+        checker.run_check(repo, tests=[], timeout=60, profile=JAVA)
+
+
 # ---- tasks that did not run ------------------------------------------------------------------------------
 
 
@@ -397,7 +445,7 @@ def test_a_test_task_that_executed_and_ran_zero_tests_is_a_problem_even_when_ano
 
 
 def test_a_narrowed_test_task_that_ran_zero_tests_is_a_note_not_a_problem(monkeypatch, tmp_path):
-    rows = lambda repo: [  # noqa: E731
+    rows = lambda repo: [
         init_line(), graph(repo, exclude=["**/*Nope*"]), *listener(":test", {}), task_line(":test"),
     ]
     result = verdict(monkeypatch, tmp_path, rows)

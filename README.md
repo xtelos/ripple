@@ -1441,11 +1441,17 @@ which `test` does not run, as `mvn test` does not run failsafe), and init script
 Costs: a `test` task the build skips (`onlyIf`, `enabled = false`) or leaves out of the graph is a problem, and so is a run in which
 every test was skipped; a retry plugin that reports more tests than Gradle counts makes the record disagree with its totals. The
 build under test is arbitrary code ripple runs, and it can append to the record: nothing here defends against a build that means to
-forge a pass (the first record of a task wins, which only guards against a build that is merely wrong). Known to pass on Gradle 9.9.1
-and JDK 21 only (JUnit 4 and TestNG run through the same listener and were not run: their jars are not in the offline cache);
-`--no-configuration-cache` makes 6.6 the oldest the flags allow. The live tests (`tests/test_check_gradle_live.py`) need a Gradle
-and a Gradle user home that has JUnit 5.11.3 (`RIPPLE_TEST_GRADLE_HOME`) and skip, with the reason, without them;
-`RIPPLE_REQUIRE_LIVE_GRADLE=1` turns that skip into a failure. No CI job runs them yet.
+forge a pass (the first record of a task wins, which only guards against a build that is merely wrong). Supported Gradle: 8.10 and
+newer, measured on 8.10.2 and 9.9.1 with JDK 21 (the exit shapes, the assumption shapes and a real suite give the same verdicts on
+both). `gradle --version` is asked first and an older Gradle is refused with the version found and the oldest supported. Gradle 8
+has no `TestResult.assumptionFailure`, so a skip is never known to be an assumption there; on 8.10.2 no ordinary shape needed it.
+A task that executes and runs no test (a JUnit 5 module with no `useJUnitPlatform()`, which Gradle 8 runs silently, or
+`failOnNoDiscoveredTests = false`) is a problem that names it, as Gradle 9's own default is. A failure of ripple's own init script is
+reported as that, with Gradle's text. JUnit 4 and TestNG run through the same listener and were not run (their jars are not in the
+offline Gradle cache). The live tests (`tests/test_check_gradle_live.py`, and `tests/test_check_gradle_live8.py` for a Gradle 8 at
+`RIPPLE_TEST_GRADLE8`) need a Gradle and a Gradle user home that has JUnit 5.11.3 (`RIPPLE_TEST_GRADLE_HOME`,
+`RIPPLE_TEST_GRADLE8_HOME`) and skip, with the reason, without them; `RIPPLE_REQUIRE_LIVE_GRADLE=1` turns that skip into a failure.
+No CI job runs them yet.
 
 Java is read by tree-sitter too, as its own optional extra (`tree-sitter` and `tree-sitter-java`):
 

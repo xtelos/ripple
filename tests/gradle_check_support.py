@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import glob
 import json
+import os
 import re
 import shutil
 from pathlib import Path
@@ -61,6 +62,119 @@ def multi(tmp: Path, offline: bool = True) -> Path:
     if offline:
         write(repo / "gradle.properties", "org.gradle.offline=true\n")
     return repo.resolve()
+
+
+# ---- Java sources the live tests build projects from ------------------------------------------------------------
+
+CART = "src/test/java/com/acme/shop/CartTest.java"
+TESTS = "src/test/java/com/acme/shop"
+
+
+def find_java() -> str | None:
+    home = os.environ.get("JAVA_HOME")
+    if home and (Path(home) / "bin" / "javac").exists():
+        return home
+    found = sorted(glob.glob("/tmp/java-inv-jdk/jdk-*"))
+    return found[-1] if found and (Path(found[-1]) / "bin" / "javac").exists() else None
+
+
+HEAD = (
+    "package com.acme.shop;\n\n"
+    "import static org.junit.jupiter.api.Assertions.*;\nimport static org.junit.jupiter.api.Assumptions.*;\n"
+    "import org.junit.jupiter.api.*;\nimport org.junit.jupiter.api.condition.*;\n"
+    "import org.junit.jupiter.params.ParameterizedTest;\nimport org.junit.jupiter.params.provider.*;\n\n"
+)
+ORDER = "@TestMethodOrder(MethodOrderer.OrderAnnotation.class)\n"
+
+
+def shop(tmp_path: Path, files: dict[str, str] | None = None, build: str = BUILD, settings: str = "rootProject.name = 'shop'\n") -> Path:
+    """The shop fixture (CartTest, CartTests: 5 passing tests in 3 classes) plus `files` ({path under src/test/java/com/acme/shop: Java after the header})."""
+    repo = project(tmp_path, "shop", build=build, settings=settings)
+    for name, body in (files or {}).items():
+        write(repo / TESTS / name, HEAD + body)
+    return repo
+
+
+META = "import java.lang.annotation.*;\n@Target(ElementType.METHOD) @Retention(RetentionPolicy.RUNTIME) @Test\npublic @interface FastTest {}\n"
+EXIT_SHAPES = {
+    "plain_exit_zero": {"ZzzExitTest.java": ORDER + "class ZzzExitTest {\n  @Test @Order(1) void first() {}\n  @Test @Order(2) void quits() { System.exit(0); }\n  @Test @Order(3) void wouldFail() { assertEquals(1, 2); }\n}\n"},
+    "meta_annotated": {
+        "FastTest.java": META,
+        "ZzzExitTest.java": ORDER + "class ZzzExitTest {\n  @Test @Order(1) void first() {}\n  @FastTest @Order(2) void quits() { System.exit(0); }\n  @FastTest @Order(3) void wouldFail() { assertEquals(1, 2); }\n}\n",
+    },
+    "meta_annotated_only": {
+        "FastTest.java": META,
+        "ZzzExitTest.java": ORDER + "class ZzzExitTest {\n  @FastTest @Order(1) void quits() { System.exit(0); }\n  @FastTest @Order(2) void wouldFail() { assertEquals(1, 2); }\n}\n",
+    },
+    "inherited": {
+        "BaseContract.java": ORDER + "abstract class BaseContract {\n  @Test @Order(2) void contractExits() { System.exit(0); }\n  @Test @Order(3) void contractFails() { assertEquals(1, 2); }\n}\n",
+        "ZzzImplTest.java": "class ZzzImplTest extends BaseContract {\n  @Test @Order(1) void own() {}\n}\n",
+    },
+    "interface_default": {
+        "Contract.java": ORDER + "interface Contract {\n  @Test @Order(2) default void contractExits() { System.exit(0); }\n  @Test @Order(3) default void contractFails() { assertEquals(1, 2); }\n}\n",
+        "ZzzImplTest.java": ORDER + "class ZzzImplTest implements Contract {\n  @Test @Order(1) void own() {}\n}\n",
+    },
+    "enabled_on_os_last": {"ZzzExitTest.java": ORDER + "class ZzzExitTest {\n  @Test @Order(1) void first() {}\n  @Test @Order(2) @EnabledOnOs(OS.LINUX) void cliExits() { System.exit(0); assertEquals(1, 2); }\n}\n"},
+    "class_condition": {"ZzzExitTest.java": ORDER + "@DisabledOnOs(OS.WINDOWS)\nclass ZzzExitTest {\n  @Test @Order(1) void first() {}\n  @Test @Order(2) void cliExits() { System.exit(0); assertEquals(1, 2); }\n}\n"},
+    "nested_condition": {"ZzzExitTest.java": "class ZzzExitTest {\n  @Test void a() {}\n  @Nested @DisabledOnOs(OS.WINDOWS) class Inner {\n    @Test void b() {}\n    @Test void quits() { System.exit(0); assertEquals(1, 2); }\n  }\n}\n"},
+    "runtime_halt": {"ZzzExitTest.java": ORDER + "class ZzzExitTest {\n  @Test @Order(1) void first() {}\n  @Test @Order(2) void halts() { Runtime.getRuntime().halt(0); }\n}\n"},
+    "static_initializer": {"AaaExitTest.java": "class AaaExitTest {\n  static { System.exit(0); }\n  @Test void a() { assertEquals(1, 1); }\n}\n"},
+    "after_all": {"AaaExitTest.java": "class AaaExitTest {\n  @AfterAll static void bye() { System.exit(0); }\n  @Test void a() { assertEquals(1, 1); }\n}\n"},
+    "repeated": {"ZzzRepTest.java": ORDER + "class ZzzRepTest {\n  @Test @Order(1) void plain() {}\n  @RepeatedTest(3) @Order(2) void rep(RepetitionInfo r) { if (r.getCurrentRepetition() == 2) System.exit(0); if (r.getCurrentRepetition() == 3) fail(); }\n}\n"},
+    "dynamic_factory": {"ZzzDynTest.java": "import java.util.stream.*;\nclass ZzzDynTest {\n  @Test void plain() {}\n  @TestFactory Stream<DynamicTest> dyn() { return Stream.of(DynamicTest.dynamicTest(\"one\", () -> {}), DynamicTest.dynamicTest(\"two\", () -> { System.exit(0); })); }\n}\n"},
+    "display_name_twin": {
+        "ZzzDnTest.java": ORDER + "class ZzzDnTest {\n  @Test @Order(1) @DisplayName(\"same\") void first() {}\n  @Test @Order(2) @EnabledOnOs(OS.LINUX) void quits() { System.exit(0); }\n  @Test @Order(3) @DisplayName(\"same\") void second() { fail(); }\n}\n"
+    },
+}
+
+
+COMMONS = {
+    # every commons-lang test class extends AbstractLangTest, and several have more than one parameterized method
+    "AbstractLangTest.java": "abstract class AbstractLangTest {\n  @Test void inheritedByAll() { assertTrue(true); }\n}\n",
+    "PricingTest.java": (
+        "class PricingTest extends AbstractLangTest {\n  @Test void zero() {}\n"
+        "  @ParameterizedTest @ValueSource(ints = {1, 2, 3}) void discounts(int p) { assertTrue(p > 0); }\n"
+        "  @ParameterizedTest @CsvSource({\"a,1\", \"b,2\"}) void codes(String c, int n) { assertNotNull(c); }\n"
+        "  @ParameterizedTest(name = \"{0} is positive\") @MethodSource(\"nums\") void positive(int n) { assertTrue(n > 0); }\n"
+        "  static java.util.stream.IntStream nums() { return java.util.stream.IntStream.of(4, 5); }\n}\n"
+    ),
+    # junit5's own suites: nested, display names, generated names, repeated and factory tests, a template
+    "StackTest.java": (
+        "@DisplayName(\"A stack\")\nclass StackTest {\n  @Test @DisplayName(\"is instantiated\") void isInstantiated() {}\n"
+        "  @Nested @DisplayName(\"when new\") class WhenNew {\n    @Test void isEmpty() {}\n"
+        "    @Nested class AfterPushing { @Test @DisplayName(\"is not empty \\u00e9 \\\"q\\\"\") void isNotEmpty() {} }\n  }\n}\n"
+    ),
+    "GeneratedNamesTest.java": "@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)\nclass GeneratedNamesTest {\n  @Test void adds_items() {}\n  @Test void removes_items() {}\n}\n",
+    "DynamicTest2.java": (
+        "import java.util.stream.*;\nclass DynamicTest2 {\n  @RepeatedTest(3) void repeated() {}\n"
+        "  @TestFactory Stream<DynamicTest> factory() { return Stream.of(DynamicTest.dynamicTest(\"one\", () -> {}), DynamicTest.dynamicTest(\"two\", () -> {})); }\n"
+        "  @TestFactory Stream<DynamicTest> emptyFactory() { return Stream.empty(); }\n}\n"
+    ),
+    "TemplateTest.java": (
+        "import java.util.stream.*;\nimport org.junit.jupiter.api.extension.*;\n@ExtendWith(TemplateTest.Twice.class)\nclass TemplateTest {\n"
+        "  @TestTemplate void templated() {}\n"
+        "  static class Twice implements TestTemplateInvocationContextProvider {\n"
+        "    public boolean supportsTestTemplate(ExtensionContext c) { return true; }\n"
+        "    public Stream<TestTemplateInvocationContext> provideTestTemplateInvocationContexts(ExtensionContext c) {\n"
+        "      return Stream.of(new TestTemplateInvocationContext() {}, new TestTemplateInvocationContext() {});\n    }\n  }\n}\n"
+    ),
+    "SkipsTest.java": (
+        "class SkipsTest {\n  @Test @Disabled void off() {}\n  @Test @Disabled(\"flaky\") void offWithReason() {}\n  @Test void assumed() { assumeTrue(false); }\n"
+        "  @Nested @Disabled class OffNested { @Test void a() {} }\n"
+        "  @ParameterizedTest @ValueSource(ints = {1, 2}) @Disabled void offParam(int x) {}\n"
+        "  @RepeatedTest(2) @Disabled void offRepeat() {}\n  @ParameterizedTest @ValueSource(ints = {1, 2}) void assumedParam(int x) { assumeTrue(x > 5); }\n}\n"
+    ),
+    "BeforeAllAssumeTest.java": "class BeforeAllAssumeTest {\n  @BeforeAll static void gate() { assumeTrue(false, \"no db\"); }\n  @Test void a() {}\n  @Test void b() {}\n}\n",
+    "DisabledClassTest.java": "@Disabled(\"later\")\nclass DisabledClassTest {\n  @Test void a() {}\n}\n",
+    "WindowsOnlyTest.java": "@EnabledOnOs(OS.WINDOWS)\nclass WindowsOnlyTest {\n  @Test void a() {}\n}\n",
+}
+
+
+DYN = {"CartTest2.java": (
+    "class CartTest2 {\n  @ParameterizedTest @ValueSource(ints = {1, 2}) void discounts(int p) { assertTrue(p > 0); }\n"
+    "  @ParameterizedTest @ValueSource(ints = {1, 2}) void refunds(int p) { assumeTrue(false); }\n"
+    "  @Test @DisplayName(\"adds items to the cart\") void addsItems() {}\n}\n"
+)}
 
 
 # ---- the record, as the init script writes it -----------------------------------------------------------
@@ -165,12 +279,15 @@ def record(repo: Path, classes: dict[str, list[tuple[str, str]]] | None = None, 
 class Fake:
     """A Gradle that writes what a run writes. `script(argv, repo, manifest)` is called with the run's argv and returns (exit_code, console) or (exit_code, console, timed_out)."""
 
-    def __init__(self, script):
+    def __init__(self, script, version: str = "9.9.1"):
         self.script = script
+        self.version = version
         self.calls: list[list[str]] = []
 
     def __call__(self, argv, cwd, timeout, merge_stderr=True):
         self.calls.append(list(argv))
+        if argv[-1] == "--version":  # the first thing a check asks Gradle
+            return checker.Process(f"\n------------------------------------------------------------\nGradle {self.version}\n------------------------------------------------------------\n", "", 0, False)
         init = Path(argv[argv.index("-I") + 1])  # the record is named inside the init script, not passed on the command line
         manifest = re.search(r"def sink = '(.*)'", init.read_text()).group(1)
         outcome = self.script(argv, Path(cwd), Path(manifest))
@@ -178,9 +295,9 @@ class Fake:
         return checker.Process(console, "", code, len(outcome) > 2 and bool(outcome[2]))
 
 
-def install(monkeypatch, script, tool: str = "/usr/bin/gradle") -> Fake:
+def install(monkeypatch, script, tool: str = "/usr/bin/gradle", version: str = "9.9.1") -> Fake:
     """Replace the process runner and the launcher of gradle_check with a Fake running `script`."""
-    fake = Fake(script)
+    fake = Fake(script, version)
     monkeypatch.setattr(gradle_check, "run_process", fake)
     monkeypatch.setattr(gradle_check.shutil, "which", lambda name: tool if name == "gradle" else None)
     return fake

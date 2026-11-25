@@ -27,22 +27,25 @@ import time
 from pathlib import Path
 
 import pytest
-from gradle_check_support import BUILD, JUNIT, find_gradle, multi, project, write
+from gradle_check_support import (
+    BUILD,
+    CART,
+    COMMONS,
+    DYN,
+    EXIT_SHAPES,
+    JUNIT,
+    find_gradle,
+    find_java,
+    multi,
+    project,
+    shop,
+    write,
+)
 
 from ripple import checker, gradle_check
 from ripple.profile import JAVA
 
 JUNIT_DEPS = JUNIT
-CART = "src/test/java/com/acme/shop/CartTest.java"
-TESTS = "src/test/java/com/acme/shop"
-
-
-def find_java() -> str | None:
-    home = os.environ.get("JAVA_HOME")
-    if home and (Path(home) / "bin" / "javac").exists():
-        return home
-    found = sorted(glob.glob("/tmp/java-inv-jdk/jdk-*"))
-    return found[-1] if found and (Path(found[-1]) / "bin" / "javac").exists() else None
 
 
 GRADLE_HOME = os.environ.get("RIPPLE_TEST_GRADLE_HOME", "/tmp/gradle-toolchain/home")
@@ -78,23 +81,6 @@ def check(repo: Path, tests=None, timeout: float = 1500) -> dict:
 
 def text(result: dict) -> str:
     return " | ".join(result["problems"] + result["failures"] + result.get("notes", []))
-
-
-HEAD = (
-    "package com.acme.shop;\n\n"
-    "import static org.junit.jupiter.api.Assertions.*;\nimport static org.junit.jupiter.api.Assumptions.*;\n"
-    "import org.junit.jupiter.api.*;\nimport org.junit.jupiter.api.condition.*;\n"
-    "import org.junit.jupiter.params.ParameterizedTest;\nimport org.junit.jupiter.params.provider.*;\n\n"
-)
-ORDER = "@TestMethodOrder(MethodOrderer.OrderAnnotation.class)\n"
-
-
-def shop(tmp_path: Path, files: dict[str, str] | None = None, build: str = BUILD, settings: str = "rootProject.name = 'shop'\n") -> Path:
-    """The shop fixture (CartTest, CartTests: 5 passing tests in 3 classes) plus `files` ({path under src/test/java/com/acme/shop: Java after the header})."""
-    repo = project(tmp_path, "shop", build=build, settings=settings)
-    for name, body in (files or {}).items():
-        write(repo / TESTS / name, HEAD + body)
-    return repo
 
 
 # ---- a green run, and what it reads --------------------------------------------------------------------
@@ -150,39 +136,6 @@ def test_a_build_that_already_ran_is_run_again_not_taken_as_up_to_date(tmp_path)
 # otherwise by ending the JVM's own suite, and the class it stopped in, SKIPPED. Each project is the shop fixture plus one
 # class whose LAST test would fail (1 == 2) if it ran.
 
-META = "import java.lang.annotation.*;\n@Target(ElementType.METHOD) @Retention(RetentionPolicy.RUNTIME) @Test\npublic @interface FastTest {}\n"
-EXIT_SHAPES = {
-    "plain_exit_zero": {"ZzzExitTest.java": ORDER + "class ZzzExitTest {\n  @Test @Order(1) void first() {}\n  @Test @Order(2) void quits() { System.exit(0); }\n  @Test @Order(3) void wouldFail() { assertEquals(1, 2); }\n}\n"},
-    "meta_annotated": {
-        "FastTest.java": META,
-        "ZzzExitTest.java": ORDER + "class ZzzExitTest {\n  @Test @Order(1) void first() {}\n  @FastTest @Order(2) void quits() { System.exit(0); }\n  @FastTest @Order(3) void wouldFail() { assertEquals(1, 2); }\n}\n",
-    },
-    "meta_annotated_only": {
-        "FastTest.java": META,
-        "ZzzExitTest.java": ORDER + "class ZzzExitTest {\n  @FastTest @Order(1) void quits() { System.exit(0); }\n  @FastTest @Order(2) void wouldFail() { assertEquals(1, 2); }\n}\n",
-    },
-    "inherited": {
-        "BaseContract.java": ORDER + "abstract class BaseContract {\n  @Test @Order(2) void contractExits() { System.exit(0); }\n  @Test @Order(3) void contractFails() { assertEquals(1, 2); }\n}\n",
-        "ZzzImplTest.java": "class ZzzImplTest extends BaseContract {\n  @Test @Order(1) void own() {}\n}\n",
-    },
-    "interface_default": {
-        "Contract.java": ORDER + "interface Contract {\n  @Test @Order(2) default void contractExits() { System.exit(0); }\n  @Test @Order(3) default void contractFails() { assertEquals(1, 2); }\n}\n",
-        "ZzzImplTest.java": ORDER + "class ZzzImplTest implements Contract {\n  @Test @Order(1) void own() {}\n}\n",
-    },
-    "enabled_on_os_last": {"ZzzExitTest.java": ORDER + "class ZzzExitTest {\n  @Test @Order(1) void first() {}\n  @Test @Order(2) @EnabledOnOs(OS.LINUX) void cliExits() { System.exit(0); assertEquals(1, 2); }\n}\n"},
-    "class_condition": {"ZzzExitTest.java": ORDER + "@DisabledOnOs(OS.WINDOWS)\nclass ZzzExitTest {\n  @Test @Order(1) void first() {}\n  @Test @Order(2) void cliExits() { System.exit(0); assertEquals(1, 2); }\n}\n"},
-    "nested_condition": {"ZzzExitTest.java": "class ZzzExitTest {\n  @Test void a() {}\n  @Nested @DisabledOnOs(OS.WINDOWS) class Inner {\n    @Test void b() {}\n    @Test void quits() { System.exit(0); assertEquals(1, 2); }\n  }\n}\n"},
-    "runtime_halt": {"ZzzExitTest.java": ORDER + "class ZzzExitTest {\n  @Test @Order(1) void first() {}\n  @Test @Order(2) void halts() { Runtime.getRuntime().halt(0); }\n}\n"},
-    "static_initializer": {"AaaExitTest.java": "class AaaExitTest {\n  static { System.exit(0); }\n  @Test void a() { assertEquals(1, 1); }\n}\n"},
-    "after_all": {"AaaExitTest.java": "class AaaExitTest {\n  @AfterAll static void bye() { System.exit(0); }\n  @Test void a() { assertEquals(1, 1); }\n}\n"},
-    "repeated": {"ZzzRepTest.java": ORDER + "class ZzzRepTest {\n  @Test @Order(1) void plain() {}\n  @RepeatedTest(3) @Order(2) void rep(RepetitionInfo r) { if (r.getCurrentRepetition() == 2) System.exit(0); if (r.getCurrentRepetition() == 3) fail(); }\n}\n"},
-    "dynamic_factory": {"ZzzDynTest.java": "import java.util.stream.*;\nclass ZzzDynTest {\n  @Test void plain() {}\n  @TestFactory Stream<DynamicTest> dyn() { return Stream.of(DynamicTest.dynamicTest(\"one\", () -> {}), DynamicTest.dynamicTest(\"two\", () -> { System.exit(0); })); }\n}\n"},
-    "display_name_twin": {
-        "ZzzDnTest.java": ORDER + "class ZzzDnTest {\n  @Test @Order(1) @DisplayName(\"same\") void first() {}\n  @Test @Order(2) @EnabledOnOs(OS.LINUX) void quits() { System.exit(0); }\n  @Test @Order(3) @DisplayName(\"same\") void second() { fail(); }\n}\n"
-    },
-}
-
-
 @pytest.mark.parametrize("shape", sorted(EXIT_SHAPES))
 def test_a_test_jvm_that_exits_with_status_zero_is_not_a_pass(tmp_path, shape):
     result = check(shop(tmp_path, EXIT_SHAPES[shape]))
@@ -190,6 +143,15 @@ def test_a_test_jvm_that_exits_with_status_zero_is_not_a_pass(tmp_path, shape):
     assert result["passed"] is False, result
     assert "SKIPPED without finishing it" in text(result), result
     assert result["failures"] == [], "the test after the exit never ran, so nothing failed: this is not a failure verdict"
+
+
+def test_a_failure_of_the_init_script_inside_gradle_is_said_as_that_and_not_as_a_dead_jvm(tmp_path, monkeypatch):
+    """What Gradle 8 did to the first listener (a property it does not have): every test threw, and the verdict blamed the test JVM."""
+    monkeypatch.setattr(gradle_check, "INIT_SCRIPT", gradle_check.INIT_SCRIPT.replace("result: r.resultType.name(), ms:", "result: r.noSuchProperty, ms:"))
+    result = check(project(tmp_path, "shop"))
+    assert result["passed"] is False, result
+    assert "ripple's own init script failed inside Gradle (No such property: noSuchProperty" in text(result), result
+    assert result["problems"][0].startswith("ripple's own init script failed inside Gradle"), result["problems"]
 
 
 def test_a_forked_jvm_that_exits_is_not_a_pass_when_other_jvms_finished(tmp_path):
@@ -225,48 +187,6 @@ def test_the_checks_own_time_limit_kills_gradle_and_leaves_no_daemon(tmp_path):
 # ---- the false reds: suites that are real projects ----------------------------------------------------------
 
 
-COMMONS = {
-    # every commons-lang test class extends AbstractLangTest, and several have more than one parameterized method
-    "AbstractLangTest.java": "abstract class AbstractLangTest {\n  @Test void inheritedByAll() { assertTrue(true); }\n}\n",
-    "PricingTest.java": (
-        "class PricingTest extends AbstractLangTest {\n  @Test void zero() {}\n"
-        "  @ParameterizedTest @ValueSource(ints = {1, 2, 3}) void discounts(int p) { assertTrue(p > 0); }\n"
-        "  @ParameterizedTest @CsvSource({\"a,1\", \"b,2\"}) void codes(String c, int n) { assertNotNull(c); }\n"
-        "  @ParameterizedTest(name = \"{0} is positive\") @MethodSource(\"nums\") void positive(int n) { assertTrue(n > 0); }\n"
-        "  static java.util.stream.IntStream nums() { return java.util.stream.IntStream.of(4, 5); }\n}\n"
-    ),
-    # junit5's own suites: nested, display names, generated names, repeated and factory tests, a template
-    "StackTest.java": (
-        "@DisplayName(\"A stack\")\nclass StackTest {\n  @Test @DisplayName(\"is instantiated\") void isInstantiated() {}\n"
-        "  @Nested @DisplayName(\"when new\") class WhenNew {\n    @Test void isEmpty() {}\n"
-        "    @Nested class AfterPushing { @Test @DisplayName(\"is not empty \\u00e9 \\\"q\\\"\") void isNotEmpty() {} }\n  }\n}\n"
-    ),
-    "GeneratedNamesTest.java": "@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)\nclass GeneratedNamesTest {\n  @Test void adds_items() {}\n  @Test void removes_items() {}\n}\n",
-    "DynamicTest2.java": (
-        "import java.util.stream.*;\nclass DynamicTest2 {\n  @RepeatedTest(3) void repeated() {}\n"
-        "  @TestFactory Stream<DynamicTest> factory() { return Stream.of(DynamicTest.dynamicTest(\"one\", () -> {}), DynamicTest.dynamicTest(\"two\", () -> {})); }\n"
-        "  @TestFactory Stream<DynamicTest> emptyFactory() { return Stream.empty(); }\n}\n"
-    ),
-    "TemplateTest.java": (
-        "import java.util.stream.*;\nimport org.junit.jupiter.api.extension.*;\n@ExtendWith(TemplateTest.Twice.class)\nclass TemplateTest {\n"
-        "  @TestTemplate void templated() {}\n"
-        "  static class Twice implements TestTemplateInvocationContextProvider {\n"
-        "    public boolean supportsTestTemplate(ExtensionContext c) { return true; }\n"
-        "    public Stream<TestTemplateInvocationContext> provideTestTemplateInvocationContexts(ExtensionContext c) {\n"
-        "      return Stream.of(new TestTemplateInvocationContext() {}, new TestTemplateInvocationContext() {});\n    }\n  }\n}\n"
-    ),
-    "SkipsTest.java": (
-        "class SkipsTest {\n  @Test @Disabled void off() {}\n  @Test @Disabled(\"flaky\") void offWithReason() {}\n  @Test void assumed() { assumeTrue(false); }\n"
-        "  @Nested @Disabled class OffNested { @Test void a() {} }\n"
-        "  @ParameterizedTest @ValueSource(ints = {1, 2}) @Disabled void offParam(int x) {}\n"
-        "  @RepeatedTest(2) @Disabled void offRepeat() {}\n  @ParameterizedTest @ValueSource(ints = {1, 2}) void assumedParam(int x) { assumeTrue(x > 5); }\n}\n"
-    ),
-    "BeforeAllAssumeTest.java": "class BeforeAllAssumeTest {\n  @BeforeAll static void gate() { assumeTrue(false, \"no db\"); }\n  @Test void a() {}\n  @Test void b() {}\n}\n",
-    "DisabledClassTest.java": "@Disabled(\"later\")\nclass DisabledClassTest {\n  @Test void a() {}\n}\n",
-    "WindowsOnlyTest.java": "@EnabledOnOs(OS.WINDOWS)\nclass WindowsOnlyTest {\n  @Test void a() {}\n}\n",
-}
-
-
 def test_a_real_suite_of_parameterized_nested_inherited_dynamic_and_templated_tests_passes(tmp_path):
     """The shapes ripple's own reading of the source could not prove (about 12% of commons-lang's test classes, junit5's suites): Gradle's listener says what ran."""
     result = check(shop(tmp_path, COMMONS))
@@ -297,13 +217,6 @@ def test_a_method_with_a_display_name_asked_by_its_method_id_ran_and_is_a_pass(t
     result = check(shop(tmp_path, files), ["com.acme.shop.NamedTest.addsItems()"])
     assert result["passed"] is True and result["counts"]["passed"] == 1, result
     assert result["command"].endswith(":test --tests com.acme.shop.NamedTest.addsItems") or ":test --tests com.acme.shop.NamedTest.addsItems" in result["command"]
-
-
-DYN = {"CartTest2.java": (
-    "class CartTest2 {\n  @ParameterizedTest @ValueSource(ints = {1, 2}) void discounts(int p) { assertTrue(p > 0); }\n"
-    "  @ParameterizedTest @ValueSource(ints = {1, 2}) void refunds(int p) { assumeTrue(false); }\n"
-    "  @Test @DisplayName(\"adds items to the cart\") void addsItems() {}\n}\n"
-)}
 
 
 def test_two_parameterized_methods_asked_together_one_of_which_ran_none_of_its_invocations_is_not_a_pass(tmp_path):
