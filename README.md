@@ -1621,14 +1621,23 @@ a `Parameterized` class and method, and JUnit 4 tests under `useJUnitPlatform()`
 method asked for by id is passed to Gradle as `Class.method` and `Class.method[*]`, because JUnit 4 names a `Parameterized`
 invocation `method[1]` and Gradle's `--tests Class.method` does not match it. TestNG, Kotlin and Spock were not run (no jars offline). The live tests
 (`tests/test_check_gradle_live.py` on Gradle 9.9.1, `tests/test_check_gradle_live8.py` on Gradle 8.10.2, and
-`tests/test_check_gradle_live_junit4.py` on both: 98 tests) need a JDK (17 or later), the two Gradles, a Gradle user home for
+`tests/test_check_gradle_live_junit4.py` on both: 98 tests) need a JDK, the two Gradles, a Gradle user home for
 each that has JUnit 5.11.3, and a Maven repository with JUnit 4.13.2 and hamcrest-core 1.3. Without them they skip, with the
 reason; `RIPPLE_REQUIRE_LIVE_GRADLE=1` turns that skip into a failure.
 
+The two Gradles need different JDKs. Gradle 9.9.1 needs Java 17 or later and runs on the JDK in `JAVA_HOME` (measured here on JDK
+21 and on JDK 25). Gradle 8.10.2 runs on Java 8 to 23 and dies on a newer one in the build script (`Unsupported class file major
+version 69` on JDK 25). So the Gradle 8 module and the Gradle 8 half of the JUnit 4 module run on `RIPPLE_TEST_GRADLE8_JAVA_HOME`
+when it is set, else on the same JDK as the rest; a JDK that is not Java 8 to 23 is a skip with that reason, and a failure with
+`RIPPLE_REQUIRE_LIVE_GRADLE=1`. This is what a user meets too: `ripple check` on a repo that pins Gradle 8.10.x, run on JDK 25,
+returns not passed, with Gradle's own `Unsupported class file major version 69` in the problem.
+
 `sh ci/warm-gradle.sh <install-dir> [<maven-repo-dir>]` installs all of it, and prints the variables to set: `PATH` with
 `<install-dir>/gradle-9.9.1/bin` first (the Gradle 9 modules use the `gradle` they find on `PATH`), `RIPPLE_TEST_GRADLE_HOME`,
-`RIPPLE_TEST_GRADLE8` (a `gradle` binary), `RIPPLE_TEST_GRADLE8_HOME`, `RIPPLE_TEST_M2`, and `RIPPLE_TEST_GRADLE_DIST` (the
-9.9.1 zip, which the one wrapper test points a wrapper at). Each distribution is downloaded from `services.gradle.org` and
+`RIPPLE_TEST_GRADLE8` (a `gradle` binary), `RIPPLE_TEST_GRADLE8_HOME`, `RIPPLE_TEST_GRADLE8_JAVA_HOME`, `RIPPLE_TEST_M2`, and
+`RIPPLE_TEST_GRADLE_DIST` (the 9.9.1 zip, which the one wrapper test points a wrapper at). The script builds with Gradle 8 on
+`RIPPLE_TEST_GRADLE8_JAVA_HOME` when it is set, refuses a Gradle 8 JDK newer than 23 before it starts, and prints `java -version`
+before each build. Each distribution is downloaded from `services.gradle.org` and
 checked against its pinned SHA-256 before it is unpacked, and the JUnit 4 jars against theirs; a mismatch stops the script.
 The user homes are filled by one online build each, and the tests then run `--offline`. Nothing else is fetched.
 

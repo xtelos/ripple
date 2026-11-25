@@ -47,6 +47,24 @@ jobs:
       # holds JUnit 5.11.3, and JUnit 4.13.2 with hamcrest-core into the Maven repository above (RIPPLE_TEST_M2, which the
       # live Maven tests share). The install is cached right after it is filled, not at the end of the job: the tests write
       # into these homes (a wrapper unpacks a distribution there), and a cache saved after them would be gigabytes.
+      # Gradle 9.9.1 and the Maven tests run on the job's default JDK (the failed first run of this wiring showed it is JDK 25 on
+      # the current image). Gradle 8.10.2 dies on a JDK newer than 23 ("Unsupported class file major version 69"), so its builds
+      # and tests run on the image's JDK 21. The runner exports it as JAVA_HOME_21_X64 (images: Ubuntu 24.04 and 26.04 list it);
+      # the environment variables of the image are not in the `env` context, so a step copies it into GITHUB_ENV, and fails here,
+      # by name, if the image ever lacks it. The java -version lines say which JDK each build uses.
+      - name: JDKs for the live Gradle tests (Gradle 8 gets JDK 21)
+        if: contains(matrix.extras, 'java')
+        run: |
+          echo "default JDK: JAVA_HOME=${JAVA_HOME:-unset}"
+          java -version
+          env | grep '^JAVA_HOME' | sort || true
+          if [ -z "${JAVA_HOME_21_X64:-}" ] || [ ! -x "${JAVA_HOME_21_X64}/bin/java" ]; then
+            echo "::error::the runner image has no JDK 21 (JAVA_HOME_21_X64 is '${JAVA_HOME_21_X64:-}'), which the live Gradle 8 tests need"
+            exit 1
+          fi
+          echo "Gradle 8 JDK: JAVA_HOME_21_X64=${JAVA_HOME_21_X64}"
+          "${JAVA_HOME_21_X64}/bin/java" -version
+          echo "RIPPLE_TEST_GRADLE8_JAVA_HOME=${JAVA_HOME_21_X64}" >> "$GITHUB_ENV"
       - name: Live Gradle cache
         id: gradle
         if: contains(matrix.extras, 'java')
@@ -69,10 +87,11 @@ jobs:
         run: |
           echo "${{ runner.temp }}/ripple-gradle/gradle-9.9.1/bin" >> "$GITHUB_PATH"
           "${{ runner.temp }}/ripple-gradle/gradle-9.9.1/bin/gradle" --version
-          "${{ runner.temp }}/ripple-gradle/gradle-8.10.2/bin/gradle" --version
+          JAVA_HOME="${RIPPLE_TEST_GRADLE8_JAVA_HOME}" "${{ runner.temp }}/ripple-gradle/gradle-8.10.2/bin/gradle" --version
       # RIPPLE_REQUIRE_LIVE_MAVEN=1 and RIPPLE_REQUIRE_LIVE_GRADLE=1 make the live Maven and Gradle tests fail, instead of skip,
       # when no JDK, build tool or cache is found. They are set only in the jobs that install the java extra, so the other
-      # four skip them as before (the paths below do not exist there).
+      # four skip them as before (the paths below do not exist there). RIPPLE_TEST_GRADLE8_JAVA_HOME (JDK 21, set above through
+      # GITHUB_ENV) is what the Gradle 8 tests run on; the other Gradle tests use the default JDK.
       - name: Tests
         run: python -m pytest -q -rs
         env:

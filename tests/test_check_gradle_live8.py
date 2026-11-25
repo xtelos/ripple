@@ -5,7 +5,9 @@ is run here, not only the newest. Gradle 8.10.2 has no `TestResult.assumptionFai
 on every test and every run was "unverified". These tests run the shapes of test_check_gradle_live.py on 8.10.2.
 
 The Gradle is RIPPLE_TEST_GRADLE8 (a `gradle` binary), else /tmp/java-inv-gradle/gradle-8.*/bin/gradle; its user home is
-RIPPLE_TEST_GRADLE8_HOME, else /tmp/java-inv-gradle/home, and must already hold JUnit 5.11.3. A JDK is found as in the 9.x module.
+RIPPLE_TEST_GRADLE8_HOME, else /tmp/java-inv-gradle/home, and must already hold JUnit 5.11.3. Its JDK is
+RIPPLE_TEST_GRADLE8_JAVA_HOME, else the one of the 9.x module, and must be Java 8 to 23: Gradle 8.10.2 dies on a newer one
+("Unsupported class file major version 69" on JDK 25, the CI image's default), so a newer JDK is a skip with that reason.
 RIPPLE_REQUIRE_LIVE_GRADLE=1 turns the skip into a failure.
 """
 
@@ -22,7 +24,7 @@ from gradle_check_support import (
     DYN,
     EXIT_SHAPES,
     JUNIT,
-    find_java,
+    gradle8_java,
     multi,
     project,
     shop,
@@ -33,10 +35,10 @@ from ripple import checker
 from ripple.profile import JAVA
 
 GRADLE_HOME = os.environ.get("RIPPLE_TEST_GRADLE8_HOME", "/tmp/java-inv-gradle/home")
-JAVA_HOME = find_java()
+JAVA_HOME, JAVA_PROBLEM = gradle8_java()
 GRADLE = os.environ.get("RIPPLE_TEST_GRADLE8") or next(iter(sorted(glob.glob("/tmp/java-inv-gradle/gradle-8.*/bin/gradle"))), None)
-if JAVA_HOME is None:
-    SKIP = "no JDK (set JAVA_HOME)"
+if JAVA_PROBLEM is not None:
+    SKIP = JAVA_PROBLEM
 elif GRADLE is None or not Path(GRADLE).exists():
     SKIP = "no Gradle 8 (set RIPPLE_TEST_GRADLE8 to a gradle binary)"
 elif not (Path(GRADLE_HOME) / "caches" / "modules-2" / "files-2.1" / "org.junit.jupiter" / "junit-jupiter" / "5.11.3").is_dir():

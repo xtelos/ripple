@@ -19,6 +19,10 @@
 # each downloaded from Maven Central and checked against a pinned SHA-256 before it is moved into place. A file already there
 # with the pinned content is kept (ci/warm-maven.sh leaves the same files), one there with other content stops the script.
 #
+# Gradle 9.9.1 runs on the JDK in JAVA_HOME (else on PATH). Gradle 8.10.2 dies on a JDK newer than 23 ("Unsupported class file
+# major version 69" on JDK 25), so its build runs on RIPPLE_TEST_GRADLE8_JAVA_HOME when that is set (else on the same JDK), and
+# the script refuses a Gradle 8 JDK newer than 23 before it starts. It prints `java -version` before each Gradle build.
+#
 # Versions are exact on purpose: they are the ones the tests were measured on. Run it again over a filled directory: nothing
 # is downloaded and Gradle fetches nothing. The last lines print the environment the tests read.
 set -eu
@@ -102,15 +106,32 @@ install_artifact() { # path-under-the-repository sha256
     mv "$work/artifact" "$dest"
 }
 
-# the user home of one Gradle, filled by one online build of the warm project
-warm_home() { # version home
-    echo "gradle $1: filling $2 (online)"
-    rm -rf "$work/warm"
-    cp -R "$root/ci/warm-gradle" "$work/warm"
-    GRADLE_USER_HOME="$2" "$dir/gradle-$1/bin/gradle" --version
-    GRADLE_USER_HOME="$2" "$dir/gradle-$1/bin/gradle" --no-daemon --console=plain -p "$work/warm" test integrationTest
-    test -d "$2/caches/modules-2/files-2.1/org.junit.jupiter/junit-jupiter/5.11.3"
-    test -d "$2/caches/modules-2/files-2.1/org.junit.platform/junit-platform-launcher"
+# the user home of one Gradle, filled by one online build of the warm project, on the JDK given (else the one in JAVA_HOME or on PATH)
+warm_home() { # version home java-home-or-empty
+    (
+        if [ -n "$3" ]; then
+            JAVA_HOME=$3
+            PATH="$3/bin:$PATH"
+            export JAVA_HOME PATH
+        fi
+        java=java
+        if [ -n "${JAVA_HOME:-}" ]; then java="$JAVA_HOME/bin/java"; fi
+        echo "gradle $1: filling $2 (online) on this JDK (JAVA_HOME=${JAVA_HOME:-unset}):"
+        "$java" -version 2>&1 | sed 's/^/    /'
+        if [ "$1" = "$GRADLE_8" ]; then
+            major=$("$java" -version 2>&1 | sed -n '1s/.*version "\(1\.\)\{0,1\}\([0-9]*\).*/\2/p')
+            if [ -z "$major" ] || [ "$major" -gt 23 ]; then
+                echo "gradle $1 runs on Java 8 to 23 and this JDK is ${major:-unreadable} (set RIPPLE_TEST_GRADLE8_JAVA_HOME to a JDK of 17 to 23)" >&2
+                exit 1
+            fi
+        fi
+        rm -rf "$work/warm"
+        cp -R "$root/ci/warm-gradle" "$work/warm"
+        GRADLE_USER_HOME="$2" "$dir/gradle-$1/bin/gradle" --version
+        GRADLE_USER_HOME="$2" "$dir/gradle-$1/bin/gradle" --no-daemon --console=plain -p "$work/warm" test integrationTest
+        test -d "$2/caches/modules-2/files-2.1/org.junit.jupiter/junit-jupiter/5.11.3"
+        test -d "$2/caches/modules-2/files-2.1/org.junit.platform/junit-platform-launcher"
+    )
 }
 
 install_gradle "$GRADLE_9" "$GRADLE_9_SHA256" keep
@@ -122,8 +143,8 @@ install_artifact org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar 66fdef91e9
 install_artifact org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.pom fde386a7905173a1b103de6ab820727584b50d0e32282e2797787c20a64ffa93
 install_artifact org/hamcrest/hamcrest-parent/1.3/hamcrest-parent-1.3.pom 6d535f94efb663bdb682c9f27a50335394688009642ba7a9677504bc1be4129b
 
-warm_home "$GRADLE_9" "$dir/home9"
-warm_home "$GRADLE_8" "$dir/home8"
+warm_home "$GRADLE_9" "$dir/home9" ""
+warm_home "$GRADLE_8" "$dir/home8" "${RIPPLE_TEST_GRADLE8_JAVA_HOME:-}"
 
 test -f "$dir/dl/gradle-$GRADLE_9-bin.zip"
 test -f "$m2/junit/junit/4.13.2/junit-4.13.2.jar"
@@ -136,4 +157,5 @@ echo "  RIPPLE_TEST_GRADLE8=$dir/gradle-$GRADLE_8/bin/gradle"
 echo "  RIPPLE_TEST_GRADLE8_HOME=$dir/home8"
 echo "  RIPPLE_TEST_GRADLE_DIST=$dir/dl/gradle-$GRADLE_9-bin.zip"
 echo "  RIPPLE_TEST_M2=$m2"
-echo "  JAVA_HOME=<a JDK 17 or later>"
+echo "  JAVA_HOME=<a JDK 17 or later, for Gradle 9>"
+echo "  RIPPLE_TEST_GRADLE8_JAVA_HOME=<a JDK of 17 to 23, for Gradle 8; unset means JAVA_HOME>"

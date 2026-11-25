@@ -14,6 +14,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 from pathlib import Path
 
 from java_check_support import PROJECTS
@@ -76,6 +77,41 @@ def find_java() -> str | None:
         return home
     found = sorted(glob.glob("/tmp/java-inv-jdk/jdk-*"))
     return found[-1] if found and (Path(found[-1]) / "bin" / "javac").exists() else None
+
+
+GRADLE8_JAVA = (8, 23)  # the Java versions Gradle 8.10.2 runs on: a newer one dies in the build script ("Unsupported class file major version")
+
+
+def java_major(home: str) -> int | None:
+    """The major version `home/bin/java -version` reports (8 for "1.8.0_512"), or None when it cannot be run or read."""
+    try:
+        out = subprocess.run([str(Path(home) / "bin" / "java"), "-version"], capture_output=True, text=True, timeout=60, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    found = re.search(r'version "(1\.)?(\d+)', out.stdout + out.stderr)
+    return int(found.group(2)) if found else None
+
+
+def gradle8_java() -> tuple[str | None, str | None]:
+    """(JDK home, why it cannot be used) for the live Gradle 8 tests.
+
+    RIPPLE_TEST_GRADLE8_JAVA_HOME names it, else it is the JDK the other live tests use (find_java). A variable that is set is
+    never replaced by a fallback, and a JDK Gradle 8.10.2 cannot run on is a reason, with the version and the variable's name:
+    the live modules skip on a reason and, with RIPPLE_REQUIRE_LIVE_GRADLE=1, fail with it.
+    """
+    pinned = os.environ.get("RIPPLE_TEST_GRADLE8_JAVA_HOME")
+    home = pinned or find_java()
+    if home is None:
+        return None, "no JDK (set JAVA_HOME or RIPPLE_TEST_GRADLE8_JAVA_HOME)"
+    if not (Path(home) / "bin" / "javac").exists():
+        return home, f"RIPPLE_TEST_GRADLE8_JAVA_HOME={home} is not a JDK (no bin/javac)"
+    major = java_major(home)
+    low, high = GRADLE8_JAVA
+    if major is None:
+        return home, f"cannot read the Java version of the JDK at {home} (java -version), so Gradle 8.10.2 cannot be run on it (set RIPPLE_TEST_GRADLE8_JAVA_HOME)"
+    if not low <= major <= high:
+        return home, f"the JDK at {home} is JDK {major}, and Gradle 8.10.2 runs on Java {low} to {high} (set RIPPLE_TEST_GRADLE8_JAVA_HOME to one of those)"
+    return home, None
 
 
 HEAD = (
