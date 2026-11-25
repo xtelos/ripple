@@ -714,6 +714,15 @@ def _check_task(task: TestTask, run: Run, problems: list[str], notes: list[str])
         notes.append(f"{task.path} has ignoreFailures set: Gradle exits 0 although a test fails")
     if task.narrowing:
         notes.append(f"{task.path} narrows its tests ({'; '.join(task.narrowing)}): the tests it leaves out did not run")
+    if root.tests == 0:
+        # Gradle 9 fails a task that finds no test (failOnNoDiscoveredTests); before 9, and with the opt-out, it executes and says nothing
+        if task.narrowing:
+            notes.append(f"{task.path} executed and ran no test, and the build narrows it")
+        else:
+            problems.append(
+                f"{task.path} executed and ran no test: Gradle found none to run in it (a module with JUnit 5 tests and no `useJUnitPlatform()`, "
+                "or `failOnNoDiscoveredTests = false`), so nothing in it was checked"
+            )
     return mine
 
 

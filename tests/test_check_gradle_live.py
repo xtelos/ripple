@@ -27,11 +27,12 @@ import time
 from pathlib import Path
 
 import pytest
-from gradle_check_support import BUILD, find_gradle, multi, project, write
+from gradle_check_support import BUILD, JUNIT, find_gradle, multi, project, write
 
 from ripple import checker, gradle_check
 from ripple.profile import JAVA
 
+JUNIT_DEPS = JUNIT
 CART = "src/test/java/com/acme/shop/CartTest.java"
 TESTS = "src/test/java/com/acme/shop"
 
@@ -360,6 +361,17 @@ def test_a_project_with_no_test_sources_is_a_note_and_the_others_still_pass(tmp_
     result = check(repo)
     assert result["passed"] is True, result
     assert ":web:test had no test sources, so no test ran" in text(result)
+
+
+def test_a_test_task_that_executes_and_finds_no_test_is_a_problem_beside_a_project_that_ran_tests(tmp_path):
+    """JUnit 5 tests in a module that leaves out `useJUnitPlatform()` and opts out of Gradle 9's failure: the task executes, runs nothing, and its failing test never runs."""
+    repo = multi(tmp_path)
+    plain = "plugins { id 'java' }\nrepositories { mavenCentral() }\n" + JUNIT_DEPS + "test { failOnNoDiscoveredTests = false }\n"
+    write(repo / "web" / "build.gradle", plain.replace("dependencies {", "dependencies {\n  implementation project(':core')", 1))
+    write(repo / "web/src/test/java/com/acme/web/WebFailTest.java", "package com.acme.web;\nimport org.junit.jupiter.api.*;\nclass WebFailTest { @Test void mustFail() { Assertions.fail(\"never ran\"); } }\n")
+    result = check(repo)
+    assert result["exit_code"] == 0 and result["passed"] is False, result
+    assert ":web:test executed and ran no test" in text(result), result
 
 
 def test_another_test_task_is_not_run_by_test_and_is_named(tmp_path):

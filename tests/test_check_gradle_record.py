@@ -374,7 +374,35 @@ def test_every_test_skipped_is_not_a_pass(monkeypatch, tmp_path):
 
 def test_a_task_that_ran_no_test_at_all_is_not_a_pass(monkeypatch, tmp_path):
     result = verdict(monkeypatch, tmp_path, lambda repo: record(repo, {}))
-    assert result["passed"] is False and "no tests ran" in text(result), result
+    assert result["passed"] is False and ":test executed and ran no test" in text(result), result
+
+
+def test_a_test_task_that_executed_and_ran_zero_tests_is_a_problem_even_when_another_project_ran_tests(monkeypatch, tmp_path):
+    """`failOnNoDiscoveredTests = false` (the default before Gradle 9) with no `useJUnitPlatform()`: web's task executes, finds nothing, and its tests never run."""
+    repo = multi(tmp_path)
+
+    def script(argv, cwd, manifest):
+        both = {":core": "core", ":web": "web"}
+        lines(
+            manifest, init_line(), graph(cwd, both),
+            *listener(":core:test", {"com.acme.core.CoreTest": [("works()", "SUCCESS")]}), task_line(":core:test"),
+            *listener(":web:test", {}), task_line(":web:test"),
+        )
+        return 0, OK_CONSOLE
+
+    install(monkeypatch, script)
+    result = checker.run_check(repo, tests=[], timeout=60, profile=JAVA)
+    assert result["exit_code"] == 0 and result["passed"] is False, result
+    assert ":web:test executed and ran no test" in text(result) and ":core:test" not in " ".join(result["problems"])
+
+
+def test_a_narrowed_test_task_that_ran_zero_tests_is_a_note_not_a_problem(monkeypatch, tmp_path):
+    rows = lambda repo: [  # noqa: E731
+        init_line(), graph(repo, exclude=["**/*Nope*"]), *listener(":test", {}), task_line(":test"),
+    ]
+    result = verdict(monkeypatch, tmp_path, rows)
+    assert ":test executed and ran no test" in " ".join(result["notes"]) and "narrows" in text(result), result
+    assert result["passed"] is False  # nothing ran anywhere, so still no pass
 
 
 def test_a_second_test_task_the_build_wired_in_counts_like_the_first(monkeypatch, tmp_path):
