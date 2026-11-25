@@ -80,5 +80,11 @@
     "c.js",
     "d.jsx",
     "e.mjs"
-  ]
+  ],
+  "unresolved": {
+    "c.js|./x": "esbuild orders .jsx before .js",
+    "d.jsx|./x": "esbuild orders .jsx before .js",
+    "e.mjs|./x": "esbuild orders .jsx before .js",
+    "f.cjs|./x": "esbuild orders .jsx before .js"
+  }
 }

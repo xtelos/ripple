@@ -134,6 +134,8 @@
     "d.jsx|./x": "Vite orders .js before .ts",
     "e.mjs|./x": "Vite orders .js before .ts",
     "f.cjs|./x": "Vite orders .js before .ts",
+    "a.ts|./x": "esbuild orders .tsx before .ts",
+    "b.tsx|./x": "esbuild orders .tsx before .ts",
     "c.js|./x.js": "compiler reads x.ts, runtime runs x.js",
     "d.jsx|./x.js": "compiler reads x.ts, runtime runs x.js",
     "e.mjs|./x.js": "compiler reads x.ts, runtime runs x.js",
