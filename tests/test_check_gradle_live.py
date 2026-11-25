@@ -455,6 +455,54 @@ def test_a_test_source_set_pointed_away_from_a_directory_of_test_files_is_a_pass
     assert "Gradle found no test classes for :web:test (NO-SOURCE), so no test ran in it" in result["notes"]
 
 
+LIFECYCLE = """plugins { id 'java-base' }
+repositories { mavenCentral() }
+sourceSets { test { } }
+""" + JUNIT_DEPS + """
+def unit = tasks.register('unitTest', Test) {
+  useJUnitPlatform()
+  testClassesDirs = sourceSets.test.output.classesDirs
+  classpath = sourceSets.test.runtimeClasspath
+}
+tasks.register('test') { dependsOn unit }
+"""
+
+
+LIFECYCLE_TEST = "package com.acme.web;\nimport org.junit.jupiter.api.*;\nclass WebTest {{ @Test void {name}() {{ {body} }} }}\n"
+
+
+def lifecycle_project(tmp_path: Path, failing: bool) -> Path:
+    """Android's shape: `test` is a lifecycle task, a Test task named `unitTest` runs `sourceSets.test`. The Test task is not named `test`."""
+    repo = multi(tmp_path)
+    write(repo / "web" / "build.gradle", LIFECYCLE)
+    shutil.rmtree(repo / "web" / "src")  # java-base compiles no main sources: web's tests stand alone
+    write(repo / "web/src/test/java/com/acme/web/WebTest.java", LIFECYCLE_TEST.format(name="works", body=""))
+    if failing:
+        write(repo / "web/src/test/java/com/acme/web/WebFailTest.java", FAILING_TEST.format(pkg="com.acme.web", cls="WebFailTest"))
+    return repo
+
+
+def test_a_test_task_with_another_name_under_a_lifecycle_test_is_counted_and_not_called_a_directory_with_no_test_task(tmp_path):
+    result = check(lifecycle_project(tmp_path, failing=False))
+    assert result["passed"] is True and result["counts"]["classes"] == 2 and result["counts"]["passed"] == 2, result
+    assert unrun(result) == [], result["notes"]
+
+
+def test_a_failing_test_of_a_test_task_with_another_name_under_a_lifecycle_test_is_a_failure(tmp_path):
+    result = check(lifecycle_project(tmp_path, failing=True))
+    assert result["passed"] is False and result["failure_count"] == 1 and "WebFailTest.mustFail" in result["failures"][0], result
+
+
+def test_a_single_project_whose_only_test_task_has_another_name_under_a_lifecycle_test_is_judged_by_that_task(tmp_path):
+    repo = tmp_path / "repo"
+    write(repo / "settings.gradle", "rootProject.name = 'life'\n")
+    write(repo / "gradle.properties", "org.gradle.offline=true\n")
+    write(repo / "build.gradle", LIFECYCLE)
+    write(repo / "src/test/java/com/acme/web/WebTest.java", LIFECYCLE_TEST.format(name="works", body=""))
+    result = check(repo)
+    assert result["passed"] is True and result["counts"]["passed"] == 1 and result["problems"] == [], result
+
+
 def test_an_ordinary_project_gets_none_of_these_notes(tmp_path):
     for name, repo in (("one", project(tmp_path / "one", "shop")), ("many", multi(tmp_path / "many"))):
         result = check(repo)

@@ -1447,6 +1447,9 @@ test: a `src/test/{java,kotlin,groovy}` that holds source files and that no proj
 of `gradle.includedBuilds`; and a `test` source set that reads its classes from somewhere other than a `src/test/java` that holds
 test files. Each list is capped at five names with a count of the rest, the scan skips `build`, `.gradle`, `node_modules`, `target`,
 `vendor`, `third_party`, `.git` and `resources` and stops after 20,000 directories (and says so), and an ordinary project gets none.
+A `Test` task is judged whatever its name: one that the run schedules (a `test` that is a lifecycle task over `unitTest`, as
+Android's is) has its tests counted, and a failing one is a failure; the "no `test` task" note is not made for a directory such a
+task reads. Ids into such a project are refused (ripple resolves them against the project's `test` task).
 Costs: a `test` task left out of the graph is a problem, and so is a run in which no test ran anywhere (every task disabled or every
 test skipped); a retry plugin that reports more tests than Gradle counts makes the record disagree with its totals. The
 build under test is arbitrary code ripple runs, and it can append to the record: nothing here defends against a build that means to

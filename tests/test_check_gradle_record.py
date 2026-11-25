@@ -741,6 +741,35 @@ def test_a_test_source_set_that_reads_another_directory_than_the_one_holding_tes
     assert unrun(result) == ["the root project reads its test classes from src/unit/java, not from src/test/java, which holds test files: they did not run"], result["notes"]
 
 
+def lifecycle_rows(repo, results: list[tuple[str, str]], scheduled: bool = True) -> list[str]:
+    """The Android shape: `test` is a lifecycle task, and a Test task named `unitTest` runs the test source set's classes."""
+    sources(repo, "src/test/java")
+    data = json.loads(graph(repo, name="unitTest", path=":unitTest", scheduled=scheduled))
+    return [init_line(), json.dumps(data), *listener(":unitTest", {"com.acme.shop.UnitTest": results}), task_line(":unitTest")]
+
+
+def test_a_test_task_with_another_name_that_runs_the_source_set_is_counted_and_the_directory_is_not_noted(monkeypatch, tmp_path):
+    result = run_with(monkeypatch, tmp_path, lambda repo: lifecycle_rows(repo, [("a()", "SUCCESS"), ("b()", "SUCCESS")]))
+    assert result["passed"] is True and result["counts"]["passed"] == 2 and result["problems"] == [], result
+    assert unrun(result) == [], "its tests ran: a note that none did is false"
+
+
+def test_a_failing_test_of_a_test_task_with_another_name_is_a_failure(monkeypatch, tmp_path):
+    result = run_with(monkeypatch, tmp_path, lambda repo: lifecycle_rows(repo, [("a()", "SUCCESS"), ("b()", "FAILURE")]), exit_code=1)
+    assert result["passed"] is False and result["failure_count"] == 1 and "UnitTest.b()" in result["failures"][0], result
+    assert result["counts"]["failed"] == 1
+
+
+def test_a_test_task_with_another_name_that_the_run_does_not_schedule_is_still_a_directory_with_no_test_task_behind_it(monkeypatch, tmp_path):
+    def rows(repo):
+        sources(repo, "src/test/java")
+        data = json.loads(graph(repo, name="unitTest", path=":unitTest", scheduled=False))
+        return [init_line(), json.dumps(data), *listener(":test", SHOP), task_line(":test")]
+
+    result = run_with(monkeypatch, tmp_path, rows)
+    assert any("has a test directory (src/test/java) and no `test` task" in n for n in result["notes"]), result["notes"]
+
+
 def test_the_scan_stops_at_its_bound_and_says_so(monkeypatch, tmp_path):
     monkeypatch.setattr(gradle_check, "MAX_DIRS_SCANNED", 3)
 

@@ -785,10 +785,11 @@ def _check_tasks(run: Run, problems: list[str], notes: list[str]) -> list[Result
         for path in asked:
             if manifest.task(path) is None:
                 problems.append(f"{path}: not a test task of this build")
-    if not planned or (whole_build and not any(t.scheduled for t in planned)):
-        problems.append("no `test` task was scheduled: the build has no Java test task here, or the tests were excluded (-x test)")
-    # a Test task the graph holds that the run did not name (the build wired it in) counts like the ones it named
+    # a Test task the graph holds that the run did not name (the build wired it in, or `test` is a lifecycle task over a Test task
+    # of another name, as Android's is) counts like the ones it named
     scheduled = [t for p in manifest.projects for t in p.tests if t.scheduled]
+    if not scheduled:
+        problems.append("no `test` task was scheduled: the build has no Java test task here, or the tests were excluded (-x test)")
     checked: list[Result] = []
     seen: set[str] = set()
     for task in planned + [t for t in scheduled if t.path not in {p.path for p in planned}]:
@@ -908,7 +909,9 @@ def unrun_notes(repo: Path, manifest: Manifest) -> list[str]:
             continue
         task = next((t for t in project.tests if t.name == "test"), None)
         if task is None:
-            notes.append(f"{_named(project.path)} has a test directory ({directory}) and no `test` task, so none of its tests ran")
+            # whatever its name, a scheduled Test task that reads this directory's classes ran its tests (Android: `test` -> `unitTest`)
+            if not any(t.scheduled and directory in _test_roots(repo, project, t) for t in project.tests):
+                    notes.append(f"{_named(project.path)} has a test directory ({directory}) and no `test` task, so none of its tests ran")
         elif language == "java":
             roots = _test_roots(repo, project, task)
             if roots and directory not in roots:
