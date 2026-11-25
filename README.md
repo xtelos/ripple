@@ -1644,9 +1644,10 @@ The user homes are filled by one online build each, and the tests then run `--of
 CI runs all of them in the jobs that install the java extra (`.github/workflows/ci.yml`), with `RIPPLE_REQUIRE_LIVE_GRADLE=1`,
 so those jobs fail if they ever skip again; the other jobs skip them. The install is a cache keyed on the versions and on the
 contents of `ci/warm-gradle.sh` and `ci/warm-gradle/`, saved right after it is filled (the tests write into the homes, so a cache
-saved after them would be large). Measured on a 16-core machine with the install already in place, the three modules take about
-20 minutes in a row (58 tests in 11.6 minutes, 22 in 3.8, 18 in 4.4); every check runs Gradle with `--no-daemon`, and a runner
-with fewer cores will take longer; `ci/warm-gradle.sh` itself takes under 2 minutes with the network on. Not run by anything: TestNG, Kotlin, Spock and the retry plugin (no jars offline, as above).
+saved after them would be large). Measured on a 16-core machine with the install in place, run one module after the other with
+the default JDK 25 and Gradle 8 on JDK 21 (one pytest run each, wall times from their logs): 58 tests in 718 s, 22 in 265 s, 18 in
+269 s, 21 minutes in all. Every check runs Gradle with `--no-daemon`, and a runner with fewer cores will take longer.
+`ci/warm-gradle.sh` into an empty directory took between 32 s and 114 s over three runs, with the network on. Not run by anything: TestNG, Kotlin, Spock and the retry plugin (no jars offline, as above).
 
 Java is read by tree-sitter too, as its own optional extra (`tree-sitter` and `tree-sitter-java`):
 
