@@ -370,7 +370,25 @@ def test_a_test_task_with_no_sources_is_a_note_when_another_project_ran_tests(mo
 
     install(monkeypatch, script)
     result = checker.run_check(repo, tests=[], timeout=60, profile=JAVA)
-    assert result["passed"] is True and ":web:test had no test sources, so no test ran" in text(result), result
+    assert result["passed"] is True and "Gradle found no test classes for :web:test (NO-SOURCE), so no test ran in it" in text(result), result
+
+
+def test_a_no_source_task_still_reports_what_the_build_narrows(monkeypatch, tmp_path):
+    """`test { exclude '**/*' }` makes Gradle say NO-SOURCE although the module has test sources: the note says what Gradle said, and what was excluded."""
+    repo = multi(tmp_path)
+
+    def script(argv, cwd, manifest):
+        data = json.loads(graph(cwd, {":core": "core"}))
+        data["projects"].append(json.loads(graph(cwd, {":web": "web"}, exclude=["**/*"]))["projects"][0])
+        lines(manifest, init_line(), json.dumps(data), *listener(":core:test", {"com.acme.core.CoreTest": [("works()", "SUCCESS")]}), task_line(":core:test"), task_line(":web:test", skip="NO-SOURCE", executed=False))
+        return 0, OK_CONSOLE
+
+    install(monkeypatch, script)
+    result = checker.run_check(repo, tests=[], timeout=60, profile=JAVA)
+    assert result["passed"] is True, result
+    assert "Gradle found no test classes for :web:test (NO-SOURCE), so no test ran in it" in result["notes"]
+    assert ":web:test narrows its tests (excludes **/*): the tests it leaves out did not run" in result["notes"]
+    assert "no test sources" not in text(result)
 
 
 def test_a_run_where_every_test_task_has_no_sources_is_not_a_pass(monkeypatch, tmp_path):
@@ -409,10 +427,42 @@ def test_a_scheduled_test_task_with_no_outcome_record_did_not_run(monkeypatch, t
     assert result["passed"] is False and ":test did not run" in text(result), result
 
 
-def test_a_test_task_the_build_disabled_is_not_a_pass(monkeypatch, tmp_path):
-    rows = lambda repo: [init_line(), graph(repo, enabled=False), *listener(":test", SHOP), task_line(":test")]
+@pytest.mark.parametrize("enabled,why", [(False, "enabled = false"), (True, "an onlyIf condition that is false")])
+def test_a_test_task_the_build_disables_or_skips_is_a_note_naming_the_task_and_the_reason(monkeypatch, tmp_path, enabled, why):
+    """A JMH, docs or samples module with `test { enabled = false }` is ordinary, and `exclude '**/*'` already passed with a note."""
+    repo = multi(tmp_path)
+
+    def script(argv, cwd, manifest):
+        data = json.loads(graph(cwd, {":core": "core"}))
+        data["projects"].append(json.loads(graph(cwd, {":web": "web"}, enabled=enabled))["projects"][0])
+        lines(manifest, init_line(), json.dumps(data), *listener(":core:test", {"com.acme.core.CoreTest": [("works()", "SUCCESS")]}), task_line(":core:test"), task_line(":web:test", skip="SKIPPED", executed=False))
+        return 0, OK_CONSOLE
+
+    install(monkeypatch, script)
+    result = checker.run_check(repo, tests=[], timeout=60, profile=JAVA)
+    assert result["passed"] is True and result["problems"] == [], result
+    assert f":web:test was skipped by the build (Gradle said SKIPPED: {why}), so its tests did not run" in result["notes"]
+
+
+def test_a_build_whose_every_test_task_is_disabled_is_still_not_a_pass(monkeypatch, tmp_path):
+    rows = lambda repo: [init_line(), graph(repo, enabled=False), task_line(":test", skip="SKIPPED", executed=False)]
     result = verdict(monkeypatch, tmp_path, rows)
-    assert result["passed"] is False and ":test is disabled in the build" in text(result), result
+    assert result["passed"] is False and "no tests ran" in text(result) and ":test was skipped by the build" in text(result), result
+
+
+def test_a_disabled_test_task_asked_for_by_name_is_a_problem(monkeypatch, tmp_path):
+    repo = project(tmp_path, "shop")
+
+    def script(argv, cwd, manifest):
+        if "help" in argv:
+            lines(manifest, init_line(), graph(cwd, scheduled=False))
+            return 0, ""
+        lines(manifest, init_line(), graph(cwd, enabled=False), task_line(":test", skip="SKIPPED", executed=False))
+        return 0, OK_CONSOLE
+
+    install(monkeypatch, script)
+    result = checker.run_check(repo, tests=["com.acme.shop.CartTest"], timeout=60, profile=JAVA)
+    assert result["passed"] is False and ":test was skipped by Gradle (SKIPPED)" in text(result) and "asked for" in text(result), result
 
 
 def test_every_test_skipped_is_not_a_pass(monkeypatch, tmp_path):

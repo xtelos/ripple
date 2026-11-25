@@ -268,12 +268,42 @@ def test_a_test_task_the_build_leaves_out_of_the_graph_is_a_problem(tmp_path):
     assert ":web:test was left out of the task graph" in text(result)
 
 
+@pytest.mark.parametrize(
+    "setting,notes",
+    [
+        ("test { enabled = false }", [":web:test was skipped by the build (Gradle said SKIPPED: enabled = false), so its tests did not run"]),
+        ("test { onlyIf { System.getenv('RIPPLE_NEVER_SET_RUN_WEB_TESTS') != null } }", [":web:test was skipped by the build (Gradle said SKIPPED: an onlyIf condition that is false), so its tests did not run"]),
+        (
+            "test { exclude '**/*' }",
+            ["Gradle found no test classes for :web:test (NO-SOURCE), so no test ran in it", ":web:test narrows its tests (excludes **/*): the tests it leaves out did not run"],
+        ),
+    ],
+)
+def test_a_module_whose_tests_the_build_itself_switches_off_is_a_note_whichever_way_it_is_spelled(tmp_path, setting, notes):
+    """`enabled = false`, an `onlyIf`, and `exclude '**/*'` are three spellings of one intent and get one verdict. The module's test fails if it runs."""
+    repo = multi(tmp_path)
+    web = (repo / "web" / "build.gradle").read_text()
+    write(repo / "web" / "build.gradle", web + "\n" + setting + "\n")
+    write(repo / "web/src/test/java/com/acme/web/WebFailTest.java", "package com.acme.web;\nimport org.junit.jupiter.api.*;\nclass WebFailTest { @Test void mustFail() { Assertions.fail(\"never runs\"); } }\n")
+    result = check(repo)
+    assert result["passed"] is True and result["problems"] == [] and result["failures"] == [], result
+    for note in notes:
+        assert note in result["notes"], result["notes"]
+
+
+def test_a_build_whose_only_test_task_is_disabled_is_still_not_a_pass(tmp_path):
+    repo = project(tmp_path, "shop", build=BUILD + "\ntest { enabled = false }\n")
+    result = check(repo)
+    assert result["passed"] is False and "no tests ran" in text(result), result
+    assert ":test was skipped by the build (Gradle said SKIPPED: enabled = false)" in text(result)
+
+
 def test_a_project_with_no_test_sources_is_a_note_and_the_others_still_pass(tmp_path):
     repo = multi(tmp_path)
     shutil.rmtree(repo / "web" / "src" / "test")
     result = check(repo)
     assert result["passed"] is True, result
-    assert ":web:test had no test sources, so no test ran" in text(result)
+    assert "Gradle found no test classes for :web:test (NO-SOURCE), so no test ran in it" in text(result)
 
 
 def test_a_test_task_that_executes_and_finds_no_test_is_a_problem_beside_a_project_that_ran_tests(tmp_path):

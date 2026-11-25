@@ -659,10 +659,12 @@ class Run:
     manifest: Manifest = field(default_factory=Manifest)
 
 
+# UP-TO-DATE and FROM-CACHE cannot come out of ripple's own invocation (every Test task is made out of date and uncacheable by
+# the init script, and --no-build-cache is passed: tests/test_check_gradle_live.py runs a build twice), so they stay problems:
+# they would mean tests did not run in this run, and nothing here may say otherwise.
 _SKIP_TEXT = {
     "UP-TO-DATE": "was UP-TO-DATE: Gradle ran no test in this run",
     "FROM-CACHE": "was restored from the build cache: Gradle ran no test in this run",
-    "NO-SOURCE": "had no test sources, so no test ran",
 }
 
 
@@ -775,17 +777,22 @@ def _check_tasks(run: Run, problems: list[str], notes: list[str]) -> list[Result
                 problems.append(f"{task.path} did not run (Gradle stopped before it, or the build excludes it)")
             continue
         if event.skip is not None:
-            text = _SKIP_TEXT.get(event.skip, f"was skipped by Gradle ({event.skip}): it is disabled, or an onlyIf condition is false")
-            if event.skip == "NO-SOURCE" and task.path not in asked:
-                notes.append(f"{task.path} {text}")
+            # what the build itself deselects is a note, as `exclude` and `excludeTags` are: unless the task was asked for by name
+            by_build = event.skip in ("NO-SOURCE", "SKIPPED")
+            if by_build and task.path not in asked:
+                if event.skip == "NO-SOURCE":
+                    notes.append(f"Gradle found no test classes for {task.path} (NO-SOURCE), so no test ran in it")
+                else:
+                    why = "enabled = false" if not task.enabled else "an onlyIf condition that is false"
+                    notes.append(f"{task.path} was skipped by the build (Gradle said {event.skip}: {why}), so its tests did not run")
+                if task.narrowing:
+                    notes.append(f"{task.path} narrows its tests ({'; '.join(task.narrowing)}): the tests it leaves out did not run")
             else:
-                problems.append(f"{task.path} {text}")
+                problems.append(f"{task.path} {_SKIP_TEXT.get(event.skip, f'was skipped by Gradle ({event.skip}): it did not run, and it was asked for' if by_build else f'was skipped by Gradle ({event.skip}): Gradle ran no test in it in this run')}")
             continue
         if not event.executed:
             problems.append(f"{task.path} was not executed by Gradle in this run")
             continue
-        if not task.enabled:
-            problems.append(f"{task.path} is disabled in the build")
         if task.path in asked and set(task.command_line) != set(asked[task.path]):
             problems.append(f"{task.path}: Gradle applied the filter {sorted(task.command_line)}, not the {sorted(asked[task.path])} asked for")
         checked.extend(_check_task(task, run, problems, notes))

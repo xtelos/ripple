@@ -90,7 +90,7 @@ def test_a_test_task_with_no_source_is_a_note_beside_a_project_that_ran_tests(tm
     assert events[":web:test"].skip == "NO-SOURCE"
     result = verdict(monkeypatch, tmp_path, "no_source")
     assert result["passed"] is True, result
-    assert ":web:test had no test sources, so no test ran" in text(result)
+    assert "Gradle found no test classes for :web:test (NO-SOURCE), so no test ran in it" in text(result)
 
 
 def test_buildsrc_tests_that_ran_are_not_in_the_record_and_do_not_change_the_verdict(tmp_path, monkeypatch):

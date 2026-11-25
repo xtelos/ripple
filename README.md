@@ -1418,8 +1418,9 @@ takes, so they do not depend on the build tool.
 
 **A pass is the one claim made**, and needs all of these: Gradle exited 0 in time; the record is whole (no cut-off last line, under
 the size cap) and names the root build's task graph; every `test` task of the build was EXECUTED in this run (a task that was
-UP-TO-DATE, FROM-CACHE, SKIPPED, never reached or left out of the task graph by a `-x`, a script or an init script is a problem; one
-with no sources, NO-SOURCE, is a note); every executed task has its closing record and the tests recorded add up to the totals Gradle
+UP-TO-DATE, FROM-CACHE, never reached or left out of the task graph by a `-x`, a script or an init script is a problem; one the build
+skips itself, `enabled = false` or an `onlyIf`, or that has no classes, NO-SOURCE, is a note, unless it was asked for by name; UP-TO-DATE and
+FROM-CACHE cannot come out of ripple's own invocation); every executed task has its closing record and the tests recorded add up to the totals Gradle
 gave for it; no suite ended SKIPPED without an assumption; at least one test ran and none failed; and what was asked for ran
 (a class by a test of it, a method by a test whose name Gradle gives as that method, `addsItems()` or `discounts(int)[1]`).
 Anything else is not a pass: a failing test is a failure, and what ripple cannot prove is listed under `problems` (unverified).
@@ -1434,12 +1435,13 @@ in `@BeforeAll` skips every test of the class with 0 and 1 ms, both in suites Gr
 the cleanup and still ends the suite SKIPPED, so it is refused too.
 
 **Not refusals, notes:** tests the build's own `test` task deselects (`excludeTags`, `exclude`, a filter: the note says what it
-narrows), a `test` task with no sources, `ignoreFailures` (the failure is real and listed), other `Test` tasks (`integrationTest`,
+narrows), a `test` task the build disables (`enabled = false`), skips by `onlyIf` or leaves with no classes (the note says what
+Gradle said, and still names what the task narrows), `ignoreFailures` (the failure is real and listed), other `Test` tasks (`integrationTest`,
 which `test` does not run, as `mvn test` does not run failsafe), and init scripts in `$GRADLE_USER_HOME/init.d` or
 `GRADLE_OPTS`/`JAVA_TOOL_OPTIONS` (named, not read). **Not the repo's tests:** the init script does nothing in a build whose
 `gradle.parent` is set, so `buildSrc` and `includeBuild` builds (a convention-plugin build) neither add to nor change the verdict.
-Costs: a `test` task the build skips (`onlyIf`, `enabled = false`) or leaves out of the graph is a problem, and so is a run in which
-every test was skipped; a retry plugin that reports more tests than Gradle counts makes the record disagree with its totals. The
+Costs: a `test` task left out of the graph is a problem, and so is a run in which no test ran anywhere (every task disabled or every
+test skipped); a retry plugin that reports more tests than Gradle counts makes the record disagree with its totals. The
 build under test is arbitrary code ripple runs, and it can append to the record: nothing here defends against a build that means to
 forge a pass (the first record of a task wins, which only guards against a build that is merely wrong). Supported Gradle: 8.10 and
 newer, measured on 8.10.2 and 9.9.1 with JDK 21 (the exit shapes, the assumption shapes and a real suite give the same verdicts on
