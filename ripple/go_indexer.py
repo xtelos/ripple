@@ -80,7 +80,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import go_tests
-from .go_modules import MISSING, OWN, PUBLISHED, REPLACE, WORK, GoMod, Modules, is_ignored_dir
+from .go_modules import MISSING, OUTSIDE, OWN, PUBLISHED, REPLACE, WORK, GoMod, Modules, is_ignored_dir
 from .model import IMPLEMENTS, Edge, Graph, Symbol, Unresolved
 from .profile import GO, GO_BUILTIN_FUNCTIONS, GO_BUILTIN_TYPES, GO_BUILTIN_VALUES, LanguageProfile
 
@@ -1257,22 +1257,23 @@ class Resolver:
         self.move_alias_methods()
         self.float_methods()
         self.method_names: set[str] = {m for p in program.packages.values() for t in p.types.values() for m in t.methods}
-        self.result_cache: dict[int, list] = {}
+        self.result_cache: dict[tuple, list] = {}
         self.typing: set[tuple[int, str]] = set()
         # interface implementers (see Resolver.implements): the `implements` edges, kept apart from the call edges
         self.implement_edges: list[Edge] = []
         self.implement_seen: set[Edge] = set()
         self.implement_sites: list[tuple[str, int, int, str, str, tuple[str, ...]]] = []
-        self.shapes: dict[int, dict | None] = {}  # interface TypeInfo -> its method set, when ripple knows it completely
+        self.shapes: dict[tuple, dict | None] = {}  # (interface TypeInfo, naming) -> its method set, when ripple knows it completely
         self.provided_cache: dict[tuple, tuple] = {}
         self.satisfiers: dict[tuple, list[TypeInfo]] = {}
-        self.concrete: list[TypeInfo] | None = None
-        self.links: dict[tuple, set[Package] | bool] = {}
+        self.concrete: dict[tuple | None, list[TypeInfo]] = {}  # by naming
+        self.links: dict[tuple, set[Package] | bool | None] = {}
         self.units: list[set[Package]] | None = None
         self.expressions: dict[str, object] = {}
-        self.unit_imports: dict[tuple, Package | None] = {}
+        self.unit_imports: dict[tuple, tuple[str, Package | None]] = {}
         self.var_types: dict[tuple[int, str], object] = {}
         self.caller = ""
+        self.some_unreadable = any(p.unreadable for p in program.packages.values())
 
     def move_alias_methods(self) -> None:
         """A method declared on an alias (`type A = B`, `func (A) M()`) is a method of B, which the compiler names A.M:
@@ -1303,8 +1304,20 @@ class Resolver:
 
     def always(self, file: FileInfo) -> bool:
         """Whether a file is built in every build that has the file being read: one with no build constraint is, and so
-        is a _test.go file for a call in a _test.go file (a test build has them all)."""
-        return not file.constrained or (file.tests_only and self.file is not None and self.file.tests_only and self.file.package is file.package)
+        is a _test.go file for a call in a _test.go file of the same directory (that directory's test binary has them all,
+        and its external test package, a Package of its own, is built into it: the rule of in_every_build and every_build)."""
+        return not file.constrained or (
+            file.tests_only and self.file is not None and self.file.tests_only and self.file.package.dir == file.package.dir
+        )
+
+    def naming(self) -> tuple | None:
+        """What a name's meaning (`named`, through `unsure`) reads of the file being resolved: whether it is built exactly
+        with the other _test.go files and its directory, which is all `always` looks at. A memo of anything derived from a
+        type's name keys on this, or the caller that asks first decides the answer for every other; nothing is read of the
+        file when no package has a file ripple could not read (`unsure` is then false for every name)."""
+        if self.file is None or not self.some_unreadable:
+            return None
+        return (self.file.tests_only, self.file.package.dir)
 
     def unsure(self, package: Package, name: str) -> bool:
         """Whether a package-level name may be declared another way in a file ripple could not read. A file with a
@@ -1488,7 +1501,10 @@ class Resolver:
     def results_of(self, decls: list[FuncDecl]) -> list:
         """The declared result types of a function or method, when every variant agrees on them (and reads its imports alike)."""
         first = decls[0]
-        key = id(first)
+        # What is stored reads every declaration of the list (the variants must agree) and, through the result type, what a
+        # name means to the caller. The walk hands each caller the declarations its own build has, so the list differs by
+        # caller and is part of the key, not only its first element.
+        key = (tuple(id(d) for d in decls), self.naming())
         if key not in self.result_cache:
             result = field_of(first.node, "result")
             same = all(
@@ -1622,15 +1638,18 @@ class Resolver:
         return self.walk([base[1]], name, set())
 
     def in_another_test_build(self, decl: FuncDecl) -> bool:
-        """Whether the declaration is in a _test.go file of another directory than a call in a _test.go file: a package's
-        test files are compiled into its own test binary (and its external test package's) and into no other, so the
-        build that has the call never has the declaration, whatever tags either file carries."""
-        return (
-            self.file is not None
-            and self.file.rel.endswith("_test.go")
-            and decl.file.rel.endswith("_test.go")
-            and decl.file.package.dir != self.file.package.dir
-        )
+        """Whether no build the file being read is in has the declaration: it is in a _test.go file of another directory. A
+        package's test files are compiled into its own test binary (and its external test package's) and into no other, so
+        a call in a _test.go file never has them, whatever tags either file carries. A library file does, in one case: a
+        test binary links the packages the tests import, and builds every one of them against the package under test WITH
+        its test files, so a library file that a directory's tests may link (test_binary_may_link) has them there. Anything
+        that cannot be told is kept."""
+        if self.file is None or not decl.file.rel.endswith("_test.go") or decl.file.package.dir == self.file.package.dir:
+            return False
+        if self.file.rel.endswith("_test.go"):
+            return True
+        linked = self.test_binary_may_link(decl.file.package.dir)
+        return linked is not None and self.file.package not in linked
 
     def in_every_build(self, decl: FuncDecl) -> bool:
         """Whether the declaration is there in every build that has the call being resolved: a declaration in no
@@ -1773,38 +1792,54 @@ class Resolver:
             return True
         return file.tests_only and self.file is not None and self.file.tests_only and file.package.dir == self.file.package.dir
 
-    def imported_by(self, package: Package, with_tests: bool, main: GoMod) -> set[Package]:
+    def imported_by(self, package: Package, with_tests: bool, main: GoMod, every_file: bool = False) -> set[Package] | None:
         """The repo packages the files of a package that EVERY build of it has import, each import path read as a build whose
         main module is `main` reads it (the module that governs: its replaces decide, never the replaces of the module the
         importing file is in; see go_modules.py). For the package a test binary is built for, its plain _test.go files too:
         they are in that binary and in no other build. A file whose presence depends on the build (a build constraint, a
         platform file name, a file that imports "C", which CGO_ENABLED=0 leaves out) adds its imports to the builds that
         have it and not to the others, so none of them is counted: a package only such a file imports is not certain to be
-        linked."""
+        linked. With `every_file`, the other reading: every file a build may have counts (an upper bound of what is linked,
+        where the default is a lower one), a _test.go file only for the package a test binary is built for. That reading is
+        an upper bound only if what ripple cannot place is never taken for "not linked": an import `resolve_in` answers
+        MISSING for (vendored modules under flags ripple cannot see, a replace that may or may not be the one the build
+        selects, a directory with no package ripple read) may name any package of the repo, so it makes the answer None.
+        OUTSIDE (no module of the repo holds the path) and PUBLISHED (a module of the repo, built from a published version)
+        name no directory of the repo, and those imports add nothing."""
         found: set[Package] = set()
         modules = self.program.modules
         for info in package.files:
-            if "C" in info.imports or (info.constrained and not (with_tests and info.tests_only)):
+            if every_file:
+                if info.rel.endswith("_test.go") and not with_tests:
+                    continue
+            elif "C" in info.imports or (info.constrained and not (with_tests and info.tests_only)):
                 continue
             imports = (*info.imports.values(), *info.dots, *info.blanks, *(i for each in info.guesses.values() for i in each))
             for path in {i.path for i in imports if i.kind != "cgo"}:
                 key = (main.dir, path)
                 if key not in self.unit_imports:
                     how, target = modules.resolve_in(main, path, self.program.importable)
-                    self.unit_imports[key] = self.program.packages[(target, False)] if how in (OWN, REPLACE, WORK) else None
-                if self.unit_imports[key] is not None:
-                    found.add(self.unit_imports[key])
+                    self.unit_imports[key] = (how, self.program.packages[(target, False)] if how in (OWN, REPLACE, WORK) else None)
+                how, imported = self.unit_imports[key]
+                if imported is not None:
+                    found.add(imported)
+                elif every_file and how not in (OUTSIDE, PUBLISHED):
+                    return None
         return found
 
-    def closure(self, roots: list[Package], tests: bool, main: GoMod | None) -> set[Package]:
+    def closure(self, roots: list[Package], tests: bool, main: GoMod | None, every_file: bool = False) -> set[Package] | None:
         """The packages a program or test binary built from these roots links: the roots (with their plain _test.go files
         when it is a test binary) and what they import, transitively, every import path read as the build's main module
         (the module of the roots) reads it. A package main is nobody's import, so no program or test binary of another
-        package links one."""
+        package links one. With `every_file`, the packages SOME build of the roots may link (see imported_by), or None when
+        an import of the closure cannot be placed."""
         seen, stack = set(roots), [(r, tests) for r in roots]
         while stack and main is not None:
             package, is_root = stack.pop()
-            for imported in self.imported_by(package, is_root, main):
+            imports = self.imported_by(package, is_root, main, every_file)
+            if imports is None:
+                return None
+            for imported in imports:
                 if imported not in seen:
                     seen.add(imported)
                     stack.append((imported, False))
@@ -1821,6 +1856,21 @@ class Resolver:
         key = ("test", directory)
         if key not in self.links:
             self.links[key] = self.closure([p for p in self.program.packages.values() if p.dir == directory], True, self.main_module(directory))
+        return self.links[key]
+
+    def test_binary_may_link(self, directory: str) -> set[Package] | None:
+        """The packages that SOME test binary of a directory may link, so that one outside this set is in none: the closure
+        over every file a build may have (a constrained test file, a platform file, a cgo file), where test_binary counts
+        only the files every build has. None when that cannot be told: the directory has no module, or a package of the
+        closure has a file ripple could not read, which may import anything."""
+        key = ("test may link", directory)
+        if key not in self.links:
+            roots = [p for p in self.program.packages.values() if p.dir == directory]
+            main = self.main_module(directory)
+            found = self.closure(roots, True, main, every_file=True) if main is not None and roots else None
+            if found is not None and (self.program.unread_text or any(p.unreadable for p in found)):
+                found = None
+            self.links[key] = found
         return self.links[key]
 
     def build_units(self) -> list[set[Package]]:
@@ -2069,11 +2119,12 @@ class Resolver:
         key = id(iface)
         if key in seen:
             return None
-        if not seen and key in self.shapes:
-            return self.shapes[key]
+        kept = (key, self.naming())  # the elements an interface embeds are named, and what a name means depends on who reads it
+        if not seen and kept in self.shapes:
+            return self.shapes[kept]
         found = self._interface_shape(iface, seen | {key})
         if not seen:
-            self.shapes[key] = found
+            self.shapes[kept] = found
         return found
 
     def _interface_shape(self, iface: TypeInfo, seen: frozenset):
@@ -2161,7 +2212,8 @@ class Resolver:
 
     def concrete_types(self) -> list[TypeInfo]:
         """The types that can have a method set of their own: declared once, read whole, not generic, not an interface."""
-        if self.concrete is None:
+        key = self.naming()
+        if key not in self.concrete:
             found = []
             for package in sorted(self.program.packages.values(), key=lambda p: p.id):
                 for name in sorted(package.types):
@@ -2172,8 +2224,8 @@ class Resolver:
                     if isinstance(inner, TypeInfo) and inner.kind == "interface":
                         continue
                     found.append(ty)
-            self.concrete = found
-        return self.concrete
+            self.concrete[key] = found
+        return self.concrete[key]
 
     def satisfying(self, iface: TypeInfo) -> list[TypeInfo]:
         """The repo types whose method sets provably have every method of the interface (see the comment above)."""

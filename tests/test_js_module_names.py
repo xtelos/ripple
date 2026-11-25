@@ -27,8 +27,9 @@ Node 22 or later is installed. A line that ends `// CALL` is the call the case a
   5. The scope of each kind of declaration (`var`, `let`, `const`, a function, `class`, `enum`, `const enum`, `namespace`, a parameter, a catch
      binding, and an erased declaration beside any of them), in each position, every row run in Node, and the grammar's statement-level kinds
      all classified (a `namespace` is held in an expression statement, `export`, `declare` and a label hold the rest).
-  6. `process` re-exported by a repo module is still answered outside the repo, which is wrong: four rows, each a strict xfail marked
-     KNOWN-WRONG (the rule needs ripple/resolver.py).
+  6. `process` re-exported by a repo module and imported from it: Node runs the entry module's `f` (four rows). The resolver follows the
+     re-export to a name imported from outside the repo that is Node's `process`, and a call through its `mainModule` is unresolved, with a
+     reason that says so (tests/test_js_names_known.py has the shapes around it).
 
 The Node rows run when Node can run a TypeScript file with no flag and with `--experimental-transform-types`, which the test finds by trying
 both on a small file (type stripping is on by default from Node 23.6 and, by its release notes, 22.18, which is not run here: only Node 12,
@@ -141,11 +142,10 @@ esm("ns.cwd", "import * as ns from 'node:process';\nns.cwd(); // CALL\n", QUIET,
 esm("process import hidden by a parameter", "import process from 'node:process';\nfunction g(process) { process.mainModule.exports.f(); } // CALL\ng(" + LOCAL + ".process);\n", LOCAL_HIT, ("local",))
 esm("globalThis.process in an ES module", "globalThis.process.mainModule.exports.f(); // CALL\n", HIT, UNRES_OWN)
 esm("globalThis.module in an ES module throws", "globalThis.module.exports.f(); // CALL\n", TYPE_ERROR, UNRES_GLOBAL)
-# `process` re-exported by a repo module, and imported from it: Node runs the entry module's `f`; the answer is external (KNOWN-WRONG). The
-# front end of one file sees `p` come from './r.mjs', and the resolver follows the re-export to a name imported from outside the repo, where
-# nothing says that name is Node's `process`; the rule needs the resolver (ripple/resolver.py: a package target `process` or `node:process`
-# whose member is `mainModule`), which this change does not touch.
-RE_EXPORT_WHY = "a repo module re-exports Node's process, and the resolver ends the chain at a name imported from outside the repo"
+# `process` re-exported by a repo module, and imported from it: Node runs the entry module's `f`. The resolver follows the re-export to Node's `process`
+# and the call goes through its `mainModule`, so it is unresolved (it was counted outside the repo, which a call that runs the entry module's
+# code is not).
+PROCESS_REEXPORT = "a re-export in"
 for label, r_source, b_source in (
     ("export { default } from 'process'", "export { default } from 'process';\n", "import p from './r.mjs';\np.mainModule.exports.f(); // CALL\n"),
     ("export * as p from 'node:process'", "export * as p from 'node:process';\n", "import { p } from './r.mjs';\np.mainModule.exports.f(); // CALL\n"),
@@ -156,8 +156,7 @@ for label, r_source, b_source in (
         "re-exported process: " + label,
         {"main.cjs": SET + "import('./b.mjs');\n", "r.mjs": r_source, "b.mjs": b_source},
         HIT,
-        UNRES_OWN,
-        known=RE_EXPORT_WHY,
+        ("unresolved", PROCESS_REEXPORT),
     )
 # ---- 2. a declaration named like a module name
 ENUM_THROWS = "THROW TypeError RESULT NOHIT"
@@ -480,9 +479,7 @@ def judge_scope_cell(graph, cid, source, node_out):
     if graph.external_calls:
         return f"counted as outside the repo ({graph.external_reasons})"
     if node_out.startswith("THROW SyntaxError"):  # Node rejects the pair (a redeclaration): no call runs, so only an edge or an outside call would be a claim
-        # KNOWN-WRONG: ripple does not look for a redeclaration, so a class of the name that holds the function (`class exports { static f() }`)
-        # keeps its edge beside a `var`, a function or another class of the name, for every name and not only these (main does the same)
-        if edges and not ("class" in kind.split("+") and all(e.callee.endswith(".f") for e in edges)):
+        if edges:
             return f"an edge {[e.callee for e in edges]} for a pair Node rejects"
         return ""
     if node_out == "RESULT main:f":
@@ -638,7 +635,8 @@ DECLARATION_SNIPPETS = [
     ("declare global { interface Window { x: 1 } }", "statement_block", None, True),
     ("declare const x: 1;", "lexical_declaration", None, True),
     ("declare function f(): void;", "function_signature", "f", True),
-    ("export import a = N.M;", "import_alias", None, False),
+    ("export import a = N.M;", "import_alias", "a", False),
+    ("import a = N.M;", "import_alias", "a", False),
     ("declare class C {}", "class_declaration", "C", True),
     ("declare enum E { A }", "enum_declaration", "E", True),
     ("export declare const enum E { A }", "enum_declaration", "E", True),
@@ -793,7 +791,7 @@ EXPECTED_SCOPES = {
     "interface_declaration": "erased",
     "type_alias_declaration": "erased",
     "import_statement": "import",
-    "import_alias": "none",
+    "import_alias": "alias",
 }
 
 
@@ -954,10 +952,9 @@ def test_the_third_review_cases_run_in_node_as_stated_and_ripple_answers_them(tm
         assert "top of the file" in name or not any(OWN in u.reason or GLOBAL in u.reason for u in graph.unresolved if u.line == line), graph.unresolved
 
 
-# ---- `import a = N.M` binds a name that ripple does not read, and is answered as outside the repo (KNOWN-WRONG)
+# ---- `import a = N.M` binds the name, so a call through it is never outside the repo (tests/test_js_names_known.py has the shapes around it)
 
 
-@pytest.mark.xfail(strict=True, reason="KNOWN-WRONG: `import a = N.M` binds nothing ripple reads, so a call through it is a call of a name that is not declared: counted outside the repo")
 @pytest.mark.parametrize(
     "source",
     [
