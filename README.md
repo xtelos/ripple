@@ -1445,8 +1445,9 @@ the build, so a pass says nothing about the rest, and the note says so). Read fr
 test: a `src/test/{java,kotlin,groovy}` that holds source files and that no project of the graph owns (a project missing from
 `settings.gradle`, a sample, `buildSrc`, which is a build of its own); a project with such a directory and no `test` task; the names
 of `gradle.includedBuilds`; and a `test` source set that reads its classes from somewhere other than a `src/test/java` that holds
-test files. Each list is capped at five names with a count of the rest, the scan skips `build`, `.gradle`, `node_modules`, `target`,
-`vendor`, `third_party`, `.git` and `resources` and stops after 20,000 directories (and says so), and an ordinary project gets none.
+test files. Each list is capped at five names with a count of the rest, the scan skips `build`, `.gradle`, `.idea`, `node_modules`, `target`,
+`vendor`, `third_party`, `.git`, `resources`, and `out` and `dist` unless they hold a `build.gradle` or `build.gradle.kts` (a module can be
+called that), and stops after 20,000 directories (and says so), and an ordinary project gets none.
 A `Test` task is judged whatever its name: one that the run schedules (a `test` that is a lifecycle task over `unitTest`, as
 Android's is) has its tests counted, and a failing one is a failure; the "no `test` task" note is not made for a directory such a
 task reads. Ids into such a project are refused (ripple resolves them against the project's `test` task).

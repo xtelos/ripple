@@ -683,6 +683,22 @@ def test_the_scan_does_not_walk_into_build_output_caches_or_vendored_trees(monke
     assert result["passed"] is True and unrun(result) == [], result
 
 
+def test_a_module_really_named_out_or_dist_is_noted_and_an_output_directory_of_that_name_is_not(monkeypatch, tmp_path):
+    """`out` and `dist` are usually output, so they are pruned, unless they hold a build file: then they are a module, registered in settings.gradle or not."""
+
+    def rows(repo):
+        for name in ("out", "dist"):
+            sources(repo, f"{name}/src/test/java")
+            (repo / name / "build.gradle").write_text("")
+        sources(repo, "other/out/src/test/java", "other/dist/src/test/java", ".idea/x/src/test/java")  # no build file: output
+        return record(repo)
+
+    result = run_with(monkeypatch, tmp_path, rows)
+    assert result["passed"] is True, result
+    [note] = unrun(result)
+    assert "out/src/test/java" in note and "dist/src/test/java" in note and "other/" not in note and ".idea" not in note, note
+
+
 def test_a_test_directory_with_no_source_file_in_it_is_not_noted(monkeypatch, tmp_path):
     def rows(repo):
         (repo / "empty" / "src" / "test" / "java").mkdir(parents=True)

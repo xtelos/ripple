@@ -849,6 +849,14 @@ SOURCE_SUFFIXES = (".java", ".kt", ".groovy", ".scala")
 SKIPPED_TREES = {".git", ".gradle", ".idea", "node_modules", "build", "target", "out", "dist", "vendor", "third_party", "resources"}
 
 
+# `out` and `dist` are usually output, but a module can be called that: pruned unless a build file is in them
+OUTPUT_OR_MODULE = {"out", "dist"}
+
+
+def _has_build_file(directory: Path) -> bool:
+    return (directory / "build.gradle").exists() or (directory / "build.gradle.kts").exists()
+
+
 def _holds_sources(directory: Path) -> bool:
     for seen, (_root, dirs, files) in enumerate(os.walk(directory)):
         if any(f.endswith(SOURCE_SUFFIXES) for f in files):
@@ -873,7 +881,7 @@ def _test_directories(repo: Path) -> tuple[list[str], bool]:
                 found.append("/".join(parts))
             dirs[:] = []
             continue
-        dirs[:] = sorted(d for d in dirs if d not in SKIPPED_TREES)
+        dirs[:] = sorted(d for d in dirs if d not in SKIPPED_TREES or (d in OUTPUT_OR_MODULE and _has_build_file(Path(current) / d)))
     return found, False
 
 
