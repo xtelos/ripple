@@ -691,7 +691,19 @@ type, a result that the variants read differently, a method that only some build
 name, a `_test.go` file) while another is promoted, or a method declared on an alias that is itself declared twice, is
 unresolved. A `_test.go` method counts only for a call in a `_test.go` file of the same directory (its package and its
 external `_test` package); a call in another directory, in its tests or in a library file, whose build has the package without
-its test files, never sees it and runs the promoted method. In a directory with a file ripple could not read, a name declared in one of its `_test.go` files (an alias,
+its test files, never sees it and runs the promoted method, except for a library file that a test binary of that directory may
+link (a test binary builds every package its tests import together with the directory's test files; when ripple cannot place
+an import of the tests, any package may be linked, and the declarations are kept). A function a call names by its package (`d.F()`, a dot import's
+`F()`, `d.F` read as a value, `d.G[int, string](x)`) follows the same rule: a declaration in a `_test.go` file of another
+directory is not one of the callee's, so `d.F()` in `e` draws an edge to the library `F` alone, not to a windows-only test
+file's `F` beside it. A name that only another directory's test files declare (a function, a variable, a constant or a type,
+and so a method reached through its type) names nothing for that caller: the call is left unresolved with that reason, because Go
+does not compile it. That holds on every way of writing the call: `d.Only(x)`, a dot import's `Only(x)`, a generic call
+(`Only[int](x)`, `d.Only[int](x)`), a conversion to the type (`d.T(x)`, `(*d.T)(x)`, `Box[int](x)`). It is not said when a file
+ripple could not read may declare the name, or when a dot import of a package outside the repo may bind it: the call is then
+unresolved for another reason, except that a generic call or conversion a library file writes through the name of a package with
+an unreadable file is, as before, not recorded at all. A name declared as one kind in a library file and as another in a test file is still read as one name with
+two meanings, so a call through it stays unresolved. In a directory with a file ripple could not read, a name declared in one of its `_test.go` files (an alias,
 a helper that `export_test.go` exports) is as sure for the external test package as for the package's own tests, and not
 sure for a library file or another directory's tests. Every memo is keyed on what the calling file changes about its answer
 (the declarations its build has, how a name reads in it), so a call's answer does not depend on which call was resolved

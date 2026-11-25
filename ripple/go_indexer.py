@@ -125,6 +125,9 @@ def load_parser():
 DAMAGED = "tree-sitter could not read all of this function (a Go syntax it does not know), so what its names mean is not followed"
 UNDECLARED = "the name is not declared in the files of its package that ripple read (a build constraint, cgo, or generated code can hide it)"
 OTHER_PACKAGE_NAME = "the name is not declared in the imported package's files that ripple read"
+ONLY_IN_TESTS = (
+    "the name is declared only in _test.go files of the imported package, and no build that has this call compiles them (Go reports it undefined)"
+)
 CONFLICT = "the name is declared more than once with different meanings (build constraints), and which one wins is not known"
 BUILD_VARIANT_TYPE = "the type is declared more than once with different meanings (build constraints), and which one wins is not known"
 FLOATING_METHOD = (
@@ -1464,7 +1467,7 @@ class Resolver:
             if name in UNIVERSE_TYPES:
                 return ("builtin", name)
             for dot in info.dots:
-                if dot.package is not None and name in dot.package.types and dot.package.types[name].declarations:
+                if dot.package is not None and name in dot.package.types and dot.package.types[name].declarations and not self.hidden_name(dot.package, name, info):
                     return self.named(dot.package.types[name])
             return None
         if kind == "qualified_type":
@@ -1473,8 +1476,8 @@ class Resolver:
             if entry is None:
                 return None
             if entry.kind == "repo":
-                declared = entry.package.types.get(name)
-                return self.named(declared) if declared is not None and declared.declarations else None
+                declared = entry.package.types.get(name)  # a type only another directory's tests declare is not in the build of `info`
+                return self.named(declared) if declared is not None and declared.declarations and not self.hidden_name(entry.package, name, info) else None
             if entry.kind in ("outside", "published", "cgo"):
                 return ("ext", f"{entry.path}.{name}")
         return None
@@ -1637,19 +1640,39 @@ class Resolver:
             return ("unknown", None)
         return self.walk([base[1]], name, set())
 
-    def in_another_test_build(self, decl: FuncDecl) -> bool:
-        """Whether no build the file being read is in has the declaration: it is in a _test.go file of another directory. A
-        package's test files are compiled into its own test binary (and its external test package's) and into no other, so
-        a call in a _test.go file never has them, whatever tags either file carries. A library file does, in one case: a
-        test binary links the packages the tests import, and builds every one of them against the package under test WITH
-        its test files, so a library file that a directory's tests may link (test_binary_may_link) has them there. Anything
-        that cannot be told is kept."""
-        if self.file is None or not decl.file.rel.endswith("_test.go") or decl.file.package.dir == self.file.package.dir:
+    def hidden_file(self, file: FileInfo, seen_from: FileInfo | None = None) -> bool:
+        """Whether no build the file being read (`seen_from`, the file of the call by default) is in has a declaration made in
+        `file`: it is a _test.go file of another directory. A package's test files are compiled into its own test binary (and
+        its external test package's) and into no other, so a call in a _test.go file never has them, whatever tags either
+        file carries. A library file does, in one case: a test binary links the packages the tests import, and builds every
+        one of them against the package under test WITH its test files, so a library file that a directory's tests may link
+        (test_binary_may_link) has them there. Anything that cannot be told is kept."""
+        seen_from = seen_from or self.file
+        if seen_from is None or not file.rel.endswith("_test.go") or file.package.dir == seen_from.package.dir:
             return False
-        if self.file.rel.endswith("_test.go"):
+        if seen_from.rel.endswith("_test.go"):
             return True
-        linked = self.test_binary_may_link(decl.file.package.dir)
-        return linked is not None and self.file.package not in linked
+        linked = self.test_binary_may_link(file.package.dir)
+        return linked is not None and seen_from.package not in linked
+
+    def in_another_test_build(self, decl: FuncDecl) -> bool:
+        """Whether the file being read has no build with the method or function declared: see hidden_file."""
+        return self.hidden_file(decl.file)
+
+    def visible(self, decls: list[FuncDecl]) -> list[FuncDecl]:
+        """The declarations of a package-level function of another package that some build of the file being read has: the
+        rule of in_another_test_build, which the walk of a method applies, for a function a call names by its package
+        (`d.F()`, a dot import's `F()`, `d.F` as a value). The list is what the caller reads, so a memo of anything derived
+        from it keys on the list (results_of does). Empty only when every declaration is hidden: see hidden_name."""
+        return [d for d in decls if not self.in_another_test_build(d)]
+
+    def hidden_name(self, package: Package, name: str, seen_from: FileInfo | None = None) -> bool:
+        """Whether a package-level name of another package is declared in _test.go files of another directory alone, so that
+        no build of the file being read has it and the file names nothing by it (Go reports it undefined): every file that
+        declares the name is hidden (hidden_file), whatever the name is (a function, a variable, a constant, a type). A name
+        that a file the caller does have declares too is not hidden, and one of a package the caller is in never is."""
+        files = package.declared_in.get(name)
+        return bool(files) and all(self.hidden_file(f, seen_from) for f in files)
 
     def in_every_build(self, decl: FuncDecl) -> bool:
         """Whether the declaration is there in every build that has the call being resolved: a declaration in no
@@ -2560,12 +2583,12 @@ class Resolver:
         if entry is not None:
             if entry.kind == "repo":
                 package = entry.package
-                if self.unsure(package, member):
+                if self.unsure(package, member) or self.hidden_name(package, member):
                     return None
                 if member in package.vars and len(package.names[member]) == 1:
                     return self.var_type(package, member)
                 if member in package.funcs and len(package.names[member]) == 1:
-                    return ("func", self.results_of(package.funcs[member]))
+                    return ("func", self.results_of(self.visible(package.funcs[member])))
                 return None
             if entry.kind in ("outside", "published", "cgo"):
                 return ("ext", f"{entry.path}.{member}")
@@ -2599,7 +2622,8 @@ class Resolver:
 
     def name_value(self, name: str, env: Env):
         """What a bare name is when no local binds it: ("func", decls) ("type", ty) ("var", VarInfo) ("const",)
-        ("universe", name) ("dot", imports) ("conflict",) ("hidden", package whose unreadable file may declare it) ("missing",)."""
+        ("universe", name) ("dot", imports) ("conflict",) ("hidden", package whose unreadable file may declare it)
+        ("tests_only",) (a dot-imported package declares it in _test.go files of another directory alone) ("missing",)."""
         package = env.info.package
         kinds = package.names.get(name, set())
         if len(kinds) > 1:
@@ -2616,7 +2640,14 @@ class Resolver:
             return ("const",)
         if env.info.package.unreadable and (name in UNIVERSE_FUNCTIONS | UNIVERSE_TYPES | UNIVERSE_INTERFACES | UNIVERSE_VALUES):
             return ("hidden", package)  # a declaration ripple could not read may shadow it
+        only_in_tests = False
         for dot in env.info.dots:
+            if dot.package is not None and name in dot.package.names and self.hidden_name(dot.package, name):
+                # a name that only another directory's tests declare is not bound by the dot import in any build of this file
+                if self.unsure(dot.package, name):
+                    return ("hidden", dot.package)  # a file ripple could not read may declare it
+                only_in_tests = True
+                continue
             if dot.package is not None and name in dot.package.names:
                 package = dot.package
                 if len(package.names[name]) > 1:
@@ -2624,7 +2655,7 @@ class Resolver:
                 if self.unsure(package, name):
                     return ("hidden", package)
                 if "func" in package.names[name]:
-                    return ("func", package.funcs[name])
+                    return ("func", self.visible(package.funcs[name]))
                 if "type" in package.names[name]:
                     return ("type", self.named(package.types[name]))
                 return ("var", package.vars.get(name))
@@ -2634,6 +2665,8 @@ class Resolver:
             return ("type", ("builtin", name))
         if name in UNIVERSE_VALUES:
             return ("const",)
+        if only_in_tests and all(dot.package is not None for dot in env.info.dots):
+            return ("tests_only",)  # every dot import is a package ripple read, and none of them has the name in a build of this file
         if env.info.dots:
             return ("dot", env.info.dots)
         return ("missing",)
@@ -2651,12 +2684,44 @@ class Resolver:
             if found is not None:
                 self.edge(found, node)
                 return self.first(self.results_of(found), want_tuple)
+            reason = self.only_in_tests(function, env)
+            if reason is not None:
+                self.unresolved(node, shown(ty), reason)  # a generic function or type that no build of this file has
+                return None
             if function.type in ("type_identifier", "identifier") and not self.is_type_expression(function, env):
                 # `fns[k](x)` with a name as the index reads the same as `G[T](x)`: a value that is not a type is a
                 # map or slice of functions, called by index.
                 self.unresolved(node, shown(ty), INDEXED_FUNCTION)
                 return None
         return self.type_node(ty, env)
+
+    def only_in_tests(self, node, env: Env) -> str | None:
+        """The reason a call is left open when the name it is written with (a generic function or a type, `Only`, `d.Only`, `d.T`) is
+        declared in _test.go files of another directory alone, so that no build of the file being read has it and Go reports it
+        undefined: ONLY_IN_TESTS, for the dot-imported name of name_value or a qualified one that hidden_name says no file of the
+        caller's builds declares. When a file ripple could not read may declare the name, the call is open for that reason instead,
+        and every other name is None (the caller reads it as it always did)."""
+        node = unwrap(node, ("parenthesized_expression",))
+        if node.type in ("identifier", "type_identifier"):
+            name = text(node)
+            if env.local(name) is not None:
+                return None
+            found = self.name_value(name, env)
+            if found[0] == "tests_only":
+                return ONLY_IN_TESTS
+            if found[0] == "hidden" and found[1] is not env.info.package and self.hidden_name(found[1], name):
+                return self.unread(found[1])
+            return None
+        entry = None
+        if node.type == "selector_expression":
+            entry = self.qualifier(field_of(node, "operand"), env)
+            member = text(field_of(node, "field"))
+        elif node.type == "qualified_type":
+            entry = self.import_entry(env.info, text(field_of(node, "package")))
+            member = text(field_of(node, "name"))
+        if entry is None or entry.kind != "repo" or not self.hidden_name(entry.package, member):
+            return None
+        return self.unread(entry.package) if self.unsure(entry.package, member) else ONLY_IN_TESTS
 
     def function_named(self, node, env: Env) -> list[FuncDecl] | None:
         """The declarations of the repo function a bare or imported name denotes, None when it is not one."""
@@ -2679,8 +2744,9 @@ class Resolver:
             and member in entry.package.funcs
             and len(entry.package.names[member]) == 1
             and not self.unsure(entry.package, member)
+            and not self.hidden_name(entry.package, member)
         ):
-            return entry.package.funcs[member]
+            return self.visible(entry.package.funcs[member])
         return None
 
     @staticmethod
@@ -2700,6 +2766,11 @@ class Resolver:
             imported = operand.type == "selector_expression" and self.qualifier(field_of(operand, "operand"), env) is not None
             if imported or self.function_named(operand, env) is not None:
                 callee = operand
+            else:
+                reason = self.only_in_tests(operand, env)
+                if reason is not None:
+                    self.unresolved(node, written, reason)  # `Only[int](x, y)` through a dot import that no build of this file has
+                    return None
         if callee.type == "generic_type":
             callee = field_of(callee, "type")
         if callee.type == "identifier":
@@ -2707,6 +2778,10 @@ class Resolver:
         if callee.type == "selector_expression":
             return self.call_selector(node, callee, written, env, want_tuple)
         if callee.type == "unary_expression" and callee.child(0).type == "*":
+            reason = self.only_in_tests(field_of(callee, "operand"), env)
+            if reason is not None:
+                self.unresolved(node, written, reason)  # `(*d.T)(x)` for a type that no build of this file has
+                return None
             return self.type_node(callee, env) if self.is_type_expression(field_of(callee, "operand"), env) else self.computed(node, callee, written, env)
         if callee.type == "func_literal":
             self.expr(callee, env)
@@ -2773,6 +2848,8 @@ class Resolver:
             return None
         if kind == "hidden":
             self.unresolved(node, written, self.unread(found[1]))
+        elif kind == "tests_only":
+            self.unresolved(node, written, ONLY_IN_TESTS)
         else:
             self.unresolved(node, written, CONFLICT if kind == "conflict" else UNDECLARED)
         return None
@@ -2850,9 +2927,12 @@ class Resolver:
                 self.unresolved(node, written, CONFLICT)
             elif kinds and self.unsure(package, member):
                 self.unresolved(node, written, self.unread(package))
+            elif self.hidden_name(package, member):
+                self.unresolved(node, written, ONLY_IN_TESTS)  # a function, variable, constant or type that only another directory's tests declare
             elif "func" in kinds:
-                self.edge(package.funcs[member], node)
-                return self.first(self.results_of(package.funcs[member]), want_tuple)
+                found = self.visible(package.funcs[member])
+                self.edge(found, node)
+                return self.first(self.results_of(found), want_tuple)
             elif "type" in kinds:
                 return self.named(package.types[member])  # a conversion
             elif "var" in kinds:
