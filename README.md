@@ -1620,10 +1620,53 @@ reported as that, with Gradle's text. JUnit 4 runs through the same listener and
 a `Parameterized` class and method, and JUnit 4 tests under `useJUnitPlatform()` with no vintage engine, which is not a pass). A
 method asked for by id is passed to Gradle as `Class.method` and `Class.method[*]`, because JUnit 4 names a `Parameterized`
 invocation `method[1]` and Gradle's `--tests Class.method` does not match it. TestNG, Kotlin and Spock were not run (no jars offline). The live tests
-(`tests/test_check_gradle_live.py`, `tests/test_check_gradle_live8.py` for a Gradle 8 at `RIPPLE_TEST_GRADLE8`, and
-`tests/test_check_gradle_live_junit4.py` on both, with `RIPPLE_TEST_M2` holding JUnit 4.13.2) need a Gradle and a Gradle user home
-that has JUnit 5.11.3 (`RIPPLE_TEST_GRADLE_HOME`, `RIPPLE_TEST_GRADLE8_HOME`) and skip, with the reason, without them;
-`RIPPLE_REQUIRE_LIVE_GRADLE=1` turns that skip into a failure. No CI job runs them yet.
+(`tests/test_check_gradle_live.py` on Gradle 9.9.1, `tests/test_check_gradle_live8.py` on Gradle 8.10.2, and
+`tests/test_check_gradle_live_junit4.py` on both: 98 tests) need a JDK, the two Gradles, a Gradle user home for
+each that has JUnit 5.11.3, and a Maven repository with JUnit 4.13.2 and hamcrest-core 1.3. Without them they skip, with the
+reason; `RIPPLE_REQUIRE_LIVE_GRADLE=1` turns that skip into a failure.
+
+The two Gradles need different JDKs. Gradle 9.9.1 needs Java 17 or later and runs on the JDK in `JAVA_HOME` (measured here on JDK
+21 and on JDK 25). Gradle 8.10.2 runs on Java 8 to 23 and dies on a newer one in the build script (`Unsupported class file major
+version 69` on JDK 25). So the Gradle 8 module and the Gradle 8 half of the JUnit 4 module run on `RIPPLE_TEST_GRADLE8_JAVA_HOME`
+when it is set, else on the same JDK as the rest; a JDK that is not Java 8 to 23 is a skip with that reason, and a failure with
+`RIPPLE_REQUIRE_LIVE_GRADLE=1`. This is what a user meets too: `ripple check` on a repo that pins Gradle 8.10.x, run on JDK 25,
+returns not passed, with Gradle's own `Unsupported class file major version 69` in the problem.
+
+`sh ci/warm-gradle.sh <install-dir> [<maven-repo-dir>]` installs all of it, and prints the variables to set: `PATH` with
+`<install-dir>/gradle-9.9.1/bin` first (the Gradle 9 modules use the `gradle` they find on `PATH`), `RIPPLE_TEST_GRADLE_HOME`,
+`RIPPLE_TEST_GRADLE8` (a `gradle` binary), `RIPPLE_TEST_GRADLE8_HOME`, `RIPPLE_TEST_GRADLE8_JAVA_HOME`, `RIPPLE_TEST_M2`, and
+`RIPPLE_TEST_GRADLE_DIST` (the 9.9.1 zip, which the one wrapper test points a wrapper at). The script builds with Gradle 8 on
+`RIPPLE_TEST_GRADLE8_JAVA_HOME` when it is set, refuses a Gradle 8 JDK newer than 23 before it starts, and prints `java -version`
+before each build. Each distribution is downloaded from `services.gradle.org` and
+checked against its pinned SHA-256 before it is unpacked, and the JUnit 4 jars (into `<maven-repo-dir>`, default `<install-dir>/m2`)
+against theirs; a mismatch stops the script.
+The user homes are filled by one online build each, and the tests then run `--offline`. Nothing else is fetched.
+
+CI runs all 98 in a job of their own, `gradle-live` (`.github/workflows/ci.yml`), on Python 3.12 with the `dev` extra only (the
+three modules passed all 98 on an interpreter with no tree-sitter package), beside the test matrix
+and not inside it. The job has no `if`, no path filter and no `continue-on-error`, so the workflow is not
+green unless it ran them; it sets `RIPPLE_REQUIRE_LIVE_GRADLE=1`, so a skip of any of the 98 is an error, and a step before the
+tests fails if fewer than 98 are collected from the three modules, so a module that is renamed, emptied or deleted cannot shrink
+it to nothing (when tests are added, the number may stay: it is a minimum). It prints `java -version` for the default JDK and for
+the JDK 21 Gradle 8 gets, and `--durations=15`, the slowest tests. It does not run `ci/warm-maven.sh`: `ci/warm-gradle.sh` puts
+the JUnit 4 jars into an `m2` directory inside its own install, which is cached with it. The install is a cache keyed on the versions
+and on the contents of `ci/warm-gradle.sh` and `ci/warm-gradle/`, saved right after it is filled (the tests write into the homes,
+so a cache saved after them would be large).
+
+The matrix jobs set no Gradle variable and install no Gradle, so the Gradle tests skip there, with one exception that was already
+true before the `gradle-live` job: the Gradle 9 half of the JUnit 4 module (9 tests) needs only a JDK, a `gradle` on `PATH` and the
+Maven repository the java entries fill, so it runs in them against the Gradle the runner image has (89 of the 98 skipped in the
+3.12 java job of run 45662198279 on main).
+
+What it costs. Measured on a 16-core machine with the install in place, one module after the other with the default JDK 25 and
+Gradle 8 on JDK 21 (one pytest run each, wall times from their logs): 58 tests in 718 s, 22 in 265 s, 18 in 269 s, 21 minutes
+in all. Every check runs Gradle with `--no-daemon`. `ci/warm-gradle.sh` into an empty directory took between 32 s and 114 s over
+three runs, with the network on. In CI, when the same tests ran inside the four java matrix runs (runs 45675599185 and 45675587901),
+those jobs took 1844 to 2339 s (31 to 39 minutes) against 814 s and 824 s on main (run 45662198279): the `Tests` step took 1785 to
+2265 s and the fill step 25 to 38 s on a cache miss, so the live Gradle tests added 17 to 25 minutes to each java job. They now run once,
+in `gradle-live`: in its first two runs (45695015338 and 45695001769, both on a cache miss) the job took 843 s and 1031 s (14 and 17
+minutes), of which the tests were 792 s and 976 s and the fill 29 s and 32 s, with 98 collected and 98 passed in each. Not run by anything: TestNG, Kotlin, Spock and the retry
+plugin (no jars offline, as above).
 
 Java is read by tree-sitter too, as its own optional extra (`tree-sitter` and `tree-sitter-java`):
 

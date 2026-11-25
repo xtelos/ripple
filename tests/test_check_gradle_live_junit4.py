@@ -4,6 +4,7 @@ JUnit 4.13.2 and hamcrest-core 1.3 come from a local Maven repository (RIPPLE_TE
 needed. The Gradles are the ones of test_check_gradle_live.py (9.x) and test_check_gradle_live8.py (8.x): each test runs on both.
 These pin what a review ran by hand: JUnit 4 runs under the same listener, a Parameterized method can be asked for by id, and
 JUnit 4 tests under `useJUnitPlatform()` with no vintage engine are not a pass (nothing was discovered).
+The Gradle 8 half runs on RIPPLE_TEST_GRADLE8_JAVA_HOME (else the JDK of the rest), which must be Java 8 to 23.
 RIPPLE_REQUIRE_LIVE_GRADLE=1 turns a skip into a failure.
 """
 
@@ -14,13 +15,15 @@ import os
 from pathlib import Path
 
 import pytest
-from gradle_check_support import find_gradle, find_java, write
+from gradle_check_support import find_gradle, find_java, gradle8_java, write
 
 from ripple import checker
 from ripple.profile import JAVA
 
 M2 = Path(os.environ.get("RIPPLE_TEST_M2", "/tmp/java-inv-m2"))
 JAVA_HOME = find_java()
+# the JDK each Gradle runs on, and why it cannot: Gradle 8.10.2 dies on a JDK newer than 23, Gradle 9 does not
+JDKS = {"9": (JAVA_HOME, None if JAVA_HOME else "no JDK (set JAVA_HOME)"), "8": gradle8_java()}
 GRADLES = {
     "9": (find_gradle(), os.environ.get("RIPPLE_TEST_GRADLE_HOME", "/tmp/gradle-toolchain/home")),
     "8": (
@@ -34,8 +37,8 @@ REQUIRED = os.environ.get("RIPPLE_REQUIRE_LIVE_GRADLE") == "1"
 
 def unavailable(version: str) -> str | None:
     gradle, _home = GRADLES[version]
-    if JAVA_HOME is None:
-        return "no JDK (set JAVA_HOME)"
+    if JDKS[version][1] is not None:
+        return JDKS[version][1]
     if gradle is None or not Path(gradle).exists():
         return f"no Gradle {version} (see test_check_gradle_live{'8' if version == '8' else ''}.py)"
     if not all(j.exists() for j in JARS):
@@ -52,8 +55,9 @@ def gradle(request, monkeypatch):
             pytest.fail(f"RIPPLE_REQUIRE_LIVE_GRADLE=1 but the live JUnit 4 tests cannot run on Gradle {version}: {why}", pytrace=False)
         pytest.skip(why)
     binary, home = GRADLES[version]
-    monkeypatch.setenv("JAVA_HOME", JAVA_HOME)
-    monkeypatch.setenv("PATH", f"{JAVA_HOME}/bin:{Path(binary).parent}:{os.environ['PATH']}")
+    java_home = JDKS[version][0]
+    monkeypatch.setenv("JAVA_HOME", java_home)
+    monkeypatch.setenv("PATH", f"{java_home}/bin:{Path(binary).parent}:{os.environ['PATH']}")
     monkeypatch.setenv("GRADLE_USER_HOME", home)
     for name in ("GRADLE_OPTS", "JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS", "JAVA_OPTS"):
         monkeypatch.delenv(name, raising=False)
