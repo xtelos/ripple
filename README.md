@@ -1664,7 +1664,8 @@ in all. Every check runs Gradle with `--no-daemon`. `ci/warm-gradle.sh` into an 
 three runs, with the network on. In CI, when the same tests ran inside the four java matrix runs (runs 45675599185 and 45675587901),
 those jobs took 1844 to 2339 s (31 to 39 minutes) against 814 s and 824 s on main (run 45662198279): the `Tests` step took 1785 to
 2265 s and the fill step 25 to 38 s on a cache miss, so the live Gradle tests added 17 to 25 minutes to each java job. They now run once,
-in `gradle-live`; the time of that job is not known until it has run. Not run by anything: TestNG, Kotlin, Spock and the retry
+in `gradle-live`: in its first two runs (45695015338 and 45695001769, both on a cache miss) the job took 843 s and 1031 s (14 and 17
+minutes), of which the tests were 792 s and 976 s and the fill 29 s and 32 s, with 98 collected and 98 passed in each. Not run by anything: TestNG, Kotlin, Spock and the retry
 plugin (no jars offline, as above).
 
 Java is read by tree-sitter too, as its own optional extra (`tree-sitter` and `tree-sitter-java`):
